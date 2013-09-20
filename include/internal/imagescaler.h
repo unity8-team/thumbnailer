@@ -16,32 +16,22 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#ifndef THUMBNAILER_H_
-#define THUMBNAILER_H_
+#ifndef IMAGESCALER_H_
+#define IMAGESCALER_H_
 
-class ThumbnailerPrivate;
+class ImageScalerPrivate;
 
-/*
- * This class provides a way to generate and access
- * thumbnails of video, audio and image files.
- *
- * All methods are blocking.
- *
- * All methods are thread safe.
- *
- * Errors are reported as exceptions (exact types TBD).
- */
-
-class Thumbnailer {
+class ImageScaler {
 public:
-    Thumbnailer();
-    ~Thumbnailer();
+    ImageScaler();
+    ~ImageScaler();
 
-    Thumbnailer(const Thumbnailer &t) = delete;
-    Thumbnailer & operator=(const Thumbnailer &t) = delete;
+    ImageScaler(const ImageScaler &t) = delete;
+    ImageScaler & operator=(const ImageScaler &t) = delete;
 
 private:
-    ThumbnailerPrivate *p;
+    ImageScalerPrivate *p;
 };
+
 
 #endif
