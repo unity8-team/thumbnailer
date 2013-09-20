@@ -16,9 +16,15 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#include<thumbnailer.h>
+#include<internal/audioimageextractor.h>
 
-int main() {
-    Thumbnailer tn;
-    return 0;
+class AudioImageExtractorPrivate {
+};
+
+AudioImageExtractor::AudioImageExtractor() {
+    p = new AudioImageExtractorPrivate();
+}
+
+AudioImageExtractor::~AudioImageExtractor() {
+    delete p;
 }

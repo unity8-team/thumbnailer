@@ -16,9 +16,22 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#include<thumbnailer.h>
+#ifndef AUDIOIMAGEEXTRACTOR_H_
+#define AUDIOIMAGEEXTRACTOR_H_
 
-int main() {
-    Thumbnailer tn;
-    return 0;
-}
+class AudioImageExtractorPrivate;
+
+class AudioImageExtractor {
+public:
+    AudioImageExtractor();
+    ~AudioImageExtractor();
+
+    AudioImageExtractor(const AudioImageExtractor &t) = delete;
+    AudioImageExtractor & operator=(const AudioImageExtractor &t) = delete;
+
+private:
+    AudioImageExtractorPrivate *p;
+};
+
+
+#endif

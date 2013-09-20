@@ -1,1 +1,4 @@
-add_library(thumbnailer thumbnailer.cpp)
+add_library(thumbnailer 
+thumbnailer.cpp
+audioimageextractor.cpp
+)

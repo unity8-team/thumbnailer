@@ -1,5 +1,4 @@
 /*
- * This file is part of the Ubuntu TV Media Scanner
  * Copyright (C) 2013 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
