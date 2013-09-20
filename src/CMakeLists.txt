@@ -1,4 +1,5 @@
-add_library(thumbnailer 
-thumbnailer.cpp
+add_library(thumbnailer SHARED
 audioimageextractor.cpp
+thumbnailer.cpp
+videoscreenshotter.cpp
 )
