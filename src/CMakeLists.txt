@@ -1,6 +1,7 @@
 add_library(thumbnailer SHARED
 audioimageextractor.cpp
 imagescaler.cpp
+thumbnailcache.cpp
 thumbnailer.cpp
 videoscreenshotter.cpp
 )
