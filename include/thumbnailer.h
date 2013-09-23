@@ -21,7 +21,7 @@
 
 class ThumbnailerPrivate;
 
-enum ThumbnailSizes {
+enum ThumbnailSize {
     TN_SIZE_SMALL,
     TN_SIZE_LARGE
 };

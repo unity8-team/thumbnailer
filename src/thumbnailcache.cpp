@@ -33,7 +33,7 @@ public:
 
     ThumbnailCachePrivate();
     string md5(const string &str) const;
-    string cache_filename(const std::string &original, ThumbnailSizes desired) const;
+    string cache_filename(const std::string &original, ThumbnailSize desired) const;
 };
 
 ThumbnailCachePrivate::ThumbnailCachePrivate() {
@@ -85,7 +85,7 @@ string ThumbnailCachePrivate::md5(const string &str) const {
     return final;
 }
 
-string ThumbnailCachePrivate::cache_filename(const std::string & abs_original, ThumbnailSizes desired) const {
+string ThumbnailCachePrivate::cache_filename(const std::string & abs_original, ThumbnailSize desired) const {
     assert(abs_original[0] == '/');
     string path = desired == TN_SIZE_SMALL ? smalldir : largedir;
     path += "/" + md5("file://" + abs_original) + ".png";

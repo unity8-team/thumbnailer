@@ -33,7 +33,7 @@ ImageScaler::~ImageScaler() {
     delete p;
 }
 
-bool ImageScaler::scale(std::string &ifilename, std::string &ofilename, ThumbnailSizes wanted) const {
+bool ImageScaler::scale(std::string &ifilename, std::string &ofilename, ThumbnailSize wanted) const {
     GError *err = nullptr;
     auto pbunref = [](GdkPixbuf *t) { g_object_unref(G_OBJECT(t)); };
     int max_dim = wanted == TN_SIZE_SMALL ? 128 : 256;
