@@ -4,3 +4,4 @@ imagescaler.cpp
 thumbnailer.cpp
 videoscreenshotter.cpp
 )
+target_link_libraries(thumbnailer ${DEPS_LDFLAGS})

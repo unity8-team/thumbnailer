@@ -17,6 +17,12 @@
  */
 
 #include<thumbnailer.h>
+#include<gst/gst.h>
+
+class GstInitializer {
+public:
+    GstInitializer() { gst_init(nullptr, nullptr); };
+};
 
 class ThumbnailerPrivate {
 public:

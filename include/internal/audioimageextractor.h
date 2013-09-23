@@ -19,6 +19,8 @@
 #ifndef AUDIOIMAGEEXTRACTOR_H_
 #define AUDIOIMAGEEXTRACTOR_H_
 
+#include<string>
+
 class AudioImageExtractorPrivate;
 
 class AudioImageExtractor {
@@ -28,6 +30,8 @@ public:
 
     AudioImageExtractor(const AudioImageExtractor &t) = delete;
     AudioImageExtractor & operator=(const AudioImageExtractor &t) = delete;
+
+    std::string extract(const std::string &fname);
 
 private:
     AudioImageExtractorPrivate *p;
