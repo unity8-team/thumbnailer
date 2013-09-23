@@ -16,6 +16,7 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
+#include<cstdio>
 #include<internal/audioimageextractor.h>
 #include<unistd.h>
 #include<stdexcept>
@@ -86,7 +87,8 @@ string AudioImageExtractor::extract(const string &fname) {
     if(!has_tag(tlist, GST_TAG_IMAGE)) {
         return "";
     }
-    string outfilename("/tmp/something.jpg");
+    char ofname[] = "/tmp/some_long_text_here";
+    string outfilename(tmpnam(ofname));
     FILE *outfile = fopen(outfilename.c_str(), "wb");
     extract_image(tlist, outfile);
     fclose(outfile);
