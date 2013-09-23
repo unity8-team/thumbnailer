@@ -1,0 +1,28 @@
+/*
+ * Copyright (C) 2013 Canonical Ltd.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
+ */
+
+#include<internal/audioimageextractor.h>
+#include<cstdio>
+#include<gst/gst.h>
+
+int main(int argc, char **argv) {
+    gst_init(&argc, &argv);
+    AudioImageExtractor ae;
+    printf("Out: %s\n", ae.extract(argv[1]).c_str());
+    return 0;
+}
