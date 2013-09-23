@@ -22,6 +22,7 @@
 #include<glib.h>
 #include<sys/stat.h>
 #include<cassert>
+#include<cstdio>
 
 using namespace std;
 
@@ -42,6 +43,7 @@ ThumbnailCachePrivate::ThumbnailCachePrivate() {
         string s("Could not determine cache dir.");
         throw runtime_error(s);
     }
+    printf("%s\n", xdg_base.c_str());
     int ec = mkdir(xdg_base.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
     if (ec < 0 && errno != EEXIST) {
         string s("Could not create base dir.");
@@ -54,13 +56,13 @@ ThumbnailCachePrivate::ThumbnailCachePrivate() {
         throw runtime_error(s);
     }
     smalldir = tndir + "/normal";
-    ec = mkdir(tndir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
+    ec = mkdir(smalldir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
     if (ec < 0 && errno != EEXIST) {
         string s("Could not create small dir.");
         throw runtime_error(s);
     }
     largedir = tndir + "/large";
-    ec = mkdir(tndir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
+    ec = mkdir(largedir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
     if (ec < 0 && errno != EEXIST) {
         string s("Could not create large dir.");
         throw runtime_error(s);
@@ -92,5 +94,9 @@ string ThumbnailCachePrivate::cache_filename(const std::string & abs_original, T
     return path;
 }
 
-ThumbnailCache::ThumbnailCache() : p() {
+ThumbnailCache::ThumbnailCache() : p(new ThumbnailCachePrivate()) {
+}
+
+ThumbnailCache::~ThumbnailCache() {
+    delete p;
 }

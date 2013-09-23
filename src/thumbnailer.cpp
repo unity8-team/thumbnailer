@@ -17,6 +17,8 @@
  */
 
 #include<thumbnailer.h>
+#include<internal/thumbnailcache.h>
+
 #include<gst/gst.h>
 
 class GstInitializer {
@@ -25,11 +27,14 @@ public:
 };
 
 class ThumbnailerPrivate {
+private:
+    ThumbnailCache cache;
 public:
     ThumbnailerPrivate() {};
 };
 
 Thumbnailer::Thumbnailer() {
+    static GstInitializer i; // C++ standard guarantees this to be lazy and thread safe.
     p = new ThumbnailerPrivate();
 }
 
