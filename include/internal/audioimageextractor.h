@@ -23,7 +23,7 @@
 
 class AudioImageExtractorPrivate;
 
-class AudioImageExtractor {
+class AudioImageExtractor final {
 public:
     AudioImageExtractor();
     ~AudioImageExtractor();

@@ -24,7 +24,7 @@
 
 class ImageScalerPrivate;
 
-class ImageScaler {
+class ImageScaler final {
 public:
     ImageScaler();
     ~ImageScaler();

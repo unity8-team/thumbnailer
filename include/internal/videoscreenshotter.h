@@ -23,7 +23,7 @@
 
 class VideoScreenshotterPrivate;
 
-class VideoScreenshotter {
+class VideoScreenshotter final {
 public:
     VideoScreenshotter();
     ~VideoScreenshotter();
