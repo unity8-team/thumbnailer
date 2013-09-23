@@ -18,8 +18,10 @@
 
 #include<thumbnailer.h>
 #include<internal/thumbnailcache.h>
-
+#include<unistd.h>
 #include<gst/gst.h>
+
+using std::string;
 
 class GstInitializer {
 public:
@@ -27,11 +29,16 @@ public:
 };
 
 class ThumbnailerPrivate {
-private:
-    ThumbnailCache cache;
 public:
+    ThumbnailCache cache;
     ThumbnailerPrivate() {};
+
+    string create_thumbnail(const string &abspath, ThumbnailSize desired_size);
 };
+
+string ThumbnailerPrivate::create_thumbnail(const string &abspath, ThumbnailSize desired_size) {
+
+}
 
 Thumbnailer::Thumbnailer() {
     static GstInitializer i; // C++ standard guarantees this to be lazy and thread safe.
@@ -40,4 +47,19 @@ Thumbnailer::Thumbnailer() {
 
 Thumbnailer::~Thumbnailer() {
     delete p;
+}
+
+string Thumbnailer::get_thumbnail(const string &filename, ThumbnailSize desired_size) {
+    string abspath;
+    if(filename[0] != '/') {
+      abspath += getcwd(nullptr, 0) + '/' + filename;
+    } else {
+        abspath = filename;
+    }
+
+    std::string estimate = p->cache.get_if_exists(filename, desired_size);
+    if(!estimate.empty())
+        return estimate;
+    p->create_thumbnail(filename, desired_size);
+    return p->cache.get_if_exists(filename, desired_size);
 }

@@ -19,11 +19,13 @@
 #ifndef THUMBNAILER_H_
 #define THUMBNAILER_H_
 
+#include<string>
+
 class ThumbnailerPrivate;
 
 enum ThumbnailSize {
-    TN_SIZE_SMALL,
-    TN_SIZE_LARGE
+    TN_SIZE_SMALL, // maximum dimension 128 pixels
+    TN_SIZE_LARGE  // maximum dimension 256 pixels
 };
 
 /*
@@ -44,6 +46,8 @@ public:
 
     Thumbnailer(const Thumbnailer &t) = delete;
     Thumbnailer & operator=(const Thumbnailer &t) = delete;
+
+    std::string get_thumbnail(const std::string &filename, ThumbnailSize desired_size);
 
 private:
     ThumbnailerPrivate *p;

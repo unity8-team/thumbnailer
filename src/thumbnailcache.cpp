@@ -100,3 +100,15 @@ ThumbnailCache::ThumbnailCache() : p(new ThumbnailCachePrivate()) {
 ThumbnailCache::~ThumbnailCache() {
     delete p;
 }
+
+std::string ThumbnailCache::get_if_exists(const std::string &abs_path, ThumbnailSize desired_size) const {
+    assert(abs_path[0] == '/');
+    string fname = p->cache_filename(abs_path, desired_size);
+    FILE *f = fopen(abs_path.c_str(), "r");
+    bool existed = false;
+    if(f) {
+        existed = true;
+        fclose(f);
+    }
+    return existed ? fname : string("");
+}
