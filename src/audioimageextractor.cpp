@@ -56,13 +56,13 @@ AudioImageExtractor::~AudioImageExtractor() {
 }
 
 
-string AudioImageExtractor::extract(const string &fname) {
+bool AudioImageExtractor::extract(const string &ifname, const string &ofname) {
     string uri("file://");
-    if(fname[0] != '/') {
+    if(ifname[0] != '/') {
         uri += getcwd(nullptr, 0);
         uri += '/';
     }
-    uri += fname;
+    uri += ifname;
     GError *err = nullptr;
     unique_ptr<GstDiscoverer, void(*)(GstDiscoverer*)> dsc(
             gst_discoverer_new(GST_SECOND, &err),
@@ -82,15 +82,13 @@ string AudioImageExtractor::extract(const string &fname) {
     }
     const GstTagList *tlist = gst_discoverer_info_get_tags(info.get());
     if(!tlist) {
-        return "";
+        return false;
     }
     if(!has_tag(tlist, GST_TAG_IMAGE)) {
-        return "";
+        return false;
     }
-    char ofname[] = "/tmp/some_long_text_here";
-    string outfilename(tmpnam(ofname));
-    FILE *outfile = fopen(outfilename.c_str(), "wb");
+    FILE *outfile = fopen(ofname.c_str(), "wb");
     extract_image(tlist, outfile);
     fclose(outfile);
-    return outfilename;
+    return true;
 }

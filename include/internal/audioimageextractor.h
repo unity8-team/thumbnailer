@@ -31,7 +31,7 @@ public:
     AudioImageExtractor(const AudioImageExtractor &t) = delete;
     AudioImageExtractor & operator=(const AudioImageExtractor &t) = delete;
 
-    std::string extract(const std::string &fname);
+    bool extract(const std::string &ifname, const std::string &ofname);
 
 private:
     AudioImageExtractorPrivate *p;

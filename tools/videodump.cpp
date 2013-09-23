@@ -19,10 +19,16 @@
 #include<internal/videoscreenshotter.h>
 #include<cstdio>
 #include<gst/gst.h>
+#include<stdexcept>
 
 int main(int argc, char **argv) {
     gst_init(&argc, &argv);
-    VideoScreenshotter ae;
-    printf("Out: %s\n", ae.extract(argv[1]).c_str());
+    VideoScreenshotter ve;
+    try {
+        ve.extract(argv[1], argv[2]);
+    } catch(std::runtime_error &e) {
+        printf("Failed: %s\n", e.what());
+        return 1;
+    }
     return 0;
 }

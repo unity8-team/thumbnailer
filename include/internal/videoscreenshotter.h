@@ -31,7 +31,7 @@ public:
     VideoScreenshotter(const VideoScreenshotter &t) = delete;
     VideoScreenshotter & operator=(const VideoScreenshotter &t) = delete;
 
-    std::string extract(const std::string fname);
+    bool extract(const std::string &ifname, const std::string &ofname);
 
 private:
     VideoScreenshotterPrivate *p;

@@ -35,13 +35,12 @@ VideoScreenshotter::~VideoScreenshotter() {
     delete p;
 }
 
-std::string VideoScreenshotter::extract(const std::string fname) {
+bool VideoScreenshotter::extract(const std::string &ifname, const std::string &ofname) {
     string caps_string = "video/x-raw,format=RGB,pixel-aspect-ratio=1/1";
     GstElement *sink;
     gint64 duration;
-    string outfilename = "/tmp/screenshot.jpg";
     string pipe_cmd = "filesrc location=\"";
-    pipe_cmd += fname;
+    pipe_cmd += ifname;
     pipe_cmd += "\" ! decodebin ! videoconvert ! videoscale !";
     pipe_cmd += "appsink name=sink caps=\"";
     pipe_cmd += caps_string;
@@ -73,6 +72,9 @@ std::string VideoScreenshotter::extract(const std::string fname) {
                             2*duration/7);
     GstSample *sample = nullptr;
     sample = gst_app_sink_pull_preroll(GST_APP_SINK(sink));
+    if(!GST_IS_SAMPLE(sample)) {
+        throw runtime_error("Could not create sample. Unsupported or invalid file type?");
+    }
     GstCaps *caps = gst_sample_get_caps(sample);
 
     if(sample == nullptr) {
@@ -97,7 +99,7 @@ std::string VideoScreenshotter::extract(const std::string fname) {
                         [](GdkPixbuf *t) {g_object_unref(G_OBJECT(t));});
         gst_buffer_unmap(buf, &mi);
         GError *err = nullptr;
-        if(!gdk_pixbuf_save(img.get(), outfilename.c_str(), "jpeg", &err, NULL)) {
+        if(!gdk_pixbuf_save(img.get(), ofname.c_str(), "jpeg", &err, NULL)) {
             string msg = err->message;
             g_error_free(err);
             throw runtime_error(msg);
@@ -107,5 +109,5 @@ std::string VideoScreenshotter::extract(const std::string fname) {
     }
 
     gst_element_set_state(pipeline.get(), GST_STATE_NULL);
-    return outfilename;
+    return true;
 }
