@@ -3,3 +3,6 @@ target_link_libraries(imdump thumbnailer)
 
 add_executable(videodump videodump.cpp)
 target_link_libraries(videodump thumbnailer)
+
+add_executable(scaler scaler.cpp)
+target_link_libraries(scaler thumbnailer)

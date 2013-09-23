@@ -21,6 +21,11 @@
 
 class ThumbnailerPrivate;
 
+enum ThumbnailSizes {
+    TN_SIZE_SMALL,
+    TN_SIZE_LARGE
+};
+
 /*
  * This class provides a way to generate and access
  * thumbnails of video, audio and image files.

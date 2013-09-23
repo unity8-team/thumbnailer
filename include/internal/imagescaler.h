@@ -19,6 +19,9 @@
 #ifndef IMAGESCALER_H_
 #define IMAGESCALER_H_
 
+#include<thumbnailer.h>
+#include<string>
+
 class ImageScalerPrivate;
 
 class ImageScaler {
@@ -28,6 +31,8 @@ public:
 
     ImageScaler(const ImageScaler &t) = delete;
     ImageScaler & operator=(const ImageScaler &t) = delete;
+
+    bool scale(std::string &ifilename, std::string &ofilename, ThumbnailSizes wanted) const;
 
 private:
     ImageScalerPrivate *p;
