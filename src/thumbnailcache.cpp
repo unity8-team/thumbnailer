@@ -16,10 +16,12 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
+#include<thumbnailer.h>
 #include<internal/thumbnailcache.h>
 #include<stdexcept>
 #include<glib.h>
 #include<sys/stat.h>
+#include<cassert>
 
 using namespace std;
 
@@ -29,38 +31,66 @@ public:
     string smalldir;
     string largedir;
 
-    ThumbnailCachePrivate() {
-        string xdg_base = g_get_user_cache_dir();
-        if (xdg_base == "") {
-            string s("Could not determine cache dir.");
-            throw runtime_error(s);
-        }
-        int ec = mkdir(xdg_base.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
-        if (ec < 0 && errno != EEXIST) {
-            string s("Could not create base dir.");
-            throw runtime_error(s);
-        }
-        tndir = xdg_base + "/thumbnails";
-        ec = mkdir(tndir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
-        if (ec < 0 && errno != EEXIST) {
-            string s("Could not create thumbnail dir.");
-            throw runtime_error(s);
-        }
-        smalldir = tndir + "/normal";
-        ec = mkdir(tndir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
-        if (ec < 0 && errno != EEXIST) {
-            string s("Could not create small dir.");
-            throw runtime_error(s);
-        }
-        largedir = tndir + "/large";
-        ec = mkdir(tndir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
-        if (ec < 0 && errno != EEXIST) {
-            string s("Could not create large dir.");
-            throw runtime_error(s);
-        }
-    };
+    ThumbnailCachePrivate();
+    string md5(const string &str) const;
+    string cache_filename(const std::string &original, ThumbnailSizes desired) const;
 };
 
-ThumbnailCache::ThumbnailCache() : p() {
+ThumbnailCachePrivate::ThumbnailCachePrivate() {
+    string xdg_base = g_get_user_cache_dir();
+    if (xdg_base == "") {
+        string s("Could not determine cache dir.");
+        throw runtime_error(s);
+    }
+    int ec = mkdir(xdg_base.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
+    if (ec < 0 && errno != EEXIST) {
+        string s("Could not create base dir.");
+        throw runtime_error(s);
+    }
+    tndir = xdg_base + "/thumbnails";
+    ec = mkdir(tndir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
+    if (ec < 0 && errno != EEXIST) {
+        string s("Could not create thumbnail dir.");
+        throw runtime_error(s);
+    }
+    smalldir = tndir + "/normal";
+    ec = mkdir(tndir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
+    if (ec < 0 && errno != EEXIST) {
+        string s("Could not create small dir.");
+        throw runtime_error(s);
+    }
+    largedir = tndir + "/large";
+    ec = mkdir(tndir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
+    if (ec < 0 && errno != EEXIST) {
+        string s("Could not create large dir.");
+        throw runtime_error(s);
+    }
+}
 
+string ThumbnailCachePrivate::md5(const string &str) const {
+    const unsigned char *buf = (const unsigned char *)str.c_str();
+    char *normalized = g_utf8_normalize((const gchar*)buf, str.size(), G_NORMALIZE_ALL);
+    string final;
+    gchar *result;
+
+    if(normalized) {
+        buf = (const unsigned char*)normalized;
+    }
+    gssize bytes = str.length();
+
+    result = g_compute_checksum_for_data(G_CHECKSUM_MD5, buf, bytes);
+    final = result;
+    g_free((gpointer)normalized);
+    g_free(result);
+    return final;
+}
+
+string ThumbnailCachePrivate::cache_filename(const std::string & abs_original, ThumbnailSizes desired) const {
+    assert(abs_original[0] == '/');
+    string path = desired == TN_SIZE_SMALL ? smalldir : largedir;
+    path += "/" + md5("file://" + abs_original) + ".png";
+    return path;
+}
+
+ThumbnailCache::ThumbnailCache() : p() {
 }
