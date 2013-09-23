@@ -33,7 +33,7 @@ ImageScaler::~ImageScaler() {
     delete p;
 }
 
-bool ImageScaler::scale(std::string &ifilename, std::string &ofilename, ThumbnailSize wanted) const {
+bool ImageScaler::scale(const std::string &ifilename, const std::string &ofilename, ThumbnailSize wanted) const {
     GError *err = nullptr;
     auto pbunref = [](GdkPixbuf *t) { g_object_unref(G_OBJECT(t)); };
     int max_dim = wanted == TN_SIZE_SMALL ? 128 : 256;
@@ -65,7 +65,7 @@ bool ImageScaler::scale(std::string &ifilename, std::string &ofilename, Thumbnai
     unique_ptr<GdkPixbuf, void(*)(GdkPixbuf *t)> dst(
             gdk_pixbuf_scale_simple(src.get(), neww, newh, GDK_INTERP_BILINEAR),
             pbunref);
-    if(!gdk_pixbuf_save(dst.get(), ofilename.c_str(), "jpeg", &err, NULL)) {
+    if(!gdk_pixbuf_save(dst.get(), ofilename.c_str(), "png", &err, NULL)) {
         string msg = err->message;
         g_error_free(err);
         throw runtime_error(msg);

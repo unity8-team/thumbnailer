@@ -34,7 +34,7 @@ public:
 
     ThumbnailCachePrivate();
     string md5(const string &str) const;
-    string cache_filename(const std::string &original, ThumbnailSize desired) const;
+    string get_cache_file_name(const std::string &original, ThumbnailSize desired) const;
 };
 
 ThumbnailCachePrivate::ThumbnailCachePrivate() {
@@ -43,7 +43,6 @@ ThumbnailCachePrivate::ThumbnailCachePrivate() {
         string s("Could not determine cache dir.");
         throw runtime_error(s);
     }
-    printf("%s\n", xdg_base.c_str());
     int ec = mkdir(xdg_base.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
     if (ec < 0 && errno != EEXIST) {
         string s("Could not create base dir.");
@@ -87,7 +86,7 @@ string ThumbnailCachePrivate::md5(const string &str) const {
     return final;
 }
 
-string ThumbnailCachePrivate::cache_filename(const std::string & abs_original, ThumbnailSize desired) const {
+string ThumbnailCachePrivate::get_cache_file_name(const std::string & abs_original, ThumbnailSize desired) const {
     assert(abs_original[0] == '/');
     string path = desired == TN_SIZE_SMALL ? smalldir : largedir;
     path += "/" + md5("file://" + abs_original) + ".png";
@@ -103,12 +102,16 @@ ThumbnailCache::~ThumbnailCache() {
 
 std::string ThumbnailCache::get_if_exists(const std::string &abs_path, ThumbnailSize desired_size) const {
     assert(abs_path[0] == '/');
-    string fname = p->cache_filename(abs_path, desired_size);
-    FILE *f = fopen(abs_path.c_str(), "r");
+    string fname = p->get_cache_file_name(abs_path, desired_size);
+    FILE *f = fopen(fname.c_str(), "r");
     bool existed = false;
     if(f) {
         existed = true;
         fclose(f);
     }
     return existed ? fname : string("");
+}
+
+std::string ThumbnailCache::get_cache_file_name(const std::string &abs_path, ThumbnailSize desired) const {
+    return p->get_cache_file_name(abs_path, desired);
 }

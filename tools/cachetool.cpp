@@ -16,27 +16,19 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#ifndef IMAGESCALER_H_
-#define IMAGESCALER_H_
-
 #include<thumbnailer.h>
-#include<string>
+#include<cstdio>
+#include<gst/gst.h>
+#include<stdexcept>
 
-class ImageScalerPrivate;
-
-class ImageScaler final {
-public:
-    ImageScaler();
-    ~ImageScaler();
-
-    ImageScaler(const ImageScaler &t) = delete;
-    ImageScaler & operator=(const ImageScaler &t) = delete;
-
-    bool scale(const std::string &ifilename, const std::string &ofilename, ThumbnailSize wanted) const;
-
-private:
-    ImageScalerPrivate *p;
-};
-
-
-#endif
+int main(int argc, char **argv) {
+    Thumbnailer t;
+    if(argc != 2) {
+        printf("%s <file name>\n", argv[0]);
+        return 1;
+    }
+    std::string ifilename(argv[1]);
+    std::string ofilename = t.get_thumbnail(ifilename, TN_SIZE_LARGE);
+    printf("Thumbnail file is %s.\n", ofilename.c_str());
+    return 0;
+}
