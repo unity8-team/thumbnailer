@@ -16,26 +16,13 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#ifndef VIDEOSCREENSHOTTER_H_
-#define VIDEOSCREENSHOTTER_H_
+#include<internal/videoscreenshotter.h>
+#include<cstdio>
+#include<gst/gst.h>
 
-#include<string>
-
-class VideoScreenshotterPrivate;
-
-class VideoScreenshotter {
-public:
-    VideoScreenshotter();
-    ~VideoScreenshotter();
-
-    VideoScreenshotter(const VideoScreenshotter &t) = delete;
-    VideoScreenshotter & operator=(const VideoScreenshotter &t) = delete;
-
-    std::string extract(const std::string fname);
-
-private:
-    VideoScreenshotterPrivate *p;
-};
-
-
-#endif
+int main(int argc, char **argv) {
+    gst_init(&argc, &argv);
+    VideoScreenshotter ae;
+    printf("Out: %s\n", ae.extract(argv[1]).c_str());
+    return 0;
+}
