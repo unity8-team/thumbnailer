@@ -17,8 +17,56 @@
  */
 
 #include<thumbnailer.h>
+#include<testsetup.h>
+#include<cassert>
+#include<unistd.h>
+
+using namespace std;
+
+bool file_exists(const string &s) {
+    FILE *f = fopen(s.c_str(), "r");
+    if(f) {
+        fclose(f);
+        return true;
+    }
+    return false;
+}
+
+void trivial_test() {
+    Thumbnailer tn;
+}
+
+void image_test() {
+    Thumbnailer tn;
+    string imfile(TESTDATADIR);
+    imfile += "/testimage.jpg";
+    string thumbfile = tn.get_thumbnail(imfile, TN_SIZE_SMALL);
+    unlink(thumbfile.c_str());
+    assert(!file_exists(thumbfile));
+    string thumbfile2 = tn.get_thumbnail(imfile, TN_SIZE_SMALL);
+    assert(thumbfile == thumbfile2);
+    assert(file_exists(thumbfile));
+}
+
+void size_test() {
+    Thumbnailer tn;
+    string imfile(TESTDATADIR);
+    imfile += "/testimage.jpg";
+    string thumbfile = tn.get_thumbnail(imfile, TN_SIZE_SMALL);
+    string thumbfile2 = tn.get_thumbnail(imfile, TN_SIZE_LARGE);
+    assert(!thumbfile.empty());
+    assert(!thumbfile2.empty());
+    assert(thumbfile != thumbfile2);
+}
 
 int main() {
-    Thumbnailer tn;
+#ifdef NDEBUG
+    fprintf(stderr, "NDEBUG defined, tests will not work.\n");
+    return 1;
+#else
+    trivial_test();
+    image_test();
+    size_test();
     return 0;
+#endif
 }
