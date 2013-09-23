@@ -72,14 +72,11 @@ bool VideoScreenshotter::extract(const std::string &ifname, const std::string &o
                             2*duration/7);
     GstSample *sample = nullptr;
     sample = gst_app_sink_pull_preroll(GST_APP_SINK(sink));
-    if(!GST_IS_SAMPLE(sample)) {
+    if(sample == nullptr || !GST_IS_SAMPLE(sample)) {
         throw runtime_error("Could not create sample. Unsupported or invalid file type?");
     }
     GstCaps *caps = gst_sample_get_caps(sample);
 
-    if(sample == nullptr) {
-      throw runtime_error("Image convert failed.");
-    }
     GstBuffer *buf = gst_sample_get_buffer(sample);
     if (sample) {
         gint width, height;
