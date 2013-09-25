@@ -56,7 +56,6 @@ string ThumbnailerPrivate::create_thumbnail(const string &abspath, ThumbnailSize
             return tnfile;
     } catch(runtime_error &e) {
         // Fail is ok, just try the next one.
-        throw;
     }
     bool extracted = false;
     try {
