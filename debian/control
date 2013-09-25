@@ -1,0 +1,25 @@
+Source: thumbnailer
+Section: libdevel
+Priority: optional
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Standards-Version: 3.9.4
+Build-Depends: debhelper (>= 9~),
+	cmake,
+	libgstreamer1.0-dev,
+	libgstreamer-plugins-base1.0-dev,
+	libgdk-pixbuf2.0-dev,
+
+Package: libthumbnailer0
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: generate thumbnails from files
+ Thumbnailer is a shared library that generates
+ thumbnail images for multiple file types such
+ as video and audio files.
+
+Package: libthumbnailer-dev
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: development files for thumbnailer
+ This package contains development files
+ for the thumbnailer package.

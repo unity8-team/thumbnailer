@@ -1,0 +1,19 @@
+Format: http://dep.debian.net/deps/dep5
+Upstream-Name: thumbnailer
+#Source: https://launchpad.net/libcolumbus
+
+Files: *
+Copyright: 2013 Canonical ltd
+License: LGPL-3
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of version 3 of the GNU Lesser General Public
+ License as published by  the Free Software Foundation.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ On Debian systems, the full text of the GNU Lesser General Public
+ License version 3 can be found in the file
+ `/usr/share/common-licenses/LGPL-3'
