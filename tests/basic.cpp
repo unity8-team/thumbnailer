@@ -40,6 +40,7 @@ void image_test() {
     Thumbnailer tn;
     string imfile(TESTDATADIR);
     imfile += "/testimage.jpg";
+    assert(file_exists(imfile));
     string thumbfile = tn.get_thumbnail(imfile, TN_SIZE_SMALL);
     unlink(thumbfile.c_str());
     assert(!file_exists(thumbfile));

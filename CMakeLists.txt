@@ -17,8 +17,9 @@ include(GNUInstallDirs)
 set(LIBDIR ${CMAKE_INSTALL_LIBDIR})
 
 include(FindPkgConfig)
-pkg_check_modules(DEPS gstreamer-1.0 gstreamer-plugins-base-1.0 gstreamer-pbutils-1.0 gstreamer-app-1.0)
-pkg_check_modules(IMG_DEPS gdk-pixbuf-2.0)
+pkg_check_modules(DEPS REQUIRED
+ gstreamer-1.0 gstreamer-plugins-base-1.0 gstreamer-pbutils-1.0 gstreamer-app-1.0)
+pkg_check_modules(IMG_DEPS REQUIRED gdk-pixbuf-2.0)
 
 include_directories(${DEPS_INCLUDE_DIRS})
 include_directories(${IMG_DEPS_INCLUDE_DIRS})
