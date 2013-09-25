@@ -21,6 +21,7 @@
 #include<gst/gst.h>
 #include<gst/app/gstappsink.h>
 #include<gdk-pixbuf/gdk-pixbuf.h>
+#include<stdexcept>
 
 using namespace std;
 

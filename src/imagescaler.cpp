@@ -19,6 +19,7 @@
 #include<internal/imagescaler.h>
 #include<gdk-pixbuf/gdk-pixbuf.h>
 #include<memory>
+#include<stdexcept>
 
 using namespace std;
 
