@@ -44,12 +44,12 @@ public:
     Thumbnailer();
     ~Thumbnailer();
 
-    Thumbnailer(const Thumbnailer &t) = delete;
-    Thumbnailer & operator=(const Thumbnailer &t) = delete;
-
     std::string get_thumbnail(const std::string &filename, ThumbnailSize desired_size);
 
 private:
+    Thumbnailer(const Thumbnailer &t);
+    Thumbnailer & operator=(const Thumbnailer &t);
+
     ThumbnailerPrivate *p;
 };
 
