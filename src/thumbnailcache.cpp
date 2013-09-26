@@ -23,6 +23,7 @@
 #include<sys/stat.h>
 #include<cassert>
 #include<cstdio>
+#include<cstring>
 
 using namespace std;
 
@@ -45,25 +46,29 @@ ThumbnailCachePrivate::ThumbnailCachePrivate() {
     }
     int ec = mkdir(xdg_base.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
     if (ec < 0 && errno != EEXIST) {
-        string s("Could not create base dir.");
+        string s("Could not create base dir - ");
+        s += strerror(errno);
         throw runtime_error(s);
     }
     tndir = xdg_base + "/thumbnails";
     ec = mkdir(tndir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
     if (ec < 0 && errno != EEXIST) {
-        string s("Could not create thumbnail dir.");
+        string s("Could not create thumbnail dir - ");
+        s += strerror(errno);
         throw runtime_error(s);
     }
     smalldir = tndir + "/normal";
     ec = mkdir(smalldir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
     if (ec < 0 && errno != EEXIST) {
-        string s("Could not create small dir.");
+        string s("Could not create small dir - ");
+        s += strerror(errno);
         throw runtime_error(s);
     }
     largedir = tndir + "/large";
     ec = mkdir(largedir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
     if (ec < 0 && errno != EEXIST) {
-        string s("Could not create large dir.");
+        string s("Could not create large dir - ");
+        s += strerror(errno);
         throw runtime_error(s);
     }
 }
