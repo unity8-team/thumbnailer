@@ -39,7 +39,7 @@ enum ThumbnailSize {
  * Errors are reported as exceptions (exact types TBD).
  */
 
-class Thumbnailer final {
+class Thumbnailer {
 public:
     Thumbnailer();
     ~Thumbnailer();
