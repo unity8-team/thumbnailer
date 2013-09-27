@@ -30,6 +30,26 @@
 
 using namespace std;
 
+static void cleardir(const string &root_dir) {
+    DIR *d = opendir(root_dir.c_str());
+    if(!d) {
+        string s = "Something went wrong.";
+        throw runtime_error(s);
+    }
+    struct dirent *entry, *de;
+    entry = (dirent*)malloc(sizeof(dirent) + NAME_MAX);
+    while(readdir_r(d, entry, &de) == 0 && de) {
+        string basename = entry->d_name;
+        if (basename == "." || basename == "..")
+            continue;
+        string fname = root_dir + "/" + basename;
+        remove(fname.c_str());
+    }
+    free(entry);
+    closedir(d);
+}
+
+
 static string get_app_pkg_name() {
     const int bufsize = 1024;
     char data[bufsize+1];
@@ -56,14 +76,23 @@ static string get_app_pkg_name() {
 
 class ThumbnailCachePrivate {
 public:
-    string tndir;
-    string smalldir;
-    string largedir;
 
     ThumbnailCachePrivate();
     string md5(const string &str) const;
     string get_cache_file_name(const std::string &original, ThumbnailSize desired) const;
+    void clear();
+
+private:
+    string tndir;
+    string smalldir;
+    string largedir;
+
 };
+
+void ThumbnailCachePrivate::clear() {
+    cleardir(smalldir);
+    cleardir(largedir);
+}
 
 ThumbnailCachePrivate::ThumbnailCachePrivate() {
     string xdg_base = g_get_user_cache_dir();
@@ -178,4 +207,8 @@ std::string ThumbnailCache::get_if_exists(const std::string &abs_path, Thumbnail
 
 std::string ThumbnailCache::get_cache_file_name(const std::string &abs_path, ThumbnailSize desired) const {
     return p->get_cache_file_name(abs_path, desired);
+}
+
+void ThumbnailCache::clear() {
+    p->clear();
 }
