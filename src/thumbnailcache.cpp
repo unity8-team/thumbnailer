@@ -81,6 +81,7 @@ public:
     string md5(const string &str) const;
     string get_cache_file_name(const std::string &original, ThumbnailSize desired) const;
     void clear();
+    void delete_from_cache(const std::string &abs_path);
 
 private:
     string tndir;
@@ -92,6 +93,11 @@ private:
 void ThumbnailCachePrivate::clear() {
     cleardir(smalldir);
     cleardir(largedir);
+}
+void ThumbnailCachePrivate::delete_from_cache(const std::string &abs_path) {
+    unlink(get_cache_file_name(abs_path, TN_SIZE_SMALL).c_str());
+    unlink(get_cache_file_name(abs_path, TN_SIZE_LARGE).c_str());
+
 }
 
 ThumbnailCachePrivate::ThumbnailCachePrivate() {
@@ -196,7 +202,13 @@ ThumbnailCache::~ThumbnailCache() {
 std::string ThumbnailCache::get_if_exists(const std::string &abs_path, ThumbnailSize desired_size) const {
     assert(abs_path[0] == '/');
     string fname = p->get_cache_file_name(abs_path, desired_size);
-    FILE *f = fopen(fname.c_str(), "r");
+    FILE *f = fopen(abs_path.c_str(), "r");
+    if(!f) {
+        p->delete_from_cache(abs_path);
+        return "";
+    }
+    fclose(f);
+    f = fopen(fname.c_str(), "r");
     bool existed = false;
     if(f) {
         existed = true;
