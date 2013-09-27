@@ -24,8 +24,32 @@
 #include<cassert>
 #include<cstdio>
 #include<cstring>
+#include<errno.h>
+#include<fcntl.h>
+#include<unistd.h>
 
 using namespace std;
+
+static string get_app_pkg_name() {
+    const int bufsize = 1024;
+    char data[bufsize+1];
+    FILE *f = fopen("/proc/self/attr/current", "r");
+    if(!f) {
+        throw runtime_error("Could not open /proc/self/attr/current.");
+    }
+    size_t numread = fread(data, 1, bufsize, f);
+    fclose(f);
+    if(numread == 0) {
+        throw runtime_error("Could not read from /proc/self/attr/current.");
+    }
+    data[numread] = '\0';
+    string core(data);
+    string::size_type ind = core.find('_');
+    if(ind == string::npos) {
+        throw runtime_error("/proc/self/attr/current malformed, does not have _ in it.");
+    }
+    return core.substr(0, ind);
+}
 
 class ThumbnailCachePrivate {
 public:
@@ -49,6 +73,38 @@ ThumbnailCachePrivate::ThumbnailCachePrivate() {
         string s("Could not create base dir - ");
         s += strerror(errno);
         throw runtime_error(s);
+    }
+    // This is where it gets tricky. Desktop apps can write to
+    // cache dir but confined apps only to cache/appname/
+    // First try global cache and fall back to app-specific one.
+    string testfile = xdg_base + "/tncache-write-text.null";
+    int fd = open(testfile.c_str(), O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+    bool use_global = true;
+    if(fd<0) {
+        if(errno == EACCES) {
+            use_global = false;
+        } else {
+            string s("Unknown error when checking cache access: ");
+            s += strerror(errno);
+            throw runtime_error(s);
+        }
+    } else {
+        use_global = true;
+        close(fd);
+        unlink(testfile.c_str());
+    }
+    if(!use_global) {
+        string app_pkgname = get_app_pkg_name();
+        xdg_base += "/" + app_pkgname;
+        errno = 0;
+        ec = mkdir(xdg_base.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
+        if (ec < 0 && errno != EEXIST) {
+            string s("Could not create app local dir ");
+            s += xdg_base;
+            s += " - ";
+            s += strerror(errno);
+            throw runtime_error(s);
+        }
     }
     tndir = xdg_base + "/thumbnails";
     ec = mkdir(tndir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
