@@ -32,7 +32,8 @@ public:
     ImageScaler(const ImageScaler &t) = delete;
     ImageScaler & operator=(const ImageScaler &t) = delete;
 
-    bool scale(const std::string &ifilename, const std::string &ofilename, ThumbnailSize wanted) const;
+    bool scale(const std::string &ifilename, const std::string &ofilename,
+            ThumbnailSize wanted, const std::string &original_location) const;
 
 private:
     ImageScalerPrivate *p;

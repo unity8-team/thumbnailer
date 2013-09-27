@@ -60,7 +60,7 @@ string ThumbnailerPrivate::create_thumbnail(const string &abspath, ThumbnailSize
     char filebuf[] = "/tmp/some/long/text/here/so/path/will/fit";
     string tmpname = tmpnam(filebuf);
     try {
-        if(scaler.scale(abspath, tnfile, desired_size))
+        if(scaler.scale(abspath, tnfile, desired_size, abspath))
             return tnfile;
     } catch(runtime_error &e) {
         // Fail is ok, just try the next one.
@@ -73,7 +73,7 @@ string ThumbnailerPrivate::create_thumbnail(const string &abspath, ThumbnailSize
     } catch(runtime_error &e) {
     }
     if(extracted) {
-        scaler.scale(tmpname, tnfile, desired_size); // If this throws, let it propagate.
+        scaler.scale(tmpname, tnfile, desired_size, abspath); // If this throws, let it propagate.
         unlink(tmpname.c_str());
         return tnfile;
     }
@@ -84,7 +84,7 @@ string ThumbnailerPrivate::create_thumbnail(const string &abspath, ThumbnailSize
     } catch(runtime_error &e) {
     }
     if(extracted) {
-        scaler.scale(tmpname, tnfile, desired_size); // If this throws, let it propagate.
+        scaler.scale(tmpname, tnfile, desired_size, abspath); // If this throws, let it propagate.
         unlink(tmpname.c_str());
         return tnfile;
     }

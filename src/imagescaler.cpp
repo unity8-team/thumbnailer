@@ -20,6 +20,8 @@
 #include<gdk-pixbuf/gdk-pixbuf.h>
 #include<memory>
 #include<stdexcept>
+#include<sys/stat.h>
+#include<cassert>
 
 using namespace std;
 
@@ -34,7 +36,10 @@ ImageScaler::~ImageScaler() {
     delete p;
 }
 
-bool ImageScaler::scale(const std::string &ifilename, const std::string &ofilename, ThumbnailSize wanted) const {
+bool ImageScaler::scale(const std::string &ifilename, const std::string &ofilename, ThumbnailSize wanted,
+        const std::string &original_location) const {
+    assert(ifilename[0] == '/');
+    assert(ofilename[0] == '/');
     GError *err = nullptr;
     auto pbunref = [](GdkPixbuf *t) { g_object_unref(G_OBJECT(t)); };
     int max_dim = wanted == TN_SIZE_SMALL ? 128 : 256;
@@ -66,7 +71,24 @@ bool ImageScaler::scale(const std::string &ifilename, const std::string &ofilena
     unique_ptr<GdkPixbuf, void(*)(GdkPixbuf *t)> dst(
             gdk_pixbuf_scale_simple(src.get(), neww, newh, GDK_INTERP_BILINEAR),
             pbunref);
-    if(!gdk_pixbuf_save(dst.get(), ofilename.c_str(), "png", &err, NULL)) {
+    gboolean save_ok;
+    if(original_location.empty()) {
+        save_ok = gdk_pixbuf_save(dst.get(), ofilename.c_str(), "png", &err, NULL);
+    } else {
+        assert(original_location[0] == '/');
+        time_t mtime;
+        string uri = "file://" + original_location;
+        struct stat sbuf;
+        if(stat(original_location.c_str(), &sbuf) != 0) {
+            mtime = 0;
+        } else {
+            mtime = sbuf.st_mtim.tv_sec;
+        }
+        string mtime_str = to_string(mtime);
+        save_ok = gdk_pixbuf_save(dst.get(), ofilename.c_str(), "png", &err,
+                "tEXt::Thumb::URI", uri.c_str(), "tEXt::Thumb::MTime", mtime_str.c_str(), NULL);
+    }
+    if(!save_ok) {
         string msg = err->message;
         g_error_free(err);
         throw runtime_error(msg);
