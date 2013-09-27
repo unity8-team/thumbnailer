@@ -24,6 +24,7 @@
 #include<unistd.h>
 #include<gst/gst.h>
 #include<stdexcept>
+#include<random>
 
 using namespace std;
 
@@ -33,6 +34,9 @@ public:
 };
 
 class ThumbnailerPrivate {
+private:
+    mt19937 rnd;
+
 public:
     ThumbnailCache cache;
     AudioImageExtractor audio;
@@ -45,6 +49,10 @@ public:
 };
 
 string ThumbnailerPrivate::create_thumbnail(const string &abspath, ThumbnailSize desired_size) {
+    // Every now and then see if we have too much stuff and delete them if so.
+    if((rnd() % 100) == 0) { // No, this is not perfectly random. It does not need to be.
+        cache.prune();
+    }
     // We do not know what the file pointed to is. File suffixes may be missing
     // or just plain lie. So we try to open it one by one with the handlers we have.
     // Go from least resource intensive to most.

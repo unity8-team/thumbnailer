@@ -27,6 +27,8 @@
 #include<errno.h>
 #include<fcntl.h>
 #include<unistd.h>
+#include<vector>
+#include<algorithm>
 
 using namespace std;
 
@@ -49,6 +51,42 @@ static void cleardir(const string &root_dir) {
     closedir(d);
 }
 
+/*
+ * This code is copied from mediaartcache. All tests etc
+ * are there. When we merge the two, remove this and
+ * make both use the same code.
+ */
+static void prune_dir(const string &root_dir, const size_t max_files) {
+    vector<pair<double, string>> mtimes;
+    DIR *d = opendir(root_dir.c_str());
+    if(!d) {
+        string s = "Something went wrong.";
+        throw runtime_error(s);
+    }
+    struct dirent *entry, *de;
+    entry = (dirent*)malloc(sizeof(dirent) + NAME_MAX);
+    while(readdir_r(d, entry, &de) == 0 && de) {
+        string basename = entry->d_name;
+        if (basename == "." || basename == "..")
+            continue;
+        string fname = root_dir + "/" + basename;
+        struct stat sbuf;
+        if(stat(fname.c_str(), &sbuf) != 0) {
+            continue;
+        }
+        // Use mtime because atime is not guaranteed to work if, for example
+        // the filesystem is mounted with noatime or relatime.
+        mtimes.push_back(make_pair(sbuf.st_mtim.tv_sec + sbuf.st_mtim.tv_nsec/1000000000.0, fname));
+    }
+    free(entry);
+    closedir(d);
+    if (mtimes.size() <= max_files)
+        return;
+    sort(mtimes.begin(), mtimes.end());
+    for(size_t i=0; i < mtimes.size()-max_files; i++) {
+        remove(mtimes[i].second.c_str());
+    }
+}
 
 static string get_app_pkg_name() {
     const int bufsize = 1024;
@@ -82,11 +120,13 @@ public:
     string get_cache_file_name(const std::string &original, ThumbnailSize desired) const;
     void clear();
     void delete_from_cache(const std::string &abs_path);
+    void prune();
 
 private:
     string tndir;
     string smalldir;
     string largedir;
+    static const size_t MAX_FILES = 200;
 
 };
 
@@ -94,6 +134,13 @@ void ThumbnailCachePrivate::clear() {
     cleardir(smalldir);
     cleardir(largedir);
 }
+
+
+void ThumbnailCachePrivate::prune() {
+    prune_dir(smalldir, MAX_FILES);
+    prune_dir(largedir, MAX_FILES);
+}
+
 void ThumbnailCachePrivate::delete_from_cache(const std::string &abs_path) {
     unlink(get_cache_file_name(abs_path, TN_SIZE_SMALL).c_str());
     unlink(get_cache_file_name(abs_path, TN_SIZE_LARGE).c_str());
@@ -223,4 +270,8 @@ std::string ThumbnailCache::get_cache_file_name(const std::string &abs_path, Thu
 
 void ThumbnailCache::clear() {
     p->clear();
+}
+
+void ThumbnailCache::prune() {
+    p->prune();
 }
