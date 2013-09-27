@@ -21,6 +21,8 @@
 #include<cassert>
 #include<unistd.h>
 
+#define TESTIMAGE TESTDATADIR "/testimage.jpg"
+
 using namespace std;
 
 bool file_exists(const string &s) {
@@ -32,14 +34,32 @@ bool file_exists(const string &s) {
     return false;
 }
 
+void copy_file(const string &src, const string &dst) {
+    FILE* f = fopen(src.c_str(), "r");
+    assert(f);
+    fseek(f, 0, SEEK_END);
+    size_t size = ftell(f);
+
+    char* buf = new char[size];
+
+    fseek(f, 0, SEEK_SET);
+    assert(fread(buf, 1, size, f) == size);
+    fclose(f);
+
+    f = fopen(dst.c_str(), "w");
+    assert(f);
+    assert(fwrite(buf, 1, size, f) == size);
+    fclose(f);
+    delete[] buf;
+}
+
 void trivial_test() {
     Thumbnailer tn;
 }
 
 void image_test() {
     Thumbnailer tn;
-    string imfile(TESTDATADIR);
-    imfile += "/testimage.jpg";
+    string imfile(TESTIMAGE);
     assert(file_exists(imfile));
     string thumbfile = tn.get_thumbnail(imfile, TN_SIZE_SMALL);
     unlink(thumbfile.c_str());
@@ -51,13 +71,29 @@ void image_test() {
 
 void size_test() {
     Thumbnailer tn;
-    string imfile(TESTDATADIR);
-    imfile += "/testimage.jpg";
+    string imfile(TESTIMAGE);
     string thumbfile = tn.get_thumbnail(imfile, TN_SIZE_SMALL);
     string thumbfile2 = tn.get_thumbnail(imfile, TN_SIZE_LARGE);
     assert(!thumbfile.empty());
     assert(!thumbfile2.empty());
     assert(thumbfile != thumbfile2);
+}
+
+void delete_test() {
+    Thumbnailer tn;
+    string srcimg(TESTIMAGE);
+    string workimage("working_image.jpg");
+    copy_file(srcimg, workimage);
+    assert(file_exists(workimage));
+    string thumbfile = tn.get_thumbnail(workimage, TN_SIZE_SMALL);
+    string thumbfile2 = tn.get_thumbnail(workimage, TN_SIZE_LARGE);
+    assert(file_exists(thumbfile));
+    assert(file_exists(thumbfile2));
+    unlink(workimage.c_str());
+    string tmp = tn.get_thumbnail(workimage, TN_SIZE_SMALL);
+    assert(tmp.empty());
+    assert(!file_exists(thumbfile));
+    assert(!file_exists(thumbfile2));
 }
 
 int main() {
@@ -68,6 +104,7 @@ int main() {
     trivial_test();
     image_test();
     size_test();
+    delete_test();
     return 0;
 #endif
 }
