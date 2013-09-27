@@ -48,7 +48,10 @@ static string get_app_pkg_name() {
     if(ind == string::npos) {
         throw runtime_error("/proc/self/attr/current malformed, does not have _ in it.");
     }
-    return core.substr(0, ind);
+    if(ind == 0) {
+        throw runtime_error("/proc/self/attr/current malformed, starts with '_'.");
+    }
+    return core.substr(0, ind-1);
 }
 
 class ThumbnailCachePrivate {
