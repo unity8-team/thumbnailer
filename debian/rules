@@ -10,11 +10,7 @@ export DPKG_GENSYMBOLS_CHECK_LEVEL=4
 export CCACHE_SLOPPINESS=time_macros
 
 %:
-	dh $@ --parallel
+	dh $@ --parallel --fail-missing
 
 override_dh_auto_configure:
 	dh_auto_configure -- -DCMAKE_BUILD_TYPE=''
-
-override_dh_install:
-	dh_install --fail-missing
-
