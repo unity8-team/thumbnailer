@@ -22,6 +22,7 @@
 #include<unistd.h>
 
 #define TESTIMAGE TESTDATADIR "/testimage.jpg"
+#define TESTVIDEO TESTDATADIR "/testvideo.ogg"
 
 using namespace std;
 
@@ -57,16 +58,27 @@ void trivial_test() {
     Thumbnailer tn;
 }
 
+void file_test(Thumbnailer &tn, string &ifile) {
+    assert(file_exists(ifile));
+    string thumbfile = tn.get_thumbnail(ifile, TN_SIZE_SMALL);
+    unlink(thumbfile.c_str());
+    assert(!file_exists(thumbfile));
+    string thumbfile2 = tn.get_thumbnail(ifile, TN_SIZE_SMALL);
+    assert(thumbfile == thumbfile2);
+    assert(file_exists(thumbfile));
+
+}
+
 void image_test() {
     Thumbnailer tn;
     string imfile(TESTIMAGE);
-    assert(file_exists(imfile));
-    string thumbfile = tn.get_thumbnail(imfile, TN_SIZE_SMALL);
-    unlink(thumbfile.c_str());
-    assert(!file_exists(thumbfile));
-    string thumbfile2 = tn.get_thumbnail(imfile, TN_SIZE_SMALL);
-    assert(thumbfile == thumbfile2);
-    assert(file_exists(thumbfile));
+    file_test(tn, imfile);
+}
+
+void video_test() {
+    Thumbnailer tn;
+    string videofile(TESTVIDEO);
+    file_test(tn, videofile);
 }
 
 void size_test() {
@@ -103,6 +115,7 @@ int main() {
 #else
     trivial_test();
     image_test();
+    video_test();
     size_test();
     delete_test();
     return 0;
