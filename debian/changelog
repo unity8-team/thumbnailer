@@ -1,9 +1,13 @@
-thumbnailer (1.0-0ubuntu1) UNRELEASED; urgency=low
+thumbnailer (1.0+13.10.20131002-0ubuntu1) saucy; urgency=low
 
   [ Jussi Pakkanen ]
   * Initial release.
+  * Typo fix.
 
   [ Łukasz 'sil2100' Zemczak ]
   * Automatic snapshot from revision 41 (bootstrap)
 
- -- Jussi Pakkanen <jussi.pakkanen@ubuntu.com>  Wed, 25 Sep 2013 15:29:15 +0300
+  [ Ubuntu daily release ]
+  * Automatic snapshot from revision 43
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 02 Oct 2013 02:34:38 +0000
