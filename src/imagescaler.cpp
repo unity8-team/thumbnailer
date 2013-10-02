@@ -25,6 +25,29 @@
 
 using namespace std;
 
+static auto pbunref = [](GdkPixbuf *t) { g_object_unref(G_OBJECT(t)); };
+typedef unique_ptr<GdkPixbuf, void(*)(GdkPixbuf *t)> pb_ptr;
+
+void determine_new_size(const int w, const int h, int &neww, int &newh, const ThumbnailSize wanted) {
+    if(wanted == TN_SIZE_ORIGINAL) {
+        neww = w;
+        newh = h;
+    } else {
+        int max_dim = wanted == TN_SIZE_SMALL ? 128 : 256;
+        if(w > h) {
+            neww = max_dim;
+            newh = ((double)(max_dim))*h/w;
+            if (newh == 0)
+                newh = 1;
+        } else {
+            newh = max_dim;
+            neww = ((double)(max_dim))*w/h;
+            if(neww == 0)
+                neww = 1;
+        }
+    }
+}
+
 class ImageScalerPrivate {
 };
 
@@ -41,10 +64,8 @@ bool ImageScaler::scale(const std::string &ifilename, const std::string &ofilena
     assert(ifilename[0] == '/');
     assert(ofilename[0] == '/');
     GError *err = nullptr;
-    auto pbunref = [](GdkPixbuf *t) { g_object_unref(G_OBJECT(t)); };
-    unique_ptr<GdkPixbuf, void(*)(GdkPixbuf *t)> src(
-            gdk_pixbuf_new_from_file(ifilename.c_str(), &err),
-            pbunref);
+
+    pb_ptr src(gdk_pixbuf_new_from_file(ifilename.c_str(), &err), pbunref);
     if(err) {
         string msg = err->message;
         g_error_free(err);
@@ -56,26 +77,9 @@ bool ImageScaler::scale(const std::string &ifilename, const std::string &ofilena
         throw runtime_error("Invalid image resolution.");
     }
 
-    int max_dim = wanted == TN_SIZE_SMALL ? 128 : 256;
     int neww, newh;
-    if(wanted == TN_SIZE_ORIGINAL) {
-        neww = w;
-        newh = h;
-    } else {
-        if(w > h) {
-            neww = max_dim;
-            newh = ((double)(max_dim))*h/w;
-            if (newh == 0)
-                newh = 1;
-        } else {
-            newh = max_dim;
-            neww = ((double)(max_dim))*w/h;
-            if(neww == 0)
-                neww = 1;
-        }
-    }
-    unique_ptr<GdkPixbuf, void(*)(GdkPixbuf *t)> dst(
-            gdk_pixbuf_scale_simple(src.get(), neww, newh, GDK_INTERP_BILINEAR),
+    determine_new_size(w, h, neww, newh, wanted);
+    pb_ptr dst(gdk_pixbuf_scale_simple(src.get(), neww, newh, GDK_INTERP_BILINEAR),
             pbunref);
     gboolean save_ok;
     if(original_location.empty()) {
