@@ -16,6 +16,7 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
+#include<internal/config.h>
 #include<internal/videoscreenshotter.h>
 
 #include<unistd.h>
@@ -25,21 +26,17 @@
 
 using namespace std;
 
-class VideoScreenshotterPrivate {
-};
-
 VideoScreenshotter::VideoScreenshotter() {
-    p = new VideoScreenshotterPrivate();
 }
 
 VideoScreenshotter::~VideoScreenshotter() {
-    delete p;
 }
 
 bool VideoScreenshotter::extract(const std::string &ifname, const std::string &ofname) {
     // Gstreamer video pipelines are unstable so we need to run an
     // external helper library.
-    string cmd("/home/jpakkane/workspace/thumbnailer/build/src/vs-thumb");
+    string exe_path(SHARE_PRIV_ABS);
+    string cmd(exe_path + "/vs-thumb");
     pid_t child = fork();
     if(child == -1) {
         throw runtime_error("Could not spawn worker process.");

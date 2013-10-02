@@ -16,24 +16,9 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#ifndef VIDEOSCREENSHOTTER_H_
-#define VIDEOSCREENSHOTTER_H_
+#ifndef THUMBNAILER_CONFIG_H
+#define THUMBNAILER_CONFIG_H
 
-#include<string>
-
-class VideoScreenshotterPrivate;
-
-class VideoScreenshotter final {
-public:
-    VideoScreenshotter();
-    ~VideoScreenshotter();
-
-    VideoScreenshotter(const VideoScreenshotter &t) = delete;
-    VideoScreenshotter & operator=(const VideoScreenshotter &t) = delete;
-
-    bool extract(const std::string &ifname, const std::string &ofname);
-
-};
-
+#cmakedefine SHARE_PRIV_ABS "@SHARE_PRIV_ABS@"
 
 #endif
