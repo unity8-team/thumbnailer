@@ -153,6 +153,7 @@ static string makedir(const string &base, const string &subdir) {
     dirname += "/";
     dirname += subdir;
     int ec;
+    errno = 0;
     ec = mkdir(dirname.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
     if (ec < 0 && errno != EEXIST) {
         string s("Could not create ");
@@ -197,18 +198,9 @@ ThumbnailCachePrivate::ThumbnailCachePrivate() {
     }
     if(!use_global) {
         string app_pkgname = get_app_pkg_name();
-        xdg_base += "/" + app_pkgname;
-        errno = 0;
-        ec = mkdir(xdg_base.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
-        if (ec < 0 && errno != EEXIST) {
-            string s("Could not create app local dir ");
-            s += xdg_base;
-            s += " - ";
-            s += strerror(errno);
-            throw runtime_error(s);
-        }
+        xdg_base  = makedir(xdg_base, app_pkgname);
     }
-    xdg_base + "/thumbnails";
+    tndir = xdg_base + "/thumbnails";
     tndir = makedir(xdg_base, "thumbnails");
     smalldir = makedir(tndir,"normal");
     largedir = makedir(tndir, "large");;
