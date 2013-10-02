@@ -134,18 +134,20 @@ private:
 void ThumbnailCachePrivate::clear() {
     cleardir(smalldir);
     cleardir(largedir);
+    cleardir(originaldir);
 }
 
 
 void ThumbnailCachePrivate::prune() {
     prune_dir(smalldir, MAX_FILES);
     prune_dir(largedir, MAX_FILES);
+    prune_dir(originaldir, MAX_FILES);
 }
 
 void ThumbnailCachePrivate::delete_from_cache(const std::string &abs_path) {
     unlink(get_cache_file_name(abs_path, TN_SIZE_SMALL).c_str());
     unlink(get_cache_file_name(abs_path, TN_SIZE_LARGE).c_str());
-
+    unlink(get_cache_file_name(abs_path, TN_SIZE_ORIGINAL).c_str());
 }
 
 static string makedir(const string &base, const string &subdir) {
@@ -227,7 +229,13 @@ string ThumbnailCachePrivate::md5(const string &str) const {
 
 string ThumbnailCachePrivate::get_cache_file_name(const std::string & abs_original, ThumbnailSize desired) const {
     assert(abs_original[0] == '/');
-    string path = desired == TN_SIZE_SMALL ? smalldir : largedir;
+    string path;
+    switch(desired) {
+    case TN_SIZE_SMALL : path = smalldir; break;
+    case TN_SIZE_LARGE : path = largedir; break;
+    case TN_SIZE_ORIGINAL : path = originaldir; break;
+    default : throw runtime_error("Unreachable code");
+    }
     path += "/" + md5("file://" + abs_original) + ".png";
     return path;
 }

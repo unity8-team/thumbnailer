@@ -42,7 +42,6 @@ bool ImageScaler::scale(const std::string &ifilename, const std::string &ofilena
     assert(ofilename[0] == '/');
     GError *err = nullptr;
     auto pbunref = [](GdkPixbuf *t) { g_object_unref(G_OBJECT(t)); };
-    int max_dim = wanted == TN_SIZE_SMALL ? 128 : 256;
     unique_ptr<GdkPixbuf, void(*)(GdkPixbuf *t)> src(
             gdk_pixbuf_new_from_file(ifilename.c_str(), &err),
             pbunref);
@@ -53,20 +52,27 @@ bool ImageScaler::scale(const std::string &ifilename, const std::string &ofilena
     }
     const int w = gdk_pixbuf_get_width(src.get());
     const int h = gdk_pixbuf_get_height(src.get());
-    int neww, newh;
     if(w == 0 || h == 0) {
         throw runtime_error("Invalid image resolution.");
     }
-    if(w > h) {
-        neww = max_dim;
-        newh = ((double)(max_dim))*h/w;
-        if (newh == 0)
-            newh = 1;
+
+    int max_dim = wanted == TN_SIZE_SMALL ? 128 : 256;
+    int neww, newh;
+    if(wanted == TN_SIZE_ORIGINAL) {
+        neww = w;
+        newh = h;
     } else {
-        newh = max_dim;
-        neww = ((double)(max_dim))*w/h;
-        if(neww == 0)
-            neww = 1;
+        if(w > h) {
+            neww = max_dim;
+            newh = ((double)(max_dim))*h/w;
+            if (newh == 0)
+                newh = 1;
+        } else {
+            newh = max_dim;
+            neww = ((double)(max_dim))*w/h;
+            if(neww == 0)
+                neww = 1;
+        }
     }
     unique_ptr<GdkPixbuf, void(*)(GdkPixbuf *t)> dst(
             gdk_pixbuf_scale_simple(src.get(), neww, newh, GDK_INTERP_BILINEAR),
