@@ -1,2 +1,2 @@
 usr/lib/*/libthumb*.so.*
-share/thumbnailer/vs-thumb
+usr/share/thumbnailer/vs-thumb
