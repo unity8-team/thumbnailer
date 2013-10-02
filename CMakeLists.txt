@@ -17,6 +17,7 @@ include(cmake/coverage.cmake)
 
 include(GNUInstallDirs)
 set(LIBDIR ${CMAKE_INSTALL_LIBDIR})
+set(SHARE_PRIV_DIR share/thumbnailer)
 
 include(FindPkgConfig)
 pkg_check_modules(GST_DEPS REQUIRED gstreamer-1.0 gstreamer-plugins-base-1.0 gstreamer-pbutils-1.0 gstreamer-app-1.0)
