@@ -35,7 +35,9 @@ VideoScreenshotter::~VideoScreenshotter() {
 bool VideoScreenshotter::extract(const std::string &ifname, const std::string &ofname) {
     // Gstreamer video pipelines are unstable so we need to run an
     // external helper library.
-    string exe_path(SHARE_PRIV_ABS);
+    string exe_path;
+    char *utildir = getenv("TN_UTILDIR");
+    exe_path = utildir ? utildir : SHARE_PRIV_ABS;
     string cmd(exe_path + "/vs-thumb");
     pid_t child = fork();
     if(child == -1) {
@@ -43,7 +45,7 @@ bool VideoScreenshotter::extract(const std::string &ifname, const std::string &o
     }
     if(child  == 0) {
         execl(cmd.c_str(), cmd.c_str(), ifname.c_str(), ofname.c_str(), (char*) NULL);
-        printf("Could not execute helper process: %s", strerror(errno));
+        printf("Could not execute worker process: %s", strerror(errno));
         _exit(100);
     } else {
         int status;
