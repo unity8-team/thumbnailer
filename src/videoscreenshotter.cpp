@@ -45,7 +45,7 @@ bool VideoScreenshotter::extract(const std::string &ifname, const std::string &o
     }
     if(child  == 0) {
         execl(cmd.c_str(), cmd.c_str(), ifname.c_str(), ofname.c_str(), (char*) NULL);
-        printf("Could not execute worker process: %s", strerror(errno));
+        fprintf(stderr, "Could not execute worker process: %s", strerror(errno));
         _exit(100);
     } else {
         int status;
