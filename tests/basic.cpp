@@ -131,6 +131,13 @@ void delete_test() {
     assert(!file_exists(thumbfile2));
 }
 
+void no_image_cache_test() {
+    Thumbnailer tn;
+    string srcimg(TESTIMAGE);
+    string dstimg = tn.get_thumbnail(srcimg, TN_SIZE_ORIGINAL);
+    assert(srcimg == dstimg);
+}
+
 int main() {
 #ifdef NDEBUG
     fprintf(stderr, "NDEBUG defined, tests will not work.\n");
@@ -142,6 +149,7 @@ int main() {
     video_original_test();
     size_test();
     delete_test();
+    no_image_cache_test();
     return 0;
 #endif
 }

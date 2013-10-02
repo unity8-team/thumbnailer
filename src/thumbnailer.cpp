@@ -120,6 +120,9 @@ string Thumbnailer::get_thumbnail(const string &filename, ThumbnailSize desired_
     std::string estimate = p->cache.get_if_exists(abspath, desired_size);
     if(!estimate.empty())
         return estimate;
-    p->create_thumbnail(abspath, desired_size);
+    string generated = p->create_thumbnail(abspath, desired_size);
+    if(generated == abspath) {
+        return abspath;
+    }
     return p->cache.get_if_exists(abspath, desired_size);
 }
