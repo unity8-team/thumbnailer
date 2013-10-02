@@ -21,6 +21,7 @@
 #include<internal/audioimageextractor.h>
 #include<internal/videoscreenshotter.h>
 #include<internal/imagescaler.h>
+#include<gdk-pixbuf/gdk-pixbuf.h>
 #include<unistd.h>
 #include<gst/gst.h>
 #include<stdexcept>
@@ -49,6 +50,7 @@ public:
 };
 
 string ThumbnailerPrivate::create_thumbnail(const string &abspath, ThumbnailSize desired_size) {
+    int tmpw, tmph;
     // Every now and then see if we have too much stuff and delete them if so.
     if((rnd() % 100) == 0) { // No, this is not perfectly random. It does not need to be.
         cache.prune();
@@ -59,6 +61,12 @@ string ThumbnailerPrivate::create_thumbnail(const string &abspath, ThumbnailSize
     string tnfile = cache.get_cache_file_name(abspath, desired_size);
     char filebuf[] = "/tmp/some/long/text/here/so/path/will/fit";
     string tmpname = tmpnam(filebuf);
+
+    // Special case: full size image files are their own preview.
+    if(desired_size == TN_SIZE_ORIGINAL &&
+            gdk_pixbuf_get_file_info(abspath.c_str(), &tmpw, &tmph)) {
+        return abspath;
+    }
     try {
         if(scaler.scale(abspath, tnfile, desired_size, abspath))
             return tnfile;

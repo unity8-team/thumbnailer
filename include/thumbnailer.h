@@ -24,8 +24,9 @@
 class ThumbnailerPrivate;
 
 enum ThumbnailSize {
-    TN_SIZE_SMALL, // maximum dimension 128 pixels
-    TN_SIZE_LARGE  // maximum dimension 256 pixels
+    TN_SIZE_SMALL,   // maximum dimension 128 pixels
+    TN_SIZE_LARGE,   // maximum dimension 256 pixels
+    TN_SIZE_ORIGINAL // Whatever the original size was, e.g. 1920x1080 for FullHD video
 };
 
 /*

@@ -20,6 +20,7 @@
 #include<testsetup.h>
 #include<cassert>
 #include<unistd.h>
+#include<gdk-pixbuf/gdk-pixbuf.h>
 
 #define TESTIMAGE TESTDATADIR "/testimage.jpg"
 #define TESTVIDEO TESTDATADIR "/testvideo.ogg"
@@ -83,12 +84,19 @@ void video_test() {
 
 void size_test() {
     Thumbnailer tn;
+    int w, h;
     string imfile(TESTIMAGE);
     string thumbfile = tn.get_thumbnail(imfile, TN_SIZE_SMALL);
     string thumbfile2 = tn.get_thumbnail(imfile, TN_SIZE_LARGE);
     assert(!thumbfile.empty());
     assert(!thumbfile2.empty());
     assert(thumbfile != thumbfile2);
+    assert(gdk_pixbuf_get_file_info(thumbfile.c_str(), &w, &h));
+    assert(w == 128);
+    assert(h <= 128);
+    assert(gdk_pixbuf_get_file_info(thumbfile2.c_str(), &w, &h));
+    assert(w == 256);
+    assert(h <= 256);
 }
 
 void delete_test() {
