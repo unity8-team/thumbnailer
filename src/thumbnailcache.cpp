@@ -126,6 +126,7 @@ private:
     string tndir;
     string smalldir;
     string largedir;
+    string originaldir;
     static const size_t MAX_FILES = 200;
 
 };
@@ -145,6 +146,22 @@ void ThumbnailCachePrivate::delete_from_cache(const std::string &abs_path) {
     unlink(get_cache_file_name(abs_path, TN_SIZE_SMALL).c_str());
     unlink(get_cache_file_name(abs_path, TN_SIZE_LARGE).c_str());
 
+}
+
+static string makedir(const string &base, const string &subdir) {
+    string dirname = base;
+    dirname += "/";
+    dirname += subdir;
+    int ec;
+    ec = mkdir(dirname.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
+    if (ec < 0 && errno != EEXIST) {
+        string s("Could not create ");
+        s += subdir;
+        s += " - ";
+        s += strerror(errno);
+        throw runtime_error(s);
+    }
+    return dirname;
 }
 
 ThumbnailCachePrivate::ThumbnailCachePrivate() {
@@ -191,27 +208,11 @@ ThumbnailCachePrivate::ThumbnailCachePrivate() {
             throw runtime_error(s);
         }
     }
-    tndir = xdg_base + "/thumbnails";
-    ec = mkdir(tndir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
-    if (ec < 0 && errno != EEXIST) {
-        string s("Could not create thumbnail dir - ");
-        s += strerror(errno);
-        throw runtime_error(s);
-    }
-    smalldir = tndir + "/normal";
-    ec = mkdir(smalldir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
-    if (ec < 0 && errno != EEXIST) {
-        string s("Could not create small dir - ");
-        s += strerror(errno);
-        throw runtime_error(s);
-    }
-    largedir = tndir + "/large";
-    ec = mkdir(largedir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
-    if (ec < 0 && errno != EEXIST) {
-        string s("Could not create large dir - ");
-        s += strerror(errno);
-        throw runtime_error(s);
-    }
+    xdg_base + "/thumbnails";
+    tndir = makedir(xdg_base, "thumbnails");
+    smalldir = makedir(tndir,"normal");
+    largedir = makedir(tndir, "large");;
+    originaldir = makedir(tndir, "original");
 }
 
 string ThumbnailCachePrivate::md5(const string &str) const {
