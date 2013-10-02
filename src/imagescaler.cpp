@@ -28,7 +28,8 @@ using namespace std;
 static auto pbunref = [](GdkPixbuf *t) { g_object_unref(G_OBJECT(t)); };
 typedef unique_ptr<GdkPixbuf, void(*)(GdkPixbuf *t)> pb_ptr;
 
-void determine_new_size(const int w, const int h, int &neww, int &newh, const ThumbnailSize wanted) {
+static void determine_new_size(const int w, const int h, int &neww, int &newh,
+        const ThumbnailSize wanted) {
     if(wanted == TN_SIZE_ORIGINAL) {
         neww = w;
         newh = h;
