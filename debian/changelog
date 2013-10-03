@@ -1,3 +1,16 @@
+thumbnailer (1.0+13.10.20131003-0ubuntu1) saucy; urgency=low
+
+  [ Jussi Pakkanen ]
+  * Run gstreamer video pipelines in an external process.
+  * Get helper path from config.h.
+  * Use helper binary from build dir when running tests.
+  * Adds support for full resolution thumbnails.
+
+  [ Ubuntu daily release ]
+  * Automatic snapshot from revision 48
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Thu, 03 Oct 2013 03:26:49 +0000
+
 thumbnailer (1.0+13.10.20131002-0ubuntu1) saucy; urgency=low
 
   [ Jussi Pakkanen ]
