@@ -20,6 +20,7 @@
 #include<testsetup.h>
 #include<cassert>
 #include<unistd.h>
+#include<gdk-pixbuf/gdk-pixbuf.h>
 
 #define TESTIMAGE TESTDATADIR "/testimage.jpg"
 #define TESTVIDEO TESTDATADIR "/testvideo.ogg"
@@ -59,6 +60,7 @@ void trivial_test() {
 }
 
 void file_test(Thumbnailer &tn, string &ifile) {
+    int w, h;
     assert(file_exists(ifile));
     string thumbfile = tn.get_thumbnail(ifile, TN_SIZE_SMALL);
     unlink(thumbfile.c_str());
@@ -66,7 +68,9 @@ void file_test(Thumbnailer &tn, string &ifile) {
     string thumbfile2 = tn.get_thumbnail(ifile, TN_SIZE_SMALL);
     assert(thumbfile == thumbfile2);
     assert(file_exists(thumbfile));
-
+    assert(gdk_pixbuf_get_file_info(thumbfile.c_str(), &w, &h));
+    assert(w <= 128);
+    assert(h <= 128);
 }
 
 void image_test() {
@@ -81,14 +85,33 @@ void video_test() {
     file_test(tn, videofile);
 }
 
+void video_original_test() {
+    Thumbnailer tn;
+    int w, h;
+    string videofile(TESTVIDEO);
+    string origsize = tn.get_thumbnail(videofile, TN_SIZE_ORIGINAL);
+    assert(file_exists(origsize));
+    assert(gdk_pixbuf_get_file_info(origsize.c_str(), &w, &h));
+    assert(w == 1920);
+    assert(h == 1080);
+}
+
+
 void size_test() {
     Thumbnailer tn;
+    int w, h;
     string imfile(TESTIMAGE);
     string thumbfile = tn.get_thumbnail(imfile, TN_SIZE_SMALL);
     string thumbfile2 = tn.get_thumbnail(imfile, TN_SIZE_LARGE);
     assert(!thumbfile.empty());
     assert(!thumbfile2.empty());
     assert(thumbfile != thumbfile2);
+    assert(gdk_pixbuf_get_file_info(thumbfile.c_str(), &w, &h));
+    assert(w == 128);
+    assert(h <= 128);
+    assert(gdk_pixbuf_get_file_info(thumbfile2.c_str(), &w, &h));
+    assert(w == 256);
+    assert(h <= 256);
 }
 
 void delete_test() {
@@ -108,6 +131,13 @@ void delete_test() {
     assert(!file_exists(thumbfile2));
 }
 
+void no_image_cache_test() {
+    Thumbnailer tn;
+    string srcimg(TESTIMAGE);
+    string dstimg = tn.get_thumbnail(srcimg, TN_SIZE_ORIGINAL);
+    assert(srcimg == dstimg);
+}
+
 int main() {
 #ifdef NDEBUG
     fprintf(stderr, "NDEBUG defined, tests will not work.\n");
@@ -116,8 +146,10 @@ int main() {
     trivial_test();
     image_test();
     video_test();
+    video_original_test();
     size_test();
     delete_test();
+    no_image_cache_test();
     return 0;
 #endif
 }

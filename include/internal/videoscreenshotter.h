@@ -33,8 +33,6 @@ public:
 
     bool extract(const std::string &ifname, const std::string &ofname);
 
-private:
-    VideoScreenshotterPrivate *p;
 };
 
 

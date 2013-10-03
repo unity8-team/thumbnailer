@@ -1,3 +1,5 @@
+add_subdirectory(internal)
+
 install(FILES thumbnailer.h DESTINATION include)
 
 # Build and install a pkg-config file

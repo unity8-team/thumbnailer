@@ -126,6 +126,7 @@ private:
     string tndir;
     string smalldir;
     string largedir;
+    string originaldir;
     static const size_t MAX_FILES = 200;
 
 };
@@ -133,18 +134,37 @@ private:
 void ThumbnailCachePrivate::clear() {
     cleardir(smalldir);
     cleardir(largedir);
+    cleardir(originaldir);
 }
 
 
 void ThumbnailCachePrivate::prune() {
     prune_dir(smalldir, MAX_FILES);
     prune_dir(largedir, MAX_FILES);
+    prune_dir(originaldir, MAX_FILES);
 }
 
 void ThumbnailCachePrivate::delete_from_cache(const std::string &abs_path) {
     unlink(get_cache_file_name(abs_path, TN_SIZE_SMALL).c_str());
     unlink(get_cache_file_name(abs_path, TN_SIZE_LARGE).c_str());
+    unlink(get_cache_file_name(abs_path, TN_SIZE_ORIGINAL).c_str());
+}
 
+static string makedir(const string &base, const string &subdir) {
+    string dirname = base;
+    dirname += "/";
+    dirname += subdir;
+    int ec;
+    errno = 0;
+    ec = mkdir(dirname.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
+    if (ec < 0 && errno != EEXIST) {
+        string s("Could not create ");
+        s += subdir;
+        s += " - ";
+        s += strerror(errno);
+        throw runtime_error(s);
+    }
+    return dirname;
 }
 
 ThumbnailCachePrivate::ThumbnailCachePrivate() {
@@ -180,38 +200,13 @@ ThumbnailCachePrivate::ThumbnailCachePrivate() {
     }
     if(!use_global) {
         string app_pkgname = get_app_pkg_name();
-        xdg_base += "/" + app_pkgname;
-        errno = 0;
-        ec = mkdir(xdg_base.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
-        if (ec < 0 && errno != EEXIST) {
-            string s("Could not create app local dir ");
-            s += xdg_base;
-            s += " - ";
-            s += strerror(errno);
-            throw runtime_error(s);
-        }
+        xdg_base  = makedir(xdg_base, app_pkgname);
     }
     tndir = xdg_base + "/thumbnails";
-    ec = mkdir(tndir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
-    if (ec < 0 && errno != EEXIST) {
-        string s("Could not create thumbnail dir - ");
-        s += strerror(errno);
-        throw runtime_error(s);
-    }
-    smalldir = tndir + "/normal";
-    ec = mkdir(smalldir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
-    if (ec < 0 && errno != EEXIST) {
-        string s("Could not create small dir - ");
-        s += strerror(errno);
-        throw runtime_error(s);
-    }
-    largedir = tndir + "/large";
-    ec = mkdir(largedir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
-    if (ec < 0 && errno != EEXIST) {
-        string s("Could not create large dir - ");
-        s += strerror(errno);
-        throw runtime_error(s);
-    }
+    tndir = makedir(xdg_base, "thumbnails");
+    smalldir = makedir(tndir,"normal");
+    largedir = makedir(tndir, "large");;
+    originaldir = makedir(tndir, "original");
 }
 
 string ThumbnailCachePrivate::md5(const string &str) const {
@@ -234,7 +229,13 @@ string ThumbnailCachePrivate::md5(const string &str) const {
 
 string ThumbnailCachePrivate::get_cache_file_name(const std::string & abs_original, ThumbnailSize desired) const {
     assert(abs_original[0] == '/');
-    string path = desired == TN_SIZE_SMALL ? smalldir : largedir;
+    string path;
+    switch(desired) {
+    case TN_SIZE_SMALL : path = smalldir; break;
+    case TN_SIZE_LARGE : path = largedir; break;
+    case TN_SIZE_ORIGINAL : path = originaldir; break;
+    default : throw runtime_error("Unreachable code");
+    }
     path += "/" + md5("file://" + abs_original) + ".png";
     return path;
 }
