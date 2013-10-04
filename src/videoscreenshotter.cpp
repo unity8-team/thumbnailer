@@ -23,8 +23,52 @@
 #include<sys/wait.h>
 #include<stdexcept>
 #include<cstring>
+#include<sys/time.h>
+#include<signal.h>
+#include<time.h>
 
 using namespace std;
+static double timestamp() {
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    return now.tv_sec + now.tv_usec/1000000.0;
+
+}
+
+static bool wait_for_helper(pid_t child) {
+    const double max_wait_time = 10;
+    struct timespec sleep_time;
+    double start = timestamp();
+    sleep_time.tv_sec = 0;
+    sleep_time.tv_nsec = 100000000;
+    int status;
+    while(waitpid(child, &status, WNOHANG) == 0) {
+        struct timespec dummy;
+        double now = timestamp();
+        if(now - start >= max_wait_time) {
+            if(kill(child, SIGKILL) < 0) {
+                string msg("Could not kill child process: ");
+                msg += strerror(errno);
+                throw runtime_error(msg);
+            }
+            throw runtime_error("Helper process took too long.");
+        }
+        nanosleep(&sleep_time, &dummy);
+    }
+    if(status < 0) {
+        throw runtime_error("Waiting for child process failed.");
+    }
+    if(status == 0) {
+        return true;
+    }
+    if(status == 1) {
+        return false;
+    }
+    if(status == 2) {
+        throw runtime_error("Video extractor pipeline failed");
+    }
+    throw runtime_error("Unknown error when trying to extract video screenshot.");
+}
 
 VideoScreenshotter::VideoScreenshotter() {
 }
@@ -48,18 +92,12 @@ bool VideoScreenshotter::extract(const std::string &ifname, const std::string &o
         fprintf(stderr, "Could not execute worker process: %s", strerror(errno));
         _exit(100);
     } else {
-        int status;
-        waitpid(child, &status, 0);
-        if(status == 0) {
-            return true;
+        try {
+            return wait_for_helper(child);
+        } catch(...) {
+            unlink(ofname.c_str());
+            throw;
         }
-        if(status == 1) {
-            return false;
-        }
-        if(status == 2) {
-            throw runtime_error("Video extractor pipeline failed");
-        }
-        throw runtime_error("Unknown error when trying to extract video screenshot.");
     }
     throw runtime_error("Code that should not have been reached was reached.");
 }
