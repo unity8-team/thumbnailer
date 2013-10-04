@@ -51,8 +51,8 @@ public:
      * Return value is a string pointing to the thumbnail file. If
      * the thumbnail could not be generated and empty string is returned.
      *
-     * Applications should treat the files as read only. They should _not_
-     * delete them.
+     * Applications should treat the returned file as read only. They should _not_
+     * delete it.
      *
      * In case of unexpected problems, the function throws a
      * std::runtime_error.
