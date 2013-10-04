@@ -92,7 +92,12 @@ bool VideoScreenshotter::extract(const std::string &ifname, const std::string &o
         fprintf(stderr, "Could not execute worker process: %s", strerror(errno));
         _exit(100);
     } else {
-        return wait_for_helper(child);
+        try {
+            return wait_for_helper(child);
+        } catch(...) {
+            unlink(ofname.c_str());
+            throw;
+        }
     }
     throw runtime_error("Code that should not have been reached was reached.");
 }
