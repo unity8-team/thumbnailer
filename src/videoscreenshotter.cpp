@@ -36,7 +36,7 @@ static double timestamp() {
 }
 
 static bool wait_for_helper(pid_t child) {
-    const double max_wait_time = 5;
+    const double max_wait_time = 10;
     struct timespec sleep_time;
     double start = timestamp();
     sleep_time.tv_sec = 0;
