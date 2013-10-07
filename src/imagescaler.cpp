@@ -22,6 +22,8 @@
 #include<stdexcept>
 #include<sys/stat.h>
 #include<cassert>
+#include<random>
+#include<cstring>
 
 using namespace std;
 
@@ -62,10 +64,12 @@ ImageScaler::~ImageScaler() {
 
 bool ImageScaler::scale(const std::string &ifilename, const std::string &ofilename, ThumbnailSize wanted,
         const std::string &original_location) const {
+    random_device rnd;
     assert(ifilename[0] == '/');
     assert(ofilename[0] == '/');
     GError *err = nullptr;
-
+    string ofilename_tmp = ofilename;
+    ofilename_tmp += ".tmp." + to_string(rnd());
     pb_ptr src(gdk_pixbuf_new_from_file(ifilename.c_str(), &err), pbunref);
     if(err) {
         string msg = err->message;
@@ -84,7 +88,7 @@ bool ImageScaler::scale(const std::string &ifilename, const std::string &ofilena
             pbunref);
     gboolean save_ok;
     if(original_location.empty()) {
-        save_ok = gdk_pixbuf_save(dst.get(), ofilename.c_str(), "png", &err, NULL);
+        save_ok = gdk_pixbuf_save(dst.get(), ofilename_tmp.c_str(), "png", &err, NULL);
     } else {
         assert(original_location[0] == '/');
         time_t mtime;
@@ -96,12 +100,18 @@ bool ImageScaler::scale(const std::string &ifilename, const std::string &ofilena
             mtime = sbuf.st_mtim.tv_sec;
         }
         string mtime_str = to_string(mtime);
-        save_ok = gdk_pixbuf_save(dst.get(), ofilename.c_str(), "png", &err,
+        save_ok = gdk_pixbuf_save(dst.get(), ofilename_tmp.c_str(), "png", &err,
                 "tEXt::Thumb::URI", uri.c_str(), "tEXt::Thumb::MTime", mtime_str.c_str(), NULL);
     }
     if(!save_ok) {
         string msg = err->message;
         g_error_free(err);
+        throw runtime_error(msg);
+    }
+    if(rename(ofilename_tmp.c_str(), ofilename.c_str()) <0) {
+        string msg("Could not rename temp file to actual file: ");
+        msg += strerror(errno);
+        unlink(ofilename_tmp.c_str()); // Nothing we can do if it fails.
         throw runtime_error(msg);
     }
     return true;

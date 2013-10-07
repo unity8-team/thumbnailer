@@ -29,7 +29,7 @@ enum ThumbnailSize {
     TN_SIZE_ORIGINAL // Whatever the original size was, e.g. 1920x1080 for FullHD video
 };
 
-/*
+/**
  * This class provides a way to generate and access
  * thumbnails of video, audio and image files.
  *
@@ -37,7 +37,7 @@ enum ThumbnailSize {
  *
  * All methods are thread safe.
  *
- * Errors are reported as exceptions (exact types TBD).
+ * Errors are reported as exceptions.
  */
 
 class Thumbnailer {
@@ -45,6 +45,18 @@ public:
     Thumbnailer();
     ~Thumbnailer();
 
+    /**
+     * Gets a thumbnail of the given input file in the requested size.
+     *
+     * Return value is a string pointing to the thumbnail file. If
+     * the thumbnail could not be generated and empty string is returned.
+     *
+     * Applications should treat the returned file as read only. They should _not_
+     * delete it.
+     *
+     * In case of unexpected problems, the function throws a
+     * std::runtime_error.
+     */
     std::string get_thumbnail(const std::string &filename, ThumbnailSize desired_size);
 
 private:
