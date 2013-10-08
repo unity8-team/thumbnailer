@@ -109,7 +109,7 @@ static string get_app_pkg_name() {
     if(ind == 0) {
         throw runtime_error("/proc/self/attr/current malformed, starts with '_'.");
     }
-    return core.substr(0, ind-1);
+    return core.substr(0, ind);
 }
 
 class ThumbnailCachePrivate {
