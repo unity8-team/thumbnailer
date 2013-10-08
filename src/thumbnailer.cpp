@@ -69,6 +69,10 @@ string ThumbnailerPrivate::create_thumbnail(const string &abspath, ThumbnailSize
         // Fail is ok, just try the next one.
     }
     bool extracted = false;
+    // There was a symbol clas between 1.0 and 0.10 versions of
+    // GStreamer on the desktop so we need to disable in-process
+    // usage of gstreamer. Re-enable this once desktop moves to
+    // newer Qt multimedia that has GStreamer 1.0.
 /*
     try {
         if(audio.extract(abspath, tmpname)) {
