@@ -25,6 +25,11 @@
 
 using namespace std;
 
+class GstInitializer {
+public:
+    GstInitializer() { gst_init(nullptr, nullptr); };
+};
+
 class AudioImageExtractorPrivate {
 };
 
@@ -48,6 +53,7 @@ static void extract_image(const GstTagList *tlist, FILE *outf) {
 }
 
 AudioImageExtractor::AudioImageExtractor() {
+    static GstInitializer i; // C++ standard guarantees this to be lazy and thread safe.
     p = new AudioImageExtractorPrivate();
 }
 
