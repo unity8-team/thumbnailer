@@ -29,18 +29,13 @@
 
 using namespace std;
 
-class GstInitializer {
-public:
-    GstInitializer() { gst_init(nullptr, nullptr); };
-};
-
 class ThumbnailerPrivate {
 private:
     mt19937 rnd;
 
 public:
     ThumbnailCache cache;
-    AudioImageExtractor audio;
+//    AudioImageExtractor audio;
     VideoScreenshotter video;
     ImageScaler scaler;
 
@@ -74,6 +69,7 @@ string ThumbnailerPrivate::create_thumbnail(const string &abspath, ThumbnailSize
         // Fail is ok, just try the next one.
     }
     bool extracted = false;
+/*
     try {
         if(audio.extract(abspath, tmpname)) {
             extracted = true;
@@ -85,6 +81,7 @@ string ThumbnailerPrivate::create_thumbnail(const string &abspath, ThumbnailSize
         unlink(tmpname.c_str());
         return tnfile;
     }
+    */
     try {
         if(video.extract(abspath, tmpname)) {
             extracted = true;
@@ -101,7 +98,6 @@ string ThumbnailerPrivate::create_thumbnail(const string &abspath, ThumbnailSize
 }
 
 Thumbnailer::Thumbnailer() {
-    static GstInitializer i; // C++ standard guarantees this to be lazy and thread safe.
     p = new ThumbnailerPrivate();
 }
 
