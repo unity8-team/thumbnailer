@@ -1,3 +1,15 @@
+thumbnailer (1.0+13.10.20131008-0ubuntu1) saucy; urgency=low
+
+  [ Jussi Pakkanen ]
+  * Fix off by one error. (LP: #1235444)
+  * Disable use of in-process GStreamer because we use 1.0, which
+    clashes with 0.10. (LP: #1235484)
+
+  [ Ubuntu daily release ]
+  * Automatic snapshot from revision 55
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 08 Oct 2013 12:49:51 +0000
+
 thumbnailer (1.0+13.10.20131007-0ubuntu1) saucy; urgency=low
 
   [ Jussi Pakkanen ]
