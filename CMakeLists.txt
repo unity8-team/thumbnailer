@@ -17,7 +17,7 @@ include(cmake/coverage.cmake)
 
 include(GNUInstallDirs)
 set(LIBDIR ${CMAKE_INSTALL_LIBDIR})
-set(SHARE_PRIV_DIR share/thumbnailer)
+set(SHARE_PRIV_DIR ${CMAKE_INSTALL_LIBDIR}/thumbnailer)
 set(SHARE_PRIV_ABS ${CMAKE_INSTALL_PREFIX}/${SHARE_PRIV_DIR})
 
 include(FindPkgConfig)
