@@ -50,7 +50,17 @@ void compare_test() {
     assert(!(u2 == u1));
     assert(u1 <= u2);
     assert(!(u2 <= u1));
+}
 
+// This is its own thing due to need to avoid double release.
+
+void equality_test() {
+    GdkPixbuf *pb = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
+    gobj_unique<GdkPixbuf> u1(pb);
+    gobj_unique<GdkPixbuf> u2(pb);
+    assert(u1 == u2);
+    assert(!(u1 != u2));
+    assert(pb == u2.release());
 }
 
 int main() {
@@ -60,6 +70,7 @@ int main() {
 #else
     trivial_test();
     compare_test();
+    equality_test();
     return 0;
 #endif
 }
