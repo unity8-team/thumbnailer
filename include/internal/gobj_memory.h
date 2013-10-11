@@ -32,34 +32,36 @@ private:
 
 public:
   typedef T element_type;
-  typedef decltype(g_object_unref) deleter_type;
+  typedef T* pointer;
+  typedef decltype(gobj_unref<T>) deleter_type;
 
-  unique_gobj(T *t) : u(t, gobj_unref) {}
-  unique_gobj(unique_gobj &&o) : u(nullptr, gobj_unref) { u = o.u; }
+  constexpr unique_gobj() : u(nullptr, gobj_unref<T>) {}
+  explicit unique_gobj(T *t) : u(t, gobj_unref<T>) {}
+  unique_gobj(unique_gobj &&o) noexcept = default;
   unique_gobj(const unique_gobj &o) = delete;
   unique_gobj& operator=(unique_gobj &o) = delete;
 
-  void swap(unique_gobj<T> &o) noexcept(noexcept(u.swap(o.u))) { u.swap(o.u); }
-  void reset() noexcept(noexcept(u.reset())) { u.reset(); }
-  T* release() noexcept(noexcept(u.release())) { return u.release(); }
-  T* get() noexcept(noexcept(u.get())) { return u.get(); }
+  void swap(unique_gobj<T> &o) noexcept { u.swap(o.u); }
+  void reset() noexcept { u.reset(); }
+  T* release() noexcept { return u.release(); }
+  T* get() const noexcept { return u.get(); }
 
   T& operator*() noexcept { return *u; }
   T* operator->() noexcept(noexcept(u.get)) { return u.get(); }
-  operator bool() noexcept(noexcept(bool(u))) { return bool(u); }
+  explicit operator bool() noexcept(noexcept(bool(u))) { return bool(u); }
 
   unique_gobj& operator=(unique_gobj &&o) noexcept(noexcept(u = o)) { u = o; return *this; }
   unique_gobj& operator=(nullptr_t) noexcept(noexcept(u=nullptr)) { u = nullptr; return *this; }
-  bool operator==(unique_gobj<T> &o) noexcept(noexcept(u == o.u)) { return u == o.u; }
-  bool operator!=(unique_gobj<T> &o) noexcept(noexcept(u != o.u)) { return u != o.u; }
-  bool operator<(unique_gobj<T> &o) noexcept(noexcept(u < o.u)) { return u < o.u; }
-  bool operator<=(unique_gobj<T> &o) noexcept(noexcept(u <= o.u)) { return u <= o.u; }
-  bool operator>(unique_gobj<T> &o) noexcept(noexcept(u > o.u)) { return u > o.u; }
-  bool operator>=(unique_gobj<T> &o) noexcept(noexcept(u >= o.u)) { return u >= o.u; }
+  bool operator==(const unique_gobj<T> &o) noexcept(noexcept(u == o.u)) { return u == o.u; }
+  bool operator!=(const unique_gobj<T> &o) noexcept(noexcept(u != o.u)) { return u != o.u; }
+  bool operator<(const unique_gobj<T> &o) noexcept(noexcept(u < o.u)) { return u < o.u; }
+  bool operator<=(const unique_gobj<T> &o) noexcept(noexcept(u <= o.u)) { return u <= o.u; }
+  bool operator>(const unique_gobj<T> &o) noexcept(noexcept(u > o.u)) { return u > o.u; }
+  bool operator>=(const unique_gobj<T> &o) noexcept(noexcept(u >= o.u)) { return u >= o.u; }
 };
 
 template<typename T>
-void ::std::swap(unique_gobj<T> &f, unique_gobj<T> &s) noexcept(noexcept(f.swap(s))) { f.swap(s); }
+void ::std::swap(unique_gobj<T> &f, unique_gobj<T> &s) noexcept { f.swap(s); }
 
 
 #endif
