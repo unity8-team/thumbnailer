@@ -51,6 +51,7 @@ static bool wait_for_helper(pid_t child) {
                 msg += strerror(errno);
                 throw runtime_error(msg);
             }
+            waitpid(child, &status, 0);
             throw runtime_error("Helper process took too long.");
         }
         nanosleep(&sleep_time, &dummy);
