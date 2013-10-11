@@ -23,7 +23,7 @@
 using namespace std;
 
 void trivial_test() {
-    gobj_unique<GdkPixbuf> basic(gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480));
+    unique_gobj<GdkPixbuf> basic(gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480));
     assert(basic);
     assert(gdk_pixbuf_get_width(basic.get()) == 640);
     assert(gdk_pixbuf_get_height(basic.get()) == 480);
@@ -39,8 +39,8 @@ void compare_test() {
         pb2 = tmp;
     }
     assert(pb1 < pb2);
-    gobj_unique<GdkPixbuf> u1(pb1);
-    gobj_unique<GdkPixbuf> u2(pb2);
+    unique_gobj<GdkPixbuf> u1(pb1);
+    unique_gobj<GdkPixbuf> u2(pb2);
 
     assert(u1 != u2);
     assert(!(u1 == u2));
@@ -56,8 +56,8 @@ void compare_test() {
 
 void equality_test() {
     GdkPixbuf *pb = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
-    gobj_unique<GdkPixbuf> u1(pb);
-    gobj_unique<GdkPixbuf> u2(pb);
+    unique_gobj<GdkPixbuf> u1(pb);
+    unique_gobj<GdkPixbuf> u2(pb);
     assert(u1 == u2);
     assert(!(u1 != u2));
     assert(pb == u2.release());
