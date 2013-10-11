@@ -17,6 +17,7 @@
  */
 
 #include<internal/imagescaler.h>
+#include<internal/gobj_memory.h>
 #include<gdk-pixbuf/gdk-pixbuf.h>
 #include<memory>
 #include<stdexcept>
@@ -26,9 +27,6 @@
 #include<cstring>
 
 using namespace std;
-
-static auto pbunref = [](GdkPixbuf *t) { g_object_unref(G_OBJECT(t)); };
-typedef unique_ptr<GdkPixbuf, void(*)(GdkPixbuf *t)> pb_ptr;
 
 static void determine_new_size(const int w, const int h, int &neww, int &newh,
         const ThumbnailSize wanted) {
@@ -70,7 +68,7 @@ bool ImageScaler::scale(const std::string &ifilename, const std::string &ofilena
     GError *err = nullptr;
     string ofilename_tmp = ofilename;
     ofilename_tmp += ".tmp." + to_string(rnd());
-    pb_ptr src(gdk_pixbuf_new_from_file(ifilename.c_str(), &err), pbunref);
+    unique_gobj<GdkPixbuf> src(gdk_pixbuf_new_from_file(ifilename.c_str(), &err));
     if(err) {
         string msg = err->message;
         g_error_free(err);
@@ -84,8 +82,7 @@ bool ImageScaler::scale(const std::string &ifilename, const std::string &ofilena
 
     int neww, newh;
     determine_new_size(w, h, neww, newh, wanted);
-    pb_ptr dst(gdk_pixbuf_scale_simple(src.get(), neww, newh, GDK_INTERP_BILINEAR),
-            pbunref);
+    unique_gobj<GdkPixbuf> dst(gdk_pixbuf_scale_simple(src.get(), neww, newh, GDK_INTERP_BILINEAR));
     gboolean save_ok;
     if(original_location.empty()) {
         save_ok = gdk_pixbuf_save(dst.get(), ofilename_tmp.c_str(), "png", &err, NULL);
