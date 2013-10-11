@@ -60,7 +60,15 @@ void equality_test() {
     unique_gobj<GdkPixbuf> u2(pb);
     assert(u1 == u2);
     assert(!(u1 != u2));
-    assert(pb == u2.release());
+}
+
+void release_test() {
+    GdkPixbuf *pb = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
+    unique_gobj<GdkPixbuf> u(pb);
+    assert(u);
+    assert(pb == u.release());
+    assert(!u);
+    g_object_unref(pb);
 }
 
 int main() {
@@ -71,6 +79,7 @@ int main() {
     trivial_test();
     compare_test();
     equality_test();
+    release_test();
     return 0;
 #endif
 }
