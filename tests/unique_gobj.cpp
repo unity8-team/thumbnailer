@@ -71,6 +71,22 @@ void release_test() {
     g_object_unref(pb);
 }
 
+void sub_func(GdkPixbuf *pb) {
+    assert(G_OBJECT(pb)->ref_count == 2);
+    unique_gobj<GdkPixbuf> u(pb);
+    assert(G_OBJECT(pb)->ref_count == 2);
+    // Now it dies and refcount is reduced.
+}
+
+void refcount_test() {
+    GdkPixbuf *pb = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
+    assert(G_OBJECT(pb)->ref_count == 1);
+    g_object_ref(G_OBJECT(pb));
+    sub_func(pb);
+    assert(G_OBJECT(pb)->ref_count == 1);
+    g_object_unref(G_OBJECT(pb));
+}
+
 int main() {
 #ifdef NDEBUG
     fprintf(stderr, "NDEBUG defined, tests will not work.\n");
@@ -80,6 +96,7 @@ int main() {
     compare_test();
     equality_test();
     release_test();
+    refcount_test();
     return 0;
 #endif
 }
