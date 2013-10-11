@@ -46,18 +46,18 @@ public:
   T* release() noexcept { return u.release(); }
   T* get() const noexcept { return u.get(); }
 
-  T& operator*() noexcept { return *u; }
-  T* operator->() noexcept(noexcept(u.get)) { return u.get(); }
-  explicit operator bool() noexcept(noexcept(bool(u))) { return bool(u); }
+  T& operator*() const noexcept { return *u; }
+  T* operator->() const noexcept(noexcept(u.get)) { return u.get(); }
+  explicit operator bool() const noexcept(noexcept(bool(u))) { return bool(u); }
 
-  unique_gobj& operator=(unique_gobj &&o) noexcept(noexcept(u = o)) { u = o; return *this; }
-  unique_gobj& operator=(nullptr_t) noexcept(noexcept(u=nullptr)) { u = nullptr; return *this; }
-  bool operator==(const unique_gobj<T> &o) noexcept(noexcept(u == o.u)) { return u == o.u; }
-  bool operator!=(const unique_gobj<T> &o) noexcept(noexcept(u != o.u)) { return u != o.u; }
-  bool operator<(const unique_gobj<T> &o) noexcept(noexcept(u < o.u)) { return u < o.u; }
-  bool operator<=(const unique_gobj<T> &o) noexcept(noexcept(u <= o.u)) { return u <= o.u; }
-  bool operator>(const unique_gobj<T> &o) noexcept(noexcept(u > o.u)) { return u > o.u; }
-  bool operator>=(const unique_gobj<T> &o) noexcept(noexcept(u >= o.u)) { return u >= o.u; }
+  unique_gobj& operator=(unique_gobj &&o) const noexcept(noexcept(u = o)) { u = o; return *this; }
+  unique_gobj& operator=(nullptr_t) const noexcept(noexcept(u=nullptr)) { u = nullptr; return *this; }
+  bool operator==(const unique_gobj<T> &o) const noexcept(noexcept(u == o.u)) { return u == o.u; }
+  bool operator!=(const unique_gobj<T> &o) const noexcept(noexcept(u != o.u)) { return u != o.u; }
+  bool operator<(const unique_gobj<T> &o) const noexcept(noexcept(u < o.u)) { return u < o.u; }
+  bool operator<=(const unique_gobj<T> &o) const noexcept(noexcept(u <= o.u)) { return u <= o.u; }
+  bool operator>(const unique_gobj<T> &o) const noexcept(noexcept(u > o.u)) { return u > o.u; }
+  bool operator>=(const unique_gobj<T> &o) const noexcept(noexcept(u >= o.u)) { return u >= o.u; }
 };
 
 template<typename T>
