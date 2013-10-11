@@ -50,7 +50,7 @@ public:
   T* operator->() const noexcept(noexcept(u.get)) { return u.get(); }
   explicit operator bool() const noexcept(noexcept(bool(u))) { return bool(u); }
 
-  unique_gobj& operator=(unique_gobj &&o) const noexcept(noexcept(u = o)) { u = o; return *this; }
+  unique_gobj& operator=(unique_gobj &&o) noexcept = default;
   unique_gobj& operator=(nullptr_t) const noexcept(noexcept(u=nullptr)) { u = nullptr; return *this; }
   bool operator==(const unique_gobj<T> &o) const noexcept(noexcept(u == o.u)) { return u == o.u; }
   bool operator!=(const unique_gobj<T> &o) const noexcept(noexcept(u != o.u)) { return u != o.u; }
