@@ -57,9 +57,12 @@ void compare_test() {
 void equality_test() {
     GdkPixbuf *pb = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
     unique_gobj<GdkPixbuf> u1(pb);
+    g_object_ref(G_OBJECT(pb));
     unique_gobj<GdkPixbuf> u2(pb);
     assert(u1 == u2);
+    assert(u2 == u1);
     assert(!(u1 != u2));
+    assert(!(u2 != u1));
 }
 
 void release_test() {
