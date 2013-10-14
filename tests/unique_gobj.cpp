@@ -87,6 +87,21 @@ void refcount_test() {
     g_object_unref(G_OBJECT(pb));
 }
 
+void swap_test() {
+    GdkPixbuf *pb1 = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
+    GdkPixbuf *pb2 = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
+    unique_gobj<GdkPixbuf> u1(pb1);
+    unique_gobj<GdkPixbuf> u2(pb2);
+
+    u1.swap(u2);
+    assert(u1.get() == pb2);
+    assert(u2.get() == pb1);
+
+    std::swap(u1, u2);
+    assert(u1.get() == pb1);
+    assert(u2.get() == pb2);
+}
+
 int main() {
 #ifdef NDEBUG
     fprintf(stderr, "NDEBUG defined, tests will not work.\n");
@@ -97,6 +112,7 @@ int main() {
     equality_test();
     release_test();
     refcount_test();
+    swap_test();
     return 0;
 #endif
 }
