@@ -105,6 +105,18 @@ void swap_test() {
     assert(u2.get() == pb2);
 }
 
+void floating_test() {
+    GdkPixbuf *pb = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
+    bool got_exception = false;
+    g_object_force_floating(G_OBJECT(pb));
+    try {
+        unique_gobj<GdkPixbuf> u(pb);
+    } catch(const invalid_argument &c) {
+        got_exception = true;
+    }
+    assert(got_exception);
+}
+
 int main() {
 #ifdef NDEBUG
     fprintf(stderr, "NDEBUG defined, tests will not work.\n");
@@ -116,6 +128,7 @@ int main() {
     release_test();
     refcount_test();
     swap_test();
+    floating_test();
     return 0;
 #endif
 }

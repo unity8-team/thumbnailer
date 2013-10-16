@@ -21,6 +21,7 @@
 
 #include<memory>
 #include<glib-object.h>
+#include<stdexcept>
 
 template<typename T>
 void gobj_unref(T *t) { g_object_unref(G_OBJECT(t)); }
@@ -36,7 +37,15 @@ public:
   typedef decltype(gobj_unref<T>) deleter_type;
 
   constexpr unique_gobj() : u(nullptr, gobj_unref<T>) {}
-  explicit unique_gobj(T *t) : u(t, gobj_unref<T>) {}
+  explicit unique_gobj(T *t) : u(t, gobj_unref<T>) {
+      if(g_object_is_floating(u.get())) {
+          // What should we do here. Unreffing unknown objs
+          // is dodgy but not unreffing runs the risk of
+          // memory leaks. Currently unrefs as u is destroyed
+          // when this exception is thrown.
+          throw std::invalid_argument("Tried to add a floating gobject into a unique_gobj.");
+      }
+  }
   unique_gobj(unique_gobj &&o) noexcept = default;
   unique_gobj(const unique_gobj &o) = delete;
   unique_gobj& operator=(unique_gobj &o) = delete;
