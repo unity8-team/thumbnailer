@@ -119,6 +119,19 @@ void floating_test() {
     assert(got_exception);
 }
 
+void move_test() {
+    GdkPixbuf *pb1 = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
+    GdkPixbuf *pb2 = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
+    g_object_ref(G_OBJECT(pb1));
+    unique_gobj<GdkPixbuf> u1(pb1);
+    unique_gobj<GdkPixbuf> u2(pb2);
+    u1 = std::move(u2);
+    assert(u1.get() == pb2);
+    assert(!u2);
+    assert(G_OBJECT(pb1)->ref_count == 1);
+    g_object_unref(G_OBJECT(pb1));
+}
+
 int main() {
 #ifdef NDEBUG
     fprintf(stderr, "NDEBUG defined, tests will not work.\n");
@@ -131,6 +144,7 @@ int main() {
     refcount_test();
     swap_test();
     floating_test();
+    move_test();
     return 0;
 #endif
 }
