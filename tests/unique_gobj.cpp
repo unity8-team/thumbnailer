@@ -132,6 +132,15 @@ void move_test() {
     g_object_unref(G_OBJECT(pb1));
 }
 
+void null_test() {
+    GdkPixbuf *pb1 = NULL;
+    GdkPixbuf *pb2 = nullptr;
+    unique_gobj<GdkPixbuf> u1(pb1);
+    unique_gobj<GdkPixbuf> u2(pb2);
+    assert(!u1);
+    assert(!u2);
+}
+
 int main() {
 #ifdef NDEBUG
     fprintf(stderr, "NDEBUG defined, tests will not work.\n");
@@ -145,6 +154,7 @@ int main() {
     swap_test();
     floating_test();
     move_test();
+    null_test();
     return 0;
 #endif
 }
