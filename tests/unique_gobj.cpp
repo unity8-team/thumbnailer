@@ -69,8 +69,10 @@ void release_test() {
     GdkPixbuf *pb = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
     unique_gobj<GdkPixbuf> u(pb);
     assert(u);
+    assert(u.get() != nullptr);
     assert(pb == u.release());
     assert(!u);
+    assert(u.get() == nullptr);
     g_object_unref(pb);
 }
 
