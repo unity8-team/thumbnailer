@@ -19,26 +19,29 @@
 #ifndef GOBJ_MEMORY_H_
 #define GOBJ_MEMORY_H_
 
-#include<memory>
 #include<glib-object.h>
 #include<stdexcept>
 
 template<typename T>
-void gobj_unref(T *t) { g_object_unref(G_OBJECT(t)); }
-
-template<typename T>
 class unique_gobj {
 private:
-  std::unique_ptr<T, void(*)(T*)> u;
+  T* u;
+
+  void unref() {
+      if(u==nullptr)
+          return;
+      g_object_unref(G_OBJECT(u));
+      u = nullptr;
+  }
 
 public:
   typedef T element_type;
   typedef T* pointer;
-  typedef decltype(gobj_unref<T>) deleter_type;
+  typedef decltype(g_object_unref) deleter_type;
 
-  constexpr unique_gobj() : u(nullptr, gobj_unref<T>) {}
-  explicit unique_gobj(T *t) : u(t, gobj_unref<T>) {
-      if(g_object_is_floating(u.get())) {
+  constexpr unique_gobj() : u(nullptr) {}
+  explicit unique_gobj(T *t) : u(t) {
+      if(u != nullptr && g_object_is_floating(G_OBJECT(u))) {
           // What should we do here. Unreffing unknown objs
           // is dodgy but not unreffing runs the risk of
           // memory leaks. Currently unrefs as u is destroyed
@@ -46,20 +49,21 @@ public:
           throw std::invalid_argument("Tried to add a floating gobject into a unique_gobj.");
       }
   }
-  unique_gobj(unique_gobj &&o) noexcept = default;
+  unique_gobj(unique_gobj &&o) { u = o.u; o.u = nullptr; }
   unique_gobj(const unique_gobj &o) = delete;
   unique_gobj& operator=(unique_gobj &o) = delete;
+  ~unique_gobj() { unref(); }
 
-  void swap(unique_gobj<T> &o) noexcept { u.swap(o.u); }
-  void reset() noexcept { u.reset(); }
-  T* release() noexcept { return u.release(); }
-  T* get() const noexcept { return u.get(); }
+  void swap(unique_gobj<T> &o) noexcept { T*tmp = u; u = o.u; o.u = tmp; }
+  void reset() noexcept { unref(); }
+  T* release() noexcept { T* r = u; u=nullptr; return r; }
+  T* get() const noexcept { return u; }
 
   T& operator*() const noexcept { return *u; }
-  T* operator->() const noexcept(noexcept(u.get)) { return u.get(); }
-  explicit operator bool() const noexcept(noexcept(bool(u))) { return bool(u); }
+  T* operator->() const noexcept { return u; }
+  explicit operator bool() const noexcept { return u != nullptr; }
 
-  unique_gobj& operator=(unique_gobj &&o) noexcept = default;
+  unique_gobj& operator=(unique_gobj &&o) noexcept { unref(); u = o.u; o.u = nullptr; return *this; }
   unique_gobj& operator=(nullptr_t) const noexcept(noexcept(u=nullptr)) { u = nullptr; return *this; }
   bool operator==(const unique_gobj<T> &o) const noexcept(noexcept(u == o.u)) { return u == o.u; }
   bool operator!=(const unique_gobj<T> &o) const noexcept(noexcept(u != o.u)) { return u != o.u; }

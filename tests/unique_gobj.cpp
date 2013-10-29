@@ -116,6 +116,7 @@ void floating_test() {
     } catch(const invalid_argument &c) {
         got_exception = true;
     }
+    g_object_unref(G_OBJECT(pb));
     assert(got_exception);
 }
 
@@ -151,9 +152,9 @@ int main() {
     equality_test();
     release_test();
     refcount_test();
+    move_test();
     swap_test();
     floating_test();
-    move_test();
     null_test();
     return 0;
 #endif
