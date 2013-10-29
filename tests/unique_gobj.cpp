@@ -33,10 +33,7 @@ void compare_test() {
     GdkPixbuf *pb1 = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
     GdkPixbuf *pb2 = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
     if(pb1 > pb2) {
-        GdkPixbuf *tmp;
-        tmp = pb1;
-        pb1 = pb2;
-        pb2 = tmp;
+        std::swap(pb1, pb2);
     }
     assert(pb1 < pb2);
     unique_gobj<GdkPixbuf> u1(pb1);
