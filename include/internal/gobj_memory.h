@@ -27,13 +27,6 @@ class unique_gobj {
 private:
   T* u;
 
-  void unref() {
-      if(u==nullptr)
-          return;
-      g_object_unref(G_OBJECT(u));
-      u = nullptr;
-  }
-
 public:
   typedef T element_type;
   typedef T* pointer;
@@ -52,10 +45,16 @@ public:
   unique_gobj(unique_gobj &&o) { u = o.u; o.u = nullptr; }
   unique_gobj(const unique_gobj &o) = delete;
   unique_gobj& operator=(unique_gobj &o) = delete;
-  ~unique_gobj() { unref(); }
+  ~unique_gobj() { reset(); }
 
   void swap(unique_gobj<T> &o) noexcept { T*tmp = u; u = o.u; o.u = tmp; }
-  void reset() noexcept { unref(); }
+  void reset() noexcept {
+      if(u==nullptr)
+          return;
+      g_object_unref(G_OBJECT(u));
+      u = nullptr;
+  }
+
   T* release() noexcept { T* r = u; u=nullptr; return r; }
   T* get() const noexcept { return u; }
 
@@ -63,14 +62,14 @@ public:
   T* operator->() const noexcept { return u; }
   explicit operator bool() const noexcept { return u != nullptr; }
 
-  unique_gobj& operator=(unique_gobj &&o) noexcept { unref(); u = o.u; o.u = nullptr; return *this; }
-  unique_gobj& operator=(nullptr_t) const noexcept(noexcept(u=nullptr)) { u = nullptr; return *this; }
-  bool operator==(const unique_gobj<T> &o) const noexcept(noexcept(u == o.u)) { return u == o.u; }
-  bool operator!=(const unique_gobj<T> &o) const noexcept(noexcept(u != o.u)) { return u != o.u; }
-  bool operator<(const unique_gobj<T> &o) const noexcept(noexcept(u < o.u)) { return u < o.u; }
-  bool operator<=(const unique_gobj<T> &o) const noexcept(noexcept(u <= o.u)) { return u <= o.u; }
-  bool operator>(const unique_gobj<T> &o) const noexcept(noexcept(u > o.u)) { return u > o.u; }
-  bool operator>=(const unique_gobj<T> &o) const noexcept(noexcept(u >= o.u)) { return u >= o.u; }
+  unique_gobj& operator=(unique_gobj &&o) noexcept { reset(); u = o.u; o.u = nullptr; return *this; }
+  unique_gobj& operator=(nullptr_t) noexcept { reset(); return *this; }
+  bool operator==(const unique_gobj<T> &o) const noexcept { return u == o.u; }
+  bool operator!=(const unique_gobj<T> &o) const noexcept { return u != o.u; }
+  bool operator<(const unique_gobj<T> &o) const noexcept { return u < o.u; }
+  bool operator<=(const unique_gobj<T> &o) const noexcept { return u <= o.u; }
+  bool operator>(const unique_gobj<T> &o) const noexcept { return u > o.u; }
+  bool operator>=(const unique_gobj<T> &o) const noexcept { return u >= o.u; }
 };
 
 template<typename T>
