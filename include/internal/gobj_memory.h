@@ -22,6 +22,27 @@
 #include<glib-object.h>
 #include<stdexcept>
 
+/**
+ * This class is meant for automatically managing the lifetime of C objects derived
+ * from gobject. Its API perfectly mirrors the API of unique_ptr except that you
+ * can't define your own deleter function as it is always g_object_unref.
+ *
+ * API/ABI stability is not guaranteed. If you need to pass the object across an ABI
+ * boundary, pass the plain gobject.
+ *
+ * This is how you would use unique_gobj 99% of the time:
+ *
+ * unique_gobj<GSomeType> o(g_some_type_new(...));
+ *
+ * More specifically, the object will decrement the gobject reference count
+ * of the object it points to when it goes out of scope. It will never increment it.
+ * Thus you should only assign to it when already holding a reference. unique_gobj
+ * will then take ownership of that particular reference.
+ *
+ * Floating gobjects can not be put in this container as they are meant to be put
+ * into native gobject aware containers immediately upon construction. Trying to insert
+ * a floating gobject into a unique_gobj will throw an invalid_argument exception.
+ */
 template<typename T>
 class unique_gobj {
 private:
