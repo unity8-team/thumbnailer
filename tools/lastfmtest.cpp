@@ -23,37 +23,35 @@
 #include <libxml/parser.h>
 #include <libxml/xmlmemory.h>
 #include <libxml/xpath.h>
+#include<memory>
 
 using namespace std;
 
 string parseXML(const string &xml) {
-    xmlDocPtr doc;
-    xmlXPathContextPtr xpath_ctx;
-    xmlXPathObjectPtr xpath_res;
     string node = "/album/coverart/large";
-    doc = xmlReadMemory(xml.c_str(), xmlStrlen ((xmlChar*) xml.c_str()), NULL, NULL,
-                          XML_PARSE_RECOVER | XML_PARSE_NOBLANKS);
+    unique_ptr<xmlDoc, void(*)(xmlDoc*)> doc(
+            xmlReadMemory(xml.c_str(), xmlStrlen ((xmlChar*) xml.c_str()), NULL, NULL,
+                          XML_PARSE_RECOVER | XML_PARSE_NOBLANKS), xmlFreeDoc);
      if (!doc) {
-       return NULL;
+       return "";
      }
-     xpath_ctx = xmlXPathNewContext (doc);
-     xpath_res = xmlXPathEvalExpression ((xmlChar *) node.c_str(), xpath_ctx);
+     unique_ptr<xmlXPathContext, void(*)(xmlXPathContext*)>xpath_ctx(
+             xmlXPathNewContext(doc.get()), xmlXPathFreeContext);
+
+     unique_ptr<xmlXPathObject, void(*)(xmlXPathObject *)> xpath_res(
+             xmlXPathEvalExpression((xmlChar *) node.c_str(), xpath_ctx.get()),
+             xmlXPathFreeObject);
      if (!xpath_res) {
-       xmlXPathFreeContext (xpath_ctx);
-       xmlFreeDoc (doc);
        return "";
      }
 
      char *imageurl;
      if (xpath_res->nodesetval->nodeTab) {
-       imageurl = (char *) xmlNodeListGetString (doc,
+       imageurl = (char *) xmlNodeListGetString (doc.get(),
                xpath_res->nodesetval->nodeTab[0]->xmlChildrenNode, 1);
      }
      string url(imageurl);
      g_free(imageurl);
-     xmlXPathFreeObject (xpath_res);
-     xmlXPathFreeContext (xpath_ctx);
-     xmlFreeDoc (doc);
      return url;
 }
 
