@@ -20,7 +20,42 @@
 #include<cstdio>
 #include<libsoup/soup.h>
 
+#include <libxml/parser.h>
+#include <libxml/xmlmemory.h>
+#include <libxml/xpath.h>
+
 using namespace std;
+
+string parseXML(const string &xml) {
+    xmlDocPtr doc;
+    xmlXPathContextPtr xpath_ctx;
+    xmlXPathObjectPtr xpath_res;
+    string node = "/album/coverart/large";
+    doc = xmlReadMemory(xml.c_str(), xmlStrlen ((xmlChar*) xml.c_str()), NULL, NULL,
+                          XML_PARSE_RECOVER | XML_PARSE_NOBLANKS);
+     if (!doc) {
+       return NULL;
+     }
+     xpath_ctx = xmlXPathNewContext (doc);
+     xpath_res = xmlXPathEvalExpression ((xmlChar *) node.c_str(), xpath_ctx);
+     if (!xpath_res) {
+       xmlXPathFreeContext (xpath_ctx);
+       xmlFreeDoc (doc);
+       return "";
+     }
+
+     char *imageurl;
+     if (xpath_res->nodesetval->nodeTab) {
+       imageurl = (char *) xmlNodeListGetString (doc,
+               xpath_res->nodesetval->nodeTab[0]->xmlChildrenNode, 1);
+     }
+     string url(imageurl);
+     g_free(imageurl);
+     xmlXPathFreeObject (xpath_res);
+     xmlXPathFreeContext (xpath_ctx);
+     xmlFreeDoc (doc);
+     return url;
+}
 
 void getImage() {
     const char *lastfmTemplate = "http://ws.audioscrobbler.com/1.0/album/%s/%s/info.xml";
@@ -37,7 +72,14 @@ void getImage() {
         fprintf(stderr, "Fail\n");
         return;
     }
-    printf("%s\n", msg->response_body->data);
+    string xml(msg->response_body->data);
+    string parsed = parseXML(xml);
+    if(parsed.empty() ||
+       parsed == "http://cdn.last.fm/flatness/catalogue/noimage/2/default_album_medium.png") {
+        fprintf(stderr, "Could not find album art.\n");
+        return;
+    }
+    printf("Result: %s\n", parsed.c_str());
     g_object_unref(msg);
     g_object_unref(s);
 }
