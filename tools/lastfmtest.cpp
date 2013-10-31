@@ -61,6 +61,7 @@ void getImage() {
     const char *lastfmTemplate = "http://ws.audioscrobbler.com/1.0/album/%s/%s/info.xml";
     string artist = "The Prodigy";
     string album = "Music for the Jilted Generation";
+    string outputFile = "image.png";
     const int bufsize = 1024;
     char buf[bufsize];
     snprintf(buf, bufsize, lastfmTemplate, artist.c_str(), album.c_str());
@@ -69,7 +70,7 @@ void getImage() {
     guint status;
     status = soup_session_send_message(s, msg);
     if(!SOUP_STATUS_IS_SUCCESSFUL(status)) {
-        fprintf(stderr, "Fail\n");
+        fprintf(stderr, "Determination failed.\n");
         return;
     }
     string xml(msg->response_body->data);
@@ -80,6 +81,17 @@ void getImage() {
         return;
     }
     printf("Result: %s\n", parsed.c_str());
+    g_object_unref(msg);
+
+    msg = soup_message_new("GET", parsed.c_str());
+    status = soup_session_send_message(s, msg);
+    if(!SOUP_STATUS_IS_SUCCESSFUL(status)) {
+        fprintf(stderr, "Image download failed.\n");
+        return;
+    }
+    FILE *f = fopen(outputFile.c_str(), "w");
+    fwrite(msg->response_body->data, 1, msg->response_body->length, f);
+    fclose(f);
     g_object_unref(msg);
     g_object_unref(s);
 }
