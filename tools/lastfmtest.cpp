@@ -27,6 +27,8 @@
 
 using namespace std;
 
+const char *NOTFOUND_IMAGE = "http://cdn.last.fm/flatness/catalogue/noimage/2/default_album_medium.png";
+
 string parseXML(const string &xml) {
     string node = "/album/coverart/large";
     unique_ptr<xmlDoc, void(*)(xmlDoc*)> doc(
@@ -47,7 +49,7 @@ string parseXML(const string &xml) {
 
      char *imageurl;
      if (xpath_res->nodesetval->nodeTab) {
-       imageurl = (char *) xmlNodeListGetString (doc.get(),
+       imageurl = (char *) xmlNodeListGetString(doc.get(),
                xpath_res->nodesetval->nodeTab[0]->xmlChildrenNode, 1);
      }
      string url(imageurl);
@@ -74,7 +76,7 @@ void getImage() {
     string xml(msg->response_body->data);
     string parsed = parseXML(xml);
     if(parsed.empty() ||
-       parsed == "http://cdn.last.fm/flatness/catalogue/noimage/2/default_album_medium.png") {
+       parsed == NOTFOUND_IMAGE) {
         fprintf(stderr, "Could not find album art.\n");
         return;
     }
