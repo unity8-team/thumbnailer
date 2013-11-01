@@ -132,10 +132,9 @@ void move_test() {
 
 void null_test() {
     GdkPixbuf *pb1 = NULL;
-    GdkPixbuf *pb2 = nullptr;
     GdkPixbuf *pb3 = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
     unique_gobj<GdkPixbuf> u1(pb1);
-    unique_gobj<GdkPixbuf> u2(pb2);
+    unique_gobj<GdkPixbuf> u2(nullptr);
     unique_gobj<GdkPixbuf> u3(pb3);
 
     assert(!u1);
