@@ -53,7 +53,7 @@ public:
   typedef T* pointer;
   typedef decltype(g_object_unref) deleter_type;
 
-  constexpr unique_gobj() : u(nullptr) {}
+  constexpr unique_gobj() noexcept : u(nullptr) {}
   explicit unique_gobj(T *t) : u(t) {
       if(u != nullptr && g_object_is_floating(G_OBJECT(u))) {
           // What should we do here. Unreffing unknown objs
@@ -63,7 +63,7 @@ public:
           throw std::invalid_argument("Tried to add a floating gobject into a unique_gobj.");
       }
   }
-  unique_gobj(unique_gobj &&o) { u = o.u; o.u = nullptr; }
+  unique_gobj(unique_gobj &&o) noexcept { u = o.u; o.u = nullptr; }
   unique_gobj(const unique_gobj &o) = delete;
   unique_gobj& operator=(unique_gobj &o) = delete;
   ~unique_gobj() { reset(); }
