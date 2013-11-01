@@ -44,7 +44,7 @@
  * a floating gobject into a unique_gobj will throw an invalid_argument exception.
  */
 template<typename T>
-class unique_gobj {
+class unique_gobj final {
 private:
   T* u;
 
