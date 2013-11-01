@@ -48,6 +48,12 @@ class unique_gobj {
 private:
   T* u;
 
+  void validate_float(T *t) {
+      if(t != nullptr && g_object_is_floating(G_OBJECT(t))) {
+          throw std::invalid_argument("Tried to add a floating gobject into a unique_gobj.");
+      }
+  }
+
 public:
   typedef T element_type;
   typedef T* pointer;
@@ -55,13 +61,11 @@ public:
 
   constexpr unique_gobj() noexcept : u(nullptr) {}
   explicit unique_gobj(T *t) : u(t) {
-      if(u != nullptr && g_object_is_floating(G_OBJECT(u))) {
-          // What should we do here. Unreffing unknown objs
-          // is dodgy but not unreffing runs the risk of
-          // memory leaks. Currently unrefs as u is destroyed
-          // when this exception is thrown.
-          throw std::invalid_argument("Tried to add a floating gobject into a unique_gobj.");
-      }
+      // What should we do if validate throws? Unreffing unknown objs
+      // is dodgy but not unreffing runs the risk of
+      // memory leaks. Currently unrefs as u is destroyed
+      // when this exception is thrown.
+      validate_float(t);
   }
   unique_gobj(unique_gobj &&o) noexcept { u = o.u; o.u = nullptr; }
   unique_gobj(const unique_gobj &o) = delete;
@@ -72,11 +76,14 @@ public:
   const deleter_type& get_deleter() const noexcept;
 
   void swap(unique_gobj<T> &o) noexcept { T*tmp = u; u = o.u; o.u = tmp; }
-  void reset() noexcept {
-      if(u==nullptr)
-          return;
-      g_object_unref(G_OBJECT(u));
-      u = nullptr;
+  void reset(pointer p = pointer()) {
+      if(u!=nullptr) {
+          g_object_unref(G_OBJECT(u));
+          u = nullptr;
+      }
+      // Same throw dilemma as in pointer constructor.
+      u = p;
+      validate_float(p);
   }
 
   T* release() noexcept { T* r = u; u=nullptr; return r; }
