@@ -89,7 +89,7 @@ public:
   T* release() noexcept { T* r = u; u=nullptr; return r; }
   T* get() const noexcept { return u; }
 
-  T& operator*() const noexcept { return *u; }
+  T& operator*() const { return *u; }
   T* operator->() const noexcept { return u; }
   explicit operator bool() const noexcept { return u != nullptr; }
 
