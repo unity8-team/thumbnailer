@@ -41,7 +41,8 @@
  *
  * Floating gobjects can not be put in this container as they are meant to be put
  * into native gobject aware containers immediately upon construction. Trying to insert
- * a floating gobject into a unique_gobj will throw an invalid_argument exception.
+ * a floating gobject into a unique_gobj will throw an invalid_argument exception. To
+ * prevent accidental memory leaks, the floating gobject is unreffed in this case.
  */
 template<typename T>
 class unique_gobj final {
