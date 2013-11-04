@@ -68,6 +68,7 @@ public:
       // when this exception is thrown.
       validate_float(t);
   }
+  constexpr unique_gobj(nullptr_t) noexcept : u(nullptr) {};
   unique_gobj(unique_gobj &&o) noexcept { u = o.u; o.u = nullptr; }
   unique_gobj(const unique_gobj &o) = delete;
   unique_gobj& operator=(unique_gobj &o) = delete;

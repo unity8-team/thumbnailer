@@ -39,6 +39,8 @@ void compare_test() {
     unique_gobj<GdkPixbuf> u1(pb1);
     unique_gobj<GdkPixbuf> u2(pb2);
 
+    assert(!(u1 == nullptr));
+    assert(u1 != nullptr);
     assert(u1 != u2);
     assert(!(u1 == u2));
     assert(u1 < u2);
