@@ -156,6 +156,10 @@ void reset_test() {
     assert(!u);
 }
 
+void sizeof_test() {
+    assert(sizeof(GdkPixbuf*) == sizeof(unique_gobj<GdkPixbuf>));
+}
+
 int main() {
 #ifdef NDEBUG
     fprintf(stderr, "NDEBUG defined, tests will not work.\n");
@@ -171,6 +175,7 @@ int main() {
     floating_test();
     null_test();
     reset_test();
+    sizeof_test();
     return 0;
 #endif
 }
