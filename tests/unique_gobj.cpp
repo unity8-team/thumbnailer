@@ -160,6 +160,11 @@ void sizeof_test() {
     assert(sizeof(GdkPixbuf*) == sizeof(unique_gobj<GdkPixbuf>));
 }
 
+void deleter_test() {
+    unique_gobj<GdkPixbuf> u1;
+    assert(u1.get_deleter() == g_object_unref);
+}
+
 int main() {
 #ifdef NDEBUG
     fprintf(stderr, "NDEBUG defined, tests will not work.\n");
@@ -176,6 +181,7 @@ int main() {
     null_test();
     reset_test();
     sizeof_test();
+    deleter_test();
     return 0;
 #endif
 }

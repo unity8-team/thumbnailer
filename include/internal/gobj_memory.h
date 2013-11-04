@@ -74,8 +74,8 @@ public:
   unique_gobj& operator=(unique_gobj &o) = delete;
   ~unique_gobj() { reset(); }
 
-  deleter_type& get_deleter() noexcept;
-  const deleter_type& get_deleter() const noexcept;
+  deleter_type& get_deleter() noexcept { return g_object_unref; }
+  const deleter_type& get_deleter() const noexcept { return g_object_unref; }
 
   void swap(unique_gobj<T> &o) noexcept { T*tmp = u; u = o.u; o.u = tmp; }
   void reset(pointer p = pointer()) {
