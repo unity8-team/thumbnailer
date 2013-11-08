@@ -29,6 +29,11 @@ enum ThumbnailSize {
     TN_SIZE_ORIGINAL // Whatever the original size was, e.g. 1920x1080 for FullHD video
 };
 
+enum ThumbnailPolicy {
+    TN_LOCAL,  // Use only local information
+    TN_REMOTE, // Use remote services (e.g. album art downloading)
+};
+
 /**
  * This class provides a way to generate and access
  * thumbnails of video, audio and image files.
@@ -56,6 +61,11 @@ public:
      *
      * In case of unexpected problems, the function throws a
      * std::runtime_error.
+     */
+    std::string get_thumbnail(const std::string &filename, ThumbnailSize desired_size,
+            ThumbnailPolicy);
+    /**
+     * Deprecated. Do not use!
      */
     std::string get_thumbnail(const std::string &filename, ThumbnailSize desired_size);
 

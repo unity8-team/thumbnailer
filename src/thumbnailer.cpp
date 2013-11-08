@@ -36,7 +36,8 @@ class ThumbnailerPrivate {
 private:
     mt19937 rnd;
 
-    string create_audio_thumbnail(const string &abspath, ThumbnailSize desired_size);
+    string create_audio_thumbnail(const string &abspath, ThumbnailSize desired_size,
+            ThumbnailPolicy policy);
     string create_video_thumbnail(const string &abspath, ThumbnailSize desired_size);
     string create_generic_thumbnail(const string &abspath, ThumbnailSize desired_size);
 
@@ -48,10 +49,12 @@ public:
 
     ThumbnailerPrivate() {};
 
-    string create_thumbnail(const string &abspath, ThumbnailSize desired_size);
+    string create_thumbnail(const string &abspath, ThumbnailSize desired_size,
+            ThumbnailPolicy policy);
 };
 
-string ThumbnailerPrivate::create_audio_thumbnail(const string &abspath, ThumbnailSize desired_size) {
+string ThumbnailerPrivate::create_audio_thumbnail(const string &abspath,
+        ThumbnailSize desired_size, ThumbnailPolicy policy) {
     // There was a symbol clas between 1.0 and 0.10 versions of
     // GStreamer on the desktop so we need to disable in-process
     // usage of gstreamer. Re-enable this once desktop moves to
@@ -99,7 +102,8 @@ string ThumbnailerPrivate::create_video_thumbnail(const string &abspath, Thumbna
     throw runtime_error("Video extraction failed.");
 }
 
-string ThumbnailerPrivate::create_thumbnail(const string &abspath, ThumbnailSize desired_size) {
+string ThumbnailerPrivate::create_thumbnail(const string &abspath, ThumbnailSize desired_size,
+        ThumbnailPolicy policy) {
     // Every now and then see if we have too much stuff and delete them if so.
     if((rnd() % 100) == 0) { // No, this is not perfectly random. It does not need to be.
         cache.prune();
@@ -124,7 +128,7 @@ string ThumbnailerPrivate::create_thumbnail(const string &abspath, ThumbnailSize
     }
 
     if (content_type.find("audio/") == 0) {
-        return create_audio_thumbnail(abspath, desired_size);
+        return create_audio_thumbnail(abspath, desired_size, policy);
     }
 
     if (content_type.find("video/") == 0) {
@@ -141,8 +145,8 @@ Thumbnailer::Thumbnailer() {
 Thumbnailer::~Thumbnailer() {
     delete p;
 }
-
-string Thumbnailer::get_thumbnail(const string &filename, ThumbnailSize desired_size) {
+std::string Thumbnailer::get_thumbnail(const std::string &filename, ThumbnailSize desired_size,
+        ThumbnailPolicy policy) {
     string abspath;
     if(filename[0] != '/') {
         abspath += getcwd(nullptr, 0);
@@ -153,9 +157,13 @@ string Thumbnailer::get_thumbnail(const string &filename, ThumbnailSize desired_
     std::string estimate = p->cache.get_if_exists(abspath, desired_size);
     if(!estimate.empty())
         return estimate;
-    string generated = p->create_thumbnail(abspath, desired_size);
+    string generated = p->create_thumbnail(abspath, desired_size, policy);
     if(generated == abspath) {
         return abspath;
     }
     return p->cache.get_if_exists(abspath, desired_size);
+}
+
+string Thumbnailer::get_thumbnail(const string &filename, ThumbnailSize desired_size) {
+    return get_thumbnail(filename, desired_size, TN_LOCAL);
 }
