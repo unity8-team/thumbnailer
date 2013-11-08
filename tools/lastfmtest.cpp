@@ -54,7 +54,7 @@ string parseXML(const string &xml) {
                path->nodesetval->nodeTab[0]->xmlChildrenNode, 1);
      }
      string url(imageurl);
-     g_free(imageurl);
+     xmlFree(imageurl);
      return url;
 }
 
