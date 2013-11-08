@@ -23,6 +23,7 @@
 #include <libxml/parser.h>
 #include <libxml/xmlmemory.h>
 #include <libxml/xpath.h>
+#include<internal/gobj_memory.h>
 #include<memory>
 
 using namespace std;
@@ -37,20 +38,20 @@ string parseXML(const string &xml) {
      if (!doc) {
        return "";
      }
-     unique_ptr<xmlXPathContext, void(*)(xmlXPathContext*)>xpath_ctx(
+     unique_ptr<xmlXPathContext, void(*)(xmlXPathContext*)> cntx(
              xmlXPathNewContext(doc.get()), xmlXPathFreeContext);
 
-     unique_ptr<xmlXPathObject, void(*)(xmlXPathObject *)> xpath_res(
-             xmlXPathEvalExpression((xmlChar *) node.c_str(), xpath_ctx.get()),
+     unique_ptr<xmlXPathObject, void(*)(xmlXPathObject *)> path(
+             xmlXPathEvalExpression((xmlChar *) node.c_str(),  cntx.get()),
              xmlXPathFreeObject);
-     if (!xpath_res) {
+     if (!path) {
        return "";
      }
 
      char *imageurl;
-     if (xpath_res->nodesetval->nodeTab) {
+     if (path->nodesetval->nodeTab) {
        imageurl = (char *) xmlNodeListGetString(doc.get(),
-               xpath_res->nodesetval->nodeTab[0]->xmlChildrenNode, 1);
+               path->nodesetval->nodeTab[0]->xmlChildrenNode, 1);
      }
      string url(imageurl);
      g_free(imageurl);
@@ -65,10 +66,10 @@ void getImage() {
     const int bufsize = 1024;
     char buf[bufsize];
     snprintf(buf, bufsize, lastfmTemplate, artist.c_str(), album.c_str());
-    SoupSession *s = soup_session_sync_new();
-    SoupMessage *msg = soup_message_new("GET", buf);
+    unique_gobj<SoupSession> s(soup_session_sync_new());
+    unique_gobj<SoupMessage> msg(soup_message_new("GET", buf));
     guint status;
-    status = soup_session_send_message(s, msg);
+    status = soup_session_send_message(s.get(), msg.get());
     if(!SOUP_STATUS_IS_SUCCESSFUL(status)) {
         fprintf(stderr, "Determination failed.\n");
         return;
@@ -81,10 +82,9 @@ void getImage() {
         return;
     }
     printf("Result: %s\n", parsed.c_str());
-    g_object_unref(msg);
 
-    msg = soup_message_new("GET", parsed.c_str());
-    status = soup_session_send_message(s, msg);
+    msg.reset( soup_message_new("GET", parsed.c_str()));
+    status = soup_session_send_message(s.get(), msg.get());
     if(!SOUP_STATUS_IS_SUCCESSFUL(status)) {
         fprintf(stderr, "Image download failed.\n");
         return;
@@ -92,8 +92,6 @@ void getImage() {
     FILE *f = fopen(outputFile.c_str(), "w");
     fwrite(msg->response_body->data, 1, msg->response_body->length, f);
     fclose(f);
-    g_object_unref(msg);
-    g_object_unref(s);
 }
 
 int main(int /*argc*/, char **/*argv*/) {
