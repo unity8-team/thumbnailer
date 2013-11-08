@@ -55,7 +55,7 @@ public:
 
 string ThumbnailerPrivate::create_audio_thumbnail(const string &abspath,
         ThumbnailSize desired_size, ThumbnailPolicy policy) {
-    // There was a symbol clas between 1.0 and 0.10 versions of
+    // There was a symbol clash between 1.0 and 0.10 versions of
     // GStreamer on the desktop so we need to disable in-process
     // usage of gstreamer. Re-enable this once desktop moves to
     // newer Qt multimedia that has GStreamer 1.0.
