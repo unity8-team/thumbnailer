@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) 2013 Canonical Ltd.
  *
@@ -17,6 +16,10 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
+#ifndef _POSIX_SOURCE
+#define _POSIX_SOURCE
+#endif
+
 #include<thumbnailer.h>
 #include<internal/thumbnailcache.h>
 #include<stdexcept>
@@ -31,11 +34,6 @@
 #include<unistd.h>
 #include<vector>
 #include<algorithm>
-
-#ifndef _POSIX_SOURCE
-#define _POSIX_SOURCE
-#endif
-
 #include<dirent.h>
 
 using namespace std;
