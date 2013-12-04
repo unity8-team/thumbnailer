@@ -16,11 +16,16 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
+#ifndef _POSIX_SOURCE
+#define _POSIX_SOURCE
+#endif
+
 #include<thumbnailer.h>
 #include<internal/thumbnailcache.h>
 #include<stdexcept>
 #include<glib.h>
 #include<sys/stat.h>
+#include<sys/types.h>
 #include<cassert>
 #include<cstdio>
 #include<cstring>
@@ -29,6 +34,7 @@
 #include<unistd.h>
 #include<vector>
 #include<algorithm>
+#include<dirent.h>
 
 using namespace std;
 
