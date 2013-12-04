@@ -22,6 +22,7 @@
 #include<stdexcept>
 #include<glib.h>
 #include<sys/stat.h>
+#include<sys/types.h>
 #include<cassert>
 #include<cstdio>
 #include<cstring>
