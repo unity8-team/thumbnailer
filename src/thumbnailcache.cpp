@@ -1,3 +1,4 @@
+
 /*
  * Copyright (C) 2013 Canonical Ltd.
  *
@@ -29,6 +30,12 @@
 #include<unistd.h>
 #include<vector>
 #include<algorithm>
+
+#ifndef _POSIX_SOURCE
+#define _POSIX_SOURCE
+#endif
+
+#include<dirent.h>
 
 using namespace std;
 
