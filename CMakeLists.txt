@@ -1,7 +1,15 @@
 project(thumbnailer CXX)
 cmake_minimum_required(VERSION 2.8.9)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra")
+
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag(-std=c++11 HAS_C11)
+# Precise's GCC is too old to have -std=c++11
+if(HAS_C11)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+else()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+endif()
 
 set(SO_VERSION_MAJOR "1")
 set(SO_VERSION_MINOR "0")
