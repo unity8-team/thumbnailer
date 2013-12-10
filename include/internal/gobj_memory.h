@@ -68,7 +68,7 @@ public:
       // when this exception is thrown.
       validate_float(t);
   }
-  constexpr unique_gobj(nullptr_t) noexcept : u(nullptr) {};
+  constexpr unique_gobj(std::nullptr_t) noexcept : u(nullptr) {};
   unique_gobj(unique_gobj &&o) noexcept { u = o.u; o.u = nullptr; }
   unique_gobj(const unique_gobj &o) = delete;
   unique_gobj& operator=(unique_gobj &o) = delete;
@@ -96,7 +96,7 @@ public:
   explicit operator bool() const noexcept { return u != nullptr; }
 
   unique_gobj& operator=(unique_gobj &&o) noexcept { reset(); u = o.u; o.u = nullptr; return *this; }
-  unique_gobj& operator=(nullptr_t) noexcept { reset(); return *this; }
+  unique_gobj& operator=(std::nullptr_t) noexcept { reset(); return *this; }
   bool operator==(const unique_gobj<T> &o) const noexcept { return u == o.u; }
   bool operator!=(const unique_gobj<T> &o) const noexcept { return u != o.u; }
   bool operator<(const unique_gobj<T> &o) const noexcept { return u < o.u; }
