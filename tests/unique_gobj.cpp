@@ -166,6 +166,7 @@ void deleter_test() {
 }
 
 int main() {
+    g_type_init(); // Still needed in precise.
 #ifdef NDEBUG
     fprintf(stderr, "NDEBUG defined, tests will not work.\n");
     return 1;
