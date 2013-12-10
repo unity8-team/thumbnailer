@@ -8,7 +8,7 @@ check_cxx_compiler_flag(-std=c++11 HAS_C11)
 if(HAS_C11)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 else()
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Dfinal=")
 endif()
 
 set(SO_VERSION_MAJOR "1")

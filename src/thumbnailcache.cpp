@@ -218,7 +218,7 @@ ThumbnailCachePrivate::ThumbnailCachePrivate() {
 string ThumbnailCachePrivate::md5(const string &str) const {
     const unsigned char *buf = (const unsigned char *)str.c_str();
     char *normalized = g_utf8_normalize((const gchar*)buf, str.size(), G_NORMALIZE_ALL);
-    string final;
+    string final_result;
     gchar *result;
 
     if(normalized) {
@@ -227,10 +227,10 @@ string ThumbnailCachePrivate::md5(const string &str) const {
     gssize bytes = str.length();
 
     result = g_compute_checksum_for_data(G_CHECKSUM_MD5, buf, bytes);
-    final = result;
+    final_result = result;
     g_free((gpointer)normalized);
     g_free(result);
-    return final;
+    return final_result;
 }
 
 string ThumbnailCachePrivate::get_cache_file_name(const std::string & abs_original, ThumbnailSize desired) const {
