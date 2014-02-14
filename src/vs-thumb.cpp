@@ -29,7 +29,7 @@ using namespace std;
 bool extract(const std::string &ifname, const std::string &ofname) {
     string caps_string = "video/x-raw,format=RGB,pixel-aspect-ratio=1/1";
     GstElement *sink;
-    gint64 duration;
+    gint64 duration, seek_point;
     string pipe_cmd = "filesrc location=\"";
     pipe_cmd += ifname;
     pipe_cmd += "\" ! decodebin ! videoconvert ! videoscale !";
@@ -56,11 +56,16 @@ bool extract(const std::string &ifname, const std::string &ofname) {
     if(ret == GST_STATE_CHANGE_FAILURE) {
       throw runtime_error("Failed to preroll.");
     }
-    gst_element_query_duration(pipeline.get(), GST_FORMAT_TIME, &duration);
+    if(!gst_element_query_duration(pipeline.get(), GST_FORMAT_TIME, &duration)) {
+        fprintf(stderr, "Media backend does not implement query_duration, using fallback time.\n");
+        seek_point = 10*GST_SECOND;
+    } else {
+        seek_point = 2*duration/7;
+    }
     gst_element_seek_simple(pipeline.get(),
                             GST_FORMAT_TIME,
                             static_cast<GstSeekFlags>(GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_KEY_UNIT),
-                            2*duration/7);
+                            seek_point);
     GstSample *sample = nullptr;
     sample = gst_app_sink_pull_preroll(GST_APP_SINK(sink));
     if(sample == nullptr || !GST_IS_SAMPLE(sample)) {
