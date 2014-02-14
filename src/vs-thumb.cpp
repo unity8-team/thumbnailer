@@ -55,6 +55,8 @@ bool extract(const std::string &ifname, const std::string &ofname) {
     ret = gst_element_get_state(pipeline.get(), nullptr, nullptr, GST_SECOND);
     if(ret == GST_STATE_CHANGE_FAILURE) {
       throw runtime_error("Failed to preroll.");
+    } else if(ret == GST_STATE_CHANGE_ASYNC) {
+        fprintf(stderr, "Problem prerolling, trying to continue anyway.\n");
     }
     if(!gst_element_query_duration(pipeline.get(), GST_FORMAT_TIME, &duration)) {
         fprintf(stderr, "Media backend does not implement query_duration, using fallback time.\n");
