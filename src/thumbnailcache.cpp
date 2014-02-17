@@ -268,6 +268,16 @@ std::string ThumbnailCache::get_if_exists(const std::string &abs_path, Thumbnail
         existed = true;
         fclose(f);
     }
+    // Has it been changed since the thumbnail was taken?
+    if(existed) {
+        struct stat original, thumbnail;
+        stat(abs_path.c_str(), &original);
+        stat(fname.c_str(), &thumbnail);
+        if(original.st_mtime > thumbnail.st_mtime) {
+            p->delete_from_cache(abs_path);
+            return "";
+        }
+    }
     return existed ? fname : string("");
 }
 
