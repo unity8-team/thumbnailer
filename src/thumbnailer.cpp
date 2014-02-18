@@ -102,6 +102,7 @@ string ThumbnailerPrivate::create_thumbnail(const string &abspath, ThumbnailSize
 }
 
 Thumbnailer::Thumbnailer() {
+    g_type_init(); // Unfortunately still needed in precise.
     p = new ThumbnailerPrivate();
 }
 

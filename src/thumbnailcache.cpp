@@ -16,11 +16,16 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
+#ifndef _POSIX_SOURCE
+#define _POSIX_SOURCE
+#endif
+
 #include<thumbnailer.h>
 #include<internal/thumbnailcache.h>
 #include<stdexcept>
 #include<glib.h>
 #include<sys/stat.h>
+#include<sys/types.h>
 #include<cassert>
 #include<cstdio>
 #include<cstring>
@@ -29,6 +34,7 @@
 #include<unistd.h>
 #include<vector>
 #include<algorithm>
+#include<dirent.h>
 
 using namespace std;
 
@@ -212,7 +218,7 @@ ThumbnailCachePrivate::ThumbnailCachePrivate() {
 string ThumbnailCachePrivate::md5(const string &str) const {
     const unsigned char *buf = (const unsigned char *)str.c_str();
     char *normalized = g_utf8_normalize((const gchar*)buf, str.size(), G_NORMALIZE_ALL);
-    string final;
+    string final_result;
     gchar *result;
 
     if(normalized) {
@@ -221,10 +227,10 @@ string ThumbnailCachePrivate::md5(const string &str) const {
     gssize bytes = str.length();
 
     result = g_compute_checksum_for_data(G_CHECKSUM_MD5, buf, bytes);
-    final = result;
+    final_result = result;
     g_free((gpointer)normalized);
     g_free(result);
-    return final;
+    return final_result;
 }
 
 string ThumbnailCachePrivate::get_cache_file_name(const std::string & abs_original, ThumbnailSize desired) const {
@@ -261,6 +267,16 @@ std::string ThumbnailCache::get_if_exists(const std::string &abs_path, Thumbnail
     if(f) {
         existed = true;
         fclose(f);
+    }
+    // Has it been changed since the thumbnail was taken?
+    if(existed) {
+        struct stat original, thumbnail;
+        stat(abs_path.c_str(), &original);
+        stat(fname.c_str(), &thumbnail);
+        if(original.st_mtime > thumbnail.st_mtime) {
+            p->delete_from_cache(abs_path);
+            return "";
+        }
     }
     return existed ? fname : string("");
 }
