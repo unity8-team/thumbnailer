@@ -52,7 +52,7 @@ bool extract(const std::string &ifname, const std::string &ofname) {
             break;
     }
     // Need to preroll in order to get duration.
-    ret = gst_element_get_state(pipeline.get(), nullptr, nullptr, GST_SECOND);
+    ret = gst_element_get_state(pipeline.get(), nullptr, nullptr, 3*GST_SECOND);
     if(ret == GST_STATE_CHANGE_FAILURE) {
       throw runtime_error("Failed to preroll.");
     }
