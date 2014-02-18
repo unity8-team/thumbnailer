@@ -16,6 +16,7 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
+#include<internal/gobj_memory.h>
 #include<cstdio>
 #include<memory>
 #include<stdexcept>
@@ -51,7 +52,7 @@ bool extract(const std::string &ifname, const std::string &ofname) {
             break;
     }
     // Need to preroll in order to get duration.
-    ret = gst_element_get_state(pipeline.get(), nullptr, nullptr, GST_SECOND);
+    ret = gst_element_get_state(pipeline.get(), nullptr, nullptr, 3*GST_SECOND);
     if(ret == GST_STATE_CHANGE_FAILURE) {
       throw runtime_error("Failed to preroll.");
     }
@@ -78,12 +79,11 @@ bool extract(const std::string &ifname, const std::string &ofname) {
         }
         GstMapInfo mi;
         gst_buffer_map(buf, &mi, GST_MAP_READ);
-        unique_ptr<GdkPixbuf, void(*)(GdkPixbuf *t)> img(
+        unique_gobj<GdkPixbuf> img(
                 gdk_pixbuf_new_from_data(mi.data, GDK_COLORSPACE_RGB,
                         false, 8, width, height,
                         (((width * 3)+3)&~3),
-                        nullptr, nullptr),
-                        [](GdkPixbuf *t) {g_object_unref(G_OBJECT(t));});
+                        nullptr, nullptr));
         gst_buffer_unmap(buf, &mi);
         GError *err = nullptr;
         if(!gdk_pixbuf_save(img.get(), ofname.c_str(), "jpeg", &err, NULL)) {
