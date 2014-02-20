@@ -244,7 +244,7 @@ string ThumbnailCachePrivate::get_cache_file_name(const std::string & abs_origin
     switch(desired) {
     case TN_SIZE_SMALL : path = smalldir; break;
     case TN_SIZE_LARGE : path = largedir; break;
-    case TN_SIZE_XLARGE : path = largedir; break;
+    case TN_SIZE_XLARGE : path = xlargedir; break;
     case TN_SIZE_ORIGINAL : path = originaldir; break;
     default : throw runtime_error("Unreachable code");
     }
