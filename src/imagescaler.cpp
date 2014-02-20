@@ -34,7 +34,7 @@ static void determine_new_size(const int w, const int h, int &neww, int &newh,
         neww = w;
         newh = h;
     } else {
-        int max_dim = ((wanted == TN_SIZE_SMALL) ? 128 : ((wanted == TN_SIZE_LARGE) ? 256 : 360));
+        int max_dim = ((wanted == TN_SIZE_SMALL) ? 128 : ((wanted == TN_SIZE_LARGE) ? 256 : 512));
         if(w > h) {
             neww = max_dim;
             newh = ((double)(max_dim))*h/w;
