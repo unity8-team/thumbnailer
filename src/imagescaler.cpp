@@ -68,13 +68,12 @@ bool ImageScaler::scale(const std::string &ifilename, const std::string &ofilena
     GError *err = nullptr;
     string ofilename_tmp = ofilename;
     ofilename_tmp += ".tmp." + to_string(rnd());
-    unique_gobj<GdkPixbuf> orig(gdk_pixbuf_new_from_file(ifilename.c_str(), &err));
+    unique_gobj<GdkPixbuf> src(gdk_pixbuf_new_from_file(ifilename.c_str(), &err));
     if(err) {
         string msg = err->message;
         g_error_free(err);
         throw runtime_error(msg);
     }
-    unique_gobj<GdkPixbuf> src(gdk_pixbuf_apply_embedded_orientation(orig.get()));
     const int w = gdk_pixbuf_get_width(src.get());
     const int h = gdk_pixbuf_get_height(src.get());
     if(w == 0 || h == 0) {
