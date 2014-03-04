@@ -1,3 +1,20 @@
+thumbnailer (1.0+14.04.20140304-0ubuntu1) trusty; urgency=low
+
+  [ CI bot ]
+  * Resync trunk
+
+  [ Ugo Riboni ]
+  * Add a new nonstandard thumbnail size (360) needed by gallery-app To
+    test from QML you will need this MR as well:
+    https://code.launchpad.net/~amanzi-team/ubuntu-ui-toolkit/ubuntu-ui-
+    toolkit-xlarge-thumbnails/+merge/207500 (LP: #1221968)
+
+  [ Jussi Pakkanen ]
+  * Error condition checking and error messages.
+  * Fix image orientation.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 04 Mar 2014 10:09:12 +0000
+
 thumbnailer (1.0+14.04.20140218-0ubuntu1) trusty; urgency=low
 
   [ Ricardo Salveti de Araujo ]

@@ -132,6 +132,7 @@ private:
     string tndir;
     string smalldir;
     string largedir;
+    string xlargedir;
     string originaldir;
     static const size_t MAX_FILES = 200;
 
@@ -140,6 +141,7 @@ private:
 void ThumbnailCachePrivate::clear() {
     cleardir(smalldir);
     cleardir(largedir);
+    cleardir(xlargedir);
     cleardir(originaldir);
 }
 
@@ -147,12 +149,14 @@ void ThumbnailCachePrivate::clear() {
 void ThumbnailCachePrivate::prune() {
     prune_dir(smalldir, MAX_FILES);
     prune_dir(largedir, MAX_FILES);
+    prune_dir(xlargedir, MAX_FILES);
     prune_dir(originaldir, MAX_FILES);
 }
 
 void ThumbnailCachePrivate::delete_from_cache(const std::string &abs_path) {
     unlink(get_cache_file_name(abs_path, TN_SIZE_SMALL).c_str());
     unlink(get_cache_file_name(abs_path, TN_SIZE_LARGE).c_str());
+    unlink(get_cache_file_name(abs_path, TN_SIZE_XLARGE).c_str());
     unlink(get_cache_file_name(abs_path, TN_SIZE_ORIGINAL).c_str());
 }
 
@@ -211,7 +215,8 @@ ThumbnailCachePrivate::ThumbnailCachePrivate() {
     tndir = xdg_base + "/thumbnails";
     tndir = makedir(xdg_base, "thumbnails");
     smalldir = makedir(tndir,"normal");
-    largedir = makedir(tndir, "large");;
+    largedir = makedir(tndir, "large");
+    xlargedir = makedir(tndir, "xlarge");
     originaldir = makedir(tndir, "original");
 }
 
@@ -239,6 +244,7 @@ string ThumbnailCachePrivate::get_cache_file_name(const std::string & abs_origin
     switch(desired) {
     case TN_SIZE_SMALL : path = smalldir; break;
     case TN_SIZE_LARGE : path = largedir; break;
+    case TN_SIZE_XLARGE : path = xlargedir; break;
     case TN_SIZE_ORIGINAL : path = originaldir; break;
     default : throw runtime_error("Unreachable code");
     }
