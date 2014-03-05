@@ -19,6 +19,7 @@
 #include<internal/imagescaler.h>
 #include<internal/gobj_memory.h>
 #include<gdk-pixbuf/gdk-pixbuf.h>
+#include<libexif/exif-loader.h>
 #include<memory>
 #include<stdexcept>
 #include<sys/stat.h>
@@ -49,6 +50,37 @@ static void determine_new_size(const int w, const int h, int &neww, int &newh,
     }
 }
 
+static GdkPixbuf* fix_orientation(const char *infile, GdkPixbuf *src) {
+    ExifLoader *l;
+    l = exif_loader_new();
+    ExifData *ed;
+    exif_loader_write_file(l, infile);
+    ed = exif_loader_get_data(l);
+    exif_loader_unref(l);
+    GdkPixbuf *rot = nullptr;
+    // Have to do this manually because of
+    // https://bugzilla.gnome.org/show_bug.cgi?id=725582
+    if(ed) {
+      ExifEntry *e = exif_data_get_entry(ed, EXIF_TAG_ORIENTATION);
+      int orientation = exif_get_short(e->data, exif_data_get_byte_order(ed));
+      if(orientation == 6) {
+        rot = gdk_pixbuf_rotate_simple(src, GDK_PIXBUF_ROTATE_CLOCKWISE);
+      } else if (orientation == 8) {
+        rot = gdk_pixbuf_rotate_simple(src, GDK_PIXBUF_ROTATE_COUNTERCLOCKWISE);
+      } else if (orientation == 3) {
+        rot = gdk_pixbuf_rotate_simple(src, GDK_PIXBUF_ROTATE_UPSIDEDOWN);
+      } else {
+          // We don't do mirrored images, at least not yet.
+      }
+    }
+    // This entire function should only contain this call.
+    if(!rot) {
+      rot = gdk_pixbuf_apply_embedded_orientation(src);
+    }
+    exif_data_unref(ed);
+    return rot;
+}
+
 class ImageScalerPrivate {
 };
 
@@ -68,11 +100,15 @@ bool ImageScaler::scale(const std::string &ifilename, const std::string &ofilena
     GError *err = nullptr;
     string ofilename_tmp = ofilename;
     ofilename_tmp += ".tmp." + to_string(rnd());
-    unique_gobj<GdkPixbuf> src(gdk_pixbuf_new_from_file(ifilename.c_str(), &err));
+    unique_gobj<GdkPixbuf> orig(gdk_pixbuf_new_from_file(ifilename.c_str(), &err));
     if(err) {
         string msg = err->message;
         g_error_free(err);
         throw runtime_error(msg);
+    }
+    unique_gobj<GdkPixbuf> src(fix_orientation(ifilename.c_str(), orig.get()));
+    if(!src) {
+        throw runtime_error("Unknown error reorienting image.");
     }
     const int w = gdk_pixbuf_get_width(src.get());
     const int h = gdk_pixbuf_get_height(src.get());

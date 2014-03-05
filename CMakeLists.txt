@@ -30,7 +30,7 @@ set(SHARE_PRIV_ABS ${CMAKE_INSTALL_PREFIX}/${SHARE_PRIV_DIR})
 
 include(FindPkgConfig)
 pkg_check_modules(GST_DEPS REQUIRED gstreamer-1.0 gstreamer-plugins-base-1.0 gstreamer-pbutils-1.0 gstreamer-app-1.0)
-pkg_check_modules(IMG_DEPS REQUIRED gdk-pixbuf-2.0)
+pkg_check_modules(IMG_DEPS REQUIRED gdk-pixbuf-2.0 libexif)
 
 include_directories(${GST_DEPS_INCLUDE_DIRS})
 include_directories(${IMG_DEPS_INCLUDE_DIRS})
