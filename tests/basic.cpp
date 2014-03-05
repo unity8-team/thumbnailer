@@ -23,6 +23,7 @@
 #include<gdk-pixbuf/gdk-pixbuf.h>
 
 #define TESTIMAGE TESTDATADIR "/testimage.jpg"
+#define ROTTESTIMAGE TESTDATADIR "/testrotate.jpg"
 #define TESTVIDEO TESTDATADIR "/testvideo.ogg"
 
 using namespace std;
@@ -77,6 +78,23 @@ void image_test() {
     Thumbnailer tn;
     string imfile(TESTIMAGE);
     file_test(tn, imfile);
+}
+
+void rotate_test() {
+    Thumbnailer tn;
+    string imfile(ROTTESTIMAGE);
+    int w, h;
+    assert(file_exists(imfile));
+    string thumbfile = tn.get_thumbnail(imfile, TN_SIZE_LARGE);
+    unlink(thumbfile.c_str());
+    assert(!file_exists(thumbfile));
+    string thumbfile2 = tn.get_thumbnail(imfile, TN_SIZE_LARGE);
+    assert(thumbfile == thumbfile2);
+    assert(file_exists(thumbfile));
+    assert(gdk_pixbuf_get_file_info(imfile.c_str(), &w, &h));
+    assert(w > h); // gdk_pixbuf does not reorient images automatically.
+    assert(gdk_pixbuf_get_file_info(thumbfile.c_str(), &w, &h));
+    assert(h > w); // Has the orientation been straightened during scaling?
 }
 
 void video_test() {
@@ -155,6 +173,7 @@ int main() {
 #else
     trivial_test();
     image_test();
+    rotate_test();
     video_test();
     video_original_test();
     size_test();

@@ -73,8 +73,8 @@ static GdkPixbuf* fix_orientation(const char *infile, GdkPixbuf *src) {
           // We don't do mirrored images, at least not yet.
       }
     }
-    // This entire function should only contain this call.
     if(!rot) {
+        // This entire function should only contain this call, really.
       rot = gdk_pixbuf_apply_embedded_orientation(src);
     }
     exif_data_unref(ed);
