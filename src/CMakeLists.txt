@@ -5,9 +5,12 @@ thumbnailcache.cpp
 thumbnailer.cpp
 videoscreenshotter.cpp
 )
+
+
 target_link_libraries(thumbnailer #${GST_DEPS_LDFLAGS}
  ${IMG_DEPS_LDFLAGS})
 set_target_properties(thumbnailer PROPERTIES VERSION ${SO_VERSION} SOVERSION ${ABI_VERSION})
+set_target_properties(thumbnailer PROPERTIES COMPILE_FLAGS "-DBUILDING_THUMBNAILER=1 -fvisibility=hidden")
 
 install(
   TARGETS thumbnailer

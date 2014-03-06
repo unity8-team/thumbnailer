@@ -21,6 +21,22 @@
 
 #include<string>
 
+#if defined _WIN32 || defined __CYGWIN__
+  #ifdef BUILDING_THUMBNAILER
+    #define LTN_PUBLIC __declspec(dllexport)
+  #else
+    #define LTN_PUBLIC __declspec(dllimport)
+  #endif
+#else
+  #if defined __GNUC__
+    #define LTN_PUBLIC __attribute__ ((visibility("default")))
+  #else
+    #pragma message ("Compiler does not support symbol visibility.")
+    #define LTN_PUBLIC
+  #endif
+#endif
+
+
 class ThumbnailerPrivate;
 
 enum ThumbnailSize {
@@ -41,7 +57,7 @@ enum ThumbnailSize {
  * Errors are reported as exceptions.
  */
 
-class Thumbnailer {
+class LTN_PUBLIC Thumbnailer {
 public:
     Thumbnailer();
     ~Thumbnailer();
