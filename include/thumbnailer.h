@@ -57,7 +57,7 @@ enum ThumbnailSize {
  * Errors are reported as exceptions.
  */
 
-class LTN_PUBLIC Thumbnailer {
+class Thumbnailer {
 public:
     Thumbnailer();
     ~Thumbnailer();

@@ -6,12 +6,14 @@ thumbnailer.cpp
 videoscreenshotter.cpp
 )
 
+set(symbol_map "${CMAKE_CURRENT_SOURCE_DIR}/libthumbnailer.map")
 
 target_link_libraries(thumbnailer #${GST_DEPS_LDFLAGS}
  ${IMG_DEPS_LDFLAGS})
 set_target_properties(thumbnailer PROPERTIES VERSION ${SO_VERSION} SOVERSION ${ABI_VERSION})
-set_target_properties(thumbnailer PROPERTIES COMPILE_FLAGS
- "-DBUILDING_THUMBNAILER=1 -fvisibility=hidden -fvisibility-inlines-hidden")
+set_target_properties(thumbnailer PROPERTIES
+                      LINK_FLAGS "${ldflags} -Wl,--version-script,${symbol_map}")
+set_target_properties(thumbnailer PROPERTIES LINK_DEPENDS ${symbol_map})
 
 install(
   TARGETS thumbnailer

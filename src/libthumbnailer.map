@@ -1,0 +1,16 @@
+{
+global:
+    extern "C++" {
+        "Thumbnailer::Thumbnailer()";
+        "Thumbnailer::~Thumbnailer()";
+#        "Thumbnailer::get_thumbnail(std::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, ThumbnailSize)";
+#        Thumbnailer::get_thumbnail*;
+    };
+    extern "C" {
+        "_ZN11Thumbnailer13get_thumbnailERKSs13ThumbnailSize";
+    };
+local:
+    extern "C++" {
+        *;
+    };
+};
