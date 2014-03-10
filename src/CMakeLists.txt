@@ -11,6 +11,7 @@ videoscreenshotter.cpp
 set(symbol_map "${CMAKE_CURRENT_SOURCE_DIR}/libthumbnailer.map")
 
 target_link_libraries(thumbnailer #${GST_DEPS_LDFLAGS}
+ ${GLIB_DEPS_LDFLAGS}
  ${GIO_DEPS_LDFLAGS}
  ${IMG_DEPS_LDFLAGS}
  ${XML_DEPS_LDFLAGS}

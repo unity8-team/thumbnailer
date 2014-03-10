@@ -1,3 +1,16 @@
+if (NOT DEFINED GTEST_ROOT)
+    set(GTEST_ROOT /usr/src/gtest)
+endif()
+
+set(GTEST_SRC_DIR "${GTEST_ROOT}/src")
+set(GTEST_INCLUDE_DIR ${GTEST_ROOT})
+
+add_library(gtest STATIC
+${GTEST_SRC_DIR}/gtest-all.cc
+)
+set_target_properties(gtest PROPERTIES INCLUDE_DIRECTORIES ${GTEST_INCLUDE_DIR})
+target_link_libraries(gtest ${CMAKE_THREAD_LIBS_INIT})
+
 set(TESTDATADIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 configure_file(testsetup.h.in testsetup.h @ONLY)
@@ -9,9 +22,9 @@ add_test(basic basic)
 set_property(TEST basic PROPERTY ENVIRONMENT "XDG_CACHE_HOME=${CMAKE_CURRENT_BINARY_DIR}")
 set_property(TEST basic APPEND PROPERTY ENVIRONMENT "TN_UTILDIR=${CMAKE_BINARY_DIR}/src")
 
-#add_executable(mediaartcache mediaartcachetest.cpp ../src/mediaartcache.cpp)
-#target_link_libraries(mediaartcache ${GIO_LDFLAGS})
-#add_test(mediaartcache mediaartcache)
+add_executable(mediaartcachetest mediaartcachetest.cpp ../src/mediaartcache.cpp)
+target_link_libraries(mediaartcachetest ${GIO_DEPS_LDFLAGS} gtest)
+add_test(mediaartcache mediaartcachetest)
 
 # This is only needed here because GStreamer brings in gobject.
 pkg_check_modules(GOBJ_DEPS REQUIRED gobject-2.0)

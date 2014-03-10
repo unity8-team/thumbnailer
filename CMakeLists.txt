@@ -1,4 +1,4 @@
-project(thumbnailer CXX)
+project(thumbnailer C CXX)
 cmake_minimum_required(VERSION 2.8.7)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra")
 
@@ -28,6 +28,7 @@ set(LIBDIR ${CMAKE_INSTALL_LIBDIR})
 set(SHARE_PRIV_DIR ${CMAKE_INSTALL_LIBDIR}/thumbnailer)
 set(SHARE_PRIV_ABS ${CMAKE_INSTALL_PREFIX}/${SHARE_PRIV_DIR})
 
+find_package(Threads REQUIRED)
 include(FindPkgConfig)
 pkg_check_modules(GST_DEPS REQUIRED gstreamer-1.0 gstreamer-plugins-base-1.0 gstreamer-pbutils-1.0 gstreamer-app-1.0)
 pkg_check_modules(GIO_DEPS REQUIRED gio-2.0)
