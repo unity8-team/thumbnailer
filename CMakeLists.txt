@@ -38,6 +38,8 @@ pkg_check_modules(XML_DEPS REQUIRED libxml-2.0)
 include_directories(${GST_DEPS_INCLUDE_DIRS})
 include_directories(${GIO_DEPS_INCLUDE_DIRS})
 include_directories(${IMG_DEPS_INCLUDE_DIRS})
+include_directories(${SOUP_DEPS_INCLUDE_DIRS})
+include_directories(${XML_DEPS_INCLUDE_DIRS})
 include_directories(include)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 

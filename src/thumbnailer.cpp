@@ -22,6 +22,7 @@
 #include<internal/videoscreenshotter.h>
 #include<internal/imagescaler.h>
 #include<internal/mediaartcache.h>
+#include<internal/lastfmdownloader.h>
 #include<gdk-pixbuf/gdk-pixbuf.h>
 #include<unistd.h>
 #include<gst/gst.h>
@@ -48,6 +49,7 @@ public:
     VideoScreenshotter video;
     ImageScaler scaler;
     MediaArtCache macache;
+    LastFMDownloader lfm;
 
     ThumbnailerPrivate() {};
 
@@ -55,8 +57,8 @@ public:
             ThumbnailPolicy policy);
 };
 
-string ThumbnailerPrivate::create_audio_thumbnail(const string &abspath,
-        ThumbnailSize desired_size, ThumbnailPolicy policy) {
+string ThumbnailerPrivate::create_audio_thumbnail(const string &/*abspath*/,
+        ThumbnailSize /*desired_size*/, ThumbnailPolicy /*policy*/) {
     // There was a symbol clash between 1.0 and 0.10 versions of
     // GStreamer on the desktop so we need to disable in-process
     // usage of gstreamer. Re-enable this once desktop moves to
@@ -173,16 +175,33 @@ string Thumbnailer::get_thumbnail(const string &filename, ThumbnailSize desired_
 
 std::string Thumbnailer::get_album_art(const std::string &artist, const std::string &album,
         ThumbnailSize desired_size, ThumbnailPolicy policy) {
-    if(p->macache.has_art(artist, album)) {
-        std::string original = p->macache.get_art_file(artist, album);
-        if(desired_size == TN_SIZE_ORIGINAL) {
-            return original;
+    if(!p->macache.has_art(artist, album)) {
+        if(policy == TN_LOCAL) {
+            return ""; // We don't have it cached and can't access the net -> nothing to be done.
         }
-        return get_thumbnail(original, desired_size, policy);
+        char filebuf[] = "/tmp/some/long/text/here/so/path/will/fit";
+        std::string tmpname = tmpnam(filebuf);
+        if(!p->lfm.download(artist, album, tmpname)) {
+            return "";
+        }
+        gchar *contents;
+        gsize content_size;
+        GError *err = nullptr;
+        if(!g_file_get_contents(tmpname.c_str(), &contents, &content_size, &err)) {
+            std::string msg("Error reading file: ");
+            msg += err->message;
+            g_error_free(err);
+            throw std::runtime_error(msg);
+        }
+        unique_ptr<gchar, void(*)(gpointer)> deleter(contents, g_free);
+        p->macache.add_art(artist, album, contents, content_size);
     }
-    if(policy == TN_LOCAL) {
-        return ""; // We don't have it cached and can't access the net -> nothing to be done.
+    // At this point we know we have the image in our art cache (unless
+    // someone just deleted it concurrently, in which case we can't
+    // really do anything.
+    std::string original = p->macache.get_art_file(artist, album);
+    if(desired_size == TN_SIZE_ORIGINAL) {
+        return original;
     }
-
-    return "";
+    return get_thumbnail(original, desired_size, policy);
 }
