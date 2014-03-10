@@ -10,6 +10,9 @@ Build-Depends: cmake,
                libgstreamer-plugins-base1.0-dev,
                libgstreamer1.0-dev,
                shared-mime-info,
+               libgtest-dev,
+               libxml2-dev,
+               libsoup2.4-dev,
 Homepage: https://launchpad.net/thumbnailer
 # if you don't have have commit access to this branch but would like to upload
 # directly to Ubuntu, don't worry: your changes will be merged back into the
