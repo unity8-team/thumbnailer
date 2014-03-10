@@ -148,6 +148,15 @@ TEST(Thumbnailer, no_image_cache) {
     ASSERT_EQ(srcimg, dstimg);
 }
 
+TEST(Thumbnailer, album_art) {
+    // During test suite run we may not have access to the net.
+    // So just test calling to ensure symbol visibility etc work.
+    Thumbnailer tn;
+    string artist("The Prodigy");
+    string album("Music for the Jilted Generation");
+    tn.get_album_art(artist, album, TN_SIZE_ORIGINAL, TN_LOCAL);
+}
+
 int main(int argc, char **argv) {
     g_type_init(); // Still needed in precise.
     ::testing::InitGoogleTest(&argc, argv);
