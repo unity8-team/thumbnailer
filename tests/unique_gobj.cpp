@@ -169,5 +169,4 @@ int main(int argc, char **argv) {
     g_type_init(); // Still needed in precise.
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
-
 }

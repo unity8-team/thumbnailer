@@ -18,7 +18,7 @@
 
 #include<thumbnailer.h>
 #include<testsetup.h>
-#include<cassert>
+#include<gtest/gtest.h>
 #include<unistd.h>
 #include<gdk-pixbuf/gdk-pixbuf.h>
 
@@ -38,128 +38,118 @@ bool file_exists(const string &s) {
 
 void copy_file(const string &src, const string &dst) {
     FILE* f = fopen(src.c_str(), "r");
-    assert(f);
+    ASSERT_TRUE(f);
     fseek(f, 0, SEEK_END);
     size_t size = ftell(f);
 
     char* buf = new char[size];
 
     fseek(f, 0, SEEK_SET);
-    assert(fread(buf, 1, size, f) == size);
+    ASSERT_EQ(fread(buf, 1, size, f), size);
     fclose(f);
 
     f = fopen(dst.c_str(), "w");
-    assert(f);
-    assert(fwrite(buf, 1, size, f) == size);
+    ASSERT_TRUE(f);
+    ASSERT_EQ(fwrite(buf, 1, size, f), size);
     fclose(f);
     delete[] buf;
 }
 
-void trivial_test() {
+TEST(Thumbnailer, trivial) {
     Thumbnailer tn;
 }
 
 void file_test(Thumbnailer &tn, string &ifile) {
     int w, h;
-    assert(file_exists(ifile));
+    ASSERT_TRUE(file_exists(ifile));
     string thumbfile = tn.get_thumbnail(ifile, TN_SIZE_SMALL, TN_LOCAL);
     unlink(thumbfile.c_str());
-    assert(!file_exists(thumbfile));
+    ASSERT_FALSE(file_exists(thumbfile));
     string thumbfile2 = tn.get_thumbnail(ifile, TN_SIZE_SMALL, TN_LOCAL);
-    assert(thumbfile == thumbfile2);
-    assert(file_exists(thumbfile));
-    assert(gdk_pixbuf_get_file_info(thumbfile.c_str(), &w, &h));
-    assert(w <= 128);
-    assert(h <= 128);
+    ASSERT_EQ(thumbfile, thumbfile2);
+    ASSERT_TRUE(file_exists(thumbfile));
+    ASSERT_TRUE(gdk_pixbuf_get_file_info(thumbfile.c_str(), &w, &h));
+    ASSERT_LE(w, 128);
+    ASSERT_LE(h, 128);
 }
 
-void image_test() {
+TEST(Thumbnailer, image) {
     Thumbnailer tn;
     string imfile(TESTIMAGE);
     file_test(tn, imfile);
 }
 
-void video_test() {
+TEST(Thumbnailer, video) {
     Thumbnailer tn;
     string videofile(TESTVIDEO);
     file_test(tn, videofile);
 }
 
-void video_original_test() {
+TEST(Thumbnailer, video_original) {
     Thumbnailer tn;
     int w, h;
     string videofile(TESTVIDEO);
     string origsize = tn.get_thumbnail(videofile, TN_SIZE_ORIGINAL);
-    assert(file_exists(origsize));
-    assert(gdk_pixbuf_get_file_info(origsize.c_str(), &w, &h));
-    assert(w == 1920);
-    assert(h == 1080);
+    ASSERT_TRUE(file_exists(origsize));
+    ASSERT_TRUE(gdk_pixbuf_get_file_info(origsize.c_str(), &w, &h));
+    ASSERT_EQ(w, 1920);
+    ASSERT_EQ(h, 1080);
 }
 
 
-void size_test() {
+TEST(Thumbnailer, size) {
     Thumbnailer tn;
     int w, h;
     string imfile(TESTIMAGE);
     string thumbfile = tn.get_thumbnail(imfile, TN_SIZE_SMALL);
     string thumbfile2 = tn.get_thumbnail(imfile, TN_SIZE_LARGE);
     string thumbfile3 = tn.get_thumbnail(imfile, TN_SIZE_XLARGE);
-    assert(!thumbfile.empty());
-    assert(!thumbfile2.empty());
-    assert(!thumbfile3.empty());
-    assert(thumbfile != thumbfile2);
-    assert(thumbfile != thumbfile3);
-    assert(thumbfile2 != thumbfile3);
-    assert(gdk_pixbuf_get_file_info(thumbfile.c_str(), &w, &h));
-    assert(w == 128);
-    assert(h <= 128);
-    assert(gdk_pixbuf_get_file_info(thumbfile2.c_str(), &w, &h));
-    assert(w == 256);
-    assert(h <= 256);
-    assert(gdk_pixbuf_get_file_info(thumbfile3.c_str(), &w, &h));
-    assert(w == 512);
-    assert(h <= 512);
+    ASSERT_FALSE(thumbfile.empty());
+    ASSERT_FALSE(thumbfile2.empty());
+    ASSERT_FALSE(thumbfile3.empty());
+    ASSERT_NE(thumbfile, thumbfile2);
+    ASSERT_NE(thumbfile, thumbfile3);
+    ASSERT_NE(thumbfile2, thumbfile3);
+    ASSERT_TRUE(gdk_pixbuf_get_file_info(thumbfile.c_str(), &w, &h));
+    ASSERT_EQ(w, 128);
+    ASSERT_LE(h, 128);
+    ASSERT_TRUE(gdk_pixbuf_get_file_info(thumbfile2.c_str(), &w, &h));
+    ASSERT_EQ(w, 256);
+    ASSERT_LE(h, 256);
+    ASSERT_TRUE(gdk_pixbuf_get_file_info(thumbfile3.c_str(), &w, &h));
+    ASSERT_EQ(w, 512);
+    ASSERT_LE(h, 512);
 }
 
-void delete_test() {
+TEST(Thumbnailer, deletetest) {
     Thumbnailer tn;
     string srcimg(TESTIMAGE);
     string workimage("working_image.jpg");
     copy_file(srcimg, workimage);
-    assert(file_exists(workimage));
+    ASSERT_TRUE(file_exists(workimage));
     string thumbfile = tn.get_thumbnail(workimage, TN_SIZE_SMALL);
     string thumbfile2 = tn.get_thumbnail(workimage, TN_SIZE_LARGE);
     string thumbfile3 = tn.get_thumbnail(workimage, TN_SIZE_XLARGE);
-    assert(file_exists(thumbfile));
-    assert(file_exists(thumbfile2));
-    assert(file_exists(thumbfile3));
+    ASSERT_TRUE(file_exists(thumbfile));
+    ASSERT_TRUE(file_exists(thumbfile2));
+    ASSERT_TRUE(file_exists(thumbfile3));
     unlink(workimage.c_str());
     string tmp = tn.get_thumbnail(workimage, TN_SIZE_SMALL);
-    assert(tmp.empty());
-    assert(!file_exists(thumbfile));
-    assert(!file_exists(thumbfile2));
-    assert(!file_exists(thumbfile3));
+    ASSERT_TRUE(tmp.empty());
+    ASSERT_FALSE(file_exists(thumbfile));
+    ASSERT_FALSE(file_exists(thumbfile2));
+    ASSERT_FALSE(file_exists(thumbfile3));
 }
 
-void no_image_cache_test() {
+TEST(Thumbnailer, no_image_cache) {
     Thumbnailer tn;
     string srcimg(TESTIMAGE);
     string dstimg = tn.get_thumbnail(srcimg, TN_SIZE_ORIGINAL);
-    assert(srcimg == dstimg);
+    ASSERT_EQ(srcimg, dstimg);
 }
 
-int main() {
-#ifdef NDEBUG
-    fprintf(stderr, "NDEBUG defined, tests will not work.\n");
-    return 1;
-#else
-    trivial_test();
-    image_test();
-    video_test();
-    video_original_test();
-    size_test();
-    delete_test();
-    no_image_cache_test();
-    return 0;
-#endif
+int main(int argc, char **argv) {
+    g_type_init(); // Still needed in precise.
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
