@@ -4,6 +4,7 @@ global:
         "Thumbnailer::Thumbnailer()";
         "Thumbnailer::~Thumbnailer()";
         "Thumbnailer::get_thumbnail(std::string const&, ThumbnailSize)";
+        "Thumbnailer::get_thumbnail(std::string const&, ThumbnailSize, ThumbnailPolicy)";
     };
 local:
     extern "C++" {

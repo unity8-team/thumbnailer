@@ -62,10 +62,10 @@ void trivial_test() {
 void file_test(Thumbnailer &tn, string &ifile) {
     int w, h;
     assert(file_exists(ifile));
-    string thumbfile = tn.get_thumbnail(ifile, TN_SIZE_SMALL);
+    string thumbfile = tn.get_thumbnail(ifile, TN_SIZE_SMALL, TN_LOCAL);
     unlink(thumbfile.c_str());
     assert(!file_exists(thumbfile));
-    string thumbfile2 = tn.get_thumbnail(ifile, TN_SIZE_SMALL);
+    string thumbfile2 = tn.get_thumbnail(ifile, TN_SIZE_SMALL, TN_LOCAL);
     assert(thumbfile == thumbfile2);
     assert(file_exists(thumbfile));
     assert(gdk_pixbuf_get_file_info(thumbfile.c_str(), &w, &h));

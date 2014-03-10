@@ -9,6 +9,10 @@ add_test(basic basic)
 set_property(TEST basic PROPERTY ENVIRONMENT "XDG_CACHE_HOME=${CMAKE_CURRENT_BINARY_DIR}")
 set_property(TEST basic APPEND PROPERTY ENVIRONMENT "TN_UTILDIR=${CMAKE_BINARY_DIR}/src")
 
+#add_executable(mediaartcache mediaartcachetest.cpp ../src/mediaartcache.cpp)
+#target_link_libraries(mediaartcache ${GIO_LDFLAGS})
+#add_test(mediaartcache mediaartcache)
+
 # This is only needed here because GStreamer brings in gobject.
 pkg_check_modules(GOBJ_DEPS REQUIRED gobject-2.0)
 

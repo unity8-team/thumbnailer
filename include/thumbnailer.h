@@ -64,12 +64,14 @@ public:
      * std::runtime_error.
      */
     std::string get_thumbnail(const std::string &filename, ThumbnailSize desired_size,
-            ThumbnailPolicy);
+            ThumbnailPolicy policy);
     /**
      * Deprecated. Do not use!
      */
     std::string get_thumbnail(const std::string &filename, ThumbnailSize desired_size);
 
+    std::string get_album_art(const std::string &artist, const std::string &album,
+            ThumbnailSize desiredSize, ThumbnailPolicy policy);
 private:
     Thumbnailer(const Thumbnailer &t);
     Thumbnailer & operator=(const Thumbnailer &t);

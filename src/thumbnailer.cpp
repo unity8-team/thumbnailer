@@ -21,6 +21,7 @@
 #include<internal/audioimageextractor.h>
 #include<internal/videoscreenshotter.h>
 #include<internal/imagescaler.h>
+#include<internal/mediaartcache.h>
 #include<gdk-pixbuf/gdk-pixbuf.h>
 #include<unistd.h>
 #include<gst/gst.h>
@@ -46,6 +47,7 @@ public:
 //    AudioImageExtractor audio;
     VideoScreenshotter video;
     ImageScaler scaler;
+    MediaArtCache macache;
 
     ThumbnailerPrivate() {};
 
@@ -167,4 +169,20 @@ std::string Thumbnailer::get_thumbnail(const std::string &filename, ThumbnailSiz
 
 string Thumbnailer::get_thumbnail(const string &filename, ThumbnailSize desired_size) {
     return get_thumbnail(filename, desired_size, TN_LOCAL);
+}
+
+std::string Thumbnailer::get_album_art(const std::string &artist, const std::string &album,
+        ThumbnailSize desired_size, ThumbnailPolicy policy) {
+    if(p->macache.has_art(artist, album)) {
+        std::string original = p->macache.get_art_file(artist, album);
+        if(desired_size == TN_SIZE_ORIGINAL) {
+            return original;
+        }
+        return get_thumbnail(original, desired_size, policy);
+    }
+    if(policy == TN_LOCAL) {
+        return ""; // We don't have it cached and can't access the net -> nothing to be done.
+    }
+
+    return "";
 }
