@@ -177,7 +177,9 @@ std::string Thumbnailer::get_album_art(const std::string &artist, const std::str
         ThumbnailSize desired_size, ThumbnailPolicy policy) {
     if(!p->macache.has_art(artist, album)) {
         if(policy == TN_LOCAL) {
-            return ""; // We don't have it cached and can't access the net -> nothing to be done.
+            // We don't have it cached and can't access the net
+            // -> nothing to be done.
+            return "";
         }
         char filebuf[] = "/tmp/some/long/text/here/so/path/will/fit";
         std::string tmpname = tmpnam(filebuf);
@@ -188,11 +190,13 @@ std::string Thumbnailer::get_album_art(const std::string &artist, const std::str
         gsize content_size;
         GError *err = nullptr;
         if(!g_file_get_contents(tmpname.c_str(), &contents, &content_size, &err)) {
+            unlink(tmpname.c_str());
             std::string msg("Error reading file: ");
             msg += err->message;
             g_error_free(err);
             throw std::runtime_error(msg);
         }
+        unlink(tmpname.c_str());
         unique_ptr<gchar, void(*)(gpointer)> deleter(contents, g_free);
         p->macache.add_art(artist, album, contents, content_size);
     }
