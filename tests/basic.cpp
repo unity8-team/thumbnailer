@@ -103,15 +103,22 @@ void size_test() {
     string imfile(TESTIMAGE);
     string thumbfile = tn.get_thumbnail(imfile, TN_SIZE_SMALL);
     string thumbfile2 = tn.get_thumbnail(imfile, TN_SIZE_LARGE);
+    string thumbfile3 = tn.get_thumbnail(imfile, TN_SIZE_XLARGE);
     assert(!thumbfile.empty());
     assert(!thumbfile2.empty());
+    assert(!thumbfile3.empty());
     assert(thumbfile != thumbfile2);
+    assert(thumbfile != thumbfile3);
+    assert(thumbfile2 != thumbfile3);
     assert(gdk_pixbuf_get_file_info(thumbfile.c_str(), &w, &h));
     assert(w == 128);
     assert(h <= 128);
     assert(gdk_pixbuf_get_file_info(thumbfile2.c_str(), &w, &h));
     assert(w == 256);
     assert(h <= 256);
+    assert(gdk_pixbuf_get_file_info(thumbfile3.c_str(), &w, &h));
+    assert(w == 512);
+    assert(h <= 512);
 }
 
 void delete_test() {
@@ -122,13 +129,16 @@ void delete_test() {
     assert(file_exists(workimage));
     string thumbfile = tn.get_thumbnail(workimage, TN_SIZE_SMALL);
     string thumbfile2 = tn.get_thumbnail(workimage, TN_SIZE_LARGE);
+    string thumbfile3 = tn.get_thumbnail(workimage, TN_SIZE_XLARGE);
     assert(file_exists(thumbfile));
     assert(file_exists(thumbfile2));
+    assert(file_exists(thumbfile3));
     unlink(workimage.c_str());
     string tmp = tn.get_thumbnail(workimage, TN_SIZE_SMALL);
     assert(tmp.empty());
     assert(!file_exists(thumbfile));
     assert(!file_exists(thumbfile2));
+    assert(!file_exists(thumbfile3));
 }
 
 void no_image_cache_test() {

@@ -16,11 +16,16 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
+#ifndef _POSIX_SOURCE
+#define _POSIX_SOURCE
+#endif
+
 #include<thumbnailer.h>
 #include<internal/thumbnailcache.h>
 #include<stdexcept>
 #include<glib.h>
 #include<sys/stat.h>
+#include<sys/types.h>
 #include<cassert>
 #include<cstdio>
 #include<cstring>
@@ -29,6 +34,7 @@
 #include<unistd.h>
 #include<vector>
 #include<algorithm>
+#include<dirent.h>
 
 using namespace std;
 
@@ -126,6 +132,7 @@ private:
     string tndir;
     string smalldir;
     string largedir;
+    string xlargedir;
     string originaldir;
     static const size_t MAX_FILES = 200;
 
@@ -134,6 +141,7 @@ private:
 void ThumbnailCachePrivate::clear() {
     cleardir(smalldir);
     cleardir(largedir);
+    cleardir(xlargedir);
     cleardir(originaldir);
 }
 
@@ -141,12 +149,14 @@ void ThumbnailCachePrivate::clear() {
 void ThumbnailCachePrivate::prune() {
     prune_dir(smalldir, MAX_FILES);
     prune_dir(largedir, MAX_FILES);
+    prune_dir(xlargedir, MAX_FILES);
     prune_dir(originaldir, MAX_FILES);
 }
 
 void ThumbnailCachePrivate::delete_from_cache(const std::string &abs_path) {
     unlink(get_cache_file_name(abs_path, TN_SIZE_SMALL).c_str());
     unlink(get_cache_file_name(abs_path, TN_SIZE_LARGE).c_str());
+    unlink(get_cache_file_name(abs_path, TN_SIZE_XLARGE).c_str());
     unlink(get_cache_file_name(abs_path, TN_SIZE_ORIGINAL).c_str());
 }
 
@@ -205,14 +215,15 @@ ThumbnailCachePrivate::ThumbnailCachePrivate() {
     tndir = xdg_base + "/thumbnails";
     tndir = makedir(xdg_base, "thumbnails");
     smalldir = makedir(tndir,"normal");
-    largedir = makedir(tndir, "large");;
+    largedir = makedir(tndir, "large");
+    xlargedir = makedir(tndir, "xlarge");
     originaldir = makedir(tndir, "original");
 }
 
 string ThumbnailCachePrivate::md5(const string &str) const {
     const unsigned char *buf = (const unsigned char *)str.c_str();
     char *normalized = g_utf8_normalize((const gchar*)buf, str.size(), G_NORMALIZE_ALL);
-    string final;
+    string final_result;
     gchar *result;
 
     if(normalized) {
@@ -221,10 +232,10 @@ string ThumbnailCachePrivate::md5(const string &str) const {
     gssize bytes = str.length();
 
     result = g_compute_checksum_for_data(G_CHECKSUM_MD5, buf, bytes);
-    final = result;
+    final_result = result;
     g_free((gpointer)normalized);
     g_free(result);
-    return final;
+    return final_result;
 }
 
 string ThumbnailCachePrivate::get_cache_file_name(const std::string & abs_original, ThumbnailSize desired) const {
@@ -233,6 +244,7 @@ string ThumbnailCachePrivate::get_cache_file_name(const std::string & abs_origin
     switch(desired) {
     case TN_SIZE_SMALL : path = smalldir; break;
     case TN_SIZE_LARGE : path = largedir; break;
+    case TN_SIZE_XLARGE : path = xlargedir; break;
     case TN_SIZE_ORIGINAL : path = originaldir; break;
     default : throw runtime_error("Unreachable code");
     }
@@ -261,6 +273,16 @@ std::string ThumbnailCache::get_if_exists(const std::string &abs_path, Thumbnail
     if(f) {
         existed = true;
         fclose(f);
+    }
+    // Has it been changed since the thumbnail was taken?
+    if(existed) {
+        struct stat original, thumbnail;
+        stat(abs_path.c_str(), &original);
+        stat(fname.c_str(), &thumbnail);
+        if(original.st_mtime > thumbnail.st_mtime) {
+            p->delete_from_cache(abs_path);
+            return "";
+        }
     }
     return existed ? fname : string("");
 }
