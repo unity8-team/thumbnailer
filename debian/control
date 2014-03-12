@@ -13,6 +13,7 @@ Build-Depends: cmake,
                libgtest-dev,
                libxml2-dev,
                libsoup2.4-dev,
+               libexif-dev,
 Homepage: https://launchpad.net/thumbnailer
 # if you don't have have commit access to this branch but would like to upload
 # directly to Ubuntu, don't worry: your changes will be merged back into the

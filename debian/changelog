@@ -4,6 +4,14 @@ thumbnailer (1.1-0ubuntu1) UNRELEASED; urgency=medium
 
  -- Jussi Pakkanen <jussi.pakkanen@ubuntu.com>  Mon, 10 Mar 2014 15:15:28 +0200
 
+thumbnailer (1.0+14.04.20140307-0ubuntu1) trusty; urgency=low
+
+  [ Jussi Pakkanen ]
+  * Added visibility info to prevent accidental ABI breakages.
+  * Reorient images manually to work around a bug in GdkPixbuf.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Fri, 07 Mar 2014 15:41:18 +0000
+
 thumbnailer (1.0+14.04.20140304-0ubuntu1) trusty; urgency=low
 
   [ CI bot ]

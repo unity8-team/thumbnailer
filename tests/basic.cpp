@@ -23,6 +23,7 @@
 #include<gdk-pixbuf/gdk-pixbuf.h>
 
 #define TESTIMAGE TESTDATADIR "/testimage.jpg"
+#define ROTTESTIMAGE TESTDATADIR "/testrotate.jpg"
 #define TESTVIDEO TESTDATADIR "/testvideo.ogg"
 
 using namespace std;
@@ -59,7 +60,7 @@ TEST(Thumbnailer, trivial) {
     Thumbnailer tn;
 }
 
-void file_test(Thumbnailer &tn, string &ifile) {
+static void file_test(Thumbnailer &tn, string &ifile) {
     int w, h;
     ASSERT_TRUE(file_exists(ifile));
     string thumbfile = tn.get_thumbnail(ifile, TN_SIZE_SMALL, TN_LOCAL);
@@ -84,6 +85,24 @@ TEST(Thumbnailer, video) {
     string videofile(TESTVIDEO);
     file_test(tn, videofile);
 }
+
+TEST(Thumbnailer, rotate) {
+    Thumbnailer tn;
+    string imfile(ROTTESTIMAGE);
+    int w, h;
+    ASSERT_TRUE(file_exists(imfile));
+    string thumbfile = tn.get_thumbnail(imfile, TN_SIZE_LARGE);
+    unlink(thumbfile.c_str());
+    ASSERT_FALSE(file_exists(thumbfile));
+    string thumbfile2 = tn.get_thumbnail(imfile, TN_SIZE_LARGE);
+    ASSERT_EQ(thumbfile, thumbfile2);
+    ASSERT_TRUE(file_exists(thumbfile));
+    ASSERT_TRUE(gdk_pixbuf_get_file_info(imfile.c_str(), &w, &h));
+    ASSERT_GT(w, h); // gdk_pixbuf does not reorient images automatically.
+    ASSERT_TRUE(gdk_pixbuf_get_file_info(thumbfile.c_str(), &w, &h));
+    ASSERT_GT(h, w); // Has the orientation been straightened during scaling?
+}
+
 
 TEST(Thumbnailer, video_original) {
     Thumbnailer tn;

@@ -32,7 +32,7 @@ find_package(Threads REQUIRED)
 include(FindPkgConfig)
 pkg_check_modules(GST_DEPS REQUIRED gstreamer-1.0 gstreamer-plugins-base-1.0 gstreamer-pbutils-1.0 gstreamer-app-1.0)
 pkg_check_modules(GIO_DEPS REQUIRED gio-2.0)
-pkg_check_modules(IMG_DEPS REQUIRED gdk-pixbuf-2.0)
+pkg_check_modules(IMG_DEPS REQUIRED gdk-pixbuf-2.0 libexif)
 pkg_check_modules(SOUP_DEPS REQUIRED libsoup-2.4)
 pkg_check_modules(XML_DEPS REQUIRED libxml-2.0)
 
