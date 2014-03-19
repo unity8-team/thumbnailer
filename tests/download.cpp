@@ -19,6 +19,7 @@
 #include<gtest/gtest.h>
 #include<internal/lastfmdownloader.h>
 #include<cstdio>
+#include<unistd.h>
 
 using namespace std;
 
@@ -48,10 +49,12 @@ TEST(Downloader, canned) {
     string outfile("/tmp/temptestfile");
     ASSERT_TRUE(lfdl.download(artist, album, outfile));
     char output[4];
+    unlink(outfile.c_str());
     FILE *f = fopen(outfile.c_str(), "r");
     fread(output, 3, 1, f);
     output[3] = '\0';
     fclose(f);
+    unlink(outfile.c_str());
     string s1(testimage);
     string s2(output);
     ASSERT_EQ(s1, s2);
