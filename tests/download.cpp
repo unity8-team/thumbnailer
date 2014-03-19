@@ -47,11 +47,12 @@ TEST(Downloader, canned) {
     string artist("Some guy");
     string album("Some album");
     string outfile("/tmp/temptestfile");
+    unlink(outfile.c_str());
     ASSERT_TRUE(lfdl.download(artist, album, outfile));
     char output[4];
-    unlink(outfile.c_str());
     FILE *f = fopen(outfile.c_str(), "r");
-    fread(output, 3, 1, f);
+    ASSERT_TRUE(f);
+    ASSERT_EQ(fread(output, 1, 3, f), 3);
     output[3] = '\0';
     fclose(f);
     unlink(outfile.c_str());
