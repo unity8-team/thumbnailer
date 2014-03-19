@@ -29,13 +29,13 @@ const char *NOTFOUND_IMAGE = "http://cdn.last.fm/flatness/catalogue/noimage/2/de
 using namespace std;
 
 LastFMDownloader::LastFMDownloader() : dl(new SoupDownloader()){
+}
 
+LastFMDownloader::LastFMDownloader(HttpDownloader *o) : dl(o) {
 }
 
 LastFMDownloader::~LastFMDownloader() {
-
 }
-
 
 string LastFMDownloader::parseXML(const string &xml) {
     string node = "/album/coverart/large";

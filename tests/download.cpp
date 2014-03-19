@@ -16,26 +16,14 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#ifndef LASTFM_DOWNLOADER_H
-#define LASTFM_DOWNLOADER_H
+#include<gtest/gtest.h>
+#include<internal/lastfmdownloader.h>
 
-#include<string>
-#include<memory>
-#include<internal/httpdownloader.h>
+TEST(Downloader, canned) {
+}
 
-class LastFMDownloader final {
-public:
-    LastFMDownloader();
-    LastFMDownloader(HttpDownloader *o); // Takes ownership.
-    ~LastFMDownloader();
-    LastFMDownloader(const LastFMDownloader &o) = delete;
-    LastFMDownloader& operator=(const LastFMDownloader &o) = delete;
 
-    bool download(const std::string &artist, const std::string &album,
-            const std::string &fname);
-private:
-    std::string parseXML(const std::string &xml);
-    std::unique_ptr<HttpDownloader> dl;
-};
-
-#endif
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}

@@ -26,6 +26,10 @@ add_executable(mediaartcachetest mediaartcachetest.cpp ../src/mediaartcache.cpp)
 target_link_libraries(mediaartcachetest ${GIO_DEPS_LDFLAGS} gtest)
 add_test(mediaartcache mediaartcachetest)
 
+add_executable(downloadtest download.cpp ../src/lastfmdownloader.cpp ../src/soupdownloader.cpp)
+target_link_libraries(downloadtest ${XML_DEPS_LDFLAGS} ${SOUP_DEPS_LDFLAGS} gtest)
+add_test(downloadtest downloadtest)
+
 # This is only needed here because GStreamer brings in gobject.
 pkg_check_modules(GOBJ_DEPS REQUIRED gobject-2.0)
 
