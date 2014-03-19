@@ -7,5 +7,5 @@ target_link_libraries(scaler ${IMG_DEPS_LDFLAGS})
 add_executable(cachetool cachetool.cpp)
 target_link_libraries(cachetool thumbnailer)
 
-add_executable(lastfmtest lastfmtest.cpp ../src/lastfmdownloader.cpp)
+add_executable(lastfmtest lastfmtest.cpp ../src/lastfmdownloader.cpp ../src/soupdownloader.cpp)
 target_link_libraries(lastfmtest ${SOUP_DEPS_LDFLAGS} ${XML_DEPS_LDFLAGS})

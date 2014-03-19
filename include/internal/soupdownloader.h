@@ -16,25 +16,25 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#ifndef LASTFM_DOWNLOADER_H
-#define LASTFM_DOWNLOADER_H
+#ifndef SOUPDOWNLOADER_H
+#define SOUPDOWNLOADER_H
 
-#include<string>
-#include<memory>
 #include<internal/httpdownloader.h>
 
-class LastFMDownloader final {
-public:
-    LastFMDownloader();
-    ~LastFMDownloader();
-    LastFMDownloader(const LastFMDownloader &o) = delete;
-    LastFMDownloader& operator=(const LastFMDownloader &o) = delete;
+typedef struct _SoupSession SoupSession;
 
-    bool download(const std::string &artist, const std::string &album,
-            const std::string &fname);
+class SoupDownloader final : public HttpDownloader {
+
 private:
-    std::string parseXML(const std::string &xml);
-    std::unique_ptr<HttpDownloader> dl;
+    SoupSession *session;
+
+public:
+    SoupDownloader();
+    virtual ~SoupDownloader();
+    SoupDownloader(const SoupDownloader &o) = delete;
+    SoupDownloader& operator=(const SoupDownloader &o) = delete;
+
+    std::string download(const std::string &url) override;
 };
 
 #endif

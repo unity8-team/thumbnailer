@@ -17,10 +17,9 @@
  */
 
 #include<internal/lastfmdownloader.h>
-
+#include<internal/soupdownloader.h>
 #include<internal/gobj_memory.h>
 #include<memory>
-#include<libsoup/soup.h>
 #include <libxml/parser.h>
 #include <libxml/xmlmemory.h>
 #include <libxml/xpath.h>
@@ -29,7 +28,7 @@ const char *NOTFOUND_IMAGE = "http://cdn.last.fm/flatness/catalogue/noimage/2/de
 
 using namespace std;
 
-LastFMDownloader::LastFMDownloader() {
+LastFMDownloader::LastFMDownloader() : dl(new SoupDownloader()){
 
 }
 
@@ -72,15 +71,7 @@ bool LastFMDownloader::download(const std::string &artist,
     const int bufsize = 1024;
     char buf[bufsize];
     snprintf(buf, bufsize, lastfmTemplate, artist.c_str(), album.c_str());
-    unique_gobj<SoupSession> s(soup_session_sync_new());
-    unique_gobj<SoupMessage> msg(soup_message_new("GET", buf));
-    guint status;
-    status = soup_session_send_message(s.get(), msg.get());
-    if(!SOUP_STATUS_IS_SUCCESSFUL(status)) {
-        fprintf(stderr, "Determination failed.\n");
-        return false;
-    }
-    string xml(msg->response_body->data);
+    string xml(dl->download(buf));
     string parsed = parseXML(xml);
     if(parsed.empty() ||
        parsed == NOTFOUND_IMAGE) {
@@ -88,14 +79,9 @@ bool LastFMDownloader::download(const std::string &artist,
         return false;
     }
 
-    msg.reset( soup_message_new("GET", parsed.c_str()));
-    status = soup_session_send_message(s.get(), msg.get());
-    if(!SOUP_STATUS_IS_SUCCESSFUL(status)) {
-        fprintf(stderr, "Image download failed.\n");
-        return false;
-    }
+    string image(dl->download(parsed));
     FILE *f = fopen(fname.c_str(), "w");
-    fwrite(msg->response_body->data, 1, msg->response_body->length, f);
+    fwrite(image.c_str(), 1, image.length(), f);
     fclose(f);
     return true;
 }

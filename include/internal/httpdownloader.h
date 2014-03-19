@@ -16,25 +16,16 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#ifndef LASTFM_DOWNLOADER_H
-#define LASTFM_DOWNLOADER_H
+#ifndef HTTPDOWNLOADER_H
+#define HTTPDOWNLOADER_H
 
 #include<string>
-#include<memory>
-#include<internal/httpdownloader.h>
 
-class LastFMDownloader final {
+class HttpDownloader {
 public:
-    LastFMDownloader();
-    ~LastFMDownloader();
-    LastFMDownloader(const LastFMDownloader &o) = delete;
-    LastFMDownloader& operator=(const LastFMDownloader &o) = delete;
-
-    bool download(const std::string &artist, const std::string &album,
-            const std::string &fname);
-private:
-    std::string parseXML(const std::string &xml);
-    std::unique_ptr<HttpDownloader> dl;
+    virtual std::string download(const std::string &url) = 0;
+    virtual ~HttpDownloader() {};
 };
+
 
 #endif

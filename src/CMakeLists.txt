@@ -3,6 +3,7 @@ add_library(thumbnailer SHARED
 imagescaler.cpp
 lastfmdownloader.cpp
 mediaartcache.cpp
+soupdownloader.cpp
 thumbnailcache.cpp
 thumbnailer.cpp
 videoscreenshotter.cpp
