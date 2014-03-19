@@ -58,22 +58,28 @@ static GdkPixbuf* fix_orientation(const char *infile, GdkPixbuf *src) {
     ed = exif_loader_get_data(l);
     exif_loader_unref(l);
     GdkPixbuf *rot = nullptr;
+    bool fixed = false;
     // Have to do this manually because of
     // https://bugzilla.gnome.org/show_bug.cgi?id=725582
     if(ed) {
       ExifEntry *e = exif_data_get_entry(ed, EXIF_TAG_ORIENTATION);
-      int orientation = exif_get_short(e->data, exif_data_get_byte_order(ed));
-      if(orientation == 6) {
-        rot = gdk_pixbuf_rotate_simple(src, GDK_PIXBUF_ROTATE_CLOCKWISE);
-      } else if (orientation == 8) {
-        rot = gdk_pixbuf_rotate_simple(src, GDK_PIXBUF_ROTATE_COUNTERCLOCKWISE);
-      } else if (orientation == 3) {
-        rot = gdk_pixbuf_rotate_simple(src, GDK_PIXBUF_ROTATE_UPSIDEDOWN);
-      } else {
-          // We don't do mirrored images, at least not yet.
+      if(e) {
+          int orientation = exif_get_short(e->data, exif_data_get_byte_order(ed));
+          if(orientation == 6) {
+              rot = gdk_pixbuf_rotate_simple(src, GDK_PIXBUF_ROTATE_CLOCKWISE);
+              fixed = true;
+          } else if (orientation == 8) {
+              rot = gdk_pixbuf_rotate_simple(src, GDK_PIXBUF_ROTATE_COUNTERCLOCKWISE);
+              fixed = true;
+          } else if (orientation == 3) {
+              rot = gdk_pixbuf_rotate_simple(src, GDK_PIXBUF_ROTATE_UPSIDEDOWN);
+              fixed = true;
+          } else {
+              // We don't do mirrored images, at least not yet.
+          }
       }
     }
-    if(!rot) {
+    if(!fixed) {
         // This entire function should only contain this call, really.
       rot = gdk_pixbuf_apply_embedded_orientation(src);
     }
