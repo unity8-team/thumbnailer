@@ -148,7 +148,7 @@ void MediaArtCache::clear() const {
         throw runtime_error(s);
     }
     struct dirent *entry, *de;
-    entry = (dirent*)malloc(sizeof(dirent) + NAME_MAX);
+    entry = (dirent*)malloc(sizeof(dirent) + NAME_MAX + 1);
     while(readdir_r(d, entry, &de) == 0 && de) {
         string basename = entry->d_name;
         if (basename == "." || basename == "..")
@@ -173,7 +173,7 @@ void MediaArtCache::prune() {
         throw runtime_error(s);
     }
     struct dirent *entry, *de;
-    entry = (dirent*)malloc(sizeof(dirent) + NAME_MAX);
+    entry = (dirent*)malloc(sizeof(dirent) + NAME_MAX + 1);
     while(readdir_r(d, entry, &de) == 0 && de) {
         string basename = entry->d_name;
         if (basename == "." || basename == "..")
