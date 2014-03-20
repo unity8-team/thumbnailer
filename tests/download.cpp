@@ -20,6 +20,9 @@
 #include<internal/lastfmdownloader.h>
 #include<cstdio>
 #include<unistd.h>
+#include<mutex>
+#include<condition_variable>
+#include<thread>
 
 using namespace std;
 
@@ -59,6 +62,43 @@ TEST(Downloader, canned) {
     string s1(testimage);
     string s2(output);
     ASSERT_EQ(s1, s2);
+}
+
+static std::mutex m;
+static std::condition_variable cv;
+static bool go = false;
+
+static void query_thread(LastFMDownloader *lfdl, int num) {
+    std::unique_lock<std::mutex> lk(m);
+    string fname("/tmp/tmpfile");
+    string artist("Some guy");
+    string album("Some album");
+    artist += num;
+    album += num;
+    fname += num;
+    cv.wait(lk, []{return go;});
+    for(int i=0; i<10; i++) {
+        unlink(fname.c_str());
+        ASSERT_TRUE(lfdl->download(artist, album, fname));
+    }
+    unlink(fname.c_str());
+}
+
+TEST(Downloader, threads) {
+    LastFMDownloader lfdl(new FakeDownloader());
+    vector<std::thread> workers;
+    for(int i=0; i<10; i++) {
+        workers.emplace_back(query_thread, &lfdl, i);
+    }
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    {
+        std::lock_guard<std::mutex> g(m);
+        go = true;
+        cv.notify_all();
+    }
+    for(auto &i : workers) {
+        i.join();
+    }
 }
 
 
