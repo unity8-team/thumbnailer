@@ -46,7 +46,7 @@ static string md5(const string &str) {
     if(normalized) {
         buf = (const unsigned char*)normalized;
     }
-    gssize bytes = str.length();
+    gssize bytes = strlen(normalized);
 
     result = g_compute_checksum_for_data(G_CHECKSUM_MD5, buf, bytes);
     final = result;
