@@ -69,14 +69,16 @@ static std::condition_variable cv;
 static bool go = false;
 
 static void query_thread(LastFMDownloader *lfdl, int num) {
-    std::unique_lock<std::mutex> lk(m);
     string fname("/tmp/tmpfile");
     string artist("Some guy");
     string album("Some album");
     artist += num;
     album += num;
     fname += num;
-    cv.wait(lk, []{return go;});
+    {
+        std::unique_lock<std::mutex> lk(m);
+        cv.wait(lk, []{return go;});
+    }
     for(int i=0; i<10; i++) {
         unlink(fname.c_str());
         ASSERT_TRUE(lfdl->download(artist, album, fname));
@@ -94,8 +96,8 @@ TEST(Downloader, threads) {
     {
         std::lock_guard<std::mutex> g(m);
         go = true;
-        cv.notify_all();
     }
+    cv.notify_all();
     for(auto &i : workers) {
         i.join();
     }
