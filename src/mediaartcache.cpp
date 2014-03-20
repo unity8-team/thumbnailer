@@ -46,9 +46,8 @@ static string md5(const string &str) {
     if(normalized) {
         buf = (const unsigned char*)normalized;
     }
-    gssize bytes = strlen(normalized);
 
-    result = g_compute_checksum_for_data(G_CHECKSUM_MD5, buf, bytes);
+    result = g_compute_checksum_for_data(G_CHECKSUM_MD5, buf, strlen((const char*)buf));
     final = result;
     g_free((gpointer)normalized);
     g_free(result);
