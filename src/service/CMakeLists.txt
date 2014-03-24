@@ -29,6 +29,6 @@ add_custom_command(
 configure_file(com.canonical.Thumbnailer.service.in com.canonical.Thumbnailer.service)
 
 install(
-  FILES com.canonical.Thumbnailer.service
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/com.canonical.Thumbnailer.service
   DESTINATION ${CMAKE_INSTALL_DATADIR}/dbus-1/services
 )
