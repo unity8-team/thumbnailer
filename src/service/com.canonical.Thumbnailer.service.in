@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=com.canonical.Thumbnailer
+Exec=@SHARE_PRIV_ABS@/thumbnailer-service
+

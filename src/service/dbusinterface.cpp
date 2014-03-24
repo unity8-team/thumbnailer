@@ -105,7 +105,7 @@ struct DBusInterfacePrivate {
                       unique_gobj<TNThumbnailer>(static_cast<TNThumbnailer*>(g_object_ref(iface))),
                       unique_gobj<GDBusMethodInvocation>(static_cast<GDBusMethodInvocation*>(g_object_ref(invocation))),
                       p->thumbnailer,
-                      artist, album, TN_SIZE_XLARGE);
+                      std::string(artist), std::string(album), desiredSize);
         t.detach();
         return TRUE;
     }

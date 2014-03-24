@@ -24,3 +24,11 @@ add_custom_command(
   COMMAND ${gdbus_codegen} --interface-prefix=com.canonical. --generate-c-code dbus-generated --c-namespace TN ${CMAKE_CURRENT_SOURCE_DIR}/dbus-interface.xml
   MAIN_DEPENDENCY dbus-interface.xml
 )
+
+# Install the service file.
+configure_file(com.canonical.Thumbnailer.service.in com.canonical.Thumbnailer.service)
+
+install(
+  FILES com.canonical.Thumbnailer.service
+  DESTINATION ${CMAKE_INSTALL_DATADIR}/dbus-1/services
+)
