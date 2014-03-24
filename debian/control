@@ -43,3 +43,14 @@ Depends: ${misc:Depends},
 Description: development files for thumbnailer
  This package contains development files
  for the thumbnailer package.
+
+Package: thumbnailer-service
+Architecture: any
+Multi-Arch: foreign
+Pre-Depends: ${misc:Pre-Depends},
+Depends: ${misc:Depends},
+         ${shlibs:Depends},
+         libthumbnailer0 (= ${binary:Version}),
+Description: D-Bus service for out of process thumbnailing
+ This package provides a D-Bus service that can provide thumbnails on
+ behalf of another process.
