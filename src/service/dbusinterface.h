@@ -22,11 +22,6 @@
 
 #include <string>
 
-/**
- * A class that sends a broadcast signal that the state of media
- * files has changed.
- */
-
 struct DBusInterfacePrivate;
 typedef struct _GDBusConnection GDBusConnection;
 

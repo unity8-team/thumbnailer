@@ -1,6 +1,6 @@
 <node>
   <interface name="com.canonical.Thumbnailer">
-    <method name="GetCoverArt">
+    <method name="GetAlbumArt">
       <arg direction="in" type="s" name="artist" />
       <arg direction="in" type="s" name="album" />
       <!-- possible values are "small", "large", "xlarge" and "original" -->

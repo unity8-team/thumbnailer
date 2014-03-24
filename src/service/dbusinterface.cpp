@@ -58,8 +58,8 @@ struct DBusInterfacePrivate {
           handler_id(0),
           thumbnailer(std::make_shared<Thumbnailer>()) {
         handler_id = g_signal_connect(
-            iface.get(), "handle-get-cover-art",
-            G_CALLBACK(&DBusInterfacePrivate::handleGetCoverArt), this);
+            iface.get(), "handle-get-album-art",
+            G_CALLBACK(&DBusInterfacePrivate::handleGetAlbumArt), this);
 
         GError *error = nullptr;
         if (!g_dbus_interface_skeleton_export(
@@ -80,7 +80,7 @@ struct DBusInterfacePrivate {
         g_signal_handler_disconnect(iface.get(), handler_id);
     }
 
-    static gboolean handleGetCoverArt(TNThumbnailer *iface, GDBusMethodInvocation *invocation, GUnixFDList *, const char *artist, const char *album, const char *size, void *user_data) {
+    static gboolean handleGetAlbumArt(TNThumbnailer *iface, GDBusMethodInvocation *invocation, GUnixFDList *, const char *artist, const char *album, const char *size, void *user_data) {
         auto p = static_cast<DBusInterfacePrivate*>(user_data);
         fprintf(stderr, "Look up cover art for %s/%s at size %s\n", artist, album, size);
 
@@ -101,16 +101,21 @@ struct DBusInterfacePrivate {
             return TRUE;
         }
 
-        std::thread t(&getCoverArt,
-                      unique_gobj<TNThumbnailer>(static_cast<TNThumbnailer*>(g_object_ref(iface))),
-                      unique_gobj<GDBusMethodInvocation>(static_cast<GDBusMethodInvocation*>(g_object_ref(invocation))),
-                      p->thumbnailer,
-                      std::string(artist), std::string(album), desiredSize);
-        t.detach();
+        try {
+            std::thread t(&getAlbumArt,
+                          unique_gobj<TNThumbnailer>(static_cast<TNThumbnailer*>(g_object_ref(iface))),
+                          unique_gobj<GDBusMethodInvocation>(static_cast<GDBusMethodInvocation*>(g_object_ref(invocation))),
+                          p->thumbnailer,
+                          std::string(artist), std::string(album), desiredSize);
+            t.detach();
+        } catch (const std::exception &e) {
+            g_dbus_method_invocation_return_dbus_error(
+                invocation, ART_ERROR, e.what());
+        }
         return TRUE;
     }
 
-    static void getCoverArt(unique_gobj<TNThumbnailer> iface,
+    static void getAlbumArt(unique_gobj<TNThumbnailer> iface,
                             unique_gobj<GDBusMethodInvocation> invocation,
                             std::shared_ptr<Thumbnailer> thumbnailer,
                             const std::string artist, const std::string album,
@@ -119,7 +124,7 @@ struct DBusInterfacePrivate {
         try {
             art = thumbnailer->get_album_art(
                 artist, album, desiredSize, TN_REMOTE);
-        } catch (std::exception &e) {
+        } catch (const std::exception &e) {
             g_dbus_method_invocation_return_dbus_error(
                 invocation.get(), ART_ERROR, e.what());
             return;
@@ -130,7 +135,6 @@ struct DBusInterfacePrivate {
                 invocation.get(), ART_ERROR, "Could not get thumbnail");
             return;
         }
-        // This should be replaced with actual lookup code.
         int fd = open(art.c_str(), O_RDONLY);
         if (fd < 0) {
             g_dbus_method_invocation_return_dbus_error(
@@ -149,7 +153,7 @@ struct DBusInterfacePrivate {
             return;
         }
 
-        tn_thumbnailer_complete_get_cover_art(
+        tn_thumbnailer_complete_get_album_art(
             iface.get(), invocation.get(), fd_list.get(), g_variant_new_handle(0));
     }
 
