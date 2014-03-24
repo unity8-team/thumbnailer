@@ -37,3 +37,5 @@ install(
   RUNTIME DESTINATION ${SHARE_PRIV_DIR}
   LIBRARY DESTINATION ${SHARE_PRIV_DIR}
 )
+
+add_subdirectory(service)

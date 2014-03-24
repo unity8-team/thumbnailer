@@ -1,0 +1,12 @@
+<node>
+  <interface name="com.canonical.Thumbnailer">
+    <method name="GetCoverArt">
+      <arg direction="in" type="s" name="artist" />
+      <arg direction="in" type="s" name="album" />
+      <!-- possible values are "small", "large", "xlarge" and "original" -->
+      <arg direction="in" type="s" name="desiredSize" />
+      <arg direction="out" type="h" name="fd" />
+      <annotation name="org.gtk.GDBus.C.UnixFD" value="true" />
+    </method>
+  </interface>
+</node>
