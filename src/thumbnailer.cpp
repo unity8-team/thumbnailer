@@ -31,7 +31,7 @@ using namespace std;
 
 class ThumbnailerPrivate {
 private:
-    mt19937 rnd;
+    random_device rnd;
 
 public:
     ThumbnailCache cache;
@@ -42,7 +42,22 @@ public:
     ThumbnailerPrivate() {};
 
     string create_thumbnail(const string &abspath, ThumbnailSize desired_size);
+    string create_random_filename();
 };
+
+string ThumbnailerPrivate::create_random_filename() {
+    string fname;
+    char *dirbase = getenv("TMPDIR"); // Set when in a confined application.
+    if(dirbase) {
+        fname = dirbase;
+    } else {
+        fname = "/tmp";
+    }
+    fname += "/thumbnailer.";
+    fname += to_string(rnd());
+    fname += ".tmp";
+    return fname;
+}
 
 string ThumbnailerPrivate::create_thumbnail(const string &abspath, ThumbnailSize desired_size) {
     int tmpw, tmph;
@@ -54,8 +69,7 @@ string ThumbnailerPrivate::create_thumbnail(const string &abspath, ThumbnailSize
     // or just plain lie. So we try to open it one by one with the handlers we have.
     // Go from least resource intensive to most.
     string tnfile = cache.get_cache_file_name(abspath, desired_size);
-    char filebuf[] = "/tmp/some/long/text/here/so/path/will/fit";
-    string tmpname = tmpnam(filebuf);
+    string tmpname = create_random_filename();
 
     // Special case: full size image files are their own preview.
     if(desired_size == TN_SIZE_ORIGINAL &&
