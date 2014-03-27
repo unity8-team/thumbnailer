@@ -1,3 +1,10 @@
+thumbnailer (1.0+14.04.20140327-0ubuntu1) trusty; urgency=low
+
+  [ Jussi Pakkanen ]
+  * Obey the TMPDIR. (LP: #1296987)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Thu, 27 Mar 2014 08:36:59 +0000
+
 thumbnailer (1.0+14.04.20140319-0ubuntu1) trusty; urgency=low
 
   [ Jussi Pakkanen ]
