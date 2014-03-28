@@ -16,11 +16,7 @@ install(
   LIBRARY DESTINATION ${QML_PLUGIN_DIR}
 )
 
-file(GLOB QMLFILES
-  qmldir
-)
-
 install(
-  FILES ${QMLFILES}
+  FILES qmldir
   DESTINATION ${QML_PLUGIN_DIR}
 )

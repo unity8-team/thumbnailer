@@ -6,14 +6,18 @@ Standards-Version: 3.9.4
 Build-Depends: cmake,
                debhelper (>= 9),
                gstreamer1.0-plugins-good,
-               libgdk-pixbuf2.0-dev,
-               libgstreamer-plugins-base1.0-dev,
-               libgstreamer1.0-dev,
-               shared-mime-info,
-               libgtest-dev,
-               libxml2-dev,
-               libsoup2.4-dev,
                libexif-dev,
+               libgdk-pixbuf2.0-dev,
+               libgstreamer1.0-dev,
+               libgstreamer-plugins-base1.0-dev,
+               libgtest-dev,
+               libsoup2.4-dev,
+               libxml2-dev,
+               qt5-default,
+               qtbase5-dev,
+               qtbase5-dev-tools,
+               qtdeclarative5-dev,
+               shared-mime-info,
 Homepage: https://launchpad.net/thumbnailer
 # if you don't have have commit access to this branch but would like to upload
 # directly to Ubuntu, don't worry: your changes will be merged back into the
@@ -54,3 +58,15 @@ Depends: ${misc:Depends},
 Description: D-Bus service for out of process thumbnailing
  This package provides a D-Bus service that can provide thumbnails on
  behalf of another process.
+
+Package: qtdeclarative5-ubuntu-thumbnailer0.1
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends},
+Depends: ${misc:Depends},
+         ${shlibs:Depends},
+         libthumbnailer0 (= ${binary:Version}),
+Recommends: thumbnailer-service (= ${binary:Version}),
+Description: QML interface for the thumbnailer.
+ This package provides image providers that allow access to the
+ thumbnailer from Qt Quick 2 / QML applications.
