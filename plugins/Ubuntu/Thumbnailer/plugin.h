@@ -16,8 +16,8 @@
  * Authors: James Henstridge <james.henstridge@canonical.com>
 */
 
-#ifndef PLUGIN_H
-#define PLUGIN_H
+#ifndef THUMBNAILER_PLUGIN_H
+#define THUMBNAILER_PLUGIN_H
 
 #include <QtQml>
 

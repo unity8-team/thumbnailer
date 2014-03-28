@@ -22,7 +22,7 @@
 
 void ThumbnailerPlugin::registerTypes(const char *uri) {
     qmlRegisterTypeNotAvailable(
-        uri, 0, 1, "__ThumbnailerIngoreMe",
+        uri, 0, 1, "__ThumbnailerIgnoreMe",
         "Ignore this: QML plugins must contain at least one type");
 }
 
