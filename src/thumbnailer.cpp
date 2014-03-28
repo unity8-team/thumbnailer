@@ -36,7 +36,7 @@ using namespace std;
 
 class ThumbnailerPrivate {
 private:
-    mt19937 rnd;
+    random_device rnd;
 
     string create_audio_thumbnail(const string &abspath, ThumbnailSize desired_size,
             ThumbnailPolicy policy);
@@ -55,7 +55,23 @@ public:
 
     string create_thumbnail(const string &abspath, ThumbnailSize desired_size,
             ThumbnailPolicy policy);
+    string create_random_filename();
 };
+
+
+string ThumbnailerPrivate::create_random_filename() {
+    string fname;
+    char *dirbase = getenv("TMPDIR"); // Set when in a confined application.
+    if(dirbase) {
+        fname = dirbase;
+    } else {
+        fname = "/tmp";
+    }
+    fname += "/thumbnailer.";
+    fname += to_string(rnd());
+    fname += ".tmp";
+    return fname;
+}
 
 string ThumbnailerPrivate::create_audio_thumbnail(const string &/*abspath*/,
         ThumbnailSize /*desired_size*/, ThumbnailPolicy /*policy*/) {
@@ -95,9 +111,8 @@ string ThumbnailerPrivate::create_generic_thumbnail(const string &abspath, Thumb
 }
 
 string ThumbnailerPrivate::create_video_thumbnail(const string &abspath, ThumbnailSize desired_size) {
-    char filebuf[] = "/tmp/some/long/text/here/so/path/will/fit";
     string tnfile = cache.get_cache_file_name(abspath, desired_size);
-    string tmpname = tmpnam(filebuf);
+    string tmpname = create_random_filename();
     if(video.extract(abspath, tmpname)) {
         scaler.scale(tmpname, tnfile, desired_size, abspath);
         unlink(tmpname.c_str());

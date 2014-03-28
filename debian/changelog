@@ -4,6 +4,20 @@ thumbnailer (1.1-0ubuntu1) UNRELEASED; urgency=medium
 
  -- Jussi Pakkanen <jussi.pakkanen@ubuntu.com>  Mon, 10 Mar 2014 15:15:28 +0200
 
+thumbnailer (1.0+14.04.20140327-0ubuntu1) trusty; urgency=low
+
+  [ Jussi Pakkanen ]
+  * Obey the TMPDIR. (LP: #1296987)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Thu, 27 Mar 2014 08:36:59 +0000
+
+thumbnailer (1.0+14.04.20140319-0ubuntu1) trusty; urgency=low
+
+  [ Jussi Pakkanen ]
+  * Prevent crash if exif entry is null. (LP: #1294274)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 19 Mar 2014 20:16:40 +0000
+
 thumbnailer (1.0+14.04.20140307-0ubuntu1) trusty; urgency=low
 
   [ Jussi Pakkanen ]
