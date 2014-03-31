@@ -1,8 +1,9 @@
-thumbnailer (1.1-0ubuntu1) UNRELEASED; urgency=medium
+thumbnailer (1.1+14.04.20140331-0ubuntu1) trusty; urgency=medium
 
+  [ Jussi Pakkanen ]
   * New minor release.
 
- -- Jussi Pakkanen <jussi.pakkanen@ubuntu.com>  Mon, 10 Mar 2014 15:15:28 +0200
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Mon, 31 Mar 2014 09:08:36 +0000
 
 thumbnailer (1.0+14.04.20140327-0ubuntu1) trusty; urgency=low
 
