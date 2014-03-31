@@ -1,0 +1,2 @@
+module Ubuntu.Thumbnailer
+plugin thumbnailer-qml

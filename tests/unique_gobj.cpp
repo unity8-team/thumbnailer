@@ -18,95 +18,95 @@
 
 #include<internal/gobj_memory.h>
 #include<gdk-pixbuf/gdk-pixbuf.h>
-#include<cassert>
+#include<gtest/gtest.h>
 
 using namespace std;
 
-void trivial_test() {
+TEST(Unique_gobj, trivial) {
     unique_gobj<GdkPixbuf> basic(gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480));
-    assert(basic);
-    assert(gdk_pixbuf_get_width(basic.get()) == 640);
-    assert(gdk_pixbuf_get_height(basic.get()) == 480);
+    ASSERT_TRUE(bool(basic));
+    ASSERT_TRUE(gdk_pixbuf_get_width(basic.get()) == 640);
+    ASSERT_TRUE(gdk_pixbuf_get_height(basic.get()) == 480);
 }
 
-void compare_test() {
+TEST(Unique_gobj, compare) {
     GdkPixbuf *pb1 = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
     GdkPixbuf *pb2 = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
     if(pb1 > pb2) {
         std::swap(pb1, pb2);
     }
-    assert(pb1 < pb2);
+    ASSERT_TRUE(pb1 < pb2);
     unique_gobj<GdkPixbuf> u1(pb1);
     unique_gobj<GdkPixbuf> u2(pb2);
 
-    assert(!(u1 == nullptr));
-    assert(u1 != nullptr);
-    assert(u1 != u2);
-    assert(!(u1 == u2));
-    assert(u1 < u2);
-    assert(!(u2 < u1));
-    assert(!(u1 == u2));
-    assert(!(u2 == u1));
-    assert(u1 <= u2);
-    assert(!(u2 <= u1));
+    ASSERT_TRUE(!(u1 == nullptr));
+    ASSERT_TRUE(u1 != nullptr);
+    ASSERT_TRUE(u1 != u2);
+    ASSERT_TRUE(!(u1 == u2));
+    ASSERT_TRUE(u1 < u2);
+    ASSERT_TRUE(!(u2 < u1));
+    ASSERT_TRUE(!(u1 == u2));
+    ASSERT_TRUE(!(u2 == u1));
+    ASSERT_TRUE(u1 <= u2);
+    ASSERT_TRUE(!(u2 <= u1));
 }
 
 // This is its own thing due to need to avoid double release.
 
-void equality_test() {
+TEST(Unique_gobj, equality) {
     GdkPixbuf *pb = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
     unique_gobj<GdkPixbuf> u1(pb);
     g_object_ref(G_OBJECT(pb));
     unique_gobj<GdkPixbuf> u2(pb);
-    assert(u1 == u2);
-    assert(u2 == u1);
-    assert(!(u1 != u2));
-    assert(!(u2 != u1));
+    ASSERT_TRUE(u1 == u2);
+    ASSERT_TRUE(u2 == u1);
+    ASSERT_TRUE(!(u1 != u2));
+    ASSERT_TRUE(!(u2 != u1));
 }
 
-void release_test() {
+TEST(Unique_gobj, release) {
     GdkPixbuf *pb = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
     unique_gobj<GdkPixbuf> u(pb);
-    assert(u);
-    assert(u.get() != nullptr);
-    assert(pb == u.release());
-    assert(!u);
-    assert(u.get() == nullptr);
+    ASSERT_TRUE(u != nullptr);
+    ASSERT_TRUE(u.get() != nullptr);
+    ASSERT_TRUE(pb == u.release());
+    ASSERT_TRUE(!u);
+    ASSERT_TRUE(u.get() == nullptr);
     g_object_unref(pb);
 }
 
 void sub_func(GdkPixbuf *pb) {
-    assert(G_OBJECT(pb)->ref_count == 2);
+    ASSERT_TRUE(G_OBJECT(pb)->ref_count == 2);
     unique_gobj<GdkPixbuf> u(pb);
-    assert(G_OBJECT(pb)->ref_count == 2);
+    ASSERT_TRUE(G_OBJECT(pb)->ref_count == 2);
     // Now it dies and refcount is reduced.
 }
 
-void refcount_test() {
+TEST(Unique_gobj, refcount) {
     GdkPixbuf *pb = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
-    assert(G_OBJECT(pb)->ref_count == 1);
+    ASSERT_TRUE(G_OBJECT(pb)->ref_count == 1);
     g_object_ref(G_OBJECT(pb));
     sub_func(pb);
-    assert(G_OBJECT(pb)->ref_count == 1);
+    ASSERT_TRUE(G_OBJECT(pb)->ref_count == 1);
     g_object_unref(G_OBJECT(pb));
 }
 
-void swap_test() {
+TEST(Unique_gobj, swap) {
     GdkPixbuf *pb1 = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
     GdkPixbuf *pb2 = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
     unique_gobj<GdkPixbuf> u1(pb1);
     unique_gobj<GdkPixbuf> u2(pb2);
 
     u1.swap(u2);
-    assert(u1.get() == pb2);
-    assert(u2.get() == pb1);
+    ASSERT_TRUE(u1.get() == pb2);
+    ASSERT_TRUE(u2.get() == pb1);
 
     std::swap(u1, u2);
-    assert(u1.get() == pb1);
-    assert(u2.get() == pb2);
+    ASSERT_TRUE(u1.get() == pb1);
+    ASSERT_TRUE(u2.get() == pb2);
 }
 
-void floating_test() {
+TEST(Unique_gobj, floating) {
     GdkPixbuf *pb = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
     bool got_exception = false;
     g_object_force_floating(G_OBJECT(pb));
@@ -116,73 +116,57 @@ void floating_test() {
         got_exception = true;
     }
     g_object_unref(G_OBJECT(pb));
-    assert(got_exception);
+    ASSERT_TRUE(got_exception);
 }
 
-void move_test() {
+TEST(Unique_gobj, move) {
     GdkPixbuf *pb1 = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
     GdkPixbuf *pb2 = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
     g_object_ref(G_OBJECT(pb1));
     unique_gobj<GdkPixbuf> u1(pb1);
     unique_gobj<GdkPixbuf> u2(pb2);
     u1 = std::move(u2);
-    assert(u1.get() == pb2);
-    assert(!u2);
-    assert(G_OBJECT(pb1)->ref_count == 1);
+    ASSERT_TRUE(u1.get() == pb2);
+    ASSERT_TRUE(!u2);
+    ASSERT_TRUE(G_OBJECT(pb1)->ref_count == 1);
     g_object_unref(G_OBJECT(pb1));
 }
 
-void null_test() {
+TEST(Unique_gobj, null) {
     GdkPixbuf *pb1 = NULL;
     GdkPixbuf *pb3 = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
     unique_gobj<GdkPixbuf> u1(pb1);
     unique_gobj<GdkPixbuf> u2(nullptr);
     unique_gobj<GdkPixbuf> u3(pb3);
 
-    assert(!u1);
-    assert(!u2);
+    ASSERT_TRUE(!u1);
+    ASSERT_TRUE(!u2);
     u3 = nullptr;
-    assert(!u3);
+    ASSERT_TRUE(!u3);
 }
 
-void reset_test() {
+TEST(Unique_gobj, reset) {
     GdkPixbuf *pb1 = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
     GdkPixbuf *pb2 = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
     unique_gobj<GdkPixbuf> u(pb1);
 
     u.reset(pb2);
-    assert(u.get() == pb2);
+    ASSERT_TRUE(u.get() == pb2);
     u.reset(nullptr);
-    assert(!u);
+    ASSERT_TRUE(!u);
 }
 
-void sizeof_test() {
-    assert(sizeof(GdkPixbuf*) == sizeof(unique_gobj<GdkPixbuf>));
+TEST(Unique_gobj, sizeoftest) {
+    ASSERT_TRUE(sizeof(GdkPixbuf*) == sizeof(unique_gobj<GdkPixbuf>));
 }
 
-void deleter_test() {
+TEST(Unique_gobj, deleter) {
     unique_gobj<GdkPixbuf> u1;
-    assert(u1.get_deleter() == g_object_unref);
+    ASSERT_TRUE(u1.get_deleter() == g_object_unref);
 }
 
-int main() {
+int main(int argc, char **argv) {
     g_type_init(); // Still needed in precise.
-#ifdef NDEBUG
-    fprintf(stderr, "NDEBUG defined, tests will not work.\n");
-    return 1;
-#else
-    trivial_test();
-    compare_test();
-    equality_test();
-    release_test();
-    refcount_test();
-    move_test();
-    swap_test();
-    floating_test();
-    null_test();
-    reset_test();
-    sizeof_test();
-    deleter_test();
-    return 0;
-#endif
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
