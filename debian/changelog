@@ -1,3 +1,9 @@
+thumbnailer (1.1+14.04.20140401.1-0ubuntu2) utopic; urgency=medium
+
+  * No-change rebuild for shlib changes in qtbase and qtdeclarative.
+
+ -- Ricardo Salveti de Araujo <ricardo.salveti@canonical.com>  Tue, 29 Apr 2014 14:53:03 -0700
+
 thumbnailer (1.1+14.04.20140401.1-0ubuntu1) trusty; urgency=low
 
   [ Michal Hruby ]
