@@ -37,19 +37,12 @@ AlbumArtGenerator::AlbumArtGenerator()
       iface(BUS_NAME, BUS_PATH, THUMBNAILER_IFACE) {
 }
 
-static QImage fallbackImage(QSize *realSize) {
-    QImage fallback;
-    fallback.load(DEFAULT_ALBUM_ART);
-    *realSize = fallback.size();
-    return fallback;
-}
-
 QImage AlbumArtGenerator::requestImage(const QString &id, QSize *realSize,
         const QSize &requestedSize) {
     QUrlQuery query(id);
     if (!query.hasQueryItem("artist") || !query.hasQueryItem("album")) {
         qWarning() << "Invalid albumart uri:" << id;
-        return fallbackImage(realSize);
+        return QImage();
     }
 
     const QString artist = query.queryItemValue("artist", QUrl::FullyDecoded);
@@ -70,7 +63,7 @@ QImage AlbumArtGenerator::requestImage(const QString &id, QSize *realSize,
         GET_ALBUM_ART, artist, album, desiredSize);
     if (!reply.isValid()) {
         qWarning() << "D-Bus error: " << reply.error().message();
-        return fallbackImage(realSize);
+        return QImage();
     }
 
     try {
@@ -86,5 +79,5 @@ QImage AlbumArtGenerator::requestImage(const QString &id, QSize *realSize,
         qDebug() << "Unknown error when generating image.";
     }
 
-    return fallbackImage(realSize);
+    return QImage();
 }

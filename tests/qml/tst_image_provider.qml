@@ -33,6 +33,14 @@ Item {
             comparePixel(ctx, 0, 0, 242, 228, 209, 255);
         }
 
+        function test_notfound() {
+            image.source = "image://albumart/artist=notfound&album=notfound";
+            while (image.status == Image.Loading) {
+                spy.wait();
+            }
+            compare(image.status, Image.Error);
+        }
+
         function loadImage(uri) {
             image.source = uri
             while (image.status == Image.Loading) {
