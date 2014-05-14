@@ -25,8 +25,6 @@
 #include <QDBusUnixFileDescriptor>
 #include <QDBusReply>
 
-static const char DEFAULT_ALBUM_ART[] = "/usr/share/unity/icons/album_missing.png";
-
 static const char BUS_NAME[] = "com.canonical.Thumbnailer";
 static const char BUS_PATH[] = "/com/canonical/Thumbnailer";
 static const char THUMBNAILER_IFACE[] = "com.canonical.Thumbnailer";
