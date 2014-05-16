@@ -35,6 +35,7 @@
 #include<vector>
 #include<algorithm>
 #include<dirent.h>
+#include<regex>
 
 using namespace std;
 
@@ -106,8 +107,20 @@ static string get_app_pkg_name() {
     if(numread == 0) {
         throw runtime_error("Could not read from /proc/self/attr/current.");
     }
+    // Output may or may not end in a newline.
+    if(data[numread-1] == '\n') {
+        numread--;
+    }
     data[numread] = '\0';
     string core(data);
+    regex re(R"([a-z0-9][a-z0-9+.-]+_[a-zA-Z0-9+.-]+_[0-9][a-zA-Z0-9.+:~-]*)");
+    smatch base_match;
+    // Match only returns true if entire input string matched.
+    if(!regex_match(core, base_match, re)) {
+        string m("Invalid ApplicationID: ");
+        m += core + ".";
+        throw runtime_error(m);
+    }
     string::size_type ind = core.find('_');
     if(ind == string::npos) {
         throw runtime_error("/proc/self/attr/current malformed, does not have _ in it.");
