@@ -121,14 +121,9 @@ static string get_app_pkg_name() {
         m += core + ".";
         throw runtime_error(m);
     }
-    string::size_type ind = core.find('_');
-    if(ind == string::npos) {
-        throw runtime_error("/proc/self/attr/current malformed, does not have _ in it.");
-    }
-    if(ind == 0) {
-        throw runtime_error("/proc/self/attr/current malformed, starts with '_'.");
-    }
-    return core.substr(0, ind);
+    // This will always succeed, because the regex above validates
+    // that there is a _ in the string.
+    return core.substr(0, core.find('_'));
 }
 
 class ThumbnailCachePrivate {
