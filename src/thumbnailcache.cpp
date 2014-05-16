@@ -113,7 +113,7 @@ static string get_app_pkg_name() {
     }
     data[numread] = '\0';
     string core(data);
-    regex re(R"([a-z0-9][a-z0-9+.-]+_[a-zA-Z0-9+.-]+_[0-9][a-zA-Z0-9.+:~-]*)");
+    regex re(R"(([a-z0-9][a-z0-9+.-]+)_[a-zA-Z0-9+.-]+_[0-9][a-zA-Z0-9.+:~-]*)");
     smatch base_match;
     // Match only returns true if entire input string matched.
     if(!regex_match(core, base_match, re)) {
@@ -121,9 +121,7 @@ static string get_app_pkg_name() {
         m += core + ".";
         throw runtime_error(m);
     }
-    // This will always succeed, because the regex above validates
-    // that there is a _ in the string.
-    return core.substr(0, core.find('_'));
+    return base_match[1].str();
 }
 
 class ThumbnailCachePrivate {
