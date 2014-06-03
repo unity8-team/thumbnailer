@@ -68,7 +68,10 @@ static bool wait_for_helper(pid_t child) {
     if(status == 2) {
         throw runtime_error("Video extractor pipeline failed");
     }
-    throw runtime_error("Unknown error when trying to extract video screenshot.");
+    string errmsg("Unknown error when trying to extract video screenshot, return value was ");
+    errmsg += status;
+    errmsg += ".";
+    throw runtime_error(errmsg);
 }
 
 VideoScreenshotter::VideoScreenshotter() {
@@ -88,7 +91,7 @@ bool VideoScreenshotter::extract(const std::string &ifname, const std::string &o
     if(child == -1) {
         throw runtime_error("Could not spawn worker process.");
     }
-    if(child  == 0) {
+    if(child == 0) {
         execl(cmd.c_str(), cmd.c_str(), ifname.c_str(), ofname.c_str(), (char*) NULL);
         fprintf(stderr, "Could not execute worker process: %s", strerror(errno));
         _exit(100);

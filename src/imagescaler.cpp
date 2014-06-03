@@ -137,6 +137,15 @@ bool ImageScaler::scale(const std::string &ifilename, const std::string &ofilena
         string mtime_str = to_string(mtime);
         save_ok = gdk_pixbuf_save(dst.get(), ofilename_tmp.c_str(), "png", &err,
                 "tEXt::Thumb::URI", uri.c_str(), "tEXt::Thumb::MTime", mtime_str.c_str(), NULL);
+        if(!save_ok) {
+            // Sigh. PNG text chunks are encoded in ISO-8859-1 but this is impossible if
+            // the file name contains e.g. Chinese characters. Fall back to writing the
+            // thumbnail without metadata. This does not conform to the thumbnailing standard
+            // but at least it will give us a working thumbnail.
+            g_error_free(err);
+            err = nullptr;
+            save_ok = gdk_pixbuf_save(dst.get(), ofilename_tmp.c_str(), "png", &err, NULL);
+        }
     }
     if(!save_ok) {
         string msg = err->message;
