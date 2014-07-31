@@ -88,5 +88,6 @@ bool LastFMDownloader::download(const std::string &artist,
 
 bool LastFMDownloader::download_artist(const std::string &artist, const std::string &fname)
 {
+    // not implemented
     return false;
 }

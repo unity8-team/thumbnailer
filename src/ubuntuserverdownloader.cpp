@@ -20,6 +20,11 @@
 #include <internal/soupdownloader.h>
 #include <memory>
 
+#define UBUNTU_SERVER_BASE_URL "https://dash.ubuntu.com/"
+#define REQUESTED_IMAGE_SIZE "512"
+#define UBUNTU_SERVER_ALBUM_ART_URL UBUNTU_SERVER_BASE_URL "musicproxy/v1/album-art?artist=%s&album=%s&size=" REQUESTED_IMAGE_SIZE
+#define UBUNTU_SERVER_ARTIST_ART_URL UBUNTU_SERVER_BASE_URL "musicproxy/v1/artist-art?q=%s&size=" REQUESTED_IMAGE_SIZE
+
 using namespace std;
 
 UbuntuServerDownloader::UbuntuServerDownloader() : dl(new SoupDownloader()){
@@ -29,12 +34,25 @@ UbuntuServerDownloader::UbuntuServerDownloader(HttpDownloader *o) : dl(o) {
 }
 
 bool UbuntuServerDownloader::download(const string &artist, const string &album, const string &fname) {
-    const char *urlTemplate = "https://dash.ubuntu.com/musicproxy/v1/album-art?artist=%s&album=%s&size=512";
     const int bufsize = 1024;
     char buf[bufsize];
-    snprintf(buf, bufsize, urlTemplate, artist.c_str(), album.c_str());
+    snprintf(buf, bufsize, UBUNTU_SERVER_ALBUM_ART_URL, artist.c_str(), album.c_str());
 
-    const string image(dl->download(buf));
+    return download(buf, fname);
+}
+
+bool UbuntuServerDownloader::download_artist(const std::string &artist, const std::string &fname)
+{
+    const int bufsize = 1024;
+    char buf[bufsize];
+    snprintf(buf, bufsize, UBUNTU_SERVER_ARTIST_ART_URL, artist.c_str());
+
+    return download(buf, fname);
+}
+
+bool UbuntuServerDownloader::download(const std::string &url, const std::string &fname)
+{
+    const string image(dl->download(url));
     if (!image.empty())
     {
         FILE *f = fopen(fname.c_str(), "w");
@@ -44,9 +62,3 @@ bool UbuntuServerDownloader::download(const string &artist, const string &album,
     }
     return false;
 }
-
-bool UbuntuServerDownloader::download_artist(const std::string &artist, const std::string &fname)
-{
-    return false;
-}
-
