@@ -13,31 +13,27 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
+ * Authored by: Pawel Stolowski <pawel.stolowski@canonical.com>
  */
 
-#ifndef LASTFM_DOWNLOADER_H
-#define LASTFM_DOWNLOADER_H
+#ifndef UBUNTUSERVER_DOWNLOADER_H
+#define UBUNTUSERVER_DOWNLOADER_H
 
-#include<string>
-#include<memory>
-#include<internal/httpdownloader.h>
+#include <string>
+#include <memory>
+#include <internal/httpdownloader.h>
 #include <internal/artdownloader.h>
 
-class LastFMDownloader final : public ArtDownloader {
+class UbuntuServerDownloader final : public ArtDownloader {
 public:
-    LastFMDownloader();
-    LastFMDownloader(HttpDownloader *o); // Takes ownership.
-    ~LastFMDownloader();
-    LastFMDownloader(const LastFMDownloader &o) = delete;
-    LastFMDownloader& operator=(const LastFMDownloader &o) = delete;
+    UbuntuServerDownloader();
+    UbuntuServerDownloader(HttpDownloader *o); // Takes ownership.
+    ~UbuntuServerDownloader() = default;
 
-    bool download(const std::string &artist, const std::string &album,
-            const std::string &fname) override;
+    bool download(const std::string &artist, const std::string &album, const std::string &fname) override;
     bool download_artist(const std::string &artist, const std::string &fname) override;
 
 private:
-    std::string parseXML(const std::string &xml);
     std::unique_ptr<HttpDownloader> dl;
 };
 

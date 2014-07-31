@@ -85,3 +85,8 @@ bool LastFMDownloader::download(const std::string &artist,
     fclose(f);
     return true;
 }
+
+bool LastFMDownloader::download_artist(const std::string &artist, const std::string &fname)
+{
+    return false;
+}

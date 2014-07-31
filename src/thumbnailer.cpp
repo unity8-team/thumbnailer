@@ -23,8 +23,10 @@
 #include<internal/imagescaler.h>
 #include<internal/mediaartcache.h>
 #include<internal/lastfmdownloader.h>
+#include<internal/ubuntuserverdownloader.h>
 #include<gdk-pixbuf/gdk-pixbuf.h>
 #include<unistd.h>
+#include<cstring>
 #include<gst/gst.h>
 #include<stdexcept>
 #include<random>
@@ -49,9 +51,19 @@ public:
     VideoScreenshotter video;
     ImageScaler scaler;
     MediaArtCache macache;
-    LastFMDownloader lfm;
+    std::unique_ptr<ArtDownloader> lfm;
 
-    ThumbnailerPrivate() {};
+    ThumbnailerPrivate() {
+        char *artservice = getenv("THUMBNAILER_SERVICE");
+        if (artservice != nullptr && strcmp(artservice, "lastfm") == 0)
+        {
+            lfm.reset(new LastFMDownloader());
+        }
+        else
+        {
+            lfm.reset(new UbuntuServerDownloader());
+        }
+    };
 
     string create_thumbnail(const string &abspath, ThumbnailSize desired_size,
             ThumbnailPolicy policy);
@@ -198,7 +210,7 @@ std::string Thumbnailer::get_album_art(const std::string &artist, const std::str
         }
         char filebuf[] = "/tmp/some/long/text/here/so/path/will/fit";
         std::string tmpname = tmpnam(filebuf);
-        if(!p->lfm.download(artist, album, tmpname)) {
+        if(!p->lfm->download(artist, album, tmpname)) {
             return "";
         }
         gchar *contents;
