@@ -26,7 +26,7 @@ public:
     ArtDownloader() = default;
     virtual ~ArtDownloader() = default;
     virtual bool download(const std::string &artist, const std::string &album, const std::string &fname) = 0;
-    virtual bool download_artist(const std::string &artist, const std::string &fname) = 0;
+    virtual bool download_artist(const std::string &artist, const std::string &album, const std::string &fname) = 0;
     ArtDownloader(const ArtDownloader&) = delete;
     ArtDownloader& operator=(const ArtDownloader&) = delete;
 };

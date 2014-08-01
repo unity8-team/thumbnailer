@@ -10,6 +10,7 @@
     </method>
     <method name="GetArtistArt">
       <arg direction="in" type="s" name="artist" />
+      <arg direction="in" type="s" name="album" />
       <!-- possible values are "small", "large", "xlarge" and "original" -->
       <arg direction="in" type="s" name="desiredSize" />
       <arg direction="out" type="h" name="fd" />

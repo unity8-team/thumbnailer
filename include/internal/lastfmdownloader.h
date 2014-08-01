@@ -34,7 +34,8 @@ public:
 
     bool download(const std::string &artist, const std::string &album,
             const std::string &fname) override;
-    bool download_artist(const std::string &artist, const std::string &fname) override;
+    bool download_artist(const std::string &artist, const std::string &album,
+            const std::string &fname) override;
 
 private:
     std::string parseXML(const std::string &xml);

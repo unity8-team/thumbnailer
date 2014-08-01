@@ -133,9 +133,10 @@ struct DBusInterfacePrivate {
         return TRUE;
     }
 
-    static gboolean handleGetArtistArt(TNThumbnailer *iface, GDBusMethodInvocation *invocation, GUnixFDList *, const char *artist, const char *size, void *user_data) {
+    static gboolean handleGetArtistArt(TNThumbnailer *iface, GDBusMethodInvocation *invocation, GUnixFDList *, const char *artist, const char *album,
+            const char *size, void *user_data) {
         auto p = static_cast<DBusInterfacePrivate*>(user_data);
-        fprintf(stderr, "Look up artist art for %s at size %s\n", artist, size);
+        fprintf(stderr, "Look up artist art for %s/%s at size %s\n", artist, album, size);
 
         ThumbnailSize desiredSize;
         try
@@ -153,7 +154,7 @@ struct DBusInterfacePrivate {
             std::thread t(&getArtistArt,
                           unique_gobj<TNThumbnailer>(static_cast<TNThumbnailer*>(g_object_ref(iface))),
                           unique_gobj<GDBusMethodInvocation>(static_cast<GDBusMethodInvocation*>(g_object_ref(invocation))),
-                          p->thumbnailer, std::string(artist), desiredSize);
+                          p->thumbnailer, std::string(artist), std::string(album), desiredSize);
             t.detach();
         } catch (const std::exception &e) {
             g_dbus_method_invocation_return_dbus_error(
@@ -207,11 +208,12 @@ struct DBusInterfacePrivate {
     static void getArtistArt(unique_gobj<TNThumbnailer> iface,
                             unique_gobj<GDBusMethodInvocation> invocation,
                             std::shared_ptr<Thumbnailer> thumbnailer,
-                            const std::string artist, ThumbnailSize desiredSize) {
+                            const std::string artist, const std::string album,
+                            ThumbnailSize desiredSize) {
         std::string art;
         try {
             art = thumbnailer->get_artist_art(
-                artist, desiredSize, TN_REMOTE);
+                artist, album, desiredSize, TN_REMOTE);
         } catch (const std::exception &e) {
             g_dbus_method_invocation_return_dbus_error(
                 invocation.get(), ART_ERROR, e.what());

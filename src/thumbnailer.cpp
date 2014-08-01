@@ -237,7 +237,7 @@ std::string Thumbnailer::get_album_art(const std::string &artist, const std::str
     return get_thumbnail(original, desired_size, policy);
 }
 
-std::string Thumbnailer::get_artist_art(const std::string &artist, ThumbnailSize desiredSize,
+std::string Thumbnailer::get_artist_art(const std::string &artist, const std::string &album, ThumbnailSize desiredSize,
         ThumbnailPolicy policy) {
     //FIXME
     return "";

@@ -31,7 +31,7 @@ public:
     ~UbuntuServerDownloader() = default;
 
     bool download(const std::string &artist, const std::string &album, const std::string &fname) override;
-    bool download_artist(const std::string &artist, const std::string &fname) override;
+    bool download_artist(const std::string &artist, const std::string &album, const std::string &fname) override;
 
 private:
     bool download(const std::string &url, const std::string &fname);

@@ -49,18 +49,19 @@ static QImage fallbackImage(QSize *realSize) {
 QImage ArtistArtGenerator::requestImage(const QString &id, QSize *realSize,
         const QSize &requestedSize) {
     QUrlQuery query(id);
-    if (!query.hasQueryItem("artist")) {
+    if (!query.hasQueryItem("artist") || !query.hasQueryItem("album")) {
         qWarning() << "Invalid artistart uri:" << id;
         return fallbackImage(realSize);
     }
 
     const QString artist = query.queryItemValue("artist", QUrl::FullyDecoded);
+    const QString album = query.queryItemValue("album", QUrl::FullyDecoded);
 
     QString desiredSize = sizeToDesiredSizeString(requestedSize);
 
     // perform dbus call
     QDBusReply<QDBusUnixFileDescriptor> reply = iface.call(
-        GET_ARTIST_ART, artist, desiredSize);
+        GET_ARTIST_ART, artist, album, desiredSize);
     if (!reply.isValid()) {
         qWarning() << "D-Bus error: " << reply.error().message();
         return fallbackImage(realSize);

@@ -73,8 +73,8 @@ public:
     std::string get_album_art(const std::string &artist, const std::string &album,
             ThumbnailSize desiredSize, ThumbnailPolicy policy);
 
-    std::string get_artist_art(const std::string &artist, ThumbnailSize desiredSize,
-            ThumbnailPolicy policy);
+    std::string get_artist_art(const std::string &artist, const std::string &album,
+            ThumbnailSize desiredSize, ThumbnailPolicy policy);
 
 private:
     Thumbnailer(const Thumbnailer &t);
