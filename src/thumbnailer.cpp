@@ -200,9 +200,24 @@ string Thumbnailer::get_thumbnail(const string &filename, ThumbnailSize desired_
     return get_thumbnail(filename, desired_size, TN_LOCAL);
 }
 
+unique_ptr<gchar, void(*)(gpointer)> get_art_file_content(const string &fname, gsize &content_size)
+{
+    gchar *contents;
+    GError *err = nullptr;
+    if(!g_file_get_contents(fname.c_str(), &contents, &content_size, &err)) {
+        unlink(fname.c_str());
+        std::string msg("Error reading file: ");
+        msg += err->message;
+        g_error_free(err);
+        throw std::runtime_error(msg);
+    }
+    unlink(fname.c_str());
+    return unique_ptr<gchar, void(*)(gpointer)>(contents, g_free);
+}
+
 std::string Thumbnailer::get_album_art(const std::string &artist, const std::string &album,
         ThumbnailSize desired_size, ThumbnailPolicy policy) {
-    if(!p->macache.has_art(artist, album)) {
+    if(!p->macache.has_album_art(artist, album)) {
         if(policy == TN_LOCAL) {
             // We don't have it cached and can't access the net
             // -> nothing to be done.
@@ -213,32 +228,46 @@ std::string Thumbnailer::get_album_art(const std::string &artist, const std::str
         if(!p->downloader->download(artist, album, tmpname)) {
             return "";
         }
-        gchar *contents;
+
         gsize content_size;
-        GError *err = nullptr;
-        if(!g_file_get_contents(tmpname.c_str(), &contents, &content_size, &err)) {
-            unlink(tmpname.c_str());
-            std::string msg("Error reading file: ");
-            msg += err->message;
-            g_error_free(err);
-            throw std::runtime_error(msg);
-        }
-        unlink(tmpname.c_str());
-        unique_ptr<gchar, void(*)(gpointer)> deleter(contents, g_free);
-        p->macache.add_art(artist, album, contents, content_size);
+        auto contents = get_art_file_content(tmpname, content_size);
+        p->macache.add_album_art(artist, album, contents.get(), content_size);
     }
     // At this point we know we have the image in our art cache (unless
     // someone just deleted it concurrently, in which case we can't
     // really do anything.
-    std::string original = p->macache.get_art_file(artist, album);
+    std::string original = p->macache.get_album_art_file(artist, album);
     if(desired_size == TN_SIZE_ORIGINAL) {
         return original;
     }
     return get_thumbnail(original, desired_size, policy);
 }
 
-std::string Thumbnailer::get_artist_art(const std::string &artist, const std::string &album, ThumbnailSize desiredSize,
+std::string Thumbnailer::get_artist_art(const std::string &artist, const std::string &album, ThumbnailSize desired_size,
         ThumbnailPolicy policy) {
-    //FIXME
+    if(!p->macache.has_artist_art(artist, album)) {
+        if(policy == TN_LOCAL) {
+            // We don't have it cached and can't access the net
+            // -> nothing to be done.
+            return "";
+        }
+        char filebuf[] = "/tmp/some/long/text/here/so/path/will/fit";
+        std::string tmpname = tmpnam(filebuf);
+        if(!p->downloader->download_artist(artist, album, tmpname)) {
+            return "";
+        }
+        gsize content_size;
+        auto contents = get_art_file_content(tmpname, content_size);
+        p->macache.add_artist_art(artist, album, contents.get(), content_size);
+    }
+    // At this point we know we have the image in our art cache (unless
+    // someone just deleted it concurrently, in which case we can't
+    // really do anything.
+    std::string original = p->macache.get_artist_art_file(artist, album);
+    if(desired_size == TN_SIZE_ORIGINAL) {
+        return original;
+    }
+    return get_thumbnail(original, desired_size, policy);
+
     return "";
 }

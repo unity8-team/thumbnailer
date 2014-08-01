@@ -74,14 +74,19 @@ MediaArtCache::MediaArtCache() {
     }
 }
 
-bool MediaArtCache::has_art(const std::string &artist, const std::string &album) const {
-    string fname = get_art_file(artist, album);
+bool MediaArtCache::has_album_art(const std::string &artist, const std::string &album) const {
+    string fname = get_album_art_file(artist, album);
     return access(fname.c_str(), R_OK) == 0;
 }
 
-void MediaArtCache::add_art(const std::string &artist, const std::string &album,
+bool MediaArtCache::has_artist_art(const std::string &artist, const std::string &album) const {
+    string fname = get_artist_art_file(artist, album);
+    return access(fname.c_str(), R_OK) == 0;
+}
+
+void MediaArtCache::add_album_art(const std::string &artist, const std::string &album,
         const char *data, unsigned int datalen) {
-    string abs_fname = get_full_filename(artist, album);
+    string abs_fname = get_full_album_filename(artist, album);
     GError *err = nullptr;
     if(!g_file_set_contents(abs_fname.c_str(), data, datalen, &err)) {
         string e("Could not write file ");
@@ -93,8 +98,14 @@ void MediaArtCache::add_art(const std::string &artist, const std::string &album,
     }
 }
 
-string MediaArtCache::get_art_file(const std::string &artist, const std::string &album) const {
-    string abs_fname = get_full_filename(artist, album);
+void MediaArtCache::add_artist_art(const std::string &artist, const std::string &album,
+        const char *data, unsigned int datalen)
+{
+    //TODO
+}
+
+string MediaArtCache::get_album_art_file(const std::string &artist, const std::string &album) const {
+    string abs_fname = get_full_album_filename(artist, album);
 
     if (access(abs_fname.c_str(), R_OK) == 0) {
         utime(abs_fname.c_str(), nullptr); // update access times to current time
@@ -103,9 +114,13 @@ string MediaArtCache::get_art_file(const std::string &artist, const std::string 
     return "";
 }
 
+string MediaArtCache::get_artist_art_file(const std::string &artist, const std::string &album) const {
+    return ""; //TODO
+}
+
 string MediaArtCache::get_art_uri(const string &artist, const string &album) const
 {
-    std::string filename = get_art_file(artist, album);
+    std::string filename = get_album_art_file(artist, album);
 
     if (filename == "") {
         return "";
@@ -127,16 +142,18 @@ string MediaArtCache::get_art_uri(const string &artist, const string &album) con
     return uri;
 }
 
-std::string MediaArtCache::get_full_filename(const std::string &artist, const std::string & album) const {
-    return root_dir + "/" + compute_base_name(artist, album);
+std::string MediaArtCache::get_full_album_filename(const std::string &artist, const std::string & album) const {
+    return root_dir + "/" + compute_base_name("album", artist, album);
 }
 
+std::string MediaArtCache::get_full_artist_filename(const std::string &artist, const std::string & album) const {
+    return root_dir + "/" + compute_base_name("artist", artist, album);
+}
 
-std::string MediaArtCache::compute_base_name(const std::string &artist, const std::string &album) const {
-    string type = "album";
+std::string MediaArtCache::compute_base_name(const std::string &prefix, const std::string &artist, const std::string &album) const {
     string h1 = md5(artist);
     string h2 = md5(album);
-    return type + "-" + h1 + "-" + h2 + ".jpg";
+    return prefix + "-" + h1 + "-" + h2 + ".jpg";
 }
 
 
