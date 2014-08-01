@@ -84,9 +84,8 @@ bool MediaArtCache::has_artist_art(const std::string &artist, const std::string 
     return access(fname.c_str(), R_OK) == 0;
 }
 
-void MediaArtCache::add_album_art(const std::string &artist, const std::string &album,
-        const char *data, unsigned int datalen) {
-    string abs_fname = get_full_album_filename(artist, album);
+void MediaArtCache::add_art(const std::string& abs_fname, const char *data, unsigned int datalen)
+{
     GError *err = nullptr;
     if(!g_file_set_contents(abs_fname.c_str(), data, datalen, &err)) {
         string e("Could not write file ");
@@ -98,15 +97,19 @@ void MediaArtCache::add_album_art(const std::string &artist, const std::string &
     }
 }
 
+void MediaArtCache::add_album_art(const std::string &artist, const std::string &album,
+        const char *data, unsigned int datalen) {
+    add_art(get_full_album_filename(artist, album), data, datalen);
+}
+
 void MediaArtCache::add_artist_art(const std::string &artist, const std::string &album,
         const char *data, unsigned int datalen)
 {
-    //TODO
+    add_art(get_full_artist_filename(artist, album), data, datalen);
 }
 
-string MediaArtCache::get_album_art_file(const std::string &artist, const std::string &album) const {
-    string abs_fname = get_full_album_filename(artist, album);
-
+string MediaArtCache::get_art_file(const std::string& abs_fname) const
+{
     if (access(abs_fname.c_str(), R_OK) == 0) {
         utime(abs_fname.c_str(), nullptr); // update access times to current time
         return abs_fname;
@@ -114,8 +117,12 @@ string MediaArtCache::get_album_art_file(const std::string &artist, const std::s
     return "";
 }
 
+string MediaArtCache::get_album_art_file(const std::string &artist, const std::string &album) const {
+    return get_art_file(get_full_album_filename(artist, album));
+}
+
 string MediaArtCache::get_artist_art_file(const std::string &artist, const std::string &album) const {
-    return ""; //TODO
+    return get_art_file(get_full_artist_filename(artist, album));
 }
 
 string MediaArtCache::get_art_uri(const string &artist, const string &album) const

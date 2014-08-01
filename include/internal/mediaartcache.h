@@ -37,6 +37,8 @@ private:
     std::string compute_base_name(const std::string &prefix, const std::string &artist, const std::string &album) const;
     std::string get_full_album_filename(const std::string &artist, const std::string & album) const;
     std::string get_full_artist_filename(const std::string &artist, const std::string & album) const;
+    void add_art(const std::string& abs_fname, const char *data, unsigned int datalen);
+    std::string get_art_file(const std::string& abs_fname) const;
 
 public:
     static const unsigned int MAX_SIZE = 200;
