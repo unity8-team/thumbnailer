@@ -51,17 +51,17 @@ public:
     VideoScreenshotter video;
     ImageScaler scaler;
     MediaArtCache macache;
-    std::unique_ptr<ArtDownloader> lfm;
+    std::unique_ptr<ArtDownloader> downloader;
 
     ThumbnailerPrivate() {
-        char *artservice = getenv("THUMBNAILER_SERVICE");
+        char *artservice = getenv("THUMBNAILER_ART_PROVIDER");
         if (artservice != nullptr && strcmp(artservice, "lastfm") == 0)
         {
-            lfm.reset(new LastFMDownloader());
+            downloader.reset(new LastFMDownloader());
         }
         else
         {
-            lfm.reset(new UbuntuServerDownloader());
+            downloader.reset(new UbuntuServerDownloader());
         }
     };
 
@@ -210,7 +210,7 @@ std::string Thumbnailer::get_album_art(const std::string &artist, const std::str
         }
         char filebuf[] = "/tmp/some/long/text/here/so/path/will/fit";
         std::string tmpname = tmpnam(filebuf);
-        if(!p->lfm->download(artist, album, tmpname)) {
+        if(!p->downloader->download(artist, album, tmpname)) {
             return "";
         }
         gchar *contents;
@@ -235,4 +235,10 @@ std::string Thumbnailer::get_album_art(const std::string &artist, const std::str
         return original;
     }
     return get_thumbnail(original, desired_size, policy);
+}
+
+std::string Thumbnailer::get_artist_art(const std::string &artist, ThumbnailSize desiredSize,
+        ThumbnailPolicy policy) {
+    //FIXME
+    return "";
 }

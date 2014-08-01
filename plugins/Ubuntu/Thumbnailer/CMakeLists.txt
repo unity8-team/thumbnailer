@@ -4,6 +4,7 @@ set(QML_PLUGIN_DIR "${CMAKE_INSTALL_LIBDIR}/qt5/qml/Ubuntu/Thumbnailer.0.1")
 add_library(thumbnailer-qml MODULE
   plugin.cpp
   albumartgenerator.cpp
+  artistartgenerator.cpp
   thumbnailgenerator.cpp
 )
 
