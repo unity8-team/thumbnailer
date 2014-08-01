@@ -18,6 +18,7 @@
 */
 
 #include "albumartgenerator.h"
+#include "artgeneratorcommon.h"
 #include <stdexcept>
 #include <QDebug>
 #include <QFile>
@@ -55,15 +56,7 @@ QImage AlbumArtGenerator::requestImage(const QString &id, QSize *realSize,
     const QString artist = query.queryItemValue("artist", QUrl::FullyDecoded);
     const QString album = query.queryItemValue("album", QUrl::FullyDecoded);
 
-    QString desiredSize = "original";
-    int size = requestedSize.width() > requestedSize.height() ? requestedSize.width() : requestedSize.height();
-    if (size < 128) {
-        desiredSize = "small";
-    } else if (size < 256) {
-        desiredSize = "large";
-    } else if (size < 512) {
-        desiredSize = "xlarge";
-    }
+    QString desiredSize = sizeToDesiredSizeString(requestedSize);
 
     // perform dbus call
     QDBusReply<QDBusUnixFileDescriptor> reply = iface.call(
@@ -74,12 +67,7 @@ QImage AlbumArtGenerator::requestImage(const QString &id, QSize *realSize,
     }
 
     try {
-        QFile file;
-        file.open(reply.value().fileDescriptor(), QIODevice::ReadOnly);
-        QImage image;
-        image.load(&file, NULL);
-        *realSize = image.size();
-        return image;
+        return imageFromFd(reply.value().fileDescriptor(), realSize);
     } catch (const std::exception &e) {
         qDebug() << "Album art loader failed: " << e.what();
     } catch (...) {
