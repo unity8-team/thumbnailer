@@ -33,6 +33,12 @@ Item {
             comparePixel(ctx, 0, 0, 242, 228, 209, 255);
         }
 
+        function test_artistart() {
+            var ctx = loadImage(
+                "image://artistart/artist=Gotye&album=Making%20Mirrors");
+            comparePixel(ctx, 0, 0, 242, 228, 209, 255);
+        }
+
         function loadImage(uri) {
             image.source = uri
             while (image.status == Image.Loading) {
