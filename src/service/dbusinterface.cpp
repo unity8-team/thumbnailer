@@ -245,7 +245,6 @@ struct DBusInterfacePrivate {
 
         tn_thumbnailer_complete_get_artist_art(
             iface.get(), invocation.get(), fd_list.get(), g_variant_new_handle(0));
-
     }
 };
 
