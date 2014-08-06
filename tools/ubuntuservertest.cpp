@@ -22,7 +22,7 @@ using namespace std;
 
 int main(int /*argc*/, char **/*argv*/) {
     UbuntuServerDownloader dl;
-    dl.download("artist-ok", "foo", "image.jpg");
-    dl.download_artist("artist-ok", "foo", "image2.jpg");
+    dl.download("Radiohead", "Amnesiac", "image.jpg");
+    dl.download_artist("Radiohead", "Amnesiac", "image2.jpg");
     return 0;
 }
