@@ -108,12 +108,10 @@ struct DBusInterfacePrivate {
         fprintf(stderr, "Look up cover art for %s/%s at size %s\n", artist, album, size);
 
         ThumbnailSize desiredSize;
-        try
-        {
+        try {
             desiredSize = desiredSizeFromString(size);
         }
-        catch (const std::logic_error& error)
-        {
+        catch (const std::logic_error& error) {
             g_dbus_method_invocation_return_dbus_error(
                     invocation, ART_ERROR, error.what());
             return TRUE;
@@ -139,12 +137,10 @@ struct DBusInterfacePrivate {
         fprintf(stderr, "Look up artist art for %s/%s at size %s\n", artist, album, size);
 
         ThumbnailSize desiredSize;
-        try
-        {
+        try {
             desiredSize = desiredSizeFromString(size);
         }
-        catch (const std::logic_error& error)
-        {
+        catch (const std::logic_error& error) {
             g_dbus_method_invocation_return_dbus_error(
                     invocation, ART_ERROR, error.what());
             return TRUE;
