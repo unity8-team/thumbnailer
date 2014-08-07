@@ -110,8 +110,7 @@ struct DBusInterfacePrivate {
         ThumbnailSize desiredSize;
         try {
             desiredSize = desiredSizeFromString(size);
-        }
-        catch (const std::logic_error& error) {
+        } catch (const std::logic_error& error) {
             g_dbus_method_invocation_return_dbus_error(
                     invocation, ART_ERROR, error.what());
             return TRUE;
@@ -139,8 +138,7 @@ struct DBusInterfacePrivate {
         ThumbnailSize desiredSize;
         try {
             desiredSize = desiredSizeFromString(size);
-        }
-        catch (const std::logic_error& error) {
+        } catch (const std::logic_error& error) {
             g_dbus_method_invocation_return_dbus_error(
                     invocation, ART_ERROR, error.what());
             return TRUE;
