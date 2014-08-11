@@ -1,8 +1,22 @@
-thumbnailer (1.1+14.04.20140401.1-0ubuntu4) UNRELEASED; urgency=low
+thumbnailer (1.1+14.10.20140811-0ubuntu1) utopic; urgency=low
 
+  [ Ubuntu daily release ]
   * debian/libthumbnailer0.symbols: auto-update to released version
 
- -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Mon, 11 Aug 2014 14:20:31 +0000
+  [ Arthur Mello ]
+  * Work with file names with non-european characters by not writing
+    metadata chunks when they can't be represented in ISO-8859-1. (LP:
+    #1319698)
+
+  [ Jussi Pakkanen ]
+  * Work with file names with non-european characters by not writing
+    metadata chunks when they can't be represented in ISO-8859-1. (LP:
+    #1319698)
+
+  [ Pawel Stolowski ]
+  * Request images of size 400 instead of 200 from ubuntu server.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Mon, 11 Aug 2014 14:20:34 +0000
 
 thumbnailer (1.1+14.04.20140401.1-0ubuntu3) utopic; urgency=medium
 
