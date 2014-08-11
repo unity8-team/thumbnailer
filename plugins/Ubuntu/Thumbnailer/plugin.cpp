@@ -18,6 +18,7 @@
 
 #include "plugin.h"
 #include "albumartgenerator.h"
+#include "artistartgenerator.h"
 #include "thumbnailgenerator.h"
 
 void ThumbnailerPlugin::registerTypes(const char *uri) {
@@ -35,6 +36,14 @@ void ThumbnailerPlugin::initializeEngine(QQmlEngine *engine, const char *uri) {
         qWarning() << "Failed to register albumart image provider:" << e.what();
     } catch (...) {
         qWarning() << "Failed to register albumart image provider.";
+    }
+
+    try {
+        engine->addImageProvider("artistart", new ArtistArtGenerator());
+    } catch (const std::exception &e) {
+        qWarning() << "Failed to register artistart image provider:" << e.what();
+    } catch (...) {
+        qWarning() << "Failed to register artistart image provider.";
     }
 
     try {

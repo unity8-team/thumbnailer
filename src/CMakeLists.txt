@@ -6,6 +6,7 @@ mediaartcache.cpp
 soupdownloader.cpp
 thumbnailcache.cpp
 thumbnailer.cpp
+ubuntuserverdownloader.cpp
 videoscreenshotter.cpp
 )
 

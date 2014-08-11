@@ -34,17 +34,24 @@ class MediaArtCache {
 private:
     std::string root_dir;
 
-    std::string compute_base_name(const std::string &artist, const std::string &album) const;
-    std::string get_full_filename(const std::string &artist, const std::string & album) const;
+    std::string compute_base_name(const std::string &prefix, const std::string &artist, const std::string &album) const;
+    std::string get_full_album_filename(const std::string &artist, const std::string & album) const;
+    std::string get_full_artist_filename(const std::string &artist, const std::string & album) const;
+    void add_art(const std::string& abs_fname, const char *data, unsigned int datalen);
+    std::string get_art_file(const std::string& abs_fname) const;
 
 public:
     static const unsigned int MAX_SIZE = 200;
 
     MediaArtCache();
-    bool has_art(const std::string &artist, const std::string &album) const;
-    void add_art(const std::string &artist, const std::string &album,
+    bool has_album_art(const std::string &artist, const std::string &album) const;
+    bool has_artist_art(const std::string &artist, const std::string &album) const;
+    void add_album_art(const std::string &artist, const std::string &album,
             const char *data, unsigned int datalen);
-    std::string get_art_file(const std::string &artist, const std::string &album) const;
+    void add_artist_art(const std::string &artist, const std::string &album,
+            const char *data, unsigned int datalen);
+    std::string get_album_art_file(const std::string &artist, const std::string &album) const;
+    std::string get_artist_art_file(const std::string &artist, const std::string &album) const;
     std::string get_art_uri(const std::string &artist, const std::string &album) const;
     void clear() const;
     void prune();

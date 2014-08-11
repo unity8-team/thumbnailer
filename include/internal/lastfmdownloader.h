@@ -22,8 +22,9 @@
 #include<string>
 #include<memory>
 #include<internal/httpdownloader.h>
+#include <internal/artdownloader.h>
 
-class LastFMDownloader final {
+class LastFMDownloader final : public ArtDownloader {
 public:
     LastFMDownloader();
     LastFMDownloader(HttpDownloader *o); // Takes ownership.
@@ -32,7 +33,10 @@ public:
     LastFMDownloader& operator=(const LastFMDownloader &o) = delete;
 
     bool download(const std::string &artist, const std::string &album,
-            const std::string &fname);
+            const std::string &fname) override;
+    bool download_artist(const std::string &artist, const std::string &album,
+            const std::string &fname) override;
+
 private:
     std::string parseXML(const std::string &xml);
     std::unique_ptr<HttpDownloader> dl;

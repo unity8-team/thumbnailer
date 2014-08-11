@@ -36,21 +36,40 @@ TEST(MediaArtCacheTest, BasicFunctionality) {
     string artist = "Some Guy";
     string album = "Muzak";
     const int datasize = 3;
-    char data[datasize] = {'a', 'b', 'c'};
-    char indata[datasize];
-    FILE *f;
+    {
+        char data[datasize] = {'a', 'b', 'c'};
+        char indata[datasize];
+        FILE *f;
 
-    ASSERT_FALSE(mac.has_art(artist, album));
-    mac.add_art(artist, album, data, datasize);
-    ASSERT_TRUE(mac.has_art(artist, album));
-    f = fopen(mac.get_art_file(artist, album).c_str(), "r");
-    ASSERT_TRUE(f);
-    ASSERT_EQ(fread(indata, 1, datasize, f), datasize);
-    fclose(f);
-    ASSERT_EQ(memcmp(indata, data, datasize), 0);
+        ASSERT_FALSE(mac.has_album_art(artist, album));
+        mac.add_album_art(artist, album, data, datasize);
+        ASSERT_TRUE(mac.has_album_art(artist, album));
+        f = fopen(mac.get_album_art_file(artist, album).c_str(), "r");
+        ASSERT_TRUE(f);
+        ASSERT_EQ(fread(indata, 1, datasize, f), datasize);
+        fclose(f);
+        ASSERT_EQ(memcmp(indata, data, datasize), 0);
 
-    mac.clear();
-    assert(!mac.has_art(artist, album));
+        mac.clear();
+        assert(!mac.has_album_art(artist, album));
+    }
+    {
+        char data[datasize] = {'d', 'e', 'f'};
+        char indata[datasize];
+        FILE *f;
+
+        ASSERT_FALSE(mac.has_artist_art(artist, album));
+        mac.add_artist_art(artist, album, data, datasize);
+        ASSERT_TRUE(mac.has_artist_art(artist, album));
+        f = fopen(mac.get_artist_art_file(artist, album).c_str(), "r");
+        ASSERT_TRUE(f);
+        ASSERT_EQ(fread(indata, 1, datasize, f), datasize);
+        fclose(f);
+        ASSERT_EQ(memcmp(indata, data, datasize), 0);
+
+        mac.clear();
+        assert(!mac.has_artist_art(artist, album));
+    }
 }
 
 TEST(MediaArtCacheTest, Swapped) {
@@ -66,28 +85,28 @@ TEST(MediaArtCacheTest, Swapped) {
     FILE *f;
     mac.clear();
 
-    ASSERT_FALSE(mac.has_art(artist1, album1));
-    ASSERT_FALSE(mac.has_art(artist2, album2));
+    ASSERT_FALSE(mac.has_album_art(artist1, album1));
+    ASSERT_FALSE(mac.has_album_art(artist2, album2));
 
-    mac.add_art(artist1, album1, data1, datasize);
-    ASSERT_TRUE(mac.has_art(artist1, album1));
-    ASSERT_FALSE(mac.has_art(artist2, album2));
+    mac.add_album_art(artist1, album1, data1, datasize);
+    ASSERT_TRUE(mac.has_album_art(artist1, album1));
+    ASSERT_FALSE(mac.has_album_art(artist2, album2));
 
     mac.clear();
 
-    mac.add_art(artist2, album2, data2, datasize);
-    ASSERT_FALSE(mac.has_art(artist1, album1));
-    ASSERT_TRUE(mac.has_art(artist2, album2));
+    mac.add_album_art(artist2, album2, data2, datasize);
+    ASSERT_FALSE(mac.has_album_art(artist1, album1));
+    ASSERT_TRUE(mac.has_album_art(artist2, album2));
 
-    mac.add_art(artist1, album1, data1, datasize);
+    mac.add_album_art(artist1, album1, data1, datasize);
 
-    f = fopen(mac.get_art_file(artist1, album1).c_str(), "r");
+    f = fopen(mac.get_album_art_file(artist1, album1).c_str(), "r");
     ASSERT_TRUE(f);
     ASSERT_EQ(fread(indata, 1, datasize, f), datasize);
     fclose(f);
     ASSERT_EQ(memcmp(indata, data1, datasize), 0);
 
-    f = fopen(mac.get_art_file(artist2, album2).c_str(), "r");
+    f = fopen(mac.get_album_art_file(artist2, album2).c_str(), "r");
     ASSERT_TRUE(f);
     ASSERT_EQ(fread(indata, 1, datasize, f), datasize);
     fclose(f);

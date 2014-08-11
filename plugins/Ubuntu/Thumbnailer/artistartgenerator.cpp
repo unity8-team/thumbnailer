@@ -15,9 +15,10 @@
  *
  * Authors: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  *          James Henstridge <james.henstridge@canonical.com>
+ *          Pawel Stolowski <pawel.stolowski@canonical.com>
 */
 
-#include "albumartgenerator.h"
+#include "artistartgenerator.h"
 #include "artgeneratorcommon.h"
 #include <stdexcept>
 #include <QDebug>
@@ -26,30 +27,30 @@
 #include <QDBusUnixFileDescriptor>
 #include <QDBusReply>
 
-static const char DEFAULT_ALBUM_ART[] = "/usr/share/unity/icons/album_missing.png";
+static const char DEFAULT_ARTIST_ART[] = "/usr/share/unity/icons/album_missing.png";
 
 static const char BUS_NAME[] = "com.canonical.Thumbnailer";
 static const char BUS_PATH[] = "/com/canonical/Thumbnailer";
 static const char THUMBNAILER_IFACE[] = "com.canonical.Thumbnailer";
-static const char GET_ALBUM_ART[] = "GetAlbumArt";
+static const char GET_ARTIST_ART[] = "GetArtistArt";
 
-AlbumArtGenerator::AlbumArtGenerator()
+ArtistArtGenerator::ArtistArtGenerator()
     : QQuickImageProvider(QQuickImageProvider::Image, QQmlImageProviderBase::ForceAsynchronousImageLoading),
       iface(BUS_NAME, BUS_PATH, THUMBNAILER_IFACE) {
 }
 
 static QImage fallbackImage(QSize *realSize) {
     QImage fallback;
-    fallback.load(DEFAULT_ALBUM_ART);
+    fallback.load(DEFAULT_ARTIST_ART);
     *realSize = fallback.size();
     return fallback;
 }
 
-QImage AlbumArtGenerator::requestImage(const QString &id, QSize *realSize,
+QImage ArtistArtGenerator::requestImage(const QString &id, QSize *realSize,
         const QSize &requestedSize) {
     QUrlQuery query(id);
     if (!query.hasQueryItem("artist") || !query.hasQueryItem("album")) {
-        qWarning() << "Invalid albumart uri:" << id;
+        qWarning() << "Invalid artistart uri:" << id;
         return fallbackImage(realSize);
     }
 
@@ -60,7 +61,7 @@ QImage AlbumArtGenerator::requestImage(const QString &id, QSize *realSize,
 
     // perform dbus call
     QDBusReply<QDBusUnixFileDescriptor> reply = iface.call(
-        GET_ALBUM_ART, artist, album, desiredSize);
+        GET_ARTIST_ART, artist, album, desiredSize);
     if (!reply.isValid()) {
         qWarning() << "D-Bus error: " << reply.error().message();
         return fallbackImage(realSize);
@@ -69,7 +70,7 @@ QImage AlbumArtGenerator::requestImage(const QString &id, QSize *realSize,
     try {
         return imageFromFd(reply.value().fileDescriptor(), realSize);
     } catch (const std::exception &e) {
-        qDebug() << "Album art loader failed: " << e.what();
+        qDebug() << "Artist art loader failed: " << e.what();
     } catch (...) {
         qDebug() << "Unknown error when generating image.";
     }
