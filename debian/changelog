@@ -1,3 +1,9 @@
+thumbnailer (1.2-0ubuntu1) UNRELEASED; urgency=medium
+
+  * Use Ubuntu webservice for album art and provide artist art API.
+
+ -- Pawel Stolowski <pawel.stolowski@ubuntu.com>  Tue, 12 Aug 2014 18:28:33 +0200
+
 thumbnailer (1.1+14.04.20140401.1-0ubuntu3) utopic; urgency=medium
 
   * No-change rebuild to get dbgsyms for all binaries onto
