@@ -117,7 +117,8 @@ string ThumbnailerPrivate::create_generic_thumbnail(const string &abspath, Thumb
     try {
         if(scaler.scale(abspath, tnfile, desired_size, abspath))
             return tnfile;
-    } catch(runtime_error &e) {
+    } catch(const runtime_error &e) {
+        fprintf(stderr, "Scaling thumbnail failed: %s\n", e.what());
     }
     return "";
 }

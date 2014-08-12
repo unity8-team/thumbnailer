@@ -25,6 +25,7 @@
 #define TESTIMAGE TESTDATADIR "/testimage.jpg"
 #define ROTTESTIMAGE TESTDATADIR "/testrotate.jpg"
 #define TESTVIDEO TESTDATADIR "/testvideo.ogg"
+#define CHINESETEXTDIR TESTDATADIR "/chinese_text"
 
 using namespace std;
 
@@ -175,6 +176,26 @@ TEST(Thumbnailer, album_and_artist_art) {
     string album("Music for the Jilted Generation");
     tn.get_album_art(artist, album, TN_SIZE_ORIGINAL, TN_LOCAL);
     tn.get_artist_art(artist, album, TN_SIZE_ORIGINAL, TN_LOCAL);
+}
+
+TEST(Thumbnailer, chinese_text) {
+    Thumbnailer tn;
+    DIR *dir;
+    struct dirent *ent;
+    char path[PATH_MAX];
+    struct stat buffer;
+    int status;
+
+    dir = opendir(CHINESETEXTDIR);
+    while ((ent = readdir(dir)) != NULL) {
+        sprintf(path, "%s/%s", CHINESETEXTDIR, ent->d_name);
+        status = lstat(path, &buffer);
+        if(!S_ISDIR(buffer.st_mode)) {
+            string srcimg(path);
+            string thumbfile = tn.get_thumbnail(srcimg, TN_SIZE_SMALL);
+            ASSERT_TRUE(file_exists(thumbfile));
+        }
+    }
 }
 
 int main(int argc, char **argv) {
