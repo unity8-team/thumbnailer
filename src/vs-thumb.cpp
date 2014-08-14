@@ -118,6 +118,7 @@ int main(int argc, char **argv) {
     try {
         success = extract(infile, outfile);
     } catch(runtime_error &e) {
+        printf("Error creating thumbnail: %s\n", e.what());
         return 2;
     }
     if(success) {
