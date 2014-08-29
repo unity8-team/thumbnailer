@@ -47,7 +47,7 @@ private:
 
 public:
     ThumbnailCache cache;
-//    AudioImageExtractor audio;
+    AudioImageExtractor audio;
     VideoScreenshotter video;
     ImageScaler scaler;
     MediaArtCache macache;
@@ -85,13 +85,11 @@ string ThumbnailerPrivate::create_random_filename() {
     return fname;
 }
 
-string ThumbnailerPrivate::create_audio_thumbnail(const string &/*abspath*/,
-        ThumbnailSize /*desired_size*/, ThumbnailPolicy /*policy*/) {
-    // There was a symbol clash between 1.0 and 0.10 versions of
-    // GStreamer on the desktop so we need to disable in-process
-    // usage of gstreamer. Re-enable this once desktop moves to
-    // newer Qt multimedia that has GStreamer 1.0.
-/*
+string ThumbnailerPrivate::create_audio_thumbnail(const string &abspath,
+        ThumbnailSize desired_size, ThumbnailPolicy /*policy*/) {
+    string tnfile = cache.get_cache_file_name(abspath, desired_size);
+    string tmpname = create_random_filename();
+    bool extracted = false;
     try {
         if(audio.extract(abspath, tmpname)) {
             extracted = true;
@@ -103,7 +101,6 @@ string ThumbnailerPrivate::create_audio_thumbnail(const string &/*abspath*/,
         unlink(tmpname.c_str());
         return tnfile;
     }
-    */
     return "";
 }
 string ThumbnailerPrivate::create_generic_thumbnail(const string &abspath, ThumbnailSize desired_size) {
