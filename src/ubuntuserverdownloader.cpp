@@ -21,9 +21,10 @@
 #include <memory>
 
 #define UBUNTU_SERVER_BASE_URL "https://dash.ubuntu.com/"
-#define REQUESTED_IMAGE_SIZE "400"
-#define UBUNTU_SERVER_ALBUM_ART_URL UBUNTU_SERVER_BASE_URL "musicproxy/v1/album-art?artist=%s&album=%s&size=" REQUESTED_IMAGE_SIZE
-#define UBUNTU_SERVER_ARTIST_ART_URL UBUNTU_SERVER_BASE_URL "musicproxy/v1/artist-art?artist=%s&album=%s&size=" REQUESTED_IMAGE_SIZE
+#define REQUESTED_ALBUM_IMAGE_SIZE "350"
+#define REQUESTED_ARTIST_IMAGE_SIZE "300"
+#define UBUNTU_SERVER_ALBUM_ART_URL UBUNTU_SERVER_BASE_URL "musicproxy/v1/album-art?artist=%s&album=%s&size=" REQUESTED_ALBUM_IMAGE_SIZE
+#define UBUNTU_SERVER_ARTIST_ART_URL UBUNTU_SERVER_BASE_URL "musicproxy/v1/artist-art?artist=%s&album=%s&size=" REQUESTED_ARTIST_IMAGE_SIZE
 
 using namespace std;
 
