@@ -13,7 +13,6 @@ videoscreenshotter.cpp
 set(symbol_map "${CMAKE_CURRENT_SOURCE_DIR}/libthumbnailer.map")
 
 target_link_libraries(thumbnailer
- ${GST_DEPS_LDFLAGS}
  ${GLIB_DEPS_LDFLAGS}
  ${GIO_DEPS_LDFLAGS}
  ${IMG_DEPS_LDFLAGS}
@@ -32,7 +31,7 @@ install(
 )
 
 add_executable(vs-thumb vs-thumb.cpp)
-target_link_libraries(vs-thumb ${GST_DEPS_LDFLAGS} ${IMG_DEPS_LDFLAGS})
+target_link_libraries(vs-thumb ${GST_DEPS_LDFLAGS} ${IMG_DEPS_LDFLAGS} ${GIO_DEPS_LDFLAGS})
 install(
   TARGETS vs-thumb
   ARCHIVE DESTINATION ${SHARE_PRIV_DIR}
