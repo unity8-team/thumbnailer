@@ -1,3 +1,18 @@
+thumbnailer (1.2+14.10.20140901.is.1.2+14.10.20140814-0ubuntu2) utopic; urgency=medium
+
+  * Reintroduce the pthread linkage fix from 1.2+14.10.20140827.1-0ubuntu1,
+    required for the package to build.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Tue, 02 Sep 2014 13:26:28 -0700
+
+thumbnailer (1.2+14.10.20140901.is.1.2+14.10.20140814-0ubuntu1) utopic; urgency=medium
+
+  * Revert the last two landings. The 1.2+14.10.20140827.1 version
+    introduced a serious regression breaking many projects, indirectly
+    caused by thumbnailer using gst.  LP: #1363314.
+
+ -- Łukasz 'sil2100' Zemczak <lukasz.zemczak@canonical.com>  Tue, 02 Sep 2014 21:50:08 +0200
+
 thumbnailer (1.2+14.10.20140901-0ubuntu1) utopic; urgency=medium
 
   [ Pawel Stolowski ]
