@@ -1,3 +1,14 @@
+thumbnailer (1.2+14.10.20140904-0ubuntu1) utopic; urgency=low
+
+  [ Ubuntu daily release ]
+  * New rebuild forced
+
+  [ Jussi Pakkanen ]
+  * Move embedded thumbnail extraction to a helper binary to avoid
+    linking main library with gstreamer. (LP: #1363314)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Thu, 04 Sep 2014 07:43:24 +0000
+
 thumbnailer (1.2+14.10.20140901.is.1.2+14.10.20140814-0ubuntu2) utopic; urgency=medium
 
   * Reintroduce the pthread linkage fix from 1.2+14.10.20140827.1-0ubuntu1,
