@@ -25,6 +25,7 @@
 #include<internal/lastfmdownloader.h>
 #include<internal/ubuntuserverdownloader.h>
 #include<gdk-pixbuf/gdk-pixbuf.h>
+#include<libexif/exif-loader.h>
 #include<unistd.h>
 #include<cstring>
 #include<gst/gst.h>
@@ -68,8 +69,8 @@ public:
     string create_thumbnail(const string &abspath, ThumbnailSize desired_size,
             ThumbnailPolicy policy);
     string create_random_filename();
+    string extract_exif_thumbnail(const std::string &abspath);
 };
-
 
 string ThumbnailerPrivate::create_random_filename() {
     string fname;
@@ -83,6 +84,24 @@ string ThumbnailerPrivate::create_random_filename() {
     fname += to_string(rnd());
     fname += ".tmp";
     return fname;
+}
+
+string ThumbnailerPrivate::extract_exif_thumbnail(const std::string &abspath) {
+    std::unique_ptr<ExifLoader, void(*)(ExifLoader*)>el(exif_loader_new(), exif_loader_unref);
+    if(el) {
+        exif_loader_write_file(el.get(), abspath.c_str());
+        std::unique_ptr<ExifData, void(*)(ExifData*e)> ed(exif_loader_get_data(el.get()), exif_data_unref);
+        if(ed && ed->data && ed->size) {
+            auto outfile = create_random_filename().c_str();
+            FILE *thumb = fopen(outfile, "wb");
+            if(thumb) {
+                fwrite(ed->data, 1, ed->size, thumb);
+                fclose(thumb);
+                return outfile;
+            }
+        }
+    }
+    return "";
 }
 
 string ThumbnailerPrivate::create_audio_thumbnail(const string &abspath,
@@ -162,6 +181,17 @@ string ThumbnailerPrivate::create_thumbnail(const string &abspath, ThumbnailSize
 
     if (content_type.find("video/") == 0) {
         return create_video_thumbnail(abspath, desired_size);
+    }
+    if(desired_size != TN_SIZE_ORIGINAL) {
+        try {
+            auto embedded_image = extract_exif_thumbnail(abspath);
+            if(!embedded_image.empty()) {
+                auto tnfname = create_generic_thumbnail(embedded_image, desired_size);
+                unlink(embedded_image.c_str());
+                return tnfname;
+            }
+        } catch(const exception &e) {
+        }
     }
 
     return create_generic_thumbnail(abspath, desired_size);
