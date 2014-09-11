@@ -186,9 +186,12 @@ string ThumbnailerPrivate::create_thumbnail(const string &abspath, ThumbnailSize
         try {
             auto embedded_image = extract_exif_thumbnail(abspath);
             if(!embedded_image.empty()) {
-                auto tnfname = create_generic_thumbnail(embedded_image, desired_size);
+                string tnfile = cache.get_cache_file_name(abspath, desired_size);
+                auto succeeded = scaler.scale(embedded_image, tnfile, desired_size, abspath);
                 unlink(embedded_image.c_str());
-                return tnfname;
+                if(succeeded) {
+                    return tnfile;
+                }
             }
         } catch(const exception &e) {
         }
