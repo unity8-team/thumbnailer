@@ -40,16 +40,13 @@
 
 using namespace std;
 
-static const char BUS_NAME[] = "com.canonical.MediaScanner2";
 static const char ART_ERROR[] = "com.canonical.MediaScanner2.Error.Failed";
-
-static const char MISSING_ALBUM_ART[] = "/usr/share/unity/icons/album_missing.png";
 
 struct DBusInterfacePrivate {
     const std::string bus_path;
     unique_gobj<GDBusConnection> bus;
     unique_gobj<TNThumbnailer> iface;
-    std::vector<unsigned int> handler_id;
+    std::vector<gulong> handler_id;
     std::shared_ptr<Thumbnailer> thumbnailer;
 
     DBusInterfacePrivate(GDBusConnection *g_bus, const std::string& bus_path)

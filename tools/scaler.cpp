@@ -23,6 +23,9 @@
 
 int main(int argc, char **argv) {
     ImageScaler sc;
+    if(argc != 3) {
+        fprintf(stderr, "%s <inputfile> <outputfile>\n", argv[0]);
+    }
     try {
         std::string ifilename(argv[1]);
         std::string ofilename(argv[2]);

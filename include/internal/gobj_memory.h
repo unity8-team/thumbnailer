@@ -75,7 +75,7 @@ public:
   ~unique_gobj() { reset(); }
 
   deleter_type& get_deleter() noexcept { return g_object_unref; }
-  const deleter_type& get_deleter() const noexcept { return g_object_unref; }
+  deleter_type& get_deleter() const noexcept { return g_object_unref; }
 
   void swap(unique_gobj<T> &o) noexcept { T*tmp = u; u = o.u; o.u = tmp; }
   void reset(pointer p = pointer()) {
@@ -104,9 +104,5 @@ public:
   bool operator>(const unique_gobj<T> &o) const noexcept { return u > o.u; }
   bool operator>=(const unique_gobj<T> &o) const noexcept { return u >= o.u; }
 };
-
-template<typename T>
-void ::std::swap(unique_gobj<T> &f, unique_gobj<T> &s) noexcept { f.swap(s); }
-
 
 #endif

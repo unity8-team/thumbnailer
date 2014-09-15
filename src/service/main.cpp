@@ -17,7 +17,8 @@ static void nameLost(GDBusConnection *, const char *, void *) {
     g_main_loop_quit(main_loop.get());
 }
 
-int main(int argc, char **argv) {
+int main(int /*argc*/, char **/*argv*/) {
+
     GError *error = nullptr;
     std::unique_ptr<GDBusConnection, void(*)(void*)> bus(
         g_bus_get_sync(G_BUS_TYPE_SESSION, nullptr, &error),
