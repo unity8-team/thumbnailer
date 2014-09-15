@@ -118,10 +118,17 @@ static string get_app_pkg_name() {
     return core.substr(0, ind);
 }
 
-class ThumbnailCachePrivate {
+class ThumbnailCachePrivate final {
 public:
 
+    ThumbnailCachePrivate(const ThumbnailCachePrivate &t) = delete;
+    ThumbnailCachePrivate & operator=(const ThumbnailCachePrivate &t) = delete;
+    ThumbnailCachePrivate(ThumbnailCachePrivate &&t) = delete;
+    ThumbnailCachePrivate & operator=(ThumbnailCachePrivate &&t) = delete;
+
     ThumbnailCachePrivate();
+    ~ThumbnailCachePrivate() {};
+
     string md5(const string &str) const;
     string get_cache_file_name(const std::string &original, ThumbnailSize desired) const;
     void clear();
@@ -253,6 +260,13 @@ string ThumbnailCachePrivate::get_cache_file_name(const std::string & abs_origin
 }
 
 ThumbnailCache::ThumbnailCache() : p(new ThumbnailCachePrivate()) {
+    // This should never happen. If new fails, the above initializer
+    // should throw an exception. But nonetheless this has been
+    // observed in the wild at least once so guard against
+    // it.
+    if(!p) {
+        throw std::runtime_error("New returned nullptr. This should never happen, your system is broken.");
+    }
 }
 
 ThumbnailCache::~ThumbnailCache() {
