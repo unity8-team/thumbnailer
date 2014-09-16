@@ -190,6 +190,7 @@ TEST(Thumbnailer, chinese_text) {
     while ((ent = readdir(dir)) != NULL) {
         sprintf(path, "%s/%s", CHINESETEXTDIR, ent->d_name);
         status = lstat(path, &buffer);
+        ASSERT_EQ(status, 0);
         if(!S_ISDIR(buffer.st_mode)) {
             string srcimg(path);
             string thumbfile = tn.get_thumbnail(srcimg, TN_SIZE_SMALL);
@@ -199,7 +200,6 @@ TEST(Thumbnailer, chinese_text) {
 }
 
 int main(int argc, char **argv) {
-    g_type_init(); // Still needed in precise.
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
