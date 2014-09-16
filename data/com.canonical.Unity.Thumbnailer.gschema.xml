@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
   <schema path="/com/canonical/unity/thumbnailer/" id="com.canonical.Unity.Thumbnailer">
-    <key type="s" name="dash.ubuntu.com-key">
-      <default>0f450aa882a6125ebcbfb3d7f7aa25bc</default>
+    <key type="s" name="dash-ubuntu-com-key">
+      <default>"0f450aa882a6125ebcbfb3d7f7aa25bc"</default>
       <summary>API key for dash.ubuntu.com service</summary>
       <description>API key for dash.ubuntu.com service</description>
     </key>

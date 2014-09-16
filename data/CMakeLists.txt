@@ -1,2 +1,1 @@
-include(UseGSettings)
-add_schema(com.canonical.unity.clickscope.gschema.xml)
+add_schema(com.canonical.Unity.Thumbnailer.gschema.xml)
