@@ -19,6 +19,7 @@
 #include <internal/ubuntuserverdownloader.h>
 #include <internal/soupdownloader.h>
 #include <memory>
+#include <iostream>
 #include <gio/gio.h>
 
 #define THUMBNAILER_SCHEMA "com.canonical.Unity.Thumbnailer"
@@ -42,14 +43,28 @@ UbuntuServerDownloader::UbuntuServerDownloader(HttpDownloader *o) : dl(o) {
 void UbuntuServerDownloader::set_api_key()
 {
     // the API key is not expected to change, so don't monitor it
-    GSettings *settings = g_settings_new(THUMBNAILER_SCHEMA);
-    if (settings) {
-        gchar *akey = g_settings_get_string(settings, THUMBNAILER_API_KEY);
-        if (akey) {
-            api_key = std::string(akey);
-            g_free(akey);
+    GSettingsSchemaSource *src = g_settings_schema_source_get_default();
+    GSettingsSchema *schema = g_settings_schema_source_lookup(src, THUMBNAILER_SCHEMA, true);
+
+    if (schema)
+    {
+        bool status = false;
+        g_settings_schema_unref(schema);
+        GSettings *settings = g_settings_new(THUMBNAILER_SCHEMA);
+        if (settings) {
+            gchar *akey = g_settings_get_string(settings, THUMBNAILER_API_KEY);
+            if (akey) {
+                api_key = std::string(akey);
+                status = true;
+                g_free(akey);
+            }
+            g_object_unref(settings);
         }
-        g_object_unref(settings);
+        if (!status) {
+            std::cerr << "Failed to get API key" << std::endl;
+        }
+    } else {
+        std::cerr << "The schema " << THUMBNAILER_SCHEMA << " is missing" << std::endl;
     }
 }
 
