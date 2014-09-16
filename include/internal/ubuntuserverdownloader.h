@@ -35,7 +35,10 @@ public:
 
 private:
     bool download(const std::string &url, const std::string &fname);
+    void set_api_key();
+
     std::unique_ptr<HttpDownloader> dl;
+    std::string api_key;
 };
 
 #endif
