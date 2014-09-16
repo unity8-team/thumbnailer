@@ -185,9 +185,14 @@ string ThumbnailerPrivate::create_thumbnail(const string &abspath, ThumbnailSize
     if(desired_size != TN_SIZE_ORIGINAL) {
         try {
             auto embedded_image = extract_exif_thumbnail(abspath);
+            // Note that we always use the embedded thumbnail if it exists.
+            // Depending on usage, it may be too low res for our purposes.
+            // If this becomes an issue, add a check here once we know the
+            // real resolution requirements and fall back to scaling the
+            // full image if the thumbnail is too small.
             if(!embedded_image.empty()) {
                 string tnfile = cache.get_cache_file_name(abspath, desired_size);
-                auto succeeded = scaler.scale(embedded_image, tnfile, desired_size, abspath);
+                auto succeeded = scaler.scale(embedded_image, tnfile, desired_size, abspath, abspath);
                 unlink(embedded_image.c_str());
                 if(succeeded) {
                     return tnfile;

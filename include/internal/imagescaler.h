@@ -32,8 +32,20 @@ public:
     ImageScaler(const ImageScaler &t) = delete;
     ImageScaler & operator=(const ImageScaler &t) = delete;
 
-    bool scale(const std::string &ifilename, const std::string &ofilename,
-            ThumbnailSize wanted, const std::string &original_location) const;
+    bool scale(const std::string &ifilename,
+            const std::string &ofilename,
+            ThumbnailSize wanted,
+
+            // String pointing to the location of the original file,
+            // as an example /home/someone/video.avi
+            // We need this because we need to store its location
+            // in the final image (rather than the location of the
+            // temporary extracted image).
+            const std::string &original_location,
+            // What file to use for source of image rotation data.
+            // Can not be the above file as it may be a non-image.
+            // If empty, rotation info is taken from ifilename.
+            const std::string &rotation_source_file="") const;
 
 private:
     ImageScalerPrivate *p;
