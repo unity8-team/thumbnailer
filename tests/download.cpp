@@ -18,11 +18,14 @@
 
 #include<gtest/gtest.h>
 #include<internal/lastfmdownloader.h>
+#include<internal/ubuntuserverdownloader.h>
 #include<cstdio>
 #include<unistd.h>
 #include<mutex>
 #include<condition_variable>
 #include<thread>
+#include<fstream>
+#include <gio/gio.h>
 
 using namespace std;
 
@@ -44,6 +47,45 @@ public:
         throw std::runtime_error("Tried to get unknown data from FakeDownloader.");
     }
 };
+
+class FakeDownloader2 : public HttpDownloader {
+private:
+    constexpr static const char *imloc = "http://dummy";
+
+public:
+    std::string download(const std::string &url) override {
+        return url; // use url as file content
+    }
+};
+
+TEST(Downloader, api_key) {
+    setenv("GSETTINGS_BACKEND", "memory", 1);
+
+    UbuntuServerDownloader ubdl(new FakeDownloader2());
+    {
+        string outfile("/tmp/temptestfile");
+
+        unlink(outfile.c_str());
+        ubdl.download("foo", "bar", outfile);
+
+        std::string output;
+        std::ifstream f(outfile, std::ifstream::in);
+        std::getline(f, output);
+
+        ASSERT_TRUE(output.find("key=0f450aa882a6125ebcbfb3d7f7aa25bc") != std::string::npos);
+    }
+
+    {
+        string outfile("/tmp/temptestfile2");
+        unlink(outfile.c_str());
+        ubdl.download_artist("foo", "bar", outfile);
+        std::string output;
+        std::ifstream f(outfile, std::ifstream::in);
+        std::getline(f, output);
+
+        ASSERT_TRUE(output.find("key=0f450aa882a6125ebcbfb3d7f7aa25bc") != std::string::npos);
+    }
+}
 
 TEST(Downloader, canned) {
     LastFMDownloader lfdl(new FakeDownloader());

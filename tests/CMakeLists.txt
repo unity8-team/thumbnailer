@@ -27,9 +27,10 @@ target_link_libraries(mediaartcachetest ${GIO_DEPS_LDFLAGS} gtest)
 add_test(mediaartcache mediaartcachetest)
 set_property(TEST mediaartcache PROPERTY ENVIRONMENT "XDG_CACHE_HOME=${CMAKE_CURRENT_BINARY_DIR}")
 
-add_executable(downloadtest download.cpp ../src/lastfmdownloader.cpp ../src/soupdownloader.cpp)
+add_executable(downloadtest download.cpp ../src/lastfmdownloader.cpp ../src/ubuntuserverdownloader.cpp ../src/soupdownloader.cpp)
 target_link_libraries(downloadtest ${XML_DEPS_LDFLAGS} ${SOUP_DEPS_LDFLAGS} gtest)
 add_test(downloadtest downloadtest)
+set_property(TEST downloadtest PROPERTY ENVIRONMENT "GSETTINGS_SCHEMA_DIR=${CMAKE_BINARY_DIR}/data")
 
 # This is only needed here because GStreamer brings in gobject.
 pkg_check_modules(GOBJ_DEPS REQUIRED gobject-2.0)
