@@ -72,7 +72,7 @@ TEST(Downloader, api_key) {
         std::ifstream f(outfile, std::ifstream::in);
         std::getline(f, output);
 
-        ASSERT_TRUE(output.find("key=0f450aa882a6125ebcbfb3d7f7aa25bc") != std::string::npos);
+        ASSERT_NE(output.find("key=0f450aa882a6125ebcbfb3d7f7aa25bc"), std::string::npos);
     }
 
     {
@@ -83,7 +83,7 @@ TEST(Downloader, api_key) {
         std::ifstream f(outfile, std::ifstream::in);
         std::getline(f, output);
 
-        ASSERT_TRUE(output.find("key=0f450aa882a6125ebcbfb3d7f7aa25bc") != std::string::npos);
+        ASSERT_NE(output.find("key=0f450aa882a6125ebcbfb3d7f7aa25bc"), std::string::npos);
     }
 }
 
