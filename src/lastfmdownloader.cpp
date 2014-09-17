@@ -55,13 +55,14 @@ string LastFMDownloader::parseXML(const string &xml) {
        return "";
      }
 
-     char *imageurl;
+     string url;
      if (path->nodesetval->nodeTab) {
-       imageurl = (char *) xmlNodeListGetString(doc.get(),
-               path->nodesetval->nodeTab[0]->xmlChildrenNode, 1);
+         char *imageurl;
+         imageurl = (char *) xmlNodeListGetString(doc.get(),
+                 path->nodesetval->nodeTab[0]->xmlChildrenNode, 1);
+         url = (char*)imageurl;
+         xmlFree(imageurl);
      }
-     string url(imageurl);
-     xmlFree(imageurl);
      return url;
 }
 
@@ -86,8 +87,8 @@ bool LastFMDownloader::download(const std::string &artist,
     return true;
 }
 
-bool LastFMDownloader::download_artist(const std::string &artist,
-        const std::string &album, const std::string &fname)
+bool LastFMDownloader::download_artist(const std::string &/*artist*/,
+        const std::string &/*album*/, const std::string &/*fname*/)
 {
     // not implemented
     return false;

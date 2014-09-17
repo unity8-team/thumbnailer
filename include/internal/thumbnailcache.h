@@ -31,6 +31,8 @@ public:
 
     ThumbnailCache(const ThumbnailCache &t) = delete;
     ThumbnailCache & operator=(const ThumbnailCache &t) = delete;
+    ThumbnailCache(ThumbnailCache &&t) = delete;
+    ThumbnailCache & operator=(ThumbnailCache &&t) = delete;
 
     std::string get_if_exists(const std::string &abs_path, ThumbnailSize desired_size) const;
     std::string get_cache_file_name(const std::string &as_path, ThumbnailSize desired_size) const;
@@ -38,7 +40,7 @@ public:
     void prune();
 
 private:
-    ThumbnailCachePrivate *p;
+    ThumbnailCachePrivate *const p;
 };
 
 
