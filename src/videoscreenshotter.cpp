@@ -19,6 +19,8 @@
 #include<internal/config.h>
 #include<internal/videoscreenshotter.h>
 
+#include<cerrno>
+#include<cstdlib>
 #include<unistd.h>
 #include<sys/wait.h>
 #include<stdexcept>
