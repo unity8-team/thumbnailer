@@ -199,6 +199,31 @@ TEST(Thumbnailer, chinese_text) {
     }
 }
 
+TEST(Thumbnailer, standalone_album_art_original) {
+    Thumbnailer tn;
+    string track1(TESTDATADIR "/standalone album/track1.mp3");
+    string track2(TESTDATADIR "/standalone album/track2.mp3");
+    string nonexisting_track(TESTDATADIR "/standalone album/track4.mp3");
+    string dstimg1 = tn.get_thumbnail(track1, TN_SIZE_ORIGINAL);
+    string dstimg2 = tn.get_thumbnail(track2, TN_SIZE_ORIGINAL);
+    ASSERT_FALSE(dstimg1.empty());
+    ASSERT_EQ(dstimg1, dstimg2);
+    ASSERT_TRUE(tn.get_thumbnail(nonexisting_track, TN_SIZE_ORIGINAL).empty());
+}
+
+TEST(Thumbnailer, standalone_album_art_small) {
+    Thumbnailer tn;
+    string track1(TESTDATADIR "/standalone album/track1.mp3");
+    string track2(TESTDATADIR "/standalone album/track2.mp3");
+    string nonexisting_track(TESTDATADIR "/standalone album/track4.mp3");
+    string dstimg1 = tn.get_thumbnail(track1, TN_SIZE_SMALL);
+    string dstimg2 = tn.get_thumbnail(track2, TN_SIZE_SMALL);
+    ASSERT_FALSE(dstimg1.empty());
+    ASSERT_FALSE(dstimg2.empty());
+    ASSERT_NE(dstimg1, dstimg2);
+    ASSERT_TRUE(tn.get_thumbnail(nonexisting_track, TN_SIZE_SMALL).empty());
+}
+
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

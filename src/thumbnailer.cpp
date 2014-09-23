@@ -43,7 +43,9 @@ private:
     string create_audio_thumbnail(const string &abspath, ThumbnailSize desired_size,
             ThumbnailPolicy policy);
     string create_video_thumbnail(const string &abspath, ThumbnailSize desired_size);
-    string create_generic_thumbnail(const string &abspath, ThumbnailSize desired_size);
+    string create_generic_thumbnail(const string &abspath, ThumbnailSize desired_size,
+            const string &original_location="");
+    string detect_standalone_thumbnail(const string &abspath, ThumbnailSize desired_size);
 
 public:
     ThumbnailCache cache;
@@ -85,6 +87,35 @@ string ThumbnailerPrivate::create_random_filename() {
     return fname;
 }
 
+string ThumbnailerPrivate::detect_standalone_thumbnail(const string &abspath, ThumbnailSize desired_size) {
+    static const std::array<const char *, 2> suffixes{".png", ".jpg"};
+    static const std::array<const char *, 6> namebases = {"cover", "album", "albumart", "front", ".folder", "folder"};
+    auto slash = abspath.rfind('/');
+    if (slash == string::npos) {
+        return "";
+    }
+    string dir = abspath.substr(0, slash+1);
+    string detected;
+    for(const auto &base : namebases) {
+        for(const auto &suffix : suffixes) {
+            string trial = dir + base + suffix;
+            auto file = fopen(trial.c_str(), "r");
+            if(file) {
+                fclose(file);
+                detected = trial;
+                break;
+            }
+        }
+        if(!detected.empty()){
+            break;
+        }
+    }
+    if(detected.empty()) {
+        return "";
+    }
+    return create_generic_thumbnail(detected, desired_size, abspath);
+}
+
 string ThumbnailerPrivate::create_audio_thumbnail(const string &abspath,
         ThumbnailSize desired_size, ThumbnailPolicy /*policy*/) {
     string tnfile = cache.get_cache_file_name(abspath, desired_size);
@@ -101,18 +132,21 @@ string ThumbnailerPrivate::create_audio_thumbnail(const string &abspath,
         unlink(tmpname.c_str());
         return tnfile;
     }
-    return "";
+    return detect_standalone_thumbnail(abspath, desired_size);
 }
-string ThumbnailerPrivate::create_generic_thumbnail(const string &abspath, ThumbnailSize desired_size) {
+
+string ThumbnailerPrivate::create_generic_thumbnail(const string &abspath, ThumbnailSize desired_size,
+        const string &orig_loc) {
     int tmpw, tmph;
-    string tnfile = cache.get_cache_file_name(abspath, desired_size);
+    const string &original_location = orig_loc.empty() ? abspath : orig_loc;
+    string tnfile = cache.get_cache_file_name(original_location, desired_size);
     // Special case: full size image files are their own preview.
     if(desired_size == TN_SIZE_ORIGINAL &&
        gdk_pixbuf_get_file_info(abspath.c_str(), &tmpw, &tmph)) {
         return abspath;
     }
     try {
-        if(scaler.scale(abspath, tnfile, desired_size, abspath))
+        if(scaler.scale(abspath, tnfile, desired_size, original_location))
             return tnfile;
     } catch(const runtime_error &e) {
         fprintf(stderr, "Scaling thumbnail failed: %s\n", e.what());
@@ -186,11 +220,7 @@ std::string Thumbnailer::get_thumbnail(const std::string &filename, ThumbnailSiz
     std::string estimate = p->cache.get_if_exists(abspath, desired_size);
     if(!estimate.empty())
         return estimate;
-    string generated = p->create_thumbnail(abspath, desired_size, policy);
-    if(generated == abspath) {
-        return abspath;
-    }
-    return p->cache.get_if_exists(abspath, desired_size);
+    return p->create_thumbnail(abspath, desired_size, policy);
 }
 
 string Thumbnailer::get_thumbnail(const string &filename, ThumbnailSize desired_size) {
