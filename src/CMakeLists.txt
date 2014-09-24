@@ -44,5 +44,5 @@ add_subdirectory(service)
 configure_file(thumbnailer.in thumbnailer @ONLY)
 install(FILES
  ${CMAKE_CURRENT_BINARY_DIR}/thumbnailer
- DESTINATION etc/apport/blacklist.d
+ DESTINATION ../etc/apport/blacklist.d # not 100% correct but only needs to work when prefix is /usr
 )
