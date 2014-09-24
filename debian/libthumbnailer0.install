@@ -1,2 +1,3 @@
 usr/lib/*/libthumb*.so.*
 usr/lib/*/thumbnailer/vs-thumb
+etc/apport/blacklist.d/thumbnailer
