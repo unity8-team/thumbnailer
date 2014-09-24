@@ -33,6 +33,9 @@
 #include<gio/gio.h>
 #include<glib.h>
 #include<memory>
+#include<dirent.h>
+#include<sys/types.h>
+#include<algorithm>
 
 using namespace std;
 
@@ -88,26 +91,30 @@ string ThumbnailerPrivate::create_random_filename() {
 }
 
 string ThumbnailerPrivate::detect_standalone_thumbnail(const string &abspath, ThumbnailSize desired_size) {
-    static const std::array<const char *, 2> suffixes{".png", ".jpg"};
-    static const std::array<const char *, 6> namebases = {"cover", "album", "albumart", "front", ".folder", "folder"};
+    static const std::array<const char *, 2> suffixes{"png", "jpg"};
+    static const std::array<const char *, 6> namebases{"cover", "album", "albumart", "front", ".folder", "folder"};
     auto slash = abspath.rfind('/');
     if (slash == string::npos) {
         return "";
     }
-    string dir = abspath.substr(0, slash+1);
+    string dirname = abspath.substr(0, slash);
     string detected;
-    for(const auto &base : namebases) {
-        for(const auto &suffix : suffixes) {
-            string trial = dir + base + suffix;
-            auto file = fopen(trial.c_str(), "r");
-            if(file) {
-                fclose(file);
-                detected = trial;
-                break;
-            }
+    unique_ptr<DIR, int(*)(DIR*)> dir(opendir(dirname.c_str()), closedir);
+    unique_ptr<struct dirent, void(*)(void*)> entry((dirent*)malloc(sizeof(dirent) + NAME_MAX + 1), free);
+    struct dirent *de = nullptr;
+    while(readdir_r(dir.get(), entry.get(), &de) == 0 && de) {
+        const string fname(entry->d_name);
+        auto sufpoint = fname.rfind('.');
+        if(sufpoint == string::npos) {
+            continue;
         }
-        if(!detected.empty()){
-            break;
+        auto namebase = fname.substr(0, sufpoint);
+        auto suffix = fname.substr(sufpoint+1);
+        transform(namebase.begin(), namebase.end(), namebase.begin(), ::tolower);
+        transform(suffix.begin(), suffix.end(), suffix.begin(), ::tolower);
+        if(find(namebases.begin(), namebases.end(), namebase) != namebases.end() &&
+           find(suffixes.begin(), suffixes.end(), suffix) != suffixes.end()) {
+            detected = dirname + "/" + fname;
         }
     }
     if(detected.empty()) {
