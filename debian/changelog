@@ -1,9 +1,19 @@
-thumbnailer (1.3-0ubuntu1) UNRELEASED; urgency=medium
+thumbnailer (1.2-0ubuntu1) UNRELEASED; urgency=medium
 
-  * Provide com.canonical.Unity.Thumbnailer settings schema and default API key.
-  * Pass API key to dash.ubuntu.com.
+  [ Pawel Stolowski ]
+  * Added gsettings schema with API key used for accessing dash.ubuntu.com service.
+    - Pass the key with artist/album requests.
+  * Install album_missing icon (taken from libunitycore package).
 
- -- Pawel Stolowski <pawel.stolowski@ubuntu.com>  Tue, 16 Sep 2014 16:55:52 +0200
+  [ Jussi Pakkanen ]
+  * Use exif thumbnail if one is available.
+  * A few simple fixes for issues found compiling against libc++.
+  * Prevent apport from sending vs-thumb stacktraces.
+
+  [ Pete Woods ]
+  * There is a new thumbnailer-common package.
+
+ -- Pete Woods <pete.woods@ubuntu.com>  Tue, 16 Sep 2014 16:55:52 +0200
 
 thumbnailer (1.2+14.10.20140916-0ubuntu2) UNRELEASED; urgency=medium
 
