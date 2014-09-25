@@ -95,7 +95,8 @@ ImageScaler::~ImageScaler() {
 }
 
 bool ImageScaler::scale(const std::string &ifilename, const std::string &ofilename, ThumbnailSize wanted,
-        const std::string &original_location) const {
+        const std::string &original_location, const std::string &rotation_source_file) const {
+    const std::string &rotation_info = rotation_source_file.empty() ? ifilename : rotation_source_file;
     random_device rnd;
     assert(ifilename[0] == '/');
     assert(ofilename[0] == '/');
@@ -108,7 +109,7 @@ bool ImageScaler::scale(const std::string &ifilename, const std::string &ofilena
         g_error_free(err);
         throw runtime_error(msg);
     }
-    unique_gobj<GdkPixbuf> src(fix_orientation(ifilename.c_str(), orig.get()));
+    unique_gobj<GdkPixbuf> src(fix_orientation(rotation_info.c_str(), orig.get()));
     if(!src) {
         throw runtime_error("Unknown error reorienting image.");
     }

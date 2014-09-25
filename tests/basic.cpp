@@ -23,6 +23,7 @@
 #include<gdk-pixbuf/gdk-pixbuf.h>
 
 #define TESTIMAGE TESTDATADIR "/testimage.jpg"
+#define TESTIMAGE_NOEXIF TESTDATADIR "/testimage_noexif.png"
 #define ROTTESTIMAGE TESTDATADIR "/testrotate.jpg"
 #define TESTVIDEO TESTDATADIR "/testvideo.ogg"
 #define CHINESETEXTDIR TESTDATADIR "/chinese_text"
@@ -78,6 +79,12 @@ static void file_test(Thumbnailer &tn, string &ifile) {
 TEST(Thumbnailer, image) {
     Thumbnailer tn;
     string imfile(TESTIMAGE);
+    file_test(tn, imfile);
+}
+
+TEST(Thumbnailer, noexif_image) {
+    Thumbnailer tn;
+    string imfile(TESTIMAGE_NOEXIF);
     file_test(tn, imfile);
 }
 
