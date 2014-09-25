@@ -47,6 +47,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 
 enable_testing()
 add_subdirectory(src)
+add_subdirectory(data)
 add_subdirectory(plugins/Ubuntu/Thumbnailer)
 add_subdirectory(tests)
 add_subdirectory(tools)
