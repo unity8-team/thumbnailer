@@ -40,3 +40,9 @@ install(
 )
 
 add_subdirectory(service)
+
+configure_file(thumbnailer.in thumbnailer @ONLY)
+install(FILES
+ ${CMAKE_CURRENT_BINARY_DIR}/thumbnailer
+ DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/apport/blacklist.d
+)
