@@ -22,6 +22,7 @@ set(SO_VERSION "${SO_VERSION_MAJOR}.${SO_VERSION_MINOR}.${SO_VERSION_PATCH}")
 set(ABI_VERSION 0)
 
 include(cmake/coverage.cmake)
+include(cmake/UseGSettings.cmake)
 
 include(GNUInstallDirs)
 set(LIBDIR ${CMAKE_INSTALL_LIBDIR})
