@@ -1,4 +1,4 @@
-thumbnailer (1.2-0ubuntu1) UNRELEASED; urgency=medium
+thumbnailer (1.3-0ubuntu1) UNRELEASED; urgency=medium
 
   [ Pawel Stolowski ]
   * Added gsettings schema with API key used for accessing dash.ubuntu.com service.
