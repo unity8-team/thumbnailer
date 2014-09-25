@@ -22,8 +22,8 @@
 #include <QMimeDatabase>
 #include <QUrl>
 
-static const char *DEFAULT_VIDEO_ART = "/usr/share/unity/icons/video_missing.png";
-static const char *DEFAULT_ALBUM_ART = "/usr/share/unity/icons/album_missing.png";
+static const char *DEFAULT_VIDEO_ART = "/usr/share/thumbnailer/icons/video_missing.png";
+static const char *DEFAULT_ALBUM_ART = "/usr/share/thumbnailer/icons/album_missing.png";
 
 ThumbnailGenerator::ThumbnailGenerator() : QQuickImageProvider(QQuickImageProvider::Image,
         QQmlImageProviderBase::ForceAsynchronousImageLoading) {
