@@ -11,3 +11,15 @@ install(
   DESTINATION
     ${CMAKE_INSTALL_DATADIR}/thumbnailer/icons
 )
+
+configure_file(
+  thumbnailer.in
+  thumbnailer
+  @ONLY
+)
+
+install(FILES
+  "${CMAKE_CURRENT_BINARY_DIR}/thumbnailer"
+  DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/apport/blacklist.d"
+)
+
