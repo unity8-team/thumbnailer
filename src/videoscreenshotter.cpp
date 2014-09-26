@@ -19,6 +19,8 @@
 #include<internal/config.h>
 #include<internal/videoscreenshotter.h>
 
+#include<cerrno>
+#include<cstdlib>
 #include<unistd.h>
 #include<sys/wait.h>
 #include<stdexcept>
@@ -69,7 +71,7 @@ static bool wait_for_helper(pid_t child) {
         throw runtime_error("Video extractor pipeline failed");
     }
     string errmsg("Unknown error when trying to extract video screenshot, return value was ");
-    errmsg += status;
+    errmsg += std::to_string(status);
     errmsg += ".";
     throw runtime_error(errmsg);
 }

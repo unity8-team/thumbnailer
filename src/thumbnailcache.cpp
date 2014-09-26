@@ -22,6 +22,7 @@
 
 #include<thumbnailer.h>
 #include<internal/thumbnailcache.h>
+#include<cstdlib>
 #include<stdexcept>
 #include<glib.h>
 #include<sys/stat.h>

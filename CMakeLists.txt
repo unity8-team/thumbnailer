@@ -22,6 +22,7 @@ set(SO_VERSION "${SO_VERSION_MAJOR}.${SO_VERSION_MINOR}.${SO_VERSION_PATCH}")
 set(ABI_VERSION 0)
 
 include(cmake/coverage.cmake)
+include(cmake/UseGSettings.cmake)
 
 include(GNUInstallDirs)
 set(LIBDIR ${CMAKE_INSTALL_LIBDIR})
@@ -47,6 +48,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 
 enable_testing()
 add_subdirectory(src)
+add_subdirectory(data)
 add_subdirectory(plugins/Ubuntu/Thumbnailer)
 add_subdirectory(tests)
 add_subdirectory(tools)

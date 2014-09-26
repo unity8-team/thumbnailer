@@ -18,6 +18,7 @@
 
 #include<internal/gobj_memory.h>
 #include<cstdio>
+#include<string>
 #include<memory>
 #include<stdexcept>
 #include<gst/gst.h>
