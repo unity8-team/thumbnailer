@@ -182,6 +182,8 @@ string ThumbnailerPrivate::create_thumbnail(const string &abspath, ThumbnailSize
     if (content_type.find("video/") == 0) {
         return create_video_thumbnail(abspath, desired_size);
     }
+    /* Disabled for the moment due to https://bugs.launchpad.net/ubuntu/+source/thumbnailer/+bug/1376500
+     * Re-enable once that issue has been fixed.
     if(desired_size != TN_SIZE_ORIGINAL) {
         try {
             auto embedded_image = extract_exif_thumbnail(abspath);
@@ -201,6 +203,7 @@ string ThumbnailerPrivate::create_thumbnail(const string &abspath, ThumbnailSize
         } catch(const exception &e) {
         }
     }
+     */
 
     return create_generic_thumbnail(abspath, desired_size);
 }
