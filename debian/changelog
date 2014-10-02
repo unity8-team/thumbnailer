@@ -1,3 +1,10 @@
+thumbnailer (1.3+14.10.20141002-0ubuntu1) utopic; urgency=low
+
+  [ Jussi Pakkanen ]
+  * Disable exif thumbnails temporarily to work around a regression.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Thu, 02 Oct 2014 19:20:24 +0000
+
 thumbnailer (1.3+14.10.20140926-0ubuntu1) utopic; urgency=medium
 
   [ Pawel Stolowski ]
