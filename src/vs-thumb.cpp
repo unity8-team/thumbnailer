@@ -38,7 +38,7 @@ bool extract_video(const std::string &ifname, const std::string &ofname) {
     gint64 duration, seek_point;
     string pipe_cmd = "filesrc location=\"";
     pipe_cmd += ifname;
-    pipe_cmd += "\" ! decodebin ! videoconvert ! videoscale !";
+    pipe_cmd += "\" ! decodebin ! videoflip method=automatic ! videoconvert ! videoscale !";
     pipe_cmd += "appsink name=sink caps=\"";
     pipe_cmd += caps_string;
     pipe_cmd += "\"";
