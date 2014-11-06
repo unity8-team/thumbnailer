@@ -216,7 +216,9 @@ std::string Thumbnailer::get_thumbnail(const std::string &filename, ThumbnailSiz
         ThumbnailPolicy policy) {
     string abspath;
     if(filename[0] != '/') {
-        abspath += getcwd(nullptr, 0);
+        auto cwd = getcwd(nullptr, 0);
+        abspath += cwd;
+        free(cwd);
         abspath += "/" + filename;
     } else {
         abspath = filename;
