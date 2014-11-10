@@ -26,6 +26,7 @@
 #define TESTIMAGE_NOEXIF TESTDATADIR "/testimage_noexif.png"
 #define ROTTESTIMAGE TESTDATADIR "/testrotate.jpg"
 #define TESTVIDEO TESTDATADIR "/testvideo.ogg"
+#define TESTVIDEO_NOTHUMB TESTDATADIR "/testvideo_nothumb.mp4"
 #define CHINESETEXTDIR TESTDATADIR "/chinese_text"
 
 using namespace std;
@@ -92,6 +93,14 @@ TEST(Thumbnailer, video) {
     Thumbnailer tn;
     string videofile(TESTVIDEO);
     file_test(tn, videofile);
+}
+
+TEST(Thumbnailer, video_nothumb) {
+    Thumbnailer tn;
+    string videofile(TESTVIDEO_NOTHUMB);
+    ASSERT_TRUE(file_exists(videofile));
+    string thumbfile = tn.get_thumbnail(videofile, TN_SIZE_SMALL, TN_LOCAL);
+    ASSERT_TRUE(file_exists(thumbfile));
 }
 
 TEST(Thumbnailer, rotate) {
