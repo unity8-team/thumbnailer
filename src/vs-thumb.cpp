@@ -77,8 +77,17 @@ bool extract_video(const std::string &ifname, const std::string &ofname) {
     GstSample *sample = nullptr;
     sample = gst_app_sink_pull_preroll(GST_APP_SINK(sink));
     if(sample == nullptr || !GST_IS_SAMPLE(sample)) {
-        throw runtime_error("Could not create sample. Unsupported or invalid file type?");
+        /* For files with very few intra frames we try to get the first frame */
+        gst_element_seek_simple(pipeline.get(),
+                                GST_FORMAT_TIME,
+                                static_cast<GstSeekFlags>(GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_KEY_UNIT),
+                                0);
+        sample = gst_app_sink_pull_preroll(GST_APP_SINK(sink));
+        if(sample == nullptr || !GST_IS_SAMPLE(sample)) {
+            throw runtime_error("Could not create sample. Unsupported or invalid file type?");
+        }
     }
+
     GstCaps *caps = gst_sample_get_caps(sample);
 
     GstBuffer *buf = gst_sample_get_buffer(sample);
