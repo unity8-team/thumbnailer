@@ -51,7 +51,7 @@ QImage ThumbnailGenerator::requestImage(const QString &id, QSize *realSize,
         if(requestedSize.width() > xlarge_cutoff || requestedSize.height() > xlarge_cutoff) {
             desiredSize = TN_SIZE_ORIGINAL;
         } if(requestedSize.width() > large_cutoff || requestedSize.height() > large_cutoff) {
-                desiredSize = TN_SIZE_XLARGE;
+            desiredSize = TN_SIZE_XLARGE;
         } else if(requestedSize.width() > small_cutoff || requestedSize.height() > small_cutoff) {
             desiredSize = TN_SIZE_LARGE;
         } else {

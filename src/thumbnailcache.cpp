@@ -237,7 +237,7 @@ string ThumbnailCachePrivate::md5(const string &str) const {
     if(normalized) {
         buf = (const unsigned char*)normalized;
     }
-    gssize bytes = str.length();
+    gssize bytes = strlen((const char*)buf);
 
     result = g_compute_checksum_for_data(G_CHECKSUM_MD5, buf, bytes);
     final_result = result;
@@ -247,6 +247,7 @@ string ThumbnailCachePrivate::md5(const string &str) const {
 }
 
 string ThumbnailCachePrivate::get_cache_file_name(const std::string & abs_original, ThumbnailSize desired) const {
+    assert(!abs_original.empty());
     assert(abs_original[0] == '/');
     string path;
     switch(desired) {
