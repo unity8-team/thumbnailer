@@ -1,3 +1,10 @@
+thumbnailer (1.3+15.04.20150106-0ubuntu1) vivid; urgency=low
+
+  [ Jussi Pakkanen ]
+  * Fix a few potential memory corruptions. (LP: #1403906)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 06 Jan 2015 18:50:46 +0000
+
 thumbnailer (1.3+15.04.20141202-0ubuntu1) vivid; urgency=low
 
   [ Alfonso Sanchez-Beato ]
