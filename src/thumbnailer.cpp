@@ -92,8 +92,8 @@ string ThumbnailerPrivate::extract_exif_thumbnail(const std::string &abspath) {
         exif_loader_write_file(el.get(), abspath.c_str());
         std::unique_ptr<ExifData, void(*)(ExifData*e)> ed(exif_loader_get_data(el.get()), exif_data_unref);
         if(ed && ed->data && ed->size) {
-            auto outfile = create_random_filename().c_str();
-            FILE *thumb = fopen(outfile, "wb");
+            auto outfile = create_random_filename();
+            FILE *thumb = fopen(outfile.c_str(), "wb");
             if(thumb) {
                 fwrite(ed->data, 1, ed->size, thumb);
                 fclose(thumb);
@@ -215,6 +215,9 @@ Thumbnailer::~Thumbnailer() {
 std::string Thumbnailer::get_thumbnail(const std::string &filename, ThumbnailSize desired_size,
         ThumbnailPolicy policy) {
     string abspath;
+    if(filename.empty()) {
+        return "";
+    }
     if(filename[0] != '/') {
         auto cwd = getcwd(nullptr, 0);
         abspath += cwd;
