@@ -21,6 +21,7 @@
 #include <QDebug>
 #include <QMimeDatabase>
 #include <QUrl>
+#include <QImageReader>
 
 static const char *DEFAULT_VIDEO_ART = "/usr/share/thumbnailer/icons/video_missing.png";
 static const char *DEFAULT_ALBUM_ART = "/usr/share/thumbnailer/icons/album_missing.png";
@@ -61,7 +62,15 @@ QImage ThumbnailGenerator::requestImage(const QString &id, QSize *realSize,
         if(!tgt_path.empty()) {
             QString tgt(tgt_path.c_str());
             QImage image;
-            image.load(tgt);
+            QImageReader reader;
+            reader.setFileName(tgt);
+            QSize imageSize = reader.size();
+            if (imageSize.width() > requestedSize.width() ||
+                imageSize.height() > requestedSize.height()) {
+                imageSize.scale(requestedSize, Qt::KeepAspectRatio);
+                reader.setScaledSize(imageSize);
+            }
+            image = reader.read();
             *realSize = image.size();
             return image;
         }
