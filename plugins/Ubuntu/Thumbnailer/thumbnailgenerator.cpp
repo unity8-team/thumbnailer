@@ -65,9 +65,17 @@ QImage ThumbnailGenerator::requestImage(const QString &id, QSize *realSize,
             QImageReader reader;
             reader.setFileName(tgt);
             QSize imageSize = reader.size();
-            if (imageSize.width() > requestedSize.width() ||
-                imageSize.height() > requestedSize.height()) {
-                imageSize.scale(requestedSize, Qt::KeepAspectRatio);
+            if (!requestedSize.isNull() &&
+                (imageSize.width() > requestedSize.width() ||
+                 imageSize.height() > requestedSize.height())) {
+                QSize validRequestedSize = requestedSize;
+                if (validRequestedSize.width() == 0) {
+                    validRequestedSize.setWidth(imageSize.width());
+                }
+                if (validRequestedSize.height() == 0) {
+                    validRequestedSize.setHeight(imageSize.height());
+                }
+                imageSize.scale(validRequestedSize, Qt::KeepAspectRatio);
                 reader.setScaledSize(imageSize);
             }
             image = reader.read();
