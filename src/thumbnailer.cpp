@@ -239,7 +239,7 @@ std::string Thumbnailer::get_thumbnail(const std::string &filename, ThumbnailSiz
         if(generated == abspath) {
             return abspath;
         }
-    } catch(std::runtime_error &e) {
+    } catch(const std::runtime_error &e) {
         p->cache.mark_failure(abspath);
         throw;
     }
