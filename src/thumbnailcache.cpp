@@ -325,7 +325,7 @@ std::string ThumbnailCache::get_fail_file_name(const std::string &abs_path) cons
     return p->get_fail_file_name(abs_path);
 }
 
-bool ThumbnailCache::mark_failure(const std::string &abs_path) {
+bool ThumbnailCache::mark_failure(const std::string &abs_path) noexcept {
     assert(abs_path[0] == '/');
 
     string fail_name = p->get_fail_file_name(abs_path);
