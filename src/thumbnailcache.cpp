@@ -330,7 +330,11 @@ void ThumbnailCache::mark_failure(const std::string &abs_path) noexcept {
 
     string fail_name = p->get_fail_file_name(abs_path);
     FILE *f = fopen(fail_name.c_str(), "wb+");
-    fclose(f);
+    if (f) {
+        fclose(f);
+    } else {
+        fprintf(stderr, "Could not mark thumbnailing failure: %s\n", strerror(errno));
+    }
 }
 
 bool ThumbnailCache::has_failure(const std::string &abs_path) const {
