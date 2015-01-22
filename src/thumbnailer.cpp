@@ -229,10 +229,21 @@ std::string Thumbnailer::get_thumbnail(const std::string &filename, ThumbnailSiz
     std::string estimate = p->cache.get_if_exists(abspath, desired_size);
     if(!estimate.empty())
         return estimate;
-    string generated = p->create_thumbnail(abspath, desired_size, policy);
-    if(generated == abspath) {
-        return abspath;
+
+    if (p->cache.has_failure(abspath)) {
+        throw runtime_error("Thumbnail generation failed previously, not trying again.");
     }
+
+    try {
+        string generated = p->create_thumbnail(abspath, desired_size, policy);
+        if(generated == abspath) {
+            return abspath;
+        }
+    } catch(const std::runtime_error &e) {
+        p->cache.mark_failure(abspath);
+        throw;
+    }
+
     return p->cache.get_if_exists(abspath, desired_size);
 }
 

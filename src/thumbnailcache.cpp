@@ -132,6 +132,7 @@ public:
 
     string md5(const string &str) const;
     string get_cache_file_name(const std::string &original, ThumbnailSize desired) const;
+    string get_fail_file_name(const std::string &original) const;
     void clear();
     void delete_from_cache(const std::string &abs_path);
     void prune();
@@ -142,6 +143,7 @@ private:
     string largedir;
     string xlargedir;
     string originaldir;
+    string faildir;
     static const size_t MAX_FILES = 200;
 
 };
@@ -151,6 +153,7 @@ void ThumbnailCachePrivate::clear() {
     cleardir(largedir);
     cleardir(xlargedir);
     cleardir(originaldir);
+    cleardir(faildir);
 }
 
 
@@ -159,6 +162,7 @@ void ThumbnailCachePrivate::prune() {
     prune_dir(largedir, MAX_FILES);
     prune_dir(xlargedir, MAX_FILES);
     prune_dir(originaldir, MAX_FILES);
+    prune_dir(faildir, MAX_FILES);
 }
 
 void ThumbnailCachePrivate::delete_from_cache(const std::string &abs_path) {
@@ -166,6 +170,7 @@ void ThumbnailCachePrivate::delete_from_cache(const std::string &abs_path) {
     unlink(get_cache_file_name(abs_path, TN_SIZE_LARGE).c_str());
     unlink(get_cache_file_name(abs_path, TN_SIZE_XLARGE).c_str());
     unlink(get_cache_file_name(abs_path, TN_SIZE_ORIGINAL).c_str());
+    unlink(get_fail_file_name(abs_path).c_str());
 }
 
 static string makedir(const string &base, const string &subdir) {
@@ -226,6 +231,7 @@ ThumbnailCachePrivate::ThumbnailCachePrivate() {
     largedir = makedir(tndir, "large");
     xlargedir = makedir(tndir, "xlarge");
     originaldir = makedir(tndir, "original");
+    faildir = makedir(tndir, "fail");
 }
 
 string ThumbnailCachePrivate::md5(const string &str) const {
@@ -257,6 +263,14 @@ string ThumbnailCachePrivate::get_cache_file_name(const std::string & abs_origin
     case TN_SIZE_ORIGINAL : path = originaldir; break;
     default : throw runtime_error("Unreachable code");
     }
+    path += "/" + md5("file://" + abs_original) + ".png";
+    return path;
+}
+
+string ThumbnailCachePrivate::get_fail_file_name(const std::string & abs_original) const {
+    assert(!abs_original.empty());
+    assert(abs_original[0] == '/');
+    string path = faildir;
     path += "/" + md5("file://" + abs_original) + ".png";
     return path;
 }
@@ -305,6 +319,47 @@ std::string ThumbnailCache::get_if_exists(const std::string &abs_path, Thumbnail
 
 std::string ThumbnailCache::get_cache_file_name(const std::string &abs_path, ThumbnailSize desired) const {
     return p->get_cache_file_name(abs_path, desired);
+}
+
+std::string ThumbnailCache::get_fail_file_name(const std::string &abs_path) const {
+    return p->get_fail_file_name(abs_path);
+}
+
+void ThumbnailCache::mark_failure(const std::string &abs_path) noexcept {
+    assert(abs_path[0] == '/');
+
+    string fail_name = p->get_fail_file_name(abs_path);
+    FILE *f = fopen(fail_name.c_str(), "wb+");
+    if (f) {
+        fclose(f);
+    } else {
+        fprintf(stderr, "Could not mark thumbnailing failure: %s\n", strerror(errno));
+    }
+}
+
+bool ThumbnailCache::has_failure(const std::string &abs_path) const {
+    assert(abs_path[0] == '/');
+
+    string fail_name = p->get_fail_file_name(abs_path);
+    FILE *f = fopen(fail_name.c_str(), "r");
+    bool fail_exists = false;
+    if(f) {
+        fail_exists = true;
+        fclose(f);
+    }
+
+    // Has it been changed since the thumbnail was taken?
+    if(fail_exists) {
+        struct stat original_stat, fail_stat;
+        stat(abs_path.c_str(), &original_stat);
+        stat(fail_name.c_str(), &fail_stat);
+        if(original_stat.st_mtime > fail_stat.st_mtime) {
+            p->delete_from_cache(abs_path);
+            fail_exists = false;
+        }
+    }
+
+    return fail_exists;
 }
 
 void ThumbnailCache::clear() {
