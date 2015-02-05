@@ -1,3 +1,11 @@
+thumbnailer (1.1+14.04.20150205-0ubuntu1) trusty; urgency=medium
+
+  [ Jussi Pakkanen ]
+  * SRU backport of patch to make file names with chinese characters
+    work. (LP: #1319698)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Thu, 05 Feb 2015 12:10:33 +0000
+
 thumbnailer (1.1+14.04.20140401.1-0ubuntu1) trusty; urgency=low
 
   [ Michal Hruby ]
