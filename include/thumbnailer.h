@@ -76,6 +76,8 @@ public:
     std::string get_artist_art(const std::string &artist, const std::string &album,
             ThumbnailSize desiredSize, ThumbnailPolicy policy);
 
+    bool thumbnail_needs_generation(const std::string &filename, ThumbnailSize desired_size);
+
 private:
     Thumbnailer(const Thumbnailer &t);
     Thumbnailer & operator=(const Thumbnailer &t);

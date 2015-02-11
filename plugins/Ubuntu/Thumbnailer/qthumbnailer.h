@@ -22,13 +22,18 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 #include <QtCore/QMimeDatabase>
-#include <QtGui/QImage>
-#include <QtGui/QImageReader>
+#include <QtCore/QThreadPool>
+#include <QtCore/QRunnable>
+#include <QtCore/QWeakPointer>
+#include <QtQml/QQmlParserStatus>
 #include <thumbnailer.h>
 
-class QThumbnailer: public QObject
+class ThumbnailTask;
+
+class QThumbnailer : public QObject, public QQmlParserStatus
 {
     Q_OBJECT
+    Q_INTERFACES(QQmlParserStatus)
     Q_DISABLE_COPY(QThumbnailer)
     Q_ENUMS(Size)
 
@@ -38,35 +43,67 @@ class QThumbnailer: public QObject
 
 public:
     QThumbnailer(QObject* parent=0);
+    ~QThumbnailer();
 
     enum Size { Small = TN_SIZE_SMALL,
                 Large = TN_SIZE_LARGE,
                 ExtraLarge = TN_SIZE_XLARGE
               };
 
+    // inherited from QQmlParserStatus
+    void classBegin();
+    void componentComplete();
+
+    // getters and setters
     QUrl source() const;
     void setSource(QUrl source);
     QThumbnailer::Size size() const;
     void setSize(QThumbnailer::Size size);
     QUrl thumbnail() const;
 
+    static QString doGetThumbnail(QString mediaPath, QThumbnailer::Size size);
+
 Q_SIGNALS:
     void sourceChanged();
     void sizeChanged();
     void thumbnailChanged();
 
-protected:
+protected Q_SLOTS:
+    void setThumbnail(QString thumbnail);
     void updateThumbnail();
-    QString doGetThumbnail(QString mediaPath, QThumbnailer::Size size);
-//    ThumbnailSize thumbnailSizeFromQSize(QSize size) const;
+    void enqueueThumbnailTask(ThumbnailTask* task);
+    void processVideoQueue();
+    void processImageQueue();
+
+protected:
+    void cancelCurrentTask();
 
 private:
+    bool m_completed;
     QUrl m_source;
     QThumbnailer::Size m_size;
     QUrl m_thumbnail;
-    Thumbnailer m_thumbnailer;
-    QImageReader m_reader;
-    QMimeDatabase m_mimeDatabase;
+    QWeakPointer<ThumbnailTask> m_currentTask;
+
+    static QThreadPool c_videoThreadPool;
+    static QThreadPool c_imageThreadPool;
+    static QList<ThumbnailTask*> c_videoQueue;
+    static QList<ThumbnailTask*> c_imageQueue;
+    static Thumbnailer c_thumbnailer;
+    static QMimeDatabase c_mimeDatabase;
+};
+
+class ThumbnailTask : public QObject, public QRunnable
+{
+    Q_OBJECT
+
+public:
+    virtual void run();
+    QUrl source;
+    QThumbnailer::Size size;
+
+Q_SIGNALS:
+    void finished(QString result);
 };
 
 #endif

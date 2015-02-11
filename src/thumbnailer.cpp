@@ -322,3 +322,27 @@ std::string Thumbnailer::get_artist_art(const std::string &artist, const std::st
 
     return "";
 }
+
+bool Thumbnailer::thumbnail_needs_generation(const std::string &filename, ThumbnailSize desired_size) {
+    string abspath;
+    if(filename.empty()) {
+        return "";
+    }
+    if(filename[0] != '/') {
+        auto cwd = getcwd(nullptr, 0);
+        abspath += cwd;
+        free(cwd);
+        abspath += "/" + filename;
+    } else {
+        abspath = filename;
+    }
+    std::string estimate = p->cache.get_if_exists(abspath, desired_size);
+    if(!estimate.empty())
+        return false;
+
+    if (p->cache.has_failure(abspath)) {
+        return false;
+    }
+
+    return true;
+}
