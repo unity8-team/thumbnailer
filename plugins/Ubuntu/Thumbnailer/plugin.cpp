@@ -20,11 +20,14 @@
 #include "albumartgenerator.h"
 #include "artistartgenerator.h"
 #include "thumbnailgenerator.h"
+#include "qthumbnailer.h"
 
 void ThumbnailerPlugin::registerTypes(const char *uri) {
     qmlRegisterTypeNotAvailable(
         uri, 0, 1, "__ThumbnailerIgnoreMe",
         "Ignore this: QML plugins must contain at least one type");
+    qmlRegisterType<QThumbnailer>(uri, 0, 1, "Thumbnailer");
+
 }
 
 void ThumbnailerPlugin::initializeEngine(QQmlEngine *engine, const char *uri) {
