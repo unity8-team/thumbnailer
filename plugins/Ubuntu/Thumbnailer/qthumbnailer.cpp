@@ -20,22 +20,6 @@
 #include <stdexcept>
 #include <QtCore/QDebug>
 
-ThumbnailSize thumbnailSizeFromSize(QSize size)
-{
-    const int xlarge_cutoff = 512;
-    const int large_cutoff = 256;
-    const int small_cutoff = 128;
-    if(size.width() > xlarge_cutoff || size.height() > xlarge_cutoff) {
-        return TN_SIZE_ORIGINAL;
-    } else if(size.width() > large_cutoff || size.height() > large_cutoff) {
-        return TN_SIZE_XLARGE;
-    } else if(size.width() > small_cutoff || size.height() > small_cutoff) {
-        return TN_SIZE_LARGE;
-    } else {
-        return TN_SIZE_SMALL;
-    }
-}
-
 /*!
   \qmltype Thumbnailer
   \instantiates QThumbnailer
@@ -137,6 +121,22 @@ void QThumbnailer::setSource(QUrl source)
 QSize QThumbnailer::size() const
 {
     return m_size;
+}
+
+ThumbnailSize thumbnailSizeFromSize(QSize size)
+{
+    const int xlarge_cutoff = 512;
+    const int large_cutoff = 256;
+    const int small_cutoff = 128;
+    if(size.width() > xlarge_cutoff || size.height() > xlarge_cutoff) {
+        return TN_SIZE_ORIGINAL;
+    } else if(size.width() > large_cutoff || size.height() > large_cutoff) {
+        return TN_SIZE_XLARGE;
+    } else if(size.width() > small_cutoff || size.height() > small_cutoff) {
+        return TN_SIZE_LARGE;
+    } else {
+        return TN_SIZE_SMALL;
+    }
 }
 
 void QThumbnailer::setSize(QSize size)
