@@ -161,12 +161,16 @@ QUrl QThumbnailer::thumbnail() const
 
 void QThumbnailer::setThumbnail(QString thumbnail)
 {
+    QUrl thumbnailUrl;
     if (thumbnail.isEmpty()) {
-        m_thumbnail = QUrl();
+        thumbnailUrl = QUrl();
     } else {
-        m_thumbnail = QUrl::fromLocalFile(thumbnail);
+        thumbnailUrl = QUrl::fromLocalFile(thumbnail);
     }
-    Q_EMIT thumbnailChanged();
+    if (thumbnailUrl != m_thumbnail) {
+        m_thumbnail = thumbnailUrl;
+        Q_EMIT thumbnailChanged();
+    }
 }
 
 void QThumbnailer::updateThumbnail()
@@ -178,6 +182,7 @@ void QThumbnailer::updateThumbnail()
     cancelUpdateThumbnail();
 
     if (m_size.isEmpty() || m_source.isEmpty()) {
+        setThumbnail("");
         return;
     }
 

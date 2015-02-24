@@ -42,6 +42,12 @@ Item {
         name: "ThumbnailerTests"
         when: windowShown
 
+        function cleanup() {
+            thumbnailer.source = "";
+            thumbnailerSpy.clear();
+            imageSpy.clear();
+        }
+
         function test_initialState() {
             compare(thumbnailerSpy.count, 0);
             compare(thumbnailer.size.width, 200);
@@ -59,6 +65,13 @@ Item {
             var ctx = getContextForImage(image);
             comparePixel(ctx, 0, 0, 255, 1, 1, 255);
             comparePixel(ctx, 100, 100, 4, 2, 1, 255);
+        }
+
+        function test_nonExistingFile() {
+            thumbnailer.source = "idontexist.jpg";
+            compare(thumbnailerSpy.count, 0);
+            compare(thumbnailer.thumbnail, "");
+            tryCompare(image, "status", Image.Null)
         }
 
         function getContextForImage(image) {
