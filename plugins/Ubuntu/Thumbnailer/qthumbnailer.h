@@ -106,7 +106,7 @@ public:
     QThumbnailer::Size size;
 
 Q_SIGNALS:
-    void finished(QString result);
+    void thumbnailPathRetrieved(QString thumbnail);
 };
 
 #endif

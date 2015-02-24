@@ -123,15 +123,15 @@ void QThumbnailer::updateThumbnail()
 
 void QThumbnailer::enqueueThumbnailTask(ThumbnailTask* task)
 {
-    connect(task, SIGNAL(finished(QString)), this, SLOT(setThumbnail(QString)));
+    connect(task, SIGNAL(thumbnailPathRetrieved(QString)), this, SLOT(setThumbnail(QString)));
 
     QMimeType mime = s_mimeDatabase.mimeTypeForFile(task->source.path());
     if(mime.name().contains("image")) {
-        connect(task, SIGNAL(finished(QString)), this, SLOT(processImageQueue()));
+        connect(task, SIGNAL(thumbnailPathRetrieved(QString)), this, SLOT(processImageQueue()));
         s_imageQueue.append(task);
         processImageQueue();
     } else {
-        connect(task, SIGNAL(finished(QString)), this, SLOT(processVideoQueue()));
+        connect(task, SIGNAL(thumbnailPathRetrieved(QString)), this, SLOT(processVideoQueue()));
         s_videoQueue.append(task);
         processVideoQueue();
     }
@@ -197,6 +197,6 @@ void QThumbnailer::cancelCurrentTask()
 
 void ThumbnailTask::run()
 {
-    QString result = QThumbnailer::thumbnailPathForMedia(source.path(), size);
-    Q_EMIT finished(result);
+    QString thumbnail = QThumbnailer::thumbnailPathForMedia(source.path(), size);
+    Q_EMIT thumbnailPathRetrieved(thumbnail);
 }
