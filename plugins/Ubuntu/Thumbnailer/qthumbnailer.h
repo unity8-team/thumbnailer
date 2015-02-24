@@ -24,6 +24,7 @@
 #include <QtCore/QMimeDatabase>
 #include <QtCore/QThreadPool>
 #include <QtCore/QRunnable>
+#include <QtCore/QPointer>
 #include <QtCore/QWeakPointer>
 #include <QtQml/QQmlParserStatus>
 #include <thumbnailer.h>
@@ -63,22 +64,21 @@ public:
     void setSize(QThumbnailer::Size size);
     QUrl thumbnail() const;
 
-
 Q_SIGNALS:
     void sourceChanged();
     void sizeChanged();
     void thumbnailChanged();
 
 protected:
-    void cancelCurrentTask();
     void updateThumbnail();
-    void enqueueThumbnailTask(ThumbnailTask* task);
+    void cancelUpdateThumbnail();
+    static void enqueueThumbnailTask(ThumbnailTask* task);
     static QString thumbnailPathForMedia(QString mediaPath, QThumbnailer::Size size);
 
 protected Q_SLOTS:
     void setThumbnail(QString thumbnail);
-    void processVideoQueue();
-    void processImageQueue();
+    static void processVideoQueue();
+    static void processImageQueue();
 
 private:
     bool m_componentCompleted;
@@ -108,6 +108,7 @@ public:
 
     QUrl source;
     QThumbnailer::Size size;
+    QPointer<QThumbnailer> caller;
 
 Q_SIGNALS:
     void thumbnailPathRetrieved(QString thumbnail);

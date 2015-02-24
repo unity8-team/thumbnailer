@@ -42,7 +42,7 @@ QThumbnailer::QThumbnailer(QObject* parent) :
 
 QThumbnailer::~QThumbnailer()
 {
-    cancelCurrentTask();
+    cancelUpdateThumbnail();
 }
 
 void QThumbnailer::classBegin()
@@ -104,7 +104,7 @@ void QThumbnailer::updateThumbnail()
         return;
     }
 
-    cancelCurrentTask();
+    cancelUpdateThumbnail();
     bool slowUpdate = s_thumbnailer.thumbnail_needs_generation(m_source.path().toStdString(),
                                                                (ThumbnailSize)m_size);
     if (!slowUpdate) {
@@ -118,46 +118,39 @@ void QThumbnailer::updateThumbnail()
         ThumbnailTask* task = new ThumbnailTask;
         task->source = m_source;
         task->size = m_size;
+        task->caller = this;
         enqueueThumbnailTask(task);
     }
 }
 
+void QThumbnailer::cancelUpdateThumbnail()
+{
+    if (!m_currentTask.isNull()) {
+        if (s_imageQueue.removeOne(m_currentTask.data()) ||
+            s_videoQueue.removeOne(m_currentTask.data()) ) {
+            QSharedPointer<ThumbnailTask> previousTask = m_currentTask.toStrongRef();
+            m_currentTask.clear();
+            previousTask.clear();
+        }
+    }
+}
+
+
+/* Static methods implementation */
+
 void QThumbnailer::enqueueThumbnailTask(ThumbnailTask* task)
 {
-    connect(task, SIGNAL(thumbnailPathRetrieved(QString)), this, SLOT(setThumbnail(QString)));
+    connect(task, SIGNAL(thumbnailPathRetrieved(QString)), task->caller, SLOT(setThumbnail(QString)));
 
     QMimeType mime = s_mimeDatabase.mimeTypeForFile(task->source.path());
     if(mime.name().contains("image")) {
-        connect(task, SIGNAL(thumbnailPathRetrieved(QString)), this, SLOT(processImageQueue()));
+        connect(task, SIGNAL(thumbnailPathRetrieved(QString)), task->caller, SLOT(processImageQueue()));
         s_imageQueue.append(task);
-        processImageQueue();
+        QThumbnailer::processImageQueue();
     } else {
-        connect(task, SIGNAL(thumbnailPathRetrieved(QString)), this, SLOT(processVideoQueue()));
+        connect(task, SIGNAL(thumbnailPathRetrieved(QString)), task->caller, SLOT(processVideoQueue()));
         s_videoQueue.append(task);
-        processVideoQueue();
-    }
-}
-
-void QThumbnailer::processVideoQueue()
-{
-    if (s_videoQueue.isEmpty()) {
-        return;
-    }
-    ThumbnailTask* task = s_videoQueue.takeFirst();
-    if (!s_videoThreadPool.tryStart(task)) {
-        s_videoQueue.prepend(task);
-    }
-}
-
-void QThumbnailer::processImageQueue()
-{
-    if (s_imageQueue.isEmpty()) {
-        return;
-    }
-    ThumbnailTask* task = s_imageQueue.takeFirst();
-
-    if (!s_imageThreadPool.tryStart(task)) {
-        s_imageQueue.prepend(task);
+        QThumbnailer::processVideoQueue();
     }
 }
 
@@ -183,14 +176,26 @@ QString QThumbnailer::thumbnailPathForMedia(QString mediaPath, QThumbnailer::Siz
     return thumbnailPath;
 }
 
-void QThumbnailer::cancelCurrentTask()
+void QThumbnailer::processVideoQueue()
 {
-    if (!m_currentTask.isNull()) {
-        if (s_imageQueue.removeOne(m_currentTask.data()) ||
-            s_videoQueue.removeOne(m_currentTask.data()) ) {
-            QSharedPointer<ThumbnailTask> previousTask = m_currentTask.toStrongRef();
-            m_currentTask.clear();
-            previousTask.clear();
-        }
+    if (s_videoQueue.isEmpty()) {
+        return;
+    }
+    ThumbnailTask* task = s_videoQueue.takeFirst();
+    if (!s_videoThreadPool.tryStart(task)) {
+        s_videoQueue.prepend(task);
     }
 }
+
+void QThumbnailer::processImageQueue()
+{
+    if (s_imageQueue.isEmpty()) {
+        return;
+    }
+    ThumbnailTask* task = s_imageQueue.takeFirst();
+
+    if (!s_imageThreadPool.tryStart(task)) {
+        s_imageQueue.prepend(task);
+    }
+}
+
