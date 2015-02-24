@@ -76,6 +76,13 @@ public:
     std::string get_artist_art(const std::string &artist, const std::string &album,
             ThumbnailSize desiredSize, ThumbnailPolicy policy);
 
+    /**
+     * Returns whether or not the thumbnail was previously generated and is readily
+     * available.
+     *
+     * If true the next call to get_thumbnail would lead to generating the
+     * thumbnail and could potentially take a long time.
+     */
     bool thumbnail_needs_generation(const std::string &filename, ThumbnailSize desired_size);
 
 private:
