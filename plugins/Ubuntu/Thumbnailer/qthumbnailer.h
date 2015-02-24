@@ -101,7 +101,11 @@ class ThumbnailTask : public QObject, public QRunnable
     Q_OBJECT
 
 public:
-    virtual void run();
+    virtual void run() {
+        QString thumbnail = QThumbnailer::thumbnailPathForMedia(source.path(), size);
+        Q_EMIT thumbnailPathRetrieved(thumbnail);
+    }
+
     QUrl source;
     QThumbnailer::Size size;
 

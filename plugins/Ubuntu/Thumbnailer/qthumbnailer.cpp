@@ -193,10 +193,3 @@ void QThumbnailer::cancelCurrentTask()
         }
     }
 }
-
-
-void ThumbnailTask::run()
-{
-    QString thumbnail = QThumbnailer::thumbnailPathForMedia(source.path(), size);
-    Q_EMIT thumbnailPathRetrieved(thumbnail);
-}
