@@ -17,6 +17,7 @@
 */
 
 #include "qthumbnailer.h"
+#include <stdexcept>
 #include <QtCore/QDebug>
 
 static const QString DEFAULT_VIDEO_ART("/usr/share/thumbnailer/icons/video_missing.png");
