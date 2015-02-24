@@ -41,6 +41,8 @@ class QThumbnailer : public QObject, public QQmlParserStatus
     Q_PROPERTY(QThumbnailer::Size size READ size WRITE setSize NOTIFY sizeChanged)
     Q_PROPERTY(QUrl thumbnail READ thumbnail NOTIFY thumbnailChanged)
 
+    friend class ThumbnailTask;
+
 public:
     QThumbnailer(QObject* parent=0);
     ~QThumbnailer();
@@ -61,7 +63,6 @@ public:
     void setSize(QThumbnailer::Size size);
     QUrl thumbnail() const;
 
-    static QString doGetThumbnail(QString mediaPath, QThumbnailer::Size size);
 
 Q_SIGNALS:
     void sourceChanged();
@@ -72,6 +73,7 @@ protected:
     void cancelCurrentTask();
     void updateThumbnail();
     void enqueueThumbnailTask(ThumbnailTask* task);
+    static QString thumbnailPathForMedia(QString mediaPath, QThumbnailer::Size size);
 
 protected Q_SLOTS:
     void setThumbnail(QString thumbnail);

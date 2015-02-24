@@ -106,14 +106,18 @@ void QThumbnailer::updateThumbnail()
     cancelCurrentTask();
     bool slowUpdate = s_thumbnailer.thumbnail_needs_generation(m_source.path().toStdString(),
                                                                (ThumbnailSize)m_size);
-    if (slowUpdate) {
+    if (!slowUpdate) {
+        // if we know retrieving the thumbnail is fast because it is readily
+        // available on disk, set it immediately
+        QString thumbnail = thumbnailPathForMedia(m_source.path(), m_size);
+        setThumbnail(thumbnail);
+    } else {
+        // otherwise enqueue the thumbnailing task that will then get processed
+        // in a background thread and will end up setting the thumbnail URL
         ThumbnailTask* task = new ThumbnailTask;
         task->source = m_source;
         task->size = m_size;
         enqueueThumbnailTask(task);
-    } else {
-        QString thumbnail = doGetThumbnail(m_source.path(), m_size);
-        setThumbnail(thumbnail);
     }
 }
 
@@ -156,7 +160,7 @@ void QThumbnailer::processImageQueue()
     }
 }
 
-QString QThumbnailer::doGetThumbnail(QString mediaPath, QThumbnailer::Size size)
+QString QThumbnailer::thumbnailPathForMedia(QString mediaPath, QThumbnailer::Size size)
 {
     QString thumbnailPath;
     try {
@@ -193,6 +197,6 @@ void QThumbnailer::cancelCurrentTask()
 
 void ThumbnailTask::run()
 {
-    QString result = QThumbnailer::doGetThumbnail(source.path(), size);
+    QString result = QThumbnailer::thumbnailPathForMedia(source.path(), size);
     Q_EMIT finished(result);
 }
