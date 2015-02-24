@@ -22,7 +22,7 @@
 void ThumbnailQueue::appendTask(ThumbnailTask* task)
 {
     connect(task, SIGNAL(thumbnailPathRetrieved(QString)), task->caller, SLOT(setThumbnail(QString)));
-    connect(task, SIGNAL(thumbnailPathRetrieved(QString)), this, SLOT(processNext()));
+    connect(task, SIGNAL(finished()), this, SLOT(processNext()));
     m_queue.append(task);
     processNext();
 }
