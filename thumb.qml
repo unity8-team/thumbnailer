@@ -39,8 +39,8 @@ Rectangle {
                 Thumbnailer {
                     id: thumbnailer
                     source: filePath
-//                    size: Thumbnailer.Large
-                    size: Thumbnailer.ExtraLarge
+                    size: Thumbnailer.Small
+//                    size: Thumbnailer.ExtraLarge
                 }
             }
         }

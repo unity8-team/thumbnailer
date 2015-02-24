@@ -8,6 +8,7 @@ add_library(thumbnailer-qml MODULE
   artistartgenerator.cpp
   thumbnailgenerator.cpp
   qthumbnailer.cpp
+  thumbnailqueue.cpp
 )
 
 set_target_properties(thumbnailer-qml PROPERTIES AUTOMOC TRUE)

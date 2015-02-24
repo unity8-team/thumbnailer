@@ -20,17 +20,6 @@
 #include <stdexcept>
 #include <QtCore/QDebug>
 
-static const QString DEFAULT_VIDEO_ART("/usr/share/thumbnailer/icons/video_missing.png");
-static const QString DEFAULT_ALBUM_ART("/usr/share/thumbnailer/icons/album_missing.png");
-
-QThreadPool QThumbnailer::s_videoThreadPool;
-QThreadPool QThumbnailer::s_imageThreadPool;
-QList<ThumbnailTask*> QThumbnailer::s_videoQueue;
-QList<ThumbnailTask*> QThumbnailer::s_imageQueue;
-Thumbnailer QThumbnailer::s_thumbnailer;
-QMimeDatabase QThumbnailer::s_mimeDatabase;
-
-
 QThumbnailer::QThumbnailer(QObject* parent) :
     QObject(parent),
     m_componentCompleted(false),
@@ -128,8 +117,8 @@ void QThumbnailer::updateThumbnail()
 void QThumbnailer::cancelUpdateThumbnail()
 {
     if (!m_currentTask.isNull()) {
-        if (s_imageQueue.removeOne(m_currentTask.data()) ||
-            s_videoQueue.removeOne(m_currentTask.data()) ) {
+        if (s_imageQueue.removeTask(m_currentTask.data()) ||
+            s_videoQueue.removeTask(m_currentTask.data()) ) {
             delete m_currentTask;
             m_currentTask.clear();
         }
@@ -139,21 +128,13 @@ void QThumbnailer::cancelUpdateThumbnail()
 
 /* Static methods implementation */
 
-void QThumbnailer::enqueueThumbnailTask(ThumbnailTask* task)
-{
-    connect(task, SIGNAL(thumbnailPathRetrieved(QString)), task->caller, SLOT(setThumbnail(QString)));
+static const QString DEFAULT_VIDEO_ART("/usr/share/thumbnailer/icons/video_missing.png");
+static const QString DEFAULT_ALBUM_ART("/usr/share/thumbnailer/icons/album_missing.png");
 
-    QMimeType mime = s_mimeDatabase.mimeTypeForFile(task->source.path());
-    if(mime.name().contains("image")) {
-        connect(task, SIGNAL(thumbnailPathRetrieved(QString)), task->caller, SLOT(processImageQueue()));
-        s_imageQueue.append(task);
-        QThumbnailer::processImageQueue();
-    } else {
-        connect(task, SIGNAL(thumbnailPathRetrieved(QString)), task->caller, SLOT(processVideoQueue()));
-        s_videoQueue.append(task);
-        QThumbnailer::processVideoQueue();
-    }
-}
+ThumbnailQueue QThumbnailer::s_videoQueue;
+ThumbnailQueue QThumbnailer::s_imageQueue;
+Thumbnailer QThumbnailer::s_thumbnailer;
+QMimeDatabase QThumbnailer::s_mimeDatabase;
 
 QString QThumbnailer::thumbnailPathForMedia(QString mediaPath, QThumbnailer::Size size)
 {
@@ -177,26 +158,12 @@ QString QThumbnailer::thumbnailPathForMedia(QString mediaPath, QThumbnailer::Siz
     return thumbnailPath;
 }
 
-void QThumbnailer::processVideoQueue()
+void QThumbnailer::enqueueThumbnailTask(ThumbnailTask* task)
 {
-    if (s_videoQueue.isEmpty()) {
-        return;
-    }
-    ThumbnailTask* task = s_videoQueue.takeFirst();
-    if (!s_videoThreadPool.tryStart(task)) {
-        s_videoQueue.prepend(task);
+    QMimeType mime = s_mimeDatabase.mimeTypeForFile(task->source.path());
+    if(mime.name().contains("image")) {
+        s_imageQueue.appendTask(task);
+    } else {
+        s_videoQueue.appendTask(task);
     }
 }
-
-void QThumbnailer::processImageQueue()
-{
-    if (s_imageQueue.isEmpty()) {
-        return;
-    }
-    ThumbnailTask* task = s_imageQueue.takeFirst();
-
-    if (!s_imageThreadPool.tryStart(task)) {
-        s_imageQueue.prepend(task);
-    }
-}
-

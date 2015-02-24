@@ -22,11 +22,10 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 #include <QtCore/QMimeDatabase>
-#include <QtCore/QThreadPool>
-#include <QtCore/QRunnable>
 #include <QtCore/QPointer>
 #include <QtQml/QQmlParserStatus>
 #include <thumbnailer.h>
+#include "thumbnailqueue.h"
 
 class ThumbnailTask;
 
@@ -71,13 +70,11 @@ Q_SIGNALS:
 protected:
     void updateThumbnail();
     void cancelUpdateThumbnail();
-    static void enqueueThumbnailTask(ThumbnailTask* task);
     static QString thumbnailPathForMedia(QString mediaPath, QThumbnailer::Size size);
+    static void enqueueThumbnailTask(ThumbnailTask* task);
 
 protected Q_SLOTS:
     void setThumbnail(QString thumbnail);
-    static void processVideoQueue();
-    static void processImageQueue();
 
 private:
     bool m_componentCompleted;
@@ -87,10 +84,8 @@ private:
     QPointer<ThumbnailTask> m_currentTask;
 
     // static class members shared accross all instances of QThumbnailer
-    static QThreadPool s_videoThreadPool;
-    static QThreadPool s_imageThreadPool;
-    static QList<ThumbnailTask*> s_videoQueue;
-    static QList<ThumbnailTask*> s_imageQueue;
+    static ThumbnailQueue s_videoQueue;
+    static ThumbnailQueue s_imageQueue;
     static Thumbnailer s_thumbnailer;
     static QMimeDatabase s_mimeDatabase;
 };
