@@ -20,12 +20,28 @@
 #include <stdexcept>
 #include <QtCore/QDebug>
 
+ThumbnailSize thumbnailSizeFromSize(QSize size)
+{
+    const int xlarge_cutoff = 512;
+    const int large_cutoff = 256;
+    const int small_cutoff = 128;
+    if(size.width() > xlarge_cutoff || size.height() > xlarge_cutoff) {
+        return TN_SIZE_ORIGINAL;
+    } else if(size.width() > large_cutoff || size.height() > large_cutoff) {
+        return TN_SIZE_XLARGE;
+    } else if(size.width() > small_cutoff || size.height() > small_cutoff) {
+        return TN_SIZE_LARGE;
+    } else {
+        return TN_SIZE_SMALL;
+    }
+}
+
 QThumbnailer::QThumbnailer(QObject* parent) :
     QObject(parent),
     m_componentCompleted(false),
     m_source(""),
     m_thumbnail(""),
-    m_size(QThumbnailer::Small),
+    m_thumbnailsize(TN_SIZE_SMALL),
     m_currentTask(NULL)
 {
 }
@@ -59,15 +75,16 @@ void QThumbnailer::setSource(QUrl source)
     }
 }
 
-QThumbnailer::Size QThumbnailer::size() const
+QSize QThumbnailer::size() const
 {
     return m_size;
 }
 
-void QThumbnailer::setSize(QThumbnailer::Size size)
+void QThumbnailer::setSize(QSize size)
 {
     if (size != m_size) {
         m_size = size;
+        m_thumbnailsize = thumbnailSizeFromSize(m_size);
         Q_EMIT sizeChanged();
         updateThumbnail();
     }
@@ -95,19 +112,24 @@ void QThumbnailer::updateThumbnail()
     }
 
     cancelUpdateThumbnail();
+
+    if (m_size.isEmpty()) {
+        return;
+    }
+
     bool slowUpdate = s_thumbnailer.thumbnail_needs_generation(m_source.path().toStdString(),
-                                                               (ThumbnailSize)m_size);
+                                                               m_thumbnailsize);
     if (!slowUpdate) {
         // if we know retrieving the thumbnail is fast because it is readily
         // available on disk, set it immediately
-        QString thumbnail = thumbnailPathForMedia(m_source.path(), m_size);
+        QString thumbnail = thumbnailPathForMedia(m_source.path(), m_thumbnailsize);
         setThumbnail(thumbnail);
     } else {
         // otherwise enqueue the thumbnailing task that will then get processed
         // in a background thread and will end up setting the thumbnail URL
         ThumbnailTask* task = new ThumbnailTask;
         task->source = m_source;
-        task->size = m_size;
+        task->size = m_thumbnailsize;
         task->caller = this;
         m_currentTask = task;
         enqueueThumbnailTask(task);
@@ -136,7 +158,7 @@ ThumbnailQueue QThumbnailer::s_imageQueue;
 Thumbnailer QThumbnailer::s_thumbnailer;
 QMimeDatabase QThumbnailer::s_mimeDatabase;
 
-QString QThumbnailer::thumbnailPathForMedia(QString mediaPath, QThumbnailer::Size size)
+QString QThumbnailer::thumbnailPathForMedia(QString mediaPath, ThumbnailSize size)
 {
     QString thumbnailPath;
     try {

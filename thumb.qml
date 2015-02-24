@@ -24,14 +24,15 @@ Rectangle {
             height: GridView.view.cellHeight
 
             Image {
+                id: image
                 anchors.fill: parent
                 anchors.margins: 10
 
                 fillMode: Image.PreserveAspectFit
                 source: thumbnailer.thumbnail
                 sourceSize {
-                    width: width
-                    height: height
+                    width: image.width
+                    height: image.height
                 }
 
                 asynchronous: true
@@ -39,8 +40,7 @@ Rectangle {
                 Thumbnailer {
                     id: thumbnailer
                     source: filePath
-                    size: Thumbnailer.Small
-//                    size: Thumbnailer.ExtraLarge
+                    size: image.sourceSize
                 }
             }
         }

@@ -23,6 +23,7 @@
 #include <QtCore/QUrl>
 #include <QtCore/QMimeDatabase>
 #include <QtCore/QPointer>
+#include <QtCore/QSize>
 #include <QtQml/QQmlParserStatus>
 #include <thumbnailer.h>
 #include "thumbnailqueue.h"
@@ -34,10 +35,9 @@ class QThumbnailer : public QObject, public QQmlParserStatus
     Q_OBJECT
     Q_INTERFACES(QQmlParserStatus)
     Q_DISABLE_COPY(QThumbnailer)
-    Q_ENUMS(Size)
 
     Q_PROPERTY(QUrl source READ source WRITE setSource NOTIFY sourceChanged)
-    Q_PROPERTY(QThumbnailer::Size size READ size WRITE setSize NOTIFY sizeChanged)
+    Q_PROPERTY(QSize size READ size WRITE setSize NOTIFY sizeChanged)
     Q_PROPERTY(QUrl thumbnail READ thumbnail NOTIFY thumbnailChanged)
 
     friend class ThumbnailTask;
@@ -46,11 +46,6 @@ public:
     QThumbnailer(QObject* parent=0);
     ~QThumbnailer();
 
-    enum Size { Small = TN_SIZE_SMALL,
-                Large = TN_SIZE_LARGE,
-                ExtraLarge = TN_SIZE_XLARGE
-              };
-
     // inherited from QQmlParserStatus
     void classBegin();
     void componentComplete();
@@ -58,8 +53,8 @@ public:
     // getters and setters
     QUrl source() const;
     void setSource(QUrl source);
-    QThumbnailer::Size size() const;
-    void setSize(QThumbnailer::Size size);
+    QSize size() const;
+    void setSize(QSize size);
     QUrl thumbnail() const;
 
 Q_SIGNALS:
@@ -70,7 +65,7 @@ Q_SIGNALS:
 protected:
     void updateThumbnail();
     void cancelUpdateThumbnail();
-    static QString thumbnailPathForMedia(QString mediaPath, QThumbnailer::Size size);
+    static QString thumbnailPathForMedia(QString mediaPath, ThumbnailSize size);
     static void enqueueThumbnailTask(ThumbnailTask* task);
 
 protected Q_SLOTS:
@@ -80,7 +75,8 @@ private:
     bool m_componentCompleted;
     QUrl m_source;
     QUrl m_thumbnail;
-    QThumbnailer::Size m_size;
+    QSize m_size;
+    ThumbnailSize m_thumbnailsize;
     QPointer<ThumbnailTask> m_currentTask;
 
     // static class members shared accross all instances of QThumbnailer
@@ -107,7 +103,7 @@ public:
     }
 
     QUrl source;
-    QThumbnailer::Size size;
+    ThumbnailSize size;
     QPointer<QThumbnailer> caller;
 
 Q_SIGNALS:
