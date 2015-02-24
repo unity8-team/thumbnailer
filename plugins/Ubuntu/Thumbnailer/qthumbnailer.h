@@ -68,23 +68,24 @@ Q_SIGNALS:
     void sizeChanged();
     void thumbnailChanged();
 
-protected Q_SLOTS:
-    void setThumbnail(QString thumbnail);
+protected:
+    void cancelCurrentTask();
     void updateThumbnail();
     void enqueueThumbnailTask(ThumbnailTask* task);
+
+protected Q_SLOTS:
+    void setThumbnail(QString thumbnail);
     void processVideoQueue();
     void processImageQueue();
 
-protected:
-    void cancelCurrentTask();
-
 private:
-    bool m_completed;
+    bool m_componentCompleted;
     QUrl m_source;
-    QThumbnailer::Size m_size;
     QUrl m_thumbnail;
+    QThumbnailer::Size m_size;
     QWeakPointer<ThumbnailTask> m_currentTask;
 
+    // static class members shared accross all instances of QThumbnailer
     static QThreadPool s_videoThreadPool;
     static QThreadPool s_imageThreadPool;
     static QList<ThumbnailTask*> s_videoQueue;

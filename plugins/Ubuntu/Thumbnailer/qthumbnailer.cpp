@@ -24,14 +24,17 @@ static const QString DEFAULT_ALBUM_ART("/usr/share/thumbnailer/icons/album_missi
 
 QThreadPool QThumbnailer::s_videoThreadPool;
 QThreadPool QThumbnailer::s_imageThreadPool;
-Thumbnailer QThumbnailer::s_thumbnailer;
-QMimeDatabase QThumbnailer::s_mimeDatabase;
 QList<ThumbnailTask*> QThumbnailer::s_videoQueue;
 QList<ThumbnailTask*> QThumbnailer::s_imageQueue;
+Thumbnailer QThumbnailer::s_thumbnailer;
+QMimeDatabase QThumbnailer::s_mimeDatabase;
+
 
 QThumbnailer::QThumbnailer(QObject* parent) :
     QObject(parent),
-    m_completed(false),
+    m_componentCompleted(false),
+    m_source(""),
+    m_thumbnail(""),
     m_size(QThumbnailer::Small)
 {
 }
@@ -47,7 +50,7 @@ void QThumbnailer::classBegin()
 
 void QThumbnailer::componentComplete()
 {
-    m_completed = true;
+    m_componentCompleted = true;
     updateThumbnail();
 }
 
@@ -96,7 +99,7 @@ void QThumbnailer::setThumbnail(QString thumbnail)
 
 void QThumbnailer::updateThumbnail()
 {
-    if (!m_completed) {
+    if (!m_componentCompleted) {
         return;
     }
 
