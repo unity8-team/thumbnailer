@@ -36,7 +36,8 @@ QThumbnailer::QThumbnailer(QObject* parent) :
     m_componentCompleted(false),
     m_source(""),
     m_thumbnail(""),
-    m_size(QThumbnailer::Small)
+    m_size(QThumbnailer::Small),
+    m_currentTask(NULL)
 {
 }
 
