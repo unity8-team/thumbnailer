@@ -36,6 +36,51 @@ ThumbnailSize thumbnailSizeFromSize(QSize size)
     }
 }
 
+/*!
+  \qmltype Thumbnailer
+  \instantiates QThumbnailer
+  \inqmlmodule Ubuntu.Thumbnailer 0.1
+  \ingroup ubuntu
+  \brief Thumbnailer provides a way to load thumbnails of any media (image, video, etc.)
+
+  When an image representation of a media, e.g. a video, is needed a thumbnail can be
+  generated and retrieved by Thumbnailer. Once generated a thumbnail is cached on
+  disk and reused when needed.
+
+  Thumbnails generated have a size always greater or equal to \l size.
+
+  In the following example a thumbnail of a media located at 'pathToMediaFile' is
+  generated and then loaded by a standard QML Image object. Its size is set so that
+  it matches exactly the size required by the Image as to minimize the computation
+  and memory used while still looking as good as possible.
+
+  \qml
+  import QtQuick 2.0
+  import Ubuntu.Thumbnailer 0.1
+
+  Item {
+      Thumbnailer {
+          id: thumbnailer
+          source: pathToMediaFile
+          size: image.sourceSize
+      }
+
+      Image {
+          id: image
+
+          fillMode: Image.PreserveAspectFit
+          asynchronous: true
+          source: thumbnailer.thumbnail
+          sourceSize {
+              width: image.width
+              height: image.height
+          }
+      }
+  }
+  \endqml
+
+*/
+
 QThumbnailer::QThumbnailer(QObject* parent) :
     QObject(parent),
     m_componentCompleted(false),
@@ -61,6 +106,12 @@ void QThumbnailer::componentComplete()
     updateThumbnail();
 }
 
+/*!
+  \qmlproperty url Thumbnailer::source
+
+  URL of the media to be thumbnailed. Once set \l thumbnail will eventually
+  hold the URL of the thumbnail.
+ */
 QUrl QThumbnailer::source() const
 {
     return m_source;
@@ -75,6 +126,14 @@ void QThumbnailer::setSource(QUrl source)
     }
 }
 
+/*!
+  \qmlproperty size Thumbnailer::size
+
+  Size requested for the thumbnail. The resulting thumbnail's size will be
+  at least \l size.
+
+  Warning: the thumbnail's size can be much greater than \l size.
+  */
 QSize QThumbnailer::size() const
 {
     return m_size;
@@ -90,6 +149,11 @@ void QThumbnailer::setSize(QSize size)
     }
 }
 
+/*!
+  \qmlproperty url Thumbnailer::thumbnail
+
+  URL of the thumbnail generated once \l source and \l size are set.
+  */
 QUrl QThumbnailer::thumbnail() const
 {
     return m_thumbnail;

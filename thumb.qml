@@ -29,13 +29,13 @@ Rectangle {
                 anchors.margins: 10
 
                 fillMode: Image.PreserveAspectFit
+                asynchronous: true
                 source: thumbnailer.thumbnail
                 sourceSize {
                     width: image.width
                     height: image.height
                 }
 
-                asynchronous: true
 
                 Thumbnailer {
                     id: thumbnailer
