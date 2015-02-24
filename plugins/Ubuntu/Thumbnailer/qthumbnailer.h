@@ -85,12 +85,12 @@ private:
     QUrl m_thumbnail;
     QWeakPointer<ThumbnailTask> m_currentTask;
 
-    static QThreadPool c_videoThreadPool;
-    static QThreadPool c_imageThreadPool;
-    static QList<ThumbnailTask*> c_videoQueue;
-    static QList<ThumbnailTask*> c_imageQueue;
-    static Thumbnailer c_thumbnailer;
-    static QMimeDatabase c_mimeDatabase;
+    static QThreadPool s_videoThreadPool;
+    static QThreadPool s_imageThreadPool;
+    static QList<ThumbnailTask*> s_videoQueue;
+    static QList<ThumbnailTask*> s_imageQueue;
+    static Thumbnailer s_thumbnailer;
+    static QMimeDatabase s_mimeDatabase;
 };
 
 class ThumbnailTask : public QObject, public QRunnable

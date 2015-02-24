@@ -17,18 +17,17 @@
 */
 
 #include "qthumbnailer.h"
-#include <stdexcept>
 #include <QtCore/QDebug>
 
 static const QString DEFAULT_VIDEO_ART("/usr/share/thumbnailer/icons/video_missing.png");
 static const QString DEFAULT_ALBUM_ART("/usr/share/thumbnailer/icons/album_missing.png");
 
-QThreadPool QThumbnailer::c_videoThreadPool;
-QThreadPool QThumbnailer::c_imageThreadPool;
-Thumbnailer QThumbnailer::c_thumbnailer;
-QMimeDatabase QThumbnailer::c_mimeDatabase;
-QList<ThumbnailTask*> QThumbnailer::c_videoQueue;
-QList<ThumbnailTask*> QThumbnailer::c_imageQueue;
+QThreadPool QThumbnailer::s_videoThreadPool;
+QThreadPool QThumbnailer::s_imageThreadPool;
+Thumbnailer QThumbnailer::s_thumbnailer;
+QMimeDatabase QThumbnailer::s_mimeDatabase;
+QList<ThumbnailTask*> QThumbnailer::s_videoQueue;
+QList<ThumbnailTask*> QThumbnailer::s_imageQueue;
 
 QThumbnailer::QThumbnailer(QObject* parent) :
     QObject(parent),
@@ -102,7 +101,7 @@ void QThumbnailer::updateThumbnail()
     }
 
     cancelCurrentTask();
-    bool slowUpdate = c_thumbnailer.thumbnail_needs_generation(m_source.path().toStdString(),
+    bool slowUpdate = s_thumbnailer.thumbnail_needs_generation(m_source.path().toStdString(),
                                                                (ThumbnailSize)m_size);
     if (slowUpdate) {
         ThumbnailTask* task = new ThumbnailTask;
@@ -119,38 +118,38 @@ void QThumbnailer::enqueueThumbnailTask(ThumbnailTask* task)
 {
     connect(task, SIGNAL(finished(QString)), this, SLOT(setThumbnail(QString)));
 
-    QMimeType mime = c_mimeDatabase.mimeTypeForFile(task->source.path());
+    QMimeType mime = s_mimeDatabase.mimeTypeForFile(task->source.path());
     if(mime.name().contains("image")) {
         connect(task, SIGNAL(finished(QString)), this, SLOT(processImageQueue()));
-        c_imageQueue.append(task);
+        s_imageQueue.append(task);
         processImageQueue();
     } else {
         connect(task, SIGNAL(finished(QString)), this, SLOT(processVideoQueue()));
-        c_videoQueue.append(task);
+        s_videoQueue.append(task);
         processVideoQueue();
     }
 }
 
 void QThumbnailer::processVideoQueue()
 {
-    if (c_videoQueue.isEmpty()) {
+    if (s_videoQueue.isEmpty()) {
         return;
     }
-    ThumbnailTask* task = c_videoQueue.takeFirst();
-    if (!c_videoThreadPool.tryStart(task)) {
-        c_videoQueue.prepend(task);
+    ThumbnailTask* task = s_videoQueue.takeFirst();
+    if (!s_videoThreadPool.tryStart(task)) {
+        s_videoQueue.prepend(task);
     }
 }
 
 void QThumbnailer::processImageQueue()
 {
-    if (c_imageQueue.isEmpty()) {
+    if (s_imageQueue.isEmpty()) {
         return;
     }
-    ThumbnailTask* task = c_imageQueue.takeFirst();
+    ThumbnailTask* task = s_imageQueue.takeFirst();
 
-    if (!c_imageThreadPool.tryStart(task)) {
-        c_imageQueue.prepend(task);
+    if (!s_imageThreadPool.tryStart(task)) {
+        s_imageQueue.prepend(task);
     }
 }
 
@@ -158,14 +157,14 @@ QString QThumbnailer::doGetThumbnail(QString mediaPath, QThumbnailer::Size size)
 {
     QString thumbnailPath;
     try {
-        thumbnailPath = QString::fromStdString(c_thumbnailer.get_thumbnail(mediaPath.toStdString(),
+        thumbnailPath = QString::fromStdString(s_thumbnailer.get_thumbnail(mediaPath.toStdString(),
                                                (ThumbnailSize)size));
     } catch(std::runtime_error &e) {
         qWarning() << QString("Thumbnail retrieval for %1 failed:").arg(mediaPath).toLocal8Bit().constData() << e.what();
     }
 
     if(thumbnailPath.isEmpty()) {
-        QMimeType mime = c_mimeDatabase.mimeTypeForFile(mediaPath);
+        QMimeType mime = s_mimeDatabase.mimeTypeForFile(mediaPath);
         if(mime.name().contains("audio")) {
             thumbnailPath = DEFAULT_ALBUM_ART;
         } else if(mime.name().contains("video")) {
@@ -179,8 +178,8 @@ QString QThumbnailer::doGetThumbnail(QString mediaPath, QThumbnailer::Size size)
 void QThumbnailer::cancelCurrentTask()
 {
     if (!m_currentTask.isNull()) {
-        if (c_imageQueue.removeOne(m_currentTask.data()) ||
-            c_videoQueue.removeOne(m_currentTask.data()) ) {
+        if (s_imageQueue.removeOne(m_currentTask.data()) ||
+            s_videoQueue.removeOne(m_currentTask.data()) ) {
             QSharedPointer<ThumbnailTask> previousTask = m_currentTask.toStrongRef();
             m_currentTask.clear();
             previousTask.clear();

@@ -3,12 +3,14 @@ import Qt.labs.folderlistmodel 2.1
 import Ubuntu.Thumbnailer 0.1
 
 Rectangle {
-    width: 800
-    height: 600
+    width: 1024
+    height: 800
     color: "gray"
 
     GridView {
         anchors.fill: parent
+        cellWidth: 128
+        cellHeight: 100
         model: FolderListModel {
             folder: "/home/kaleo/Videos/"
             showDirs: false
@@ -17,16 +19,29 @@ Rectangle {
 //            nameFilters: ["*.jpg", "*.png", "*.mp4",]
         }
 
-        delegate: Image {
-            id: delegate
-            source: thumbnailer.thumbnail
-            asynchronous: true
+        delegate: Item {
+            width: GridView.view.cellWidth
+            height: GridView.view.cellHeight
 
-            Thumbnailer {
-                id: thumbnailer
-                source: filePath
-                size: Thumbnailer.Large
-//                size: Thumbnailer.Small
+            Image {
+                anchors.fill: parent
+                anchors.margins: 10
+
+                fillMode: Image.PreserveAspectFit
+                source: thumbnailer.thumbnail
+                sourceSize {
+                    width: width
+                    height: height
+                }
+
+                asynchronous: true
+
+                Thumbnailer {
+                    id: thumbnailer
+                    source: filePath
+//                    size: Thumbnailer.Large
+                    size: Thumbnailer.ExtraLarge
+                }
             }
         }
     }
