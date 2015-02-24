@@ -7,45 +7,61 @@ Item {
         id: image
         width: 200
         height: 200
+        source: thumbnailer.thumbnail
 
         SignalSpy {
-            id: spy
+            id: imageSpy
             target: image
             signalName: "statusChanged"
         }
     }
 
+    Thumbnailer {
+        id: thumbnailer
+        size {
+            width: image.width
+            height: image.height
+        }
+    }
+
+    SignalSpy {
+        id: thumbnailerSpy
+        target: thumbnailer
+        signalName: "thumbnailChanged"
+    }
+
     Canvas {
         id: canvas
-        width: 200
-        height: 200
+        width: image.width
+        height: image.height
         renderStrategy: Canvas.Immediate
         renderTarget: Canvas.Image
     }
 
     TestCase {
-        name: "ThumbnailerProviderTests"
+        name: "ThumbnailerTests"
         when: windowShown
 
-        function test_albumart() {
-            var ctx = loadImage(
-                "image://albumart/artist=Gotye&album=Making%20Mirrors");
-            comparePixel(ctx, 0, 0, 242, 229, 212, 255);
+        function test_initialState() {
+            compare(thumbnailerSpy.count, 0);
+            compare(thumbnailer.size.width, 200);
+            compare(thumbnailer.size.height, 200);
+            compare(thumbnailer.thumbnail, "");
         }
 
-        function test_artistart() {
-            var ctx = loadImage(
-                "image://artistart/artist=Gotye&album=Making%20Mirrors");
-            comparePixel(ctx, 0, 0, 249, 242, 236, 255);
+        function test_localjpeg() {
+            thumbnailer.source = "testimage.jpg";
+            thumbnailerSpy.wait();
+            compare(thumbnailerSpy.count, 1);
+            verify(thumbnailer.thumbnail != "");
+            tryCompare(image, "status", Image.Ready)
+
+            var ctx = getContextForImage(image);
+            comparePixel(ctx, 0, 0, 255, 1, 1, 255);
+            comparePixel(ctx, 100, 100, 4, 2, 1, 255);
         }
 
-        function loadImage(uri) {
-            image.source = uri
-            while (image.status == Image.Loading) {
-                spy.wait();
-            }
-            compare(image.status, Image.Ready);
-
+        function getContextForImage(image) {
             var ctx = canvas.getContext("2d");
             ctx.drawImage(image, 0, 0);
             return ctx;

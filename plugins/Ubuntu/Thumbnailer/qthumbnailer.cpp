@@ -177,7 +177,7 @@ void QThumbnailer::updateThumbnail()
 
     cancelUpdateThumbnail();
 
-    if (m_size.isEmpty()) {
+    if (m_size.isEmpty() || m_source.isEmpty()) {
         return;
     }
 
