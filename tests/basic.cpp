@@ -168,7 +168,7 @@ TEST(Thumbnailer, deletetest) {
     ASSERT_FALSE(file_exists(thumbfile3));
 }
 
-static void needs_generation_before_after_test(Thumbnailer &tn, string &imfile, ThumbnailSize size, bool always_needed = false) {
+static void needs_generation_before_after_test(Thumbnailer &tn, string &imfile, ThumbnailSize size, bool always_needed) {
     bool needs_generation;
     string thumbfile = tn.get_thumbnail(imfile, size);
     needs_generation = tn.thumbnail_needs_generation(imfile, size);
@@ -184,9 +184,9 @@ TEST(Thumbnailer, needsgeneration_size) {
     string imfile("working_image.jpg");
     copy_file(srcimg, imfile);
 
-    needs_generation_before_after_test(tn, imfile, TN_SIZE_SMALL);
-    needs_generation_before_after_test(tn, imfile, TN_SIZE_LARGE);
-    needs_generation_before_after_test(tn, imfile, TN_SIZE_XLARGE);
+    needs_generation_before_after_test(tn, imfile, TN_SIZE_SMALL, false);
+    needs_generation_before_after_test(tn, imfile, TN_SIZE_LARGE, false);
+    needs_generation_before_after_test(tn, imfile, TN_SIZE_XLARGE, false);
     /* when size is TN_SIZE_ORIGINAL generation will always happen */
     needs_generation_before_after_test(tn, imfile, TN_SIZE_ORIGINAL, true);
 }
