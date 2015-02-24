@@ -25,7 +25,6 @@
 #include <QtCore/QThreadPool>
 #include <QtCore/QRunnable>
 #include <QtCore/QPointer>
-#include <QtCore/QWeakPointer>
 #include <QtQml/QQmlParserStatus>
 #include <thumbnailer.h>
 
@@ -85,7 +84,7 @@ private:
     QUrl m_source;
     QUrl m_thumbnail;
     QThumbnailer::Size m_size;
-    QWeakPointer<ThumbnailTask> m_currentTask;
+    QPointer<ThumbnailTask> m_currentTask;
 
     // static class members shared accross all instances of QThumbnailer
     static QThreadPool s_videoThreadPool;

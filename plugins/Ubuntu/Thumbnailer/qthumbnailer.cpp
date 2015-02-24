@@ -119,6 +119,7 @@ void QThumbnailer::updateThumbnail()
         task->source = m_source;
         task->size = m_size;
         task->caller = this;
+        m_currentTask = task;
         enqueueThumbnailTask(task);
     }
 }
@@ -128,9 +129,8 @@ void QThumbnailer::cancelUpdateThumbnail()
     if (!m_currentTask.isNull()) {
         if (s_imageQueue.removeOne(m_currentTask.data()) ||
             s_videoQueue.removeOne(m_currentTask.data()) ) {
-            QSharedPointer<ThumbnailTask> previousTask = m_currentTask.toStrongRef();
+            delete m_currentTask;
             m_currentTask.clear();
-            previousTask.clear();
         }
     }
 }
