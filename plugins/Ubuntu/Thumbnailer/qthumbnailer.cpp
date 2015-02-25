@@ -197,9 +197,9 @@ void QThumbnailer::updateThumbnail()
         // otherwise enqueue the thumbnailing task that will then get processed
         // in a background thread and will end up setting the thumbnail URL
         ThumbnailTask* task = new ThumbnailTask;
-        task->source = m_source;
-        task->size = m_thumbnailsize;
-        task->caller = this;
+        task->m_source = m_source;
+        task->m_size = m_thumbnailsize;
+        task->m_caller = this;
         m_currentTask = task;
         enqueueThumbnailTask(task);
     }
@@ -251,7 +251,7 @@ QString QThumbnailer::thumbnailPathForMedia(QString mediaPath, ThumbnailSize siz
 
 void QThumbnailer::enqueueThumbnailTask(ThumbnailTask* task)
 {
-    QMimeType mime = s_mimeDatabase.mimeTypeForFile(task->source.path());
+    QMimeType mime = s_mimeDatabase.mimeTypeForFile(task->m_source.path());
     if(mime.name().contains("image")) {
         s_imageQueue.appendTask(task);
     } else {

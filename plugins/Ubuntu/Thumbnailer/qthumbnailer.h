@@ -93,7 +93,7 @@ class ThumbnailTask : public QObject, public QRunnable
 public:
     virtual void run() {
         try {
-            QString thumbnail = QThumbnailer::thumbnailPathForMedia(source.path(), size);
+            QString thumbnail = QThumbnailer::thumbnailPathForMedia(m_source.path(), m_size);
             Q_EMIT thumbnailPathRetrieved(thumbnail);
         } catch (std::exception &e) {
             // catch all exceptions cause it is not allowed to have unhandled
@@ -102,9 +102,9 @@ public:
         Q_EMIT finished();
     }
 
-    QUrl source;
-    ThumbnailSize size;
-    QPointer<QThumbnailer> caller;
+    QUrl m_source;
+    ThumbnailSize m_size;
+    QPointer<QThumbnailer> m_caller;
 
 Q_SIGNALS:
     void thumbnailPathRetrieved(QString thumbnail);
