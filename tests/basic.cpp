@@ -168,27 +168,27 @@ TEST(Thumbnailer, deletetest) {
     ASSERT_FALSE(file_exists(thumbfile3));
 }
 
-static void needs_generation_before_after_test(Thumbnailer &tn, string &imfile, ThumbnailSize size, bool always_needed) {
-    bool needs_generation;
+static void is_cached_before_after_test(Thumbnailer &tn, string &imfile, ThumbnailSize size, bool always_needed) {
+    bool is_cached;
     string thumbfile = tn.get_thumbnail(imfile, size);
-    needs_generation = tn.thumbnail_needs_generation(imfile, size);
-    ASSERT_EQ(needs_generation, always_needed);
+    is_cached = tn.thumbnail_is_cached(imfile, size);
+    ASSERT_EQ(is_cached, always_needed);
     unlink(thumbfile.c_str());
-    needs_generation = tn.thumbnail_needs_generation(imfile, size);
-    ASSERT_TRUE(needs_generation);
+    is_cached = tn.thumbnail_is_cached(imfile, size);
+    ASSERT_TRUE(is_cached);
 }
 
-TEST(Thumbnailer, needsgeneration_size) {
+TEST(Thumbnailer, thumbnail_is_cached_size) {
     Thumbnailer tn;
     string srcimg(TESTIMAGE);
     string imfile("working_image.jpg");
     copy_file(srcimg, imfile);
 
-    needs_generation_before_after_test(tn, imfile, TN_SIZE_SMALL, false);
-    needs_generation_before_after_test(tn, imfile, TN_SIZE_LARGE, false);
-    needs_generation_before_after_test(tn, imfile, TN_SIZE_XLARGE, false);
+    is_cached_before_after_test(tn, imfile, TN_SIZE_SMALL, false);
+    is_cached_before_after_test(tn, imfile, TN_SIZE_LARGE, false);
+    is_cached_before_after_test(tn, imfile, TN_SIZE_XLARGE, false);
     /* when size is TN_SIZE_ORIGINAL generation will always happen */
-    needs_generation_before_after_test(tn, imfile, TN_SIZE_ORIGINAL, true);
+    is_cached_before_after_test(tn, imfile, TN_SIZE_ORIGINAL, true);
 }
 
 TEST(Thumbnailer, no_image_cache) {

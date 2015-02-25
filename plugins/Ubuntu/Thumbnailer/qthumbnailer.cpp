@@ -186,7 +186,7 @@ void QThumbnailer::updateThumbnail()
         return;
     }
 
-    bool slowUpdate = s_thumbnailer.thumbnail_needs_generation(m_source.path().toStdString(),
+    bool slowUpdate = s_thumbnailer.thumbnail_is_cached(m_source.path().toStdString(),
                                                                m_thumbnailsize);
     if (!slowUpdate) {
         // if we know retrieving the thumbnail is fast because it is readily

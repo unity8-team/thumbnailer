@@ -323,7 +323,7 @@ std::string Thumbnailer::get_artist_art(const std::string &artist, const std::st
     return "";
 }
 
-bool Thumbnailer::thumbnail_needs_generation(const std::string &filename, ThumbnailSize desired_size) {
+bool Thumbnailer::thumbnail_is_cached(const std::string &filename, ThumbnailSize desired_size) {
     string abspath;
     if(filename.empty()) {
         return "";

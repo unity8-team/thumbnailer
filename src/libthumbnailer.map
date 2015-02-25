@@ -7,7 +7,7 @@ global:
         "Thumbnailer::get_thumbnail(std::string const&, ThumbnailSize, ThumbnailPolicy)";
         "Thumbnailer::get_album_art(std::string const&, std::string const&, ThumbnailSize, ThumbnailPolicy)";
         "Thumbnailer::get_artist_art(std::string const&, std::string const&, ThumbnailSize, ThumbnailPolicy)";
-        "Thumbnailer::thumbnail_needs_generation(std::string const&, ThumbnailSize)";
+        "Thumbnailer::thumbnail_is_cached(std::string const&, ThumbnailSize)";
     };
 local:
     extern "C++" {

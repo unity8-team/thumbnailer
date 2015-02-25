@@ -83,7 +83,7 @@ public:
      * If true the next call to get_thumbnail would lead to generating the
      * thumbnail and could potentially take a long time.
      */
-    bool thumbnail_needs_generation(const std::string &filename, ThumbnailSize desired_size);
+    bool thumbnail_is_cached(const std::string &filename, ThumbnailSize desired_size);
 
 private:
     Thumbnailer(const Thumbnailer &t);
