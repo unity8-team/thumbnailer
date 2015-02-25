@@ -37,6 +37,25 @@
 
 using namespace std;
 
+namespace {
+    std::string absolute_path_from_filename(const std::string &filename) {
+        string abspath;
+        if(filename.empty()) {
+            return "";
+        }
+        if(filename[0] != '/') {
+            auto cwd = getcwd(nullptr, 0);
+            abspath += cwd;
+            free(cwd);
+            abspath += "/" + filename;
+        } else {
+            abspath = filename;
+        }
+        return abspath;
+    }
+}
+
+
 class ThumbnailerPrivate {
 private:
     random_device rnd;
@@ -214,18 +233,7 @@ Thumbnailer::~Thumbnailer() {
 }
 std::string Thumbnailer::get_thumbnail(const std::string &filename, ThumbnailSize desired_size,
         ThumbnailPolicy policy) {
-    string abspath;
-    if(filename.empty()) {
-        return "";
-    }
-    if(filename[0] != '/') {
-        auto cwd = getcwd(nullptr, 0);
-        abspath += cwd;
-        free(cwd);
-        abspath += "/" + filename;
-    } else {
-        abspath = filename;
-    }
+    std::string abspath = absolute_path_from_filename(filename);
     std::string estimate = p->cache.get_if_exists(abspath, desired_size);
     if(!estimate.empty())
         return estimate;
@@ -324,18 +332,7 @@ std::string Thumbnailer::get_artist_art(const std::string &artist, const std::st
 }
 
 bool Thumbnailer::thumbnail_is_cached(const std::string &filename, ThumbnailSize desired_size) {
-    string abspath;
-    if(filename.empty()) {
-        return "";
-    }
-    if(filename[0] != '/') {
-        auto cwd = getcwd(nullptr, 0);
-        abspath += cwd;
-        free(cwd);
-        abspath += "/" + filename;
-    } else {
-        abspath = filename;
-    }
+    std::string abspath = absolute_path_from_filename(filename);
     std::string estimate = p->cache.get_if_exists(abspath, desired_size);
     if(!estimate.empty())
         return false;
