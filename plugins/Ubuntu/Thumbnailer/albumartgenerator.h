@@ -26,10 +26,12 @@
 class AlbumArtGenerator: public QQuickImageProvider
 {
 private:
-    QDBusInterface iface;
+    QDBusConnection *connection;
+    QDBusInterface *iface;
 
 public:
     AlbumArtGenerator();
+    ~AlbumArtGenerator();
     QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize);
 };
 
