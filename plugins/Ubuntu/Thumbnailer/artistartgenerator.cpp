@@ -35,9 +35,8 @@ static const char THUMBNAILER_IFACE[] = "com.canonical.Thumbnailer";
 static const char GET_ARTIST_ART[] = "GetArtistArt";
 
 ArtistArtGenerator::ArtistArtGenerator()
-    : QQuickImageProvider(QQuickImageProvider::Image, QQmlImageProviderBase::ForceAsynchronousImageLoading),
-      connection(nullptr),
-      iface(nullptr) {
+    : QQuickImageProvider(QQuickImageProvider::Image, QQmlImageProviderBase::ForceAsynchronousImageLoading)
+{
 }
 
 static QImage fallbackImage(QSize *realSize) {
