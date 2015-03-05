@@ -40,12 +40,6 @@ ArtistArtGenerator::ArtistArtGenerator()
       iface(nullptr) {
 }
 
-ArtistArtGenerator::~ArtistArtGenerator()
-{
-    delete iface;
-    delete connection;
-}
-
 static QImage fallbackImage(QSize *realSize) {
     QImage fallback;
     fallback.load(DEFAULT_ARTIST_ART);
@@ -63,8 +57,8 @@ QImage ArtistArtGenerator::requestImage(const QString &id, QSize *realSize,
 
     if (!connection) {
         // Create them here and not them on the constrcutor so they belong to the proper thread
-        connection = new QDBusConnection(QDBusConnection::connectToBus(QDBusConnection::SessionBus, "artist_art_generator_dbus_connection"));
-        iface = new QDBusInterface(BUS_NAME, BUS_PATH, THUMBNAILER_IFACE, *connection);
+        connection.reset(new QDBusConnection(QDBusConnection::connectToBus(QDBusConnection::SessionBus, "artist_art_generator_dbus_connection")));
+        iface.reset(new QDBusInterface(BUS_NAME, BUS_PATH, THUMBNAILER_IFACE, *connection));
     }
 
     const QString artist = query.queryItemValue("artist", QUrl::FullyDecoded);
