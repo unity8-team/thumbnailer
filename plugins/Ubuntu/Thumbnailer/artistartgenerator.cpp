@@ -62,6 +62,7 @@ QImage ArtistArtGenerator::requestImage(const QString &id, QSize *realSize,
     }
 
     if (!connection) {
+        // Create them here and not them on the constrcutor so they belong to the proper thread
         connection = new QDBusConnection(QDBusConnection::connectToBus(QDBusConnection::SessionBus, "artist_art_generator_dbus_connection"));
         iface = new QDBusInterface(BUS_NAME, BUS_PATH, THUMBNAILER_IFACE, *connection);
     }
