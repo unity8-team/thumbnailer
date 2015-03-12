@@ -22,10 +22,13 @@
 #include <QDBusInterface>
 #include <QQuickImageProvider>
 
+#include <memory>
+
 class ArtistArtGenerator: public QQuickImageProvider
 {
 private:
-    QDBusInterface iface;
+    std::unique_ptr<QDBusConnection> connection;
+    std::unique_ptr<QDBusInterface> iface;
 
 public:
     ArtistArtGenerator();

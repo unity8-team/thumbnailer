@@ -34,8 +34,8 @@ static const char THUMBNAILER_IFACE[] = "com.canonical.Thumbnailer";
 static const char GET_ALBUM_ART[] = "GetAlbumArt";
 
 AlbumArtGenerator::AlbumArtGenerator()
-    : QQuickImageProvider(QQuickImageProvider::Image, QQmlImageProviderBase::ForceAsynchronousImageLoading),
-      iface(BUS_NAME, BUS_PATH, THUMBNAILER_IFACE) {
+    : QQuickImageProvider(QQuickImageProvider::Image, QQmlImageProviderBase::ForceAsynchronousImageLoading)
+{
 }
 
 static QImage fallbackImage(QSize *realSize) {
@@ -53,13 +53,19 @@ QImage AlbumArtGenerator::requestImage(const QString &id, QSize *realSize,
         return fallbackImage(realSize);
     }
 
+    if (!connection) {
+        // Create them here and not them on the constrcutor so they belong to the proper thread
+        connection.reset(new QDBusConnection(QDBusConnection::connectToBus(QDBusConnection::SessionBus, "album_art_generator_dbus_connection")));
+        iface.reset(new QDBusInterface(BUS_NAME, BUS_PATH, THUMBNAILER_IFACE, *connection));
+    }
+
     const QString artist = query.queryItemValue("artist", QUrl::FullyDecoded);
     const QString album = query.queryItemValue("album", QUrl::FullyDecoded);
 
     QString desiredSize = sizeToDesiredSizeString(requestedSize);
 
     // perform dbus call
-    QDBusReply<QDBusUnixFileDescriptor> reply = iface.call(
+    QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
         GET_ALBUM_ART, artist, album, desiredSize);
     if (!reply.isValid()) {
         qWarning() << "D-Bus error: " << reply.error().message();
