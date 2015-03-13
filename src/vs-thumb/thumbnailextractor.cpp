@@ -23,6 +23,22 @@ ThumbnailExtractor::~ThumbnailExtractor() {
     p->change_state(GST_STATE_NULL);
 }
 
+/* GstPlayFlags flags from playbin */
+typedef enum {
+  GST_PLAY_FLAG_VIDEO         = (1 << 0),
+  GST_PLAY_FLAG_AUDIO         = (1 << 1),
+  GST_PLAY_FLAG_TEXT          = (1 << 2),
+  GST_PLAY_FLAG_VIS           = (1 << 3),
+  GST_PLAY_FLAG_SOFT_VOLUME   = (1 << 4),
+  GST_PLAY_FLAG_NATIVE_AUDIO  = (1 << 5),
+  GST_PLAY_FLAG_NATIVE_VIDEO  = (1 << 6),
+  GST_PLAY_FLAG_DOWNLOAD      = (1 << 7),
+  GST_PLAY_FLAG_BUFFERING     = (1 << 8),
+  GST_PLAY_FLAG_DEINTERLACE   = (1 << 9),
+  GST_PLAY_FLAG_SOFT_COLORBALANCE = (1 << 10),
+  GST_PLAY_FLAG_FORCE_FILTERS = (1 << 11),
+} GstPlayFlags;
+
 ThumbnailExtractor::Private::Private() {
     GstElement *pb = gst_element_factory_make("playbin", "playbin");
     if (!pb) {
@@ -44,7 +60,7 @@ ThumbnailExtractor::Private::Private() {
     g_object_set(playbin.get(),
                  "audio-sink", audio_sink,
                  "video-sink", video_sink,
-                 //"flags", GST_PLAY_FLAG_VIDEO | GST_PLAY_FLAG_AUDIO,
+                 "flags", GST_PLAY_FLAG_VIDEO,
                  nullptr);
 }
 
@@ -116,15 +132,19 @@ void ThumbnailExtractor::seek_sample_frame() {
     if (p->duration >= 0) {
         seek_point = 2 * p->duration / 7;
     }
+    fprintf(stderr, "Seeking to position %d\n", (int)(seek_point / GST_SECOND));
     gst_element_seek_simple(p->playbin.get(),
                             GST_FORMAT_TIME,
                             static_cast<GstSeekFlags>(GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_KEY_UNIT),
                             seek_point);
+    fprintf(stderr, "Waiting for seek to complete\n");
     gst_element_get_state(p->playbin.get(), nullptr, nullptr, GST_CLOCK_TIME_NONE);
+    fprintf(stderr, "Done.\n");
 }
 
 void ThumbnailExtractor::save_screenshot(const std::string &filename) {
     // Retrieve sample from the playbin
+    fprintf(stderr, "Requesting sample frame.\n");
     std::unique_ptr<GstSample, decltype(&gst_sample_unref)> sample(
         nullptr, gst_sample_unref);
     {
@@ -138,11 +158,13 @@ void ThumbnailExtractor::save_screenshot(const std::string &filename) {
         g_signal_emit_by_name(p->playbin.get(), "convert-sample", desired_caps.get(), &s);
         sample.reset(s);
     }
+    fprintf(stderr, "Got frame %p\n", sample.get());
     if (!sample) {
         throw std::runtime_error("Could not retrieve screenshot");
     }
 
     // Construct a pixbuf from the sample
+    fprintf(stderr, "Creating pixbuf from sample\n");
     unique_gobj<GdkPixbuf> image;
     {
         GstCaps *sample_caps = gst_sample_get_caps(sample.get());
@@ -167,6 +189,7 @@ void ThumbnailExtractor::save_screenshot(const std::string &filename) {
         gst_buffer_unmap(buffer, &info);
     }
 
+    fprintf(stderr, "Saving pixbuf to jpeg\n");
     GError *error = nullptr;
     if (!gdk_pixbuf_save(image.get(), filename.c_str(),
                          "jpeg", &error, nullptr)) {
@@ -174,6 +197,7 @@ void ThumbnailExtractor::save_screenshot(const std::string &filename) {
         g_error_free(error);
         throw std::runtime_error(message);
     }
+    fprintf(stderr, "Done.\n");
 }
 
 
