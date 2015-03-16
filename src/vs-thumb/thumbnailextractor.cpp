@@ -7,65 +7,10 @@
 
 #include <internal/gobj_memory.h>
 
-struct ThumbnailExtractor::Private {
-    unique_gobj<GstElement> playbin;
-    gint64 duration = -1;
+namespace {
 
-    Private();
-    void change_state(GstState state);
-};
-
-ThumbnailExtractor::ThumbnailExtractor()
-    : p(new Private) {
-}
-
-ThumbnailExtractor::~ThumbnailExtractor() {
-    p->change_state(GST_STATE_NULL);
-}
-
-/* GstPlayFlags flags from playbin */
-typedef enum {
-  GST_PLAY_FLAG_VIDEO         = (1 << 0),
-  GST_PLAY_FLAG_AUDIO         = (1 << 1),
-  GST_PLAY_FLAG_TEXT          = (1 << 2),
-  GST_PLAY_FLAG_VIS           = (1 << 3),
-  GST_PLAY_FLAG_SOFT_VOLUME   = (1 << 4),
-  GST_PLAY_FLAG_NATIVE_AUDIO  = (1 << 5),
-  GST_PLAY_FLAG_NATIVE_VIDEO  = (1 << 6),
-  GST_PLAY_FLAG_DOWNLOAD      = (1 << 7),
-  GST_PLAY_FLAG_BUFFERING     = (1 << 8),
-  GST_PLAY_FLAG_DEINTERLACE   = (1 << 9),
-  GST_PLAY_FLAG_SOFT_COLORBALANCE = (1 << 10),
-  GST_PLAY_FLAG_FORCE_FILTERS = (1 << 11),
-} GstPlayFlags;
-
-ThumbnailExtractor::Private::Private() {
-    GstElement *pb = gst_element_factory_make("playbin", "playbin");
-    if (!pb) {
-        throw std::runtime_error("Could not create playbin");
-    }
-    playbin.reset(static_cast<GstElement*>(g_object_ref_sink(pb)));
-
-    GstElement *audio_sink = gst_element_factory_make("fakesink", "audio-fake-sink");
-    if (!audio_sink) {
-        throw std::runtime_error("Could not create audio sink");
-    }
-    GstElement *video_sink = gst_element_factory_make("fakesink", "video-fake-sink");
-    if (!video_sink) {
-        g_object_unref(audio_sink);
-        throw std::runtime_error("Could not create video sink");
-    }
-
-    g_object_set(video_sink, "sync", TRUE, nullptr);
-    g_object_set(playbin.get(),
-                 "audio-sink", audio_sink,
-                 "video-sink", video_sink,
-                 "flags", GST_PLAY_FLAG_VIDEO,
-                 nullptr);
-}
-
-void ThumbnailExtractor::Private::change_state(GstState state) {
-    GstStateChangeReturn ret = gst_element_set_state(playbin.get(), state);
+void change_state(GstElement *element, GstState state) {
+    GstStateChangeReturn ret = gst_element_set_state(element, state);
     switch (ret) {
     case GST_STATE_CHANGE_NO_PREROLL:
     case GST_STATE_CHANGE_SUCCESS:
@@ -81,7 +26,7 @@ void ThumbnailExtractor::Private::change_state(GstState state) {
 
     // We're in the async case here, so pop messages off the bus until
     // it is done.
-    unique_gobj<GstBus> bus(gst_element_get_bus(playbin.get()));
+    unique_gobj<GstBus> bus(gst_element_get_bus(element));
     while (true) {
         std::unique_ptr<GstMessage, decltype(&gst_message_unref)> message(
             gst_bus_timed_pop_filtered(
@@ -91,10 +36,10 @@ void ThumbnailExtractor::Private::change_state(GstState state) {
         if (!message) {
             break;
         }
-        
+
         switch (GST_MESSAGE_TYPE(message.get())) {
         case GST_MESSAGE_ASYNC_DONE:
-            if (GST_MESSAGE_SRC(message.get()) == GST_OBJECT(playbin.get())) {
+            if (GST_MESSAGE_SRC(message.get()) == GST_OBJECT(element)) {
                 return;
             }
             break;
@@ -115,12 +60,68 @@ void ThumbnailExtractor::Private::change_state(GstState state) {
     }
 }
 
+}
+
+struct ThumbnailExtractor::Private {
+    unique_gobj<GstElement> playbin;
+    gint64 duration = -1;
+};
+
+/* GstPlayFlags flags from playbin.
+ *
+ * GStreamer does not install headers for the enums of individual
+ * elements anywhere, but they make up part of its ABI. */
+typedef enum {
+  GST_PLAY_FLAG_VIDEO         = (1 << 0),
+  GST_PLAY_FLAG_AUDIO         = (1 << 1),
+  GST_PLAY_FLAG_TEXT          = (1 << 2),
+  GST_PLAY_FLAG_VIS           = (1 << 3),
+  GST_PLAY_FLAG_SOFT_VOLUME   = (1 << 4),
+  GST_PLAY_FLAG_NATIVE_AUDIO  = (1 << 5),
+  GST_PLAY_FLAG_NATIVE_VIDEO  = (1 << 6),
+  GST_PLAY_FLAG_DOWNLOAD      = (1 << 7),
+  GST_PLAY_FLAG_BUFFERING     = (1 << 8),
+  GST_PLAY_FLAG_DEINTERLACE   = (1 << 9),
+  GST_PLAY_FLAG_SOFT_COLORBALANCE = (1 << 10),
+  GST_PLAY_FLAG_FORCE_FILTERS = (1 << 11),
+} GstPlayFlags;
+
+ThumbnailExtractor::ThumbnailExtractor()
+    : p(new Private) {
+    GstElement *pb = gst_element_factory_make("playbin", "playbin");
+    if (!pb) {
+        throw std::runtime_error("Could not create playbin");
+    }
+    p->playbin.reset(static_cast<GstElement*>(g_object_ref_sink(pb)));
+
+    GstElement *audio_sink = gst_element_factory_make("fakesink", "audio-fake-sink");
+    if (!audio_sink) {
+        throw std::runtime_error("Could not create audio sink");
+    }
+    GstElement *video_sink = gst_element_factory_make("fakesink", "video-fake-sink");
+    if (!video_sink) {
+        g_object_unref(audio_sink);
+        throw std::runtime_error("Could not create video sink");
+    }
+
+    g_object_set(video_sink, "sync", TRUE, nullptr);
+    g_object_set(p->playbin.get(),
+                 "audio-sink", audio_sink,
+                 "video-sink", video_sink,
+                 "flags", GST_PLAY_FLAG_VIDEO,
+                 nullptr);
+}
+
+ThumbnailExtractor::~ThumbnailExtractor() {
+    change_state(p->playbin.get(), GST_STATE_NULL);
+}
+
 void ThumbnailExtractor::set_uri(const std::string &uri) {
     fprintf(stderr, "Changing to state NULL\n");
-    p->change_state(GST_STATE_NULL);
+    change_state(p->playbin.get(), GST_STATE_NULL);
     g_object_set(p->playbin.get(), "uri", uri.c_str(), nullptr);
     fprintf(stderr, "Changing to state PAUSED\n");
-    p->change_state(GST_STATE_PAUSED);
+    change_state(p->playbin.get(), GST_STATE_PAUSED);
 
     if (!gst_element_query_duration (p->playbin.get(), GST_FORMAT_TIME, &p->duration)) {
         p->duration = -1;
@@ -158,7 +159,7 @@ void ThumbnailExtractor::save_screenshot(const std::string &filename) {
         g_signal_emit_by_name(p->playbin.get(), "convert-sample", desired_caps.get(), &s);
         sample.reset(s);
     }
-    fprintf(stderr, "Got frame %p\n", sample.get());
+    //fprintf(stderr, "Got frame %p\n", sample.get());
     if (!sample) {
         throw std::runtime_error("Could not retrieve screenshot");
     }
@@ -198,15 +199,4 @@ void ThumbnailExtractor::save_screenshot(const std::string &filename) {
         throw std::runtime_error(message);
     }
     fprintf(stderr, "Done.\n");
-}
-
-
-int main(int argc, char **argv) {
-    gst_init(&argc, &argv);
-
-    ThumbnailExtractor e;
-    e.set_uri(argv[1]);
-    e.seek_sample_frame();
-    e.save_screenshot(argv[2]);
-    return 0;
 }
