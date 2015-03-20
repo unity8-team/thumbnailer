@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include <stdexcept>
+#include <cstring>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <gst/gst.h>
 
@@ -188,6 +189,32 @@ void ThumbnailExtractor::save_screenshot(const std::string &filename) {
                         FALSE, 8, width, height, GST_ROUND_UP_4(width *3),
                         nullptr, nullptr));
         gst_buffer_unmap(buffer, &info);
+    }
+
+    // Does the pixbuf need to be rotated?
+    GstTagList *tags = nullptr;
+    GdkPixbufRotation rotation = GDK_PIXBUF_ROTATE_NONE;
+    g_signal_emit_by_name(p->playbin.get(), "get-video-tags", 0, &tags);
+    if (tags) {
+        char *orientation = nullptr;
+        if (gst_tag_list_get_string_index(tags, GST_TAG_IMAGE_ORIENTATION,
+                                          0, &orientation) &&
+            orientation != nullptr) {
+            if (!strcmp(orientation, "rotate-90")) {
+                rotation = GDK_PIXBUF_ROTATE_CLOCKWISE;
+            } else if (!strcmp(orientation, "rotate-180")) {
+                rotation = GDK_PIXBUF_ROTATE_UPSIDEDOWN;
+            } else if (!strcmp(orientation, "rotate-270")) {
+                rotation = GDK_PIXBUF_ROTATE_COUNTERCLOCKWISE;
+            }
+        }
+        gst_tag_list_unref(tags);
+    }
+    if (rotation != GDK_PIXBUF_ROTATE_NONE) {
+        GdkPixbuf *rotated = gdk_pixbuf_rotate_simple(image.get(), rotation);
+        if (rotated) {
+            image.reset(rotated);
+        }
     }
 
     fprintf(stderr, "Saving pixbuf to jpeg\n");
