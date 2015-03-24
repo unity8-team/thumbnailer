@@ -197,8 +197,8 @@ void ThumbnailExtractor::save_screenshot(const std::string &filename) {
     g_signal_emit_by_name(p->playbin.get(), "get-video-tags", 0, &tags);
     if (tags) {
         char *orientation = nullptr;
-        if (gst_tag_list_get_string_index(tags, GST_TAG_IMAGE_ORIENTATION,
-                                          0, &orientation) &&
+        if (gst_tag_list_get_string_index(
+                tags, GST_TAG_IMAGE_ORIENTATION, 0, &orientation) &&
             orientation != nullptr) {
             if (!strcmp(orientation, "rotate-90")) {
                 rotation = GDK_PIXBUF_ROTATE_CLOCKWISE;
