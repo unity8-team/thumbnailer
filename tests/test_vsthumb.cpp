@@ -27,6 +27,7 @@
 #include <gtest/gtest.h>
 
 #include <testsetup.h>
+#include <internal/gobj_memory.h>
 #include "../src/vs-thumb/thumbnailextractor.h"
 
 const char THEORA_TEST_FILE[] = TESTDATADIR "/testvideo.ogg";
@@ -72,11 +73,22 @@ TEST_F(ExtractorTest, extract_theora) {
     extractor.set_uri(filename_to_uri(THEORA_TEST_FILE));
     extractor.seek_sample_frame();
     extractor.save_screenshot(outfile);
+
+    GError *error = nullptr;
+    unique_gobj<GdkPixbuf> image(
+        gdk_pixbuf_new_from_file(outfile.c_str(), &error));
+    if (error) {
+        EXPECT_EQ(error, nullptr) << error->message;
+        g_error_free(error);
+        return;
+    }
+
+    EXPECT_EQ(gdk_pixbuf_get_width(image.get()), 1920);
+    EXPECT_EQ(gdk_pixbuf_get_height(image.get()), 1080);
 }
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     gst_init(&argc, &argv);
     return RUN_ALL_TESTS();
-
 }
