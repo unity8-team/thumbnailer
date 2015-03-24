@@ -20,7 +20,7 @@ add_executable(basic basic.cpp)
 target_link_libraries(basic thumbnailer gtest)
 add_test(basic basic)
 set_property(TEST basic PROPERTY ENVIRONMENT "XDG_CACHE_HOME=${CMAKE_CURRENT_BINARY_DIR}")
-set_property(TEST basic APPEND PROPERTY ENVIRONMENT "TN_UTILDIR=${CMAKE_BINARY_DIR}/src")
+set_property(TEST basic APPEND PROPERTY ENVIRONMENT "TN_UTILDIR=${CMAKE_BINARY_DIR}/src/vs-thumb")
 
 add_executable(mediaartcachetest mediaartcachetest.cpp ../src/mediaartcache.cpp)
 target_link_libraries(mediaartcachetest ${GIO_DEPS_LDFLAGS} gtest)
