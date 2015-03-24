@@ -100,6 +100,10 @@ private:
 struct ThumbnailExtractor::Private {
     unique_gobj<GstElement> playbin;
     gint64 duration = -1;
+
+    std::unique_ptr<GstSample, decltype(&gst_sample_unref)> sample {
+        nullptr, gst_sample_unref};
+    GdkPixbufRotation sample_rotation = GDK_PIXBUF_ROTATE_NONE;
 };
 
 /* GstPlayFlags flags from playbin.
@@ -148,12 +152,17 @@ ThumbnailExtractor::ThumbnailExtractor()
 }
 
 ThumbnailExtractor::~ThumbnailExtractor() {
+    reset();
+}
+
+void ThumbnailExtractor::reset() {
     change_state(p->playbin.get(), GST_STATE_NULL);
+    p->sample.reset();
+    p->sample_rotation = GDK_PIXBUF_ROTATE_NONE;
 }
 
 void ThumbnailExtractor::set_uri(const std::string &uri) {
-    fprintf(stderr, "Changing to state NULL\n");
-    change_state(p->playbin.get(), GST_STATE_NULL);
+    reset();
     g_object_set(p->playbin.get(), "uri", uri.c_str(), nullptr);
     fprintf(stderr, "Changing to state PAUSED\n");
     change_state(p->playbin.get(), GST_STATE_PAUSED);
@@ -163,7 +172,7 @@ void ThumbnailExtractor::set_uri(const std::string &uri) {
     }
 }
 
-void ThumbnailExtractor::seek_sample_frame() {
+void ThumbnailExtractor::extract_frame() {
     gint64 seek_point = 10 * GST_SECOND;
     if (p->duration >= 0) {
         seek_point = 2 * p->duration / 7;
@@ -176,26 +185,42 @@ void ThumbnailExtractor::seek_sample_frame() {
     fprintf(stderr, "Waiting for seek to complete\n");
     gst_element_get_state(p->playbin.get(), nullptr, nullptr, GST_CLOCK_TIME_NONE);
     fprintf(stderr, "Done.\n");
+
+    // Retrieve sample from the playbin
+    fprintf(stderr, "Requesting sample frame.\n");
+    std::unique_ptr<GstCaps, decltype(&gst_caps_unref)> desired_caps(
+        gst_caps_new_simple(
+            "video/x-raw",
+            "format", G_TYPE_STRING, "RGB",
+            "pixel-aspect-ratio", GST_TYPE_FRACTION, 1, 1,
+            nullptr), gst_caps_unref);
+    GstSample *s;
+    g_signal_emit_by_name(p->playbin.get(), "convert-sample", desired_caps.get(), &s);
+    p->sample.reset(s);
+
+    // Does the sample need to be rotated?
+    p->sample_rotation = GDK_PIXBUF_ROTATE_NONE;
+    GstTagList *tags = nullptr;
+    g_signal_emit_by_name(p->playbin.get(), "get-video-tags", 0, &tags);
+    if (tags) {
+        char *orientation = nullptr;
+        if (gst_tag_list_get_string_index(
+                tags, GST_TAG_IMAGE_ORIENTATION, 0, &orientation) &&
+            orientation != nullptr) {
+            if (!strcmp(orientation, "rotate-90")) {
+                p->sample_rotation = GDK_PIXBUF_ROTATE_CLOCKWISE;
+            } else if (!strcmp(orientation, "rotate-180")) {
+                p->sample_rotation = GDK_PIXBUF_ROTATE_UPSIDEDOWN;
+            } else if (!strcmp(orientation, "rotate-270")) {
+                p->sample_rotation = GDK_PIXBUF_ROTATE_COUNTERCLOCKWISE;
+            }
+        }
+        gst_tag_list_unref(tags);
+    }
 }
 
 void ThumbnailExtractor::save_screenshot(const std::string &filename) {
-    // Retrieve sample from the playbin
-    fprintf(stderr, "Requesting sample frame.\n");
-    std::unique_ptr<GstSample, decltype(&gst_sample_unref)> sample(
-        nullptr, gst_sample_unref);
-    {
-        std::unique_ptr<GstCaps, decltype(&gst_caps_unref)> desired_caps(
-            gst_caps_new_simple(
-                "video/x-raw",
-                "format", G_TYPE_STRING, "RGB",
-                "pixel-aspect-ratio", GST_TYPE_FRACTION, 1, 1,
-                nullptr), gst_caps_unref);
-        GstSample *s;
-        g_signal_emit_by_name(p->playbin.get(), "convert-sample", desired_caps.get(), &s);
-        sample.reset(s);
-    }
-    //fprintf(stderr, "Got frame %p\n", sample.get());
-    if (!sample) {
+    if (!p->sample) {
         throw std::runtime_error("Could not retrieve screenshot");
     }
 
@@ -204,7 +229,7 @@ void ThumbnailExtractor::save_screenshot(const std::string &filename) {
     BufferMap buffermap;
     unique_gobj<GdkPixbuf> image;
     {
-        GstCaps *sample_caps = gst_sample_get_caps(sample.get());
+        GstCaps *sample_caps = gst_sample_get_caps(p->sample.get());
         if (!sample_caps) {
             throw std::runtime_error("Could not retrieve caps for sample buffer");
         }
@@ -216,34 +241,15 @@ void ThumbnailExtractor::save_screenshot(const std::string &filename) {
             throw std::runtime_error("Could not retrieve image dimensions");
         }
 
-        buffermap.map(gst_sample_get_buffer(sample.get()));
+        buffermap.map(gst_sample_get_buffer(p->sample.get()));
         image.reset(gdk_pixbuf_new_from_data(
                         buffermap.data(), GDK_COLORSPACE_RGB,
                         FALSE, 8, width, height, GST_ROUND_UP_4(width *3),
                         nullptr, nullptr));
     }
 
-    // Does the pixbuf need to be rotated?
-    GstTagList *tags = nullptr;
-    GdkPixbufRotation rotation = GDK_PIXBUF_ROTATE_NONE;
-    g_signal_emit_by_name(p->playbin.get(), "get-video-tags", 0, &tags);
-    if (tags) {
-        char *orientation = nullptr;
-        if (gst_tag_list_get_string_index(
-                tags, GST_TAG_IMAGE_ORIENTATION, 0, &orientation) &&
-            orientation != nullptr) {
-            if (!strcmp(orientation, "rotate-90")) {
-                rotation = GDK_PIXBUF_ROTATE_CLOCKWISE;
-            } else if (!strcmp(orientation, "rotate-180")) {
-                rotation = GDK_PIXBUF_ROTATE_UPSIDEDOWN;
-            } else if (!strcmp(orientation, "rotate-270")) {
-                rotation = GDK_PIXBUF_ROTATE_COUNTERCLOCKWISE;
-            }
-        }
-        gst_tag_list_unref(tags);
-    }
-    if (rotation != GDK_PIXBUF_ROTATE_NONE) {
-        GdkPixbuf *rotated = gdk_pixbuf_rotate_simple(image.get(), rotation);
+    if (p->sample_rotation != GDK_PIXBUF_ROTATE_NONE) {
+        GdkPixbuf *rotated = gdk_pixbuf_rotate_simple(image.get(), p->sample_rotation);
         if (rotated) {
             image.reset(rotated);
         }

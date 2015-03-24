@@ -71,7 +71,7 @@ TEST_F(ExtractorTest, extract_theora) {
     std::string outfile = tempdir + "/out.jpg";
 
     extractor.set_uri(filename_to_uri(THEORA_TEST_FILE));
-    extractor.seek_sample_frame();
+    extractor.extract_frame();
     extractor.save_screenshot(outfile);
 
     GError *error = nullptr;

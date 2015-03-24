@@ -38,8 +38,9 @@ bool extract_video(const std::string &uri, const std::string &ofname) {
     ThumbnailExtractor extractor;
 
     extractor.set_uri(uri);
-    extractor.seek_sample_frame();
+    extractor.extract_frame();
     extractor.save_screenshot(ofname);
+    return true;
 }
 
 bool has_tag(const GstTagList *tlist, const gchar *tagname) {
@@ -61,13 +62,7 @@ void extract_embedded_image(const GstTagList *tlist, FILE *outf) {
   }
 }
 
-bool extract_audio(const std::string &ifname, const std::string &ofname) {
-    string uri("file://");
-    if(ifname[0] != '/') {
-        uri += getcwd(nullptr, 0);
-        uri += '/';
-    }
-    uri += ifname;
+bool extract_audio(const std::string &uri, const std::string &ofname) {
     GError *err = nullptr;
     unique_ptr<GstDiscoverer, void(*)(GstDiscoverer*)> dsc(
             gst_discoverer_new(GST_SECOND, &err),
@@ -117,12 +112,9 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    std::string uri;
-    {
-        char *u = g_file_get_uri(file.get());
-        uri = u;
-        g_free(u);
-    }
+    std::unique_ptr<char, void(*)(void *)> c_uri(
+        g_file_get_uri(file.get()), g_free);
+    std::string uri(c_uri.get());
 
     std::unique_ptr<GFileInfo, void(*)(void *)> info(
             g_file_query_info(file.get(), G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
@@ -136,7 +128,7 @@ int main(int argc, char **argv) {
 
     if (content_type.find("audio/") == 0) {
         try {
-            success = extract_audio(infile, outfile);
+            success = extract_audio(uri, outfile);
         } catch(runtime_error &e) {
             printf("Error creating thumbnail: %s\n", e.what());
             return 2;

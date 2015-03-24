@@ -12,7 +12,7 @@ public:
 
     void reset();
     void set_uri(const std::string &uri);
-    void seek_sample_frame();
+    void extract_frame();
     void save_screenshot(const std::string &filename);
 private:
     std::unique_ptr<Private> p;
