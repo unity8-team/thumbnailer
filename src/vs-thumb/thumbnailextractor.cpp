@@ -61,6 +61,40 @@ void change_state(GstElement *element, GstState state) {
     }
 }
 
+class BufferMap final {
+public:
+    BufferMap() : buffer(nullptr, gst_buffer_unref) {}
+    ~BufferMap() {
+        unmap();
+    }
+
+    void map(GstBuffer *b) {
+        unmap();
+        buffer.reset(gst_buffer_ref(b));
+        gst_buffer_map(buffer.get(), &info, GST_MAP_READ);
+    }
+
+    void unmap() {
+        if (!buffer) {
+            return;
+        }
+        gst_buffer_unmap(buffer.get(), &info);
+        buffer.reset();
+    }
+
+    guint8 *data() const {
+        return info.data;
+    }
+
+    gsize size() const {
+        return info.size;
+    }
+
+private:
+    std::unique_ptr<GstBuffer, decltype(&gst_buffer_unref)> buffer;
+    GstMapInfo info;
+};
+
 }
 
 struct ThumbnailExtractor::Private {
@@ -167,6 +201,7 @@ void ThumbnailExtractor::save_screenshot(const std::string &filename) {
 
     // Construct a pixbuf from the sample
     fprintf(stderr, "Creating pixbuf from sample\n");
+    BufferMap buffermap;
     unique_gobj<GdkPixbuf> image;
     {
         GstCaps *sample_caps = gst_sample_get_caps(sample.get());
@@ -181,14 +216,11 @@ void ThumbnailExtractor::save_screenshot(const std::string &filename) {
             throw std::runtime_error("Could not retrieve image dimensions");
         }
 
-        GstBuffer *buffer = gst_sample_get_buffer(sample.get());
-        GstMapInfo info;
-        gst_buffer_map(buffer, &info, GST_MAP_READ);
+        buffermap.map(gst_sample_get_buffer(sample.get()));
         image.reset(gdk_pixbuf_new_from_data(
-                        info.data, GDK_COLORSPACE_RGB,
+                        buffermap.data(), GDK_COLORSPACE_RGB,
                         FALSE, 8, width, height, GST_ROUND_UP_4(width *3),
                         nullptr, nullptr));
-        gst_buffer_unmap(buffer, &info);
     }
 
     // Does the pixbuf need to be rotated?
