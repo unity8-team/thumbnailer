@@ -5,6 +5,7 @@
 #include <cstring>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <gst/gst.h>
+#include <gst/tag/tag.h>
 
 #include <internal/gobj_memory.h>
 
@@ -104,6 +105,7 @@ struct ThumbnailExtractor::Private {
     std::unique_ptr<GstSample, decltype(&gst_sample_unref)> sample {
         nullptr, gst_sample_unref};
     GdkPixbufRotation sample_rotation = GDK_PIXBUF_ROTATE_NONE;
+    bool sample_raw = true;
 };
 
 /* GstPlayFlags flags from playbin.
@@ -147,7 +149,7 @@ ThumbnailExtractor::ThumbnailExtractor()
     g_object_set(p->playbin.get(),
                  "audio-sink", audio_sink,
                  "video-sink", video_sink,
-                 "flags", GST_PLAY_FLAG_VIDEO,
+                 "flags", GST_PLAY_FLAG_VIDEO | GST_PLAY_FLAG_AUDIO,
                  nullptr);
 }
 
@@ -159,6 +161,7 @@ void ThumbnailExtractor::reset() {
     change_state(p->playbin.get(), GST_STATE_NULL);
     p->sample.reset();
     p->sample_rotation = GDK_PIXBUF_ROTATE_NONE;
+    p->sample_raw = true;
 }
 
 void ThumbnailExtractor::set_uri(const std::string &uri) {
@@ -172,7 +175,7 @@ void ThumbnailExtractor::set_uri(const std::string &uri) {
     }
 }
 
-void ThumbnailExtractor::extract_frame() {
+bool ThumbnailExtractor::extract_video_frame() {
     gint64 seek_point = 10 * GST_SECOND;
     if (p->duration >= 0) {
         seek_point = 2 * p->duration / 7;
@@ -196,7 +199,11 @@ void ThumbnailExtractor::extract_frame() {
             nullptr), gst_caps_unref);
     GstSample *s;
     g_signal_emit_by_name(p->playbin.get(), "convert-sample", desired_caps.get(), &s);
+    if (!s) {
+        return false;
+    }
     p->sample.reset(s);
+    p->sample_raw = true;
 
     // Does the sample need to be rotated?
     p->sample_rotation = GDK_PIXBUF_ROTATE_NONE;
@@ -217,6 +224,44 @@ void ThumbnailExtractor::extract_frame() {
         }
         gst_tag_list_unref(tags);
     }
+    return true;
+}
+
+bool ThumbnailExtractor::extract_audio_cover_art() {
+    GstTagList *tags = nullptr;
+    g_signal_emit_by_name(p->playbin.get(), "get-audio-tags", 0, &tags);
+    if (!tags) {
+        return false;
+    }
+    p->sample.reset();
+    p->sample_rotation = GDK_PIXBUF_ROTATE_NONE;
+    p->sample_raw = false;
+    bool found_cover = false;
+    for (int i = 0; !found_cover; i++) {
+        GstSample *sample;
+        if (!gst_tag_list_get_sample_index(tags, GST_TAG_IMAGE, i, &sample)) {
+            break;
+        }
+        // Check the type of this image
+        auto caps = gst_sample_get_caps(sample);
+        auto structure = gst_caps_get_structure(caps, 0);
+        int type = GST_TAG_IMAGE_TYPE_UNDEFINED;
+        gst_structure_get_enum(structure,
+                               "image-type",
+                               GST_TYPE_TAG_IMAGE_TYPE,
+                               &type);
+        if (type == GST_TAG_IMAGE_TYPE_FRONT_COVER) {
+            p->sample.reset(gst_sample_ref(sample));
+            found_cover = true;
+        } else if (type == GST_TAG_IMAGE_TYPE_UNDEFINED && !p->sample) {
+            // Save the first unknown image tag, but continue scanning
+            // in case there is one marked as the cover.
+            p->sample.reset(gst_sample_ref(sample));
+        }
+        gst_sample_unref(sample);
+    }
+    gst_tag_list_unref(tags);
+    return bool(p->sample);
 }
 
 void ThumbnailExtractor::save_screenshot(const std::string &filename) {
@@ -228,7 +273,7 @@ void ThumbnailExtractor::save_screenshot(const std::string &filename) {
     fprintf(stderr, "Creating pixbuf from sample\n");
     BufferMap buffermap;
     unique_gobj<GdkPixbuf> image;
-    {
+    if (p->sample_raw) {
         GstCaps *sample_caps = gst_sample_get_caps(p->sample.get());
         if (!sample_caps) {
             throw std::runtime_error("Could not retrieve caps for sample buffer");
@@ -246,6 +291,22 @@ void ThumbnailExtractor::save_screenshot(const std::string &filename) {
                         buffermap.data(), GDK_COLORSPACE_RGB,
                         FALSE, 8, width, height, GST_ROUND_UP_4(width *3),
                         nullptr, nullptr));
+    } else {
+        unique_gobj<GdkPixbufLoader> loader(gdk_pixbuf_loader_new());
+
+        buffermap.map(gst_sample_get_buffer(p->sample.get()));
+        GError *error = nullptr;
+        if (gdk_pixbuf_loader_write(loader.get(), buffermap.data(), buffermap.size(), &error) &&
+            gdk_pixbuf_loader_close(loader.get(), &error)) {
+            GdkPixbuf *pixbuf = gdk_pixbuf_loader_get_pixbuf(loader.get());
+            if (pixbuf) {
+                image.reset(static_cast<GdkPixbuf*>(g_object_ref(pixbuf)));
+            }
+        } else {
+            std::string message(error->message);
+            g_error_free(error);
+            throw std::runtime_error(message);
+        }
     }
 
     if (p->sample_rotation != GDK_PIXBUF_ROTATE_NONE) {

@@ -12,7 +12,8 @@ public:
 
     void reset();
     void set_uri(const std::string &uri);
-    void extract_frame();
+    bool extract_video_frame();
+    bool extract_audio_cover_art();
     void save_screenshot(const std::string &filename);
 private:
     std::unique_ptr<Private> p;

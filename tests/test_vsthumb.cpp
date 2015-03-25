@@ -34,6 +34,7 @@
 const char THEORA_TEST_FILE[] = TESTDATADIR "/testvideo.ogg";
 const char MP4_LANDSCAPE_TEST_FILE[] = TESTDATADIR "/gegl-landscape.mp4";
 const char MP4_PORTRAIT_TEST_FILE[] = TESTDATADIR "/gegl-portrait.mp4";
+const char VORBIS_TEST_FILE[] = TESTDATADIR "/testsong.ogg";
 
 class ExtractorTest : public ::testing::Test {
 protected:
@@ -120,7 +121,7 @@ TEST_F(ExtractorTest, extract_theora) {
     ThumbnailExtractor extractor;
     std::string outfile = tempdir + "/out.jpg";
     extractor.set_uri(filename_to_uri(MP4_LANDSCAPE_TEST_FILE));
-    extractor.extract_frame();
+    ASSERT_TRUE(extractor.extract_video_frame());
     extractor.save_screenshot(outfile);
 
     auto image = load_image(outfile);
@@ -137,7 +138,7 @@ TEST_F(ExtractorTest, extract_mp4) {
     ThumbnailExtractor extractor;
     std::string outfile = tempdir + "/out.jpg";
     extractor.set_uri(filename_to_uri(MP4_LANDSCAPE_TEST_FILE));
-    extractor.extract_frame();
+    ASSERT_TRUE(extractor.extract_video_frame());
     extractor.save_screenshot(outfile);
 
     auto image = load_image(outfile);
@@ -154,12 +155,26 @@ TEST_F(ExtractorTest, extract_mp4_rotation) {
     ThumbnailExtractor extractor;
     std::string outfile = tempdir + "/out.jpg";
     extractor.set_uri(filename_to_uri(MP4_PORTRAIT_TEST_FILE));
-    extractor.extract_frame();
+    ASSERT_TRUE(extractor.extract_video_frame());
     extractor.save_screenshot(outfile);
 
     auto image = load_image(outfile);
     EXPECT_EQ(gdk_pixbuf_get_width(image.get()), 720);
     EXPECT_EQ(gdk_pixbuf_get_height(image.get()), 1280);
+}
+
+TEST_F(ExtractorTest, extract_vorbis_cover_art) {
+    ThumbnailExtractor extractor;
+
+    std::string outfile = tempdir + "/out.jpg";
+    extractor.set_uri(filename_to_uri(VORBIS_TEST_FILE));
+    ASSERT_TRUE(extractor.extract_audio_cover_art());
+    extractor.save_screenshot(outfile);
+
+    auto image = load_image(outfile);
+    EXPECT_EQ(gdk_pixbuf_get_width(image.get()), 200);
+    EXPECT_EQ(gdk_pixbuf_get_height(image.get()), 200);
+
 }
 
 int main(int argc, char **argv) {

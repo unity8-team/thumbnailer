@@ -38,7 +38,9 @@ bool extract_video(const std::string &uri, const std::string &ofname) {
     ThumbnailExtractor extractor;
 
     extractor.set_uri(uri);
-    extractor.extract_frame();
+    if (!extractor.extract_video_frame()) {
+        return false;
+    }
     extractor.save_screenshot(ofname);
     return true;
 }
