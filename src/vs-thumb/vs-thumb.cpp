@@ -16,17 +16,13 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#include<internal/gobj_memory.h>
 #include<cstdio>
 #include<string>
 #include<memory>
 #include<stdexcept>
 #include<gst/gst.h>
-#include<gst/app/gstappsink.h>
-#include<gdk-pixbuf/gdk-pixbuf.h>
 #include<gio/gio.h>
 #include<glib.h>
-#include<gst/pbutils/pbutils.h>
 
 #include "thumbnailextractor.h"
 
@@ -45,53 +41,14 @@ bool extract_video(const std::string &uri, const std::string &ofname) {
     return true;
 }
 
-bool has_tag(const GstTagList *tlist, const gchar *tagname) {
-  const GValue *val = gst_tag_list_get_value_index(tlist, tagname, 0);
-  return val;
-}
-
-void extract_embedded_image(const GstTagList *tlist, FILE *outf) {
-  const GValue *val = gst_tag_list_get_value_index(tlist, GST_TAG_IMAGE, 0);
-  GstSample *sample = (GstSample*)g_value_get_boxed(val);
-  GstBuffer *buf = gst_sample_get_buffer(sample);
-
-  for(guint i=0; i<gst_buffer_n_memory(buf); i++) {
-    GstMemory *mem = gst_buffer_peek_memory(buf, i);
-    GstMapInfo mi;
-    gst_memory_map(mem, &mi, GST_MAP_READ);
-    fwrite(mi.data, 1, mi.size, outf);
-    gst_memory_unmap(mem, &mi);
-  }
-}
-
 bool extract_audio(const std::string &uri, const std::string &ofname) {
-    GError *err = nullptr;
-    unique_ptr<GstDiscoverer, void(*)(GstDiscoverer*)> dsc(
-            gst_discoverer_new(GST_SECOND, &err),
-            [](GstDiscoverer *t) {g_object_unref(G_OBJECT(t));});
-    if(err) {
-        string msg(err->message);
-        g_error_free(err);
-        throw runtime_error(msg);
-    }
-    unique_ptr<GstDiscovererInfo, void(*)(GstDiscovererInfo*)> info(
-            gst_discoverer_discover_uri(dsc.get(), uri.c_str(), &err),
-            [](GstDiscovererInfo *t) {g_object_unref(G_OBJECT(t));});
-    if(err) {
-        string msg(err->message);
-        g_error_free(err);
-        throw runtime_error(msg);
-    }
-    const GstTagList *tlist = gst_discoverer_info_get_tags(info.get());
-    if(!tlist) {
+    ThumbnailExtractor extractor;
+
+    extractor.set_uri(uri);
+    if (!extractor.extract_audio_cover_art()) {
         return false;
     }
-    if(!has_tag(tlist, GST_TAG_IMAGE)) {
-        return false;
-    }
-    FILE *outfile = fopen(ofname.c_str(), "wb");
-    extract_embedded_image(tlist, outfile);
-    fclose(outfile);
+    extractor.save_screenshot(ofname);
     return true;
 }
 

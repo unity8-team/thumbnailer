@@ -174,7 +174,6 @@ TEST_F(ExtractorTest, extract_vorbis_cover_art) {
     auto image = load_image(outfile);
     EXPECT_EQ(gdk_pixbuf_get_width(image.get()), 200);
     EXPECT_EQ(gdk_pixbuf_get_height(image.get()), 200);
-
 }
 
 int main(int argc, char **argv) {
