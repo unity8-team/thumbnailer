@@ -11,7 +11,7 @@ ${GTEST_SRC_DIR}/gtest-all.cc
 set_target_properties(gtest PROPERTIES INCLUDE_DIRECTORIES ${GTEST_INCLUDE_DIR})
 target_link_libraries(gtest ${CMAKE_THREAD_LIBS_INIT})
 
-set(TESTDATADIR ${CMAKE_CURRENT_SOURCE_DIR})
+set(TESTDATADIR ${CMAKE_CURRENT_SOURCE_DIR}/media)
 
 configure_file(testsetup.h.in testsetup.h @ONLY)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
