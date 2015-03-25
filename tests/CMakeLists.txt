@@ -50,4 +50,3 @@ target_link_libraries(test_vsthumb
   ${GIO_DEPS_LDFLAGS}
   gtest)
 add_test(test_vsthumb test_vsthumb)
-set_property(TEST test_vsthumb PROPERTY ENVIRONMENT "GST_DEBUG=5")

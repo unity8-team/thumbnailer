@@ -120,7 +120,7 @@ TEST_F(ExtractorTest, extract_theora) {
 
     ThumbnailExtractor extractor;
     std::string outfile = tempdir + "/out.jpg";
-    extractor.set_uri(filename_to_uri(MP4_LANDSCAPE_TEST_FILE));
+    extractor.set_uri(filename_to_uri(THEORA_TEST_FILE));
     ASSERT_TRUE(extractor.extract_video_frame());
     extractor.save_screenshot(outfile);
 
