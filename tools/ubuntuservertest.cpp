@@ -16,13 +16,15 @@
  * Authored by: Pawel Stolowski <pawel.stolowski@canonical.com>
  */
 
-#include<internal/ubuntuserverdownloader.h>
+#include <internal/ubuntuserverdownloader.h>
 
 using namespace std;
+using namespace unity::thumbnailer::internal;
 
-int main(int /*argc*/, char **/*argv*/) {
+int main(int, char **)
+{
     UbuntuServerDownloader dl;
-    dl.download("Radiohead", "Amnesiac", "image.jpg");
-    dl.download_artist("Radiohead", "Amnesiac", "image2.jpg");
+    dl.download("Radiohead", "Amnesiac");
+    dl.download_artist("Radiohead", "Amnesiac");
     return 0;
 }

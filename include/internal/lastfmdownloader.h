@@ -16,30 +16,43 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#ifndef LASTFM_DOWNLOADER_H
-#define LASTFM_DOWNLOADER_H
+#pragma once
 
-#include<string>
-#include<memory>
-#include<internal/httpdownloader.h>
 #include <internal/artdownloader.h>
+#include <internal/httpdownloader.h>
 
-class LastFMDownloader final : public ArtDownloader {
+#include <memory>
+#include <string>
+
+namespace unity
+{
+
+namespace thumbnailer
+{
+
+namespace internal
+{
+
+class LastFMDownloader final : public ArtDownloader
+{
 public:
     LastFMDownloader();
-    LastFMDownloader(HttpDownloader *o); // Takes ownership.
+    LastFMDownloader(HttpDownloader* o);  // Takes ownership.
     ~LastFMDownloader();
-    LastFMDownloader(const LastFMDownloader &o) = delete;
-    LastFMDownloader& operator=(const LastFMDownloader &o) = delete;
+    LastFMDownloader(LastFMDownloader const& o) = delete;
+    LastFMDownloader& operator=(LastFMDownloader const& o) = delete;
 
-    bool download(const std::string &artist, const std::string &album,
-            const std::string &fname) override;
-    bool download_artist(const std::string &artist, const std::string &album,
-            const std::string &fname) override;
+    std::string download(std::string const& artist, std::string const& album) override;
+    std::string download_artist(std::string const& artist, std::string const& album) override;
 
 private:
-    std::string parseXML(const std::string &xml);
+    std::string parse_xml(std::string const& xml);
     std::unique_ptr<HttpDownloader> dl;
 };
 
-#endif
+}  // namespace internal
+
+}  // namespace thumbnailer
+
+}  // namespace unity
+

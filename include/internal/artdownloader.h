@@ -16,19 +16,38 @@
  * Authored by: Pawel Stolowski <pawel.stolowski@canonical.com>
  */
 
-#ifndef ART_DOWNLOADER_H
-#define ART_DOWNLOADER_H
+#pragma once
 
 #include <string>
 
-class ArtDownloader {
+namespace unity
+{
+
+namespace thumbnailer
+{
+
+namespace internal
+{
+
+class ArtDownloader
+{
 public:
     ArtDownloader() = default;
     virtual ~ArtDownloader() = default;
-    virtual bool download(const std::string &artist, const std::string &album, const std::string &fname) = 0;
-    virtual bool download_artist(const std::string &artist, const std::string &album, const std::string &fname) = 0;
-    ArtDownloader(const ArtDownloader&) = delete;
-    ArtDownloader& operator=(const ArtDownloader&) = delete;
+
+    // Returns the downloaded image as a std::string for the fiven artist and album
+    // If no image was found it returns an empty std::string
+    virtual std::string download(std::string const& artist, std::string const& album) = 0;
+
+    // Returns the downloaded image as a std::string for the fiven artist and album
+    // If no image was found it returns an empty std::string
+    virtual std::string download_artist(std::string const& artist, std::string const& album) = 0;
+    ArtDownloader(ArtDownloader const&) = delete;
+    ArtDownloader& operator=(ArtDownloader const&) = delete;
 };
 
-#endif
+}  // namespace internal
+
+}  // namespace thumbnailer
+
+}  // namespace unity
