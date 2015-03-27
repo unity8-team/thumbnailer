@@ -29,6 +29,19 @@
 
 namespace {
 
+void throw_error(GError *error, const char *context) {
+    if (error == nullptr) {
+        std::string message(context);
+        message += " - error set with NULL GError";
+        throw std::runtime_error(message);
+    }
+    std::string message(context);
+    message += " - ";
+    message += error->message;
+    g_error_free(error);
+    throw std::runtime_error(message);
+}
+
 void change_state(GstElement *element, GstState state) {
     GstStateChangeReturn ret = gst_element_set_state(element, state);
     switch (ret) {
@@ -41,7 +54,7 @@ void change_state(GstElement *element, GstState state) {
         break;
     case GST_STATE_CHANGE_FAILURE:
     default:
-        throw std::runtime_error("Could not change element state");
+        throw std::runtime_error("change_state(): Could not change element state");
     }
 
     // We're in the async case here, so pop messages off the bus until
@@ -67,10 +80,7 @@ void change_state(GstElement *element, GstState state) {
         {
             GError *error = nullptr;
             gst_message_parse_error(message.get(), &error, nullptr);
-            std::string errormsg(error->message);
-            g_error_free(error);
-            throw std::runtime_error(
-                std::string("Error changing element state: ") + errormsg);
+            throw_error(error, "change_state(): reading async messages");
             break;
         }
         default:
@@ -149,18 +159,18 @@ ThumbnailExtractor::ThumbnailExtractor()
     : p(new Private) {
     GstElement *pb = gst_element_factory_make("playbin", "playbin");
     if (!pb) {
-        throw std::runtime_error("Could not create playbin");
+        throw std::runtime_error("ThumbnailExtractor(): Could not create playbin");
     }
     p->playbin.reset(static_cast<GstElement*>(g_object_ref_sink(pb)));
 
     GstElement *audio_sink = gst_element_factory_make("fakesink", "audio-fake-sink");
     if (!audio_sink) {
-        throw std::runtime_error("Could not create audio sink");
+        throw std::runtime_error("ThumbnailExtractor(): Could not create audio sink");
     }
     GstElement *video_sink = gst_element_factory_make("fakesink", "video-fake-sink");
     if (!video_sink) {
         g_object_unref(audio_sink);
-        throw std::runtime_error("Could not create video sink");
+        throw std::runtime_error("ThumbnailExtractor(): Could not create video sink");
     }
 
     g_object_set(video_sink, "sync", TRUE, nullptr);
@@ -284,7 +294,7 @@ bool ThumbnailExtractor::extract_audio_cover_art() {
 
 void ThumbnailExtractor::save_screenshot(const std::string &filename) {
     if (!p->sample) {
-        throw std::runtime_error("Could not retrieve screenshot");
+        throw std::runtime_error("save_screenshot(): Could not retrieve screenshot");
     }
 
     // Construct a pixbuf from the sample
@@ -294,14 +304,14 @@ void ThumbnailExtractor::save_screenshot(const std::string &filename) {
     if (p->sample_raw) {
         GstCaps *sample_caps = gst_sample_get_caps(p->sample.get());
         if (!sample_caps) {
-            throw std::runtime_error("Could not retrieve caps for sample buffer");
+            throw std::runtime_error("save_screenshot(): Could not retrieve caps for sample buffer");
         }
         GstStructure *sample_struct = gst_caps_get_structure(sample_caps, 0);
         int width = 0, height = 0;
         gst_structure_get_int(sample_struct, "width", &width);
         gst_structure_get_int(sample_struct, "height", &height);
         if (width <= 0 || height <= 0) {
-            throw std::runtime_error("Could not retrieve image dimensions");
+            throw std::runtime_error("save_screenshot(): Could not retrieve image dimensions");
         }
 
         buffermap.map(gst_sample_get_buffer(p->sample.get()));
@@ -321,9 +331,7 @@ void ThumbnailExtractor::save_screenshot(const std::string &filename) {
                 image.reset(static_cast<GdkPixbuf*>(g_object_ref(pixbuf)));
             }
         } else {
-            std::string message(error->message);
-            g_error_free(error);
-            throw std::runtime_error(message);
+            throw_error(error, "save_screenshot(): decoding image");
         }
     }
 
@@ -338,9 +346,7 @@ void ThumbnailExtractor::save_screenshot(const std::string &filename) {
     GError *error = nullptr;
     if (!gdk_pixbuf_save(image.get(), filename.c_str(),
                          "jpeg", &error, nullptr)) {
-        std::string message(error->message);
-        g_error_free(error);
-        throw std::runtime_error(message);
+        throw_error(error, "save_screenshot(): saving image");
     }
     fprintf(stderr, "Done.\n");
 }
