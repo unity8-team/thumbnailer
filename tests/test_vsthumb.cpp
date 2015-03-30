@@ -176,6 +176,11 @@ TEST_F(ExtractorTest, extract_vorbis_cover_art) {
     EXPECT_EQ(gdk_pixbuf_get_height(image.get()), 200);
 }
 
+TEST_F(ExtractorTest, file_not_found) {
+    ThumbnailExtractor extractor;
+    EXPECT_THROW(extractor.set_uri(filename_to_uri(TESTDATADIR "/no-such-file.ogv")), std::runtime_error);
+}
+
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     gst_init(&argc, &argv);

@@ -29,16 +29,15 @@
 
 namespace {
 
-void throw_error(GError *error, const char *context) {
-    if (error == nullptr) {
-        std::string message(context);
-        message += " - error set with NULL GError";
-        throw std::runtime_error(message);
+const std::string class_name = "ThumbnailExtractor";
+
+void throw_error(const char *msg, GError *error = nullptr) {
+    std::string message = class_name + ": " + msg;
+    if (error != nullptr) {
+        message += ": ";
+        message += error->message;
+        g_error_free(error);
     }
-    std::string message(context);
-    message += " - ";
-    message += error->message;
-    g_error_free(error);
     throw std::runtime_error(message);
 }
 
@@ -54,7 +53,7 @@ void change_state(GstElement *element, GstState state) {
         break;
     case GST_STATE_CHANGE_FAILURE:
     default:
-        throw std::runtime_error("change_state(): Could not change element state");
+        throw_error("change_state(): Could not change element state");
     }
 
     // We're in the async case here, so pop messages off the bus until
@@ -80,7 +79,7 @@ void change_state(GstElement *element, GstState state) {
         {
             GError *error = nullptr;
             gst_message_parse_error(message.get(), &error, nullptr);
-            throw_error(error, "change_state(): reading async messages");
+            throw_error("change_state(): reading async messages", error);
             break;
         }
         default:
@@ -141,36 +140,36 @@ struct ThumbnailExtractor::Private {
  * GStreamer does not install headers for the enums of individual
  * elements anywhere, but they make up part of its ABI. */
 typedef enum {
-  GST_PLAY_FLAG_VIDEO         = (1 << 0),
-  GST_PLAY_FLAG_AUDIO         = (1 << 1),
-  GST_PLAY_FLAG_TEXT          = (1 << 2),
-  GST_PLAY_FLAG_VIS           = (1 << 3),
-  GST_PLAY_FLAG_SOFT_VOLUME   = (1 << 4),
-  GST_PLAY_FLAG_NATIVE_AUDIO  = (1 << 5),
-  GST_PLAY_FLAG_NATIVE_VIDEO  = (1 << 6),
-  GST_PLAY_FLAG_DOWNLOAD      = (1 << 7),
-  GST_PLAY_FLAG_BUFFERING     = (1 << 8),
-  GST_PLAY_FLAG_DEINTERLACE   = (1 << 9),
-  GST_PLAY_FLAG_SOFT_COLORBALANCE = (1 << 10),
-  GST_PLAY_FLAG_FORCE_FILTERS = (1 << 11),
+    GST_PLAY_FLAG_VIDEO         = (1 << 0),
+    GST_PLAY_FLAG_AUDIO         = (1 << 1),
+    GST_PLAY_FLAG_TEXT          = (1 << 2),
+    GST_PLAY_FLAG_VIS           = (1 << 3),
+    GST_PLAY_FLAG_SOFT_VOLUME   = (1 << 4),
+    GST_PLAY_FLAG_NATIVE_AUDIO  = (1 << 5),
+    GST_PLAY_FLAG_NATIVE_VIDEO  = (1 << 6),
+    GST_PLAY_FLAG_DOWNLOAD      = (1 << 7),
+    GST_PLAY_FLAG_BUFFERING     = (1 << 8),
+    GST_PLAY_FLAG_DEINTERLACE   = (1 << 9),
+    GST_PLAY_FLAG_SOFT_COLORBALANCE = (1 << 10),
+    GST_PLAY_FLAG_FORCE_FILTERS = (1 << 11),
 } GstPlayFlags;
 
 ThumbnailExtractor::ThumbnailExtractor()
     : p(new Private) {
     GstElement *pb = gst_element_factory_make("playbin", "playbin");
     if (!pb) {
-        throw std::runtime_error("ThumbnailExtractor(): Could not create playbin");
+        throw_error("ThumbnailExtractor(): Could not create playbin");
     }
     p->playbin.reset(static_cast<GstElement*>(g_object_ref_sink(pb)));
 
     GstElement *audio_sink = gst_element_factory_make("fakesink", "audio-fake-sink");
     if (!audio_sink) {
-        throw std::runtime_error("ThumbnailExtractor(): Could not create audio sink");
+        throw_error("ThumbnailExtractor(): Could not create audio sink");
     }
     GstElement *video_sink = gst_element_factory_make("fakesink", "video-fake-sink");
     if (!video_sink) {
         g_object_unref(audio_sink);
-        throw std::runtime_error("ThumbnailExtractor(): Could not create video sink");
+        throw_error("ThumbnailExtractor(): Could not create video sink");
     }
 
     g_object_set(video_sink, "sync", TRUE, nullptr);
@@ -294,7 +293,7 @@ bool ThumbnailExtractor::extract_audio_cover_art() {
 
 void ThumbnailExtractor::save_screenshot(const std::string &filename) {
     if (!p->sample) {
-        throw std::runtime_error("save_screenshot(): Could not retrieve screenshot");
+        throw_error("save_screenshot(): Could not retrieve screenshot");
     }
 
     // Construct a pixbuf from the sample
@@ -304,14 +303,14 @@ void ThumbnailExtractor::save_screenshot(const std::string &filename) {
     if (p->sample_raw) {
         GstCaps *sample_caps = gst_sample_get_caps(p->sample.get());
         if (!sample_caps) {
-            throw std::runtime_error("save_screenshot(): Could not retrieve caps for sample buffer");
+            throw_error("save_screenshot(): Could not retrieve caps for sample buffer");
         }
         GstStructure *sample_struct = gst_caps_get_structure(sample_caps, 0);
         int width = 0, height = 0;
         gst_structure_get_int(sample_struct, "width", &width);
         gst_structure_get_int(sample_struct, "height", &height);
         if (width <= 0 || height <= 0) {
-            throw std::runtime_error("save_screenshot(): Could not retrieve image dimensions");
+            throw_error("save_screenshot(): Could not retrieve image dimensions");
         }
 
         buffermap.map(gst_sample_get_buffer(p->sample.get()));
@@ -331,7 +330,7 @@ void ThumbnailExtractor::save_screenshot(const std::string &filename) {
                 image.reset(static_cast<GdkPixbuf*>(g_object_ref(pixbuf)));
             }
         } else {
-            throw_error(error, "save_screenshot(): decoding image");
+            throw_error("save_screenshot(): decoding image", error);
         }
     }
 
@@ -346,7 +345,7 @@ void ThumbnailExtractor::save_screenshot(const std::string &filename) {
     GError *error = nullptr;
     if (!gdk_pixbuf_save(image.get(), filename.c_str(),
                          "jpeg", &error, nullptr)) {
-        throw_error(error, "save_screenshot(): saving image");
+        throw_error("save_screenshot(): saving image", error);
     }
     fprintf(stderr, "Done.\n");
 }
