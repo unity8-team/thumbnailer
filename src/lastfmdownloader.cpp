@@ -26,7 +26,7 @@
 
 #include <memory>
 
-const char* NOTFOUND_IMAGE = "http://cdn.last.fm/flatness/catalogue/noimage/2/default_album_medium.png";
+char const* NOTFOUND_IMAGE = "http://cdn.last.fm/flatness/catalogue/noimage/2/default_album_medium.png";
 
 using namespace std;
 using namespace unity::thumbnailer::internal;
@@ -76,10 +76,10 @@ string LastFMDownloader::parse_xml(string const& xml)
     return url;
 }
 
-string LastFMDownloader::download(const std::string& artist, const std::string& album)
+string LastFMDownloader::download(std::string const& artist, std::string const& album)
 {
-    const char* lastfmTemplate = "http://ws.audioscrobbler.com/1.0/album/%s/%s/info.xml";
-    const int bufsize = 1024;
+    char const* lastfmTemplate = "http://ws.audioscrobbler.com/1.0/album/%s/%s/info.xml";
+    int const bufsize = 1024;
     char buf[bufsize];
     snprintf(buf, bufsize, lastfmTemplate, artist.c_str(), album.c_str());
     string xml(dl->download(buf));
@@ -90,10 +90,10 @@ string LastFMDownloader::download(const std::string& artist, const std::string& 
         return string();
     }
 
-    return string(dl->download(parsed));
+    return dl->download(parsed);
 }
 
-string LastFMDownloader::download_artist(const std::string& /*artist*/, const std::string& /*album*/)
+string LastFMDownloader::download_artist(std::string const& /*artist*/, std::string const& /*album*/)
 {
     // not implemented
     return string();

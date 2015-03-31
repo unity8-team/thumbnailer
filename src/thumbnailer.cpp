@@ -58,9 +58,9 @@ class ThumbnailerPrivate
 private:
     random_device rnd;
 
-    string create_audio_thumbnail(const string& abspath, ThumbnailSize desired_size, ThumbnailPolicy policy);
-    string create_video_thumbnail(const string& abspath, ThumbnailSize desired_size);
-    string create_generic_thumbnail(const string& abspath, ThumbnailSize desired_size);
+    string create_audio_thumbnail(string const& abspath, ThumbnailSize desired_size, ThumbnailPolicy policy);
+    string create_video_thumbnail(string const& abspath, ThumbnailSize desired_size);
+    string create_generic_thumbnail(string const& abspath, ThumbnailSize desired_size);
 
 public:
     ThumbnailCache cache;
@@ -83,9 +83,9 @@ public:
         }
     };
 
-    string create_thumbnail(const string& abspath, ThumbnailSize desired_size, ThumbnailPolicy policy);
+    string create_thumbnail(string const& abspath, ThumbnailSize desired_size, ThumbnailPolicy policy);
     string create_random_filename();
-    string extract_exif_thumbnail(const std::string& abspath);
+    string extract_exif_thumbnail(std::string const& abspath);
 };
 
 string ThumbnailerPrivate::create_random_filename()
@@ -106,7 +106,7 @@ string ThumbnailerPrivate::create_random_filename()
     return fname;
 }
 
-string ThumbnailerPrivate::extract_exif_thumbnail(const std::string& abspath)
+string ThumbnailerPrivate::extract_exif_thumbnail(std::string const& abspath)
 {
     std::unique_ptr<ExifLoader, void (*)(ExifLoader*)> el(exif_loader_new(), exif_loader_unref);
     if (el)
@@ -128,7 +128,7 @@ string ThumbnailerPrivate::extract_exif_thumbnail(const std::string& abspath)
     return "";
 }
 
-string ThumbnailerPrivate::create_audio_thumbnail(const string& abspath,
+string ThumbnailerPrivate::create_audio_thumbnail(string const& abspath,
                                                   ThumbnailSize desired_size,
                                                   ThumbnailPolicy /*policy*/)
 {
@@ -153,7 +153,7 @@ string ThumbnailerPrivate::create_audio_thumbnail(const string& abspath,
     }
     return "";
 }
-string ThumbnailerPrivate::create_generic_thumbnail(const string& abspath, ThumbnailSize desired_size)
+string ThumbnailerPrivate::create_generic_thumbnail(string const& abspath, ThumbnailSize desired_size)
 {
     int tmpw, tmph;
     string tnfile = cache.get_cache_file_name(abspath, desired_size);
@@ -169,14 +169,14 @@ string ThumbnailerPrivate::create_generic_thumbnail(const string& abspath, Thumb
             return tnfile;
         }
     }
-    catch (const runtime_error& e)
+    catch (runtime_error const& e)
     {
         fprintf(stderr, "Scaling thumbnail failed: %s\n", e.what());
     }
     return "";
 }
 
-string ThumbnailerPrivate::create_video_thumbnail(const string& abspath, ThumbnailSize desired_size)
+string ThumbnailerPrivate::create_video_thumbnail(string const& abspath, ThumbnailSize desired_size)
 {
     string tnfile = cache.get_cache_file_name(abspath, desired_size);
     string tmpname = create_random_filename();
@@ -189,7 +189,7 @@ string ThumbnailerPrivate::create_video_thumbnail(const string& abspath, Thumbna
     throw runtime_error("Video extraction failed.");
 }
 
-string ThumbnailerPrivate::create_thumbnail(const string& abspath, ThumbnailSize desired_size, ThumbnailPolicy policy)
+string ThumbnailerPrivate::create_thumbnail(string const& abspath, ThumbnailSize desired_size, ThumbnailPolicy policy)
 {
     // Every now and then see if we have too much stuff and delete them if so.
     if ((rnd() % 100) == 0)  // No, this is not perfectly random. It does not need to be.
@@ -249,7 +249,7 @@ string ThumbnailerPrivate::create_thumbnail(const string& abspath, ThumbnailSize
                 }
             }
         }
-        catch (const exception& e)
+        catch (exception const& e)
         {
         }
     }
@@ -257,16 +257,13 @@ string ThumbnailerPrivate::create_thumbnail(const string& abspath, ThumbnailSize
     return create_generic_thumbnail(abspath, desired_size);
 }
 
-Thumbnailer::Thumbnailer()
+Thumbnailer::Thumbnailer() : p_(new ThumbnailerPrivate())
 {
-    p = new ThumbnailerPrivate();
 }
 
-Thumbnailer::~Thumbnailer()
-{
-    delete p;
-}
-std::string Thumbnailer::get_thumbnail(const std::string& filename, ThumbnailSize desired_size, ThumbnailPolicy policy)
+Thumbnailer::~Thumbnailer() = default;
+
+std::string Thumbnailer::get_thumbnail(std::string const& filename, ThumbnailSize desired_size, ThumbnailPolicy policy)
 {
     string abspath;
     if (filename.empty())
@@ -284,40 +281,40 @@ std::string Thumbnailer::get_thumbnail(const std::string& filename, ThumbnailSiz
     {
         abspath = filename;
     }
-    std::string estimate = p->cache.get_if_exists(abspath, desired_size);
+    std::string estimate = p_->cache.get_if_exists(abspath, desired_size);
     if (!estimate.empty())
     {
         return estimate;
     }
 
-    if (p->cache.has_failure(abspath))
+    if (p_->cache.has_failure(abspath))
     {
         throw runtime_error("Thumbnail generation failed previously, not trying again.");
     }
 
     try
     {
-        string generated = p->create_thumbnail(abspath, desired_size, policy);
+        string generated = p_->create_thumbnail(abspath, desired_size, policy);
         if (generated == abspath)
         {
             return abspath;
         }
     }
-    catch (const std::runtime_error& e)
+    catch (std::runtime_error const& e)
     {
-        p->cache.mark_failure(abspath);
+        p_->cache.mark_failure(abspath);
         throw;
     }
 
-    return p->cache.get_if_exists(abspath, desired_size);
+    return p_->cache.get_if_exists(abspath, desired_size);
 }
 
-string Thumbnailer::get_thumbnail(const string& filename, ThumbnailSize desired_size)
+string Thumbnailer::get_thumbnail(string const& filename, ThumbnailSize desired_size)
 {
     return get_thumbnail(filename, desired_size, TN_LOCAL);
 }
 
-unique_ptr<gchar, void (*)(gpointer)> get_art_file_content(const string& fname, gsize& content_size)
+unique_ptr<gchar, void (*)(gpointer)> get_art_file_content(string const& fname, gsize& content_size)
 {
     gchar* contents;
     GError* err = nullptr;
@@ -333,12 +330,12 @@ unique_ptr<gchar, void (*)(gpointer)> get_art_file_content(const string& fname, 
     return unique_ptr<gchar, void (*)(gpointer)>(contents, g_free);
 }
 
-std::string Thumbnailer::get_album_art(const std::string& artist,
-                                       const std::string& album,
+std::string Thumbnailer::get_album_art(std::string const& artist,
+                                       std::string const& album,
                                        ThumbnailSize desired_size,
                                        ThumbnailPolicy policy)
 {
-    if (!p->macache.has_album_art(artist, album))
+    if (!p_->macache.has_album_art(artist, album))
     {
         if (policy == TN_LOCAL)
         {
@@ -348,7 +345,7 @@ std::string Thumbnailer::get_album_art(const std::string& artist,
         }
         char filebuf[] = "/tmp/some/long/text/here/so/path/will/fit";
         std::string tmpname = tmpnam(filebuf);
-        std::string image = p->downloader->download(artist, album);
+        std::string image = p_->downloader->download(artist, album);
         if (!image.empty())
         {
             store_to_file(image, tmpname);
@@ -360,12 +357,12 @@ std::string Thumbnailer::get_album_art(const std::string& artist,
 
         gsize content_size;
         auto contents = get_art_file_content(tmpname, content_size);
-        p->macache.add_album_art(artist, album, contents.get(), content_size);
+        p_->macache.add_album_art(artist, album, contents.get(), content_size);
     }
     // At this point we know we have the image in our art cache (unless
     // someone just deleted it concurrently, in which case we can't
     // really do anything.
-    std::string original = p->macache.get_album_art_file(artist, album);
+    std::string original = p_->macache.get_album_art_file(artist, album);
     if (desired_size == TN_SIZE_ORIGINAL)
     {
         return original;
@@ -373,12 +370,12 @@ std::string Thumbnailer::get_album_art(const std::string& artist,
     return get_thumbnail(original, desired_size, policy);
 }
 
-std::string Thumbnailer::get_artist_art(const std::string& artist,
-                                        const std::string& album,
+std::string Thumbnailer::get_artist_art(std::string const& artist,
+                                        std::string const& album,
                                         ThumbnailSize desired_size,
                                         ThumbnailPolicy policy)
 {
-    if (!p->macache.has_artist_art(artist, album))
+    if (!p_->macache.has_artist_art(artist, album))
     {
         if (policy == TN_LOCAL)
         {
@@ -388,7 +385,7 @@ std::string Thumbnailer::get_artist_art(const std::string& artist,
         }
         char filebuf[] = "/tmp/some/long/text/here/so/path/will/fit";
         std::string tmpname = tmpnam(filebuf);
-        std::string image = p->downloader->download_artist(artist, album);
+        std::string image = p_->downloader->download_artist(artist, album);
         if (!image.empty())
         {
             store_to_file(image, tmpname);
@@ -399,12 +396,12 @@ std::string Thumbnailer::get_artist_art(const std::string& artist,
         }
         gsize content_size;
         auto contents = get_art_file_content(tmpname, content_size);
-        p->macache.add_artist_art(artist, album, contents.get(), content_size);
+        p_->macache.add_artist_art(artist, album, contents.get(), content_size);
     }
     // At this point we know we have the image in our art cache (unless
     // someone just deleted it concurrently, in which case we can't
     // really do anything.
-    std::string original = p->macache.get_artist_art_file(artist, album);
+    std::string original = p_->macache.get_artist_art_file(artist, album);
     if (desired_size == TN_SIZE_ORIGINAL)
     {
         return original;

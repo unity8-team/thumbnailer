@@ -80,25 +80,25 @@ void UbuntuServerDownloader::set_api_key()
     }
 }
 
-std::string UbuntuServerDownloader::download(const string& artist, const string& album)
+std::string UbuntuServerDownloader::download(string const& artist, string const& album)
 {
-    const int bufsize = 1024;
+    int const bufsize = 1024;
     char buf[bufsize];
     snprintf(buf, bufsize, UBUNTU_SERVER_ALBUM_ART_URL, artist.c_str(), album.c_str(), api_key.c_str());
 
     return download(buf);
 }
 
-std::string UbuntuServerDownloader::download_artist(const std::string& artist, const string& album)
+std::string UbuntuServerDownloader::download_artist(std::string const& artist, string const& album)
 {
-    const int bufsize = 1024;
+    int const bufsize = 1024;
     char buf[bufsize];
     snprintf(buf, bufsize, UBUNTU_SERVER_ARTIST_ART_URL, artist.c_str(), album.c_str(), api_key.c_str());
 
     return download(buf);
 }
 
-std::string UbuntuServerDownloader::download(const std::string& url)
+std::string UbuntuServerDownloader::download(std::string const& url)
 {
-    return std::string(dl->download(url));
+    return dl->download(url);
 }

@@ -35,11 +35,11 @@ public:
     ArtDownloader() = default;
     virtual ~ArtDownloader() = default;
 
-    // Returns the downloaded image as a std::string for the fiven artist and album
+    // Returns the downloaded image as a std::string for the given artist and album
     // If no image was found it returns an empty std::string
     virtual std::string download(std::string const& artist, std::string const& album) = 0;
 
-    // Returns the downloaded image as a std::string for the fiven artist and album
+    // Returns the downloaded image as a std::string for the given artist and album
     // If no image was found it returns an empty std::string
     virtual std::string download_artist(std::string const& artist, std::string const& album) = 0;
     ArtDownloader(ArtDownloader const&) = delete;
