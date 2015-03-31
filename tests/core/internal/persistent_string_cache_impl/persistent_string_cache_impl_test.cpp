@@ -27,7 +27,6 @@
 #include <thread>
 
 using namespace std;
-using namespace unity;
 using namespace core;
 using namespace core::internal;
 
