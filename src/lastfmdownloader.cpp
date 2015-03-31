@@ -41,10 +41,6 @@ LastFMDownloader::LastFMDownloader(HttpDownloader* o)
 {
 }
 
-LastFMDownloader::~LastFMDownloader()
-{
-}
-
 string LastFMDownloader::parse_xml(string const& xml)
 {
     string node = "/album/coverart/large";

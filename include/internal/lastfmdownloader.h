@@ -38,7 +38,7 @@ class LastFMDownloader final : public ArtDownloader
 public:
     LastFMDownloader();
     LastFMDownloader(HttpDownloader* o);  // Takes ownership.
-    ~LastFMDownloader();
+    ~LastFMDownloader() = default;
     LastFMDownloader(LastFMDownloader const& o) = delete;
     LastFMDownloader& operator=(LastFMDownloader const& o) = delete;
 
