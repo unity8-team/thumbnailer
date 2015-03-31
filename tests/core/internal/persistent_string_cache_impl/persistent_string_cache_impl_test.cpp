@@ -20,7 +20,6 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
-#include <unity/UnityExceptions.h>
 
 #include <gtest/gtest.h>
 
