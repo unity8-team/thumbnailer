@@ -17,7 +17,7 @@ proxy = Gio.DBusProxy.new_sync(bus, Gio.DBusProxyFlags.NONE, None,
 
 args = GLib.Variant("(sss)", (sys.argv[1], sys.argv[2], "original"))
 result, fd_list = proxy.call_with_unix_fd_list_sync(
-    "GetAlbumArt", args, Gio.DBusCallFlags.NONE, 500, None, None)
+    "GetAlbumArt", args, Gio.DBusCallFlags.NONE, 5000, None, None)
 
 fd = os.fdopen(fd_list.peek_fds()[0], 'rb')
 with open(sys.argv[3], 'wb') as output:
