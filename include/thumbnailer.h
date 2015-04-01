@@ -16,23 +16,25 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#ifndef THUMBNAILER_H_
-#define THUMBNAILER_H_
+#pragma once
 
-#include<string>
+#include <memory>
+#include <string>
 
 class ThumbnailerPrivate;
 
-enum ThumbnailSize {
-    TN_SIZE_SMALL,   // maximum dimension 128 pixels
-    TN_SIZE_LARGE,   // maximum dimension 256 pixels
-    TN_SIZE_XLARGE,  // maximum dimension 512 pixels
-    TN_SIZE_ORIGINAL // Whatever the original size was, e.g. 1920x1080 for FullHD video
+enum ThumbnailSize
+{
+    TN_SIZE_SMALL,    // maximum dimension 128 pixels
+    TN_SIZE_LARGE,    // maximum dimension 256 pixels
+    TN_SIZE_XLARGE,   // maximum dimension 512 pixels
+    TN_SIZE_ORIGINAL  // Whatever the original size was, e.g. 1920x1080 for FullHD video
 };
 
-enum ThumbnailPolicy {
-    TN_LOCAL,  // Use only local information
-    TN_REMOTE, // Use remote services (e.g. album art downloading)
+enum ThumbnailPolicy
+{
+    TN_LOCAL,   // Use only local information
+    TN_REMOTE,  // Use remote services (e.g. album art downloading)
 };
 
 /**
@@ -46,7 +48,8 @@ enum ThumbnailPolicy {
  * Errors are reported as exceptions.
  */
 
-class Thumbnailer {
+class Thumbnailer
+{
 public:
     Thumbnailer();
     ~Thumbnailer();
@@ -63,24 +66,26 @@ public:
      * In case of unexpected problems, the function throws a
      * std::runtime_error.
      */
-    std::string get_thumbnail(const std::string &filename, ThumbnailSize desired_size,
-            ThumbnailPolicy policy);
+    std::string get_thumbnail(std::string const& filename, ThumbnailSize desired_size, ThumbnailPolicy policy);
     /**
      * Deprecated. Do not use!
      */
-    std::string get_thumbnail(const std::string &filename, ThumbnailSize desired_size);
+    std::string get_thumbnail(std::string const& filename, ThumbnailSize desired_size);
 
-    std::string get_album_art(const std::string &artist, const std::string &album,
-            ThumbnailSize desiredSize, ThumbnailPolicy policy);
+    std::string get_album_art(std::string const& artist,
+                              std::string const& album,
+                              ThumbnailSize desiredSize,
+                              ThumbnailPolicy policy);
 
-    std::string get_artist_art(const std::string &artist, const std::string &album,
-            ThumbnailSize desiredSize, ThumbnailPolicy policy);
+    std::string get_artist_art(std::string const& artist,
+                               std::string const& album,
+                               ThumbnailSize desiredSize,
+                               ThumbnailPolicy policy);
 
 private:
-    Thumbnailer(const Thumbnailer &t);
-    Thumbnailer & operator=(const Thumbnailer &t);
+    Thumbnailer(Thumbnailer const& t);
+    Thumbnailer& operator=(Thumbnailer const& t);
 
-    ThumbnailerPrivate *p;
+    std::unique_ptr<ThumbnailerPrivate> p_;
 };
 
-#endif
