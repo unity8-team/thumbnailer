@@ -46,7 +46,7 @@ A cache has a maximum size (which can be changed at any time). Once
 the cache reaches its maximum size, when adding an entry,
 the cache automatically discards enough entries to make room for the new entry.
 
-Keys can be (possibly binary) strings of size > 0. Values can be
+Keys can be (possibly binary) strings of size &gt; 0. Values can be
 (possibly binary) strings including the empty string.
 
 Entries maintain an access time, which is used to keep them in
@@ -220,7 +220,7 @@ public:
     The maximum size of the cache is the sum of the sizes of all its entries.
 
     \return A <code>unique_ptr</code> to the instance.
-    \throws invalid_argument `max_size_in_bytes` is < 1.
+    \throws invalid_argument `max_size_in_bytes` is &lt; 1.
     \throws logic_error `max_size_in_bytes` or `policy` do not match the settings of a pre-existing cache.
     */
     static UPtr open(std::string const& cache_path, int64_t max_size_in_bytes, CacheDiscardPolicy policy);
@@ -645,8 +645,8 @@ public:
     If `size_in_bytes` is less than max_size_in_bytes(), the cache discards existing entries until
     the size falls to (or below) `size_in_bytes` and sets the cache size to the new value.
 
-    \throws invalid_argument `size_in_bytes` is < 1
-    \throws logic_error headroom() is > 50% of `size_in_bytes`.
+    \throws invalid_argument `size_in_bytes` is &lt; 1
+    \throws logic_error headroom() is &gt; 50% of `size_in_bytes`.
 
     \note If a cache uses non-zero headroom, you probably need to also adjust the headroom to make
     sense for the new size.
@@ -664,8 +664,8 @@ public:
     `used_size_in_bytes`. If `used_size_in_bytes` is less than the current cache size, this
     operation is a no-op.
 
-    \throws invalid_argument `used_size_in_bytes` is < 0
-    \throws logic_error `used_size_in_bytes` is > max_size_in_bytes().
+    \throws invalid_argument `used_size_in_bytes` is &lt; 0
+    \throws logic_error `used_size_in_bytes` is &gt; max_size_in_bytes().
 
     \note If trimming actually took place, this operation compacts the database to use the
     smallest possible amount of disk space.
@@ -675,8 +675,8 @@ public:
     /**
     \brief Changes the amount of headroom.
 
-    \throws invalid_argument `headroom is < 0`.
-    \throws logic_error `headroom` is > 50% of max_size_in_bytes().
+    \throws invalid_argument `headroom is &lt; 0`.
+    \throws logic_error `headroom` is &gt; 50% of max_size_in_bytes().
 
     \note This operation compacts the database to use the smallest possible amount of disk space.
     \see resize()

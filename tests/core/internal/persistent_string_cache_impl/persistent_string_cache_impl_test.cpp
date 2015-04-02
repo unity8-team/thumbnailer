@@ -219,6 +219,55 @@ TEST(PersistentStringCacheImpl, basic)
     EXPECT_TRUE(c.touch("x", expiry_time));
 }
 
+TEST(PersistentStringCacheImpl, update)
+{
+    unlink_db(TEST_DB);
+
+    PersistentStringCacheImpl c(TEST_DB, 1024, CacheDiscardPolicy::LRU_only);
+
+    string new_val;
+    string val(899, '1');  // Large value, near size limit
+
+    EXPECT_TRUE(c.put("1", val));
+    EXPECT_EQ(1, c.size());
+    EXPECT_EQ(900, c.size_in_bytes());
+    EXPECT_TRUE(c.get("1", new_val));
+    EXPECT_EQ(val, new_val);
+
+    string val2(99, '2');  // Second value, just fits
+    EXPECT_TRUE(c.put("2", val2));
+    EXPECT_EQ(1000, c.size_in_bytes());
+
+    // Second value must be there
+    EXPECT_TRUE(c.get("2", new_val));
+    EXPECT_EQ(val2, new_val);
+
+    // First value is now the oldest value.
+    val = string(1023, 'n');             // Size limit of cache
+    EXPECT_TRUE(c.put("1", val));        // Replace the old value
+    EXPECT_EQ(1024, c.size_in_bytes());  // Size must be at limit now
+    EXPECT_TRUE(c.get("1", new_val));    // Old value must be there...
+    EXPECT_EQ(val, new_val);             // ... with correct contents.
+    EXPECT_FALSE(c.contains_key("2"));   // Old value must have evicted smaller newer value
+
+    val = string(899, 'v');        // Make the value smaller
+    EXPECT_TRUE(c.put("1", val));  // Replace the value
+    EXPECT_EQ(900, c.size_in_bytes());
+
+    val2 = string(99, '2');              // Second value, just fits
+    EXPECT_TRUE(c.put("2", val2));       // Add it
+    EXPECT_EQ(1000, c.size_in_bytes());  // Check new size
+
+    // First value is now the oldest value.
+    string meta(124, 'm');                   // Adding this fills cache to limit
+    EXPECT_TRUE(c.put_metadata("1", meta));  // Add metadata
+    EXPECT_EQ(1024, c.size_in_bytes());      // Size must be at limit now
+    string new_meta;
+    EXPECT_TRUE(c.get("1", new_val, &new_meta));  // Old value must be there...
+    EXPECT_EQ(val, new_val);                      // ... with the right value...
+    EXPECT_EQ(meta, new_meta);                    // ... and the right metadata
+}
+
 TEST(PersistentStringCacheImpl, metadata)
 {
     {
@@ -438,7 +487,7 @@ TEST(PersistentStringCacheImpl, get_or_put)
         EXPECT_EQ(
             "PersistentStringCache: get_or_put(): load_func exception: std exception loader "
             "(cache_path: " +
-                TEST_DB + ")",
+            TEST_DB + ")",
             e.what());
     }
     s = c->stats();
@@ -457,7 +506,7 @@ TEST(PersistentStringCacheImpl, get_or_put)
         EXPECT_EQ(
             "PersistentStringCache: get_or_put(): load_func: unknown exception "
             "(cache_path: " +
-                TEST_DB + ")",
+            TEST_DB + ")",
             e.what());
     }
     EXPECT_EQ(0, s.hits());
@@ -781,7 +830,7 @@ TEST(PersistentStringCacheImpl, exceptions)
         EXPECT_EQ(
             "PersistentStringCache: existing cache opened with different max_size_in_bytes (2048), "
             "existing size = 1024 (cache_path: " +
-                TEST_DB + ")",
+            TEST_DB + ")",
             e.what());
     }
 
@@ -796,7 +845,7 @@ TEST(PersistentStringCacheImpl, exceptions)
         EXPECT_EQ(
             "PersistentStringCache: existing cache opened with different policy (LRU_only), "
             "existing policy = LRU_TTL (cache_path: " +
-                TEST_DB + ")",
+            TEST_DB + ")",
             e.what());
     }
 
@@ -811,7 +860,7 @@ TEST(PersistentStringCacheImpl, exceptions)
         EXPECT_EQ(
             "PersistentStringCache: invalid max_size_in_bytes (0): "
             "value must be > 0 (cache_path: " +
-                TEST_DB + ")",
+            TEST_DB + ")",
             e.what());
     }
 
@@ -851,7 +900,7 @@ TEST(PersistentStringCacheImpl, exceptions)
         EXPECT_EQ(
             "PersistentStringCache: put(): cannot add 1025-byte record to "
             "cache with maximum size of 1024 (cache_path: " +
-                TEST_DB + ")",
+            TEST_DB + ")",
             e.what());
     }
 
@@ -870,7 +919,7 @@ TEST(PersistentStringCacheImpl, exceptions)
             EXPECT_EQ(
                 "PersistentStringCache: trim_to(): invalid used_size_in_bytes (-1): "
                 "value must be >= 0 (cache_path: " +
-                    TEST_DB + ")",
+                TEST_DB + ")",
                 e.what());
         }
 
@@ -885,7 +934,7 @@ TEST(PersistentStringCacheImpl, exceptions)
             EXPECT_EQ(
                 "PersistentStringCache: trim_to(): invalid used_size_in_bytes (1025): "
                 "value must be <= max_size_in_bytes (1024) (cache_path: " +
-                    TEST_DB + ")",
+                TEST_DB + ")",
                 e.what());
         }
 
@@ -900,7 +949,7 @@ TEST(PersistentStringCacheImpl, exceptions)
             EXPECT_EQ(
                 "PersistentStringCache: resize(): invalid size_in_bytes (0): "
                 "value must be > 0 (cache_path: " +
-                    TEST_DB + ")",
+                TEST_DB + ")",
                 e.what());
         }
 
@@ -917,7 +966,7 @@ TEST(PersistentStringCacheImpl, exceptions)
             EXPECT_EQ(
                 "PersistentStringCache: resize(): cannot reduce cache size: headroom() (512) is > 50% "
                 "of size_in_bytes (1023) (cache_path: " +
-                    TEST_DB + ")",
+                TEST_DB + ")",
                 e.what());
         }
         c.set_headroom(0);
@@ -932,7 +981,7 @@ TEST(PersistentStringCacheImpl, exceptions)
         catch (invalid_argument const& e)
         {
             EXPECT_EQ("PersistentStringCache: set_headroom(): invalid headroom (-1): value must be >= 0 (cache_path: " +
-                          TEST_DB + ")",
+                      TEST_DB + ")",
                       e.what());
         }
         try
@@ -946,7 +995,7 @@ TEST(PersistentStringCacheImpl, exceptions)
             EXPECT_EQ(
                 "PersistentStringCache: set_headroom(): invalid headroom (513): value must "
                 "be <= max_size_in_bytes() / 2 (512) (cache_path: " +
-                    TEST_DB + ")",
+                TEST_DB + ")",
                 e.what());
         }
         c.set_headroom(0);
@@ -1135,7 +1184,7 @@ TEST(PersistentStringCacheImpl, exceptions)
         catch (logic_error const& e)
         {
             EXPECT_EQ(string("PersistentStringCache: put_metadata(): cannot add 1024-byte metadata: ") +
-                          "record size (1025) exceeds maximum cache size of 1024 (cache_path: " + TEST_DB + ")",
+                      "record size (1025) exceeds maximum cache size of 1024 (cache_path: " + TEST_DB + ")",
                       e.what());
         }
     }
@@ -1204,7 +1253,7 @@ TEST(PersistentStringCacheImpl, exceptions)
                 EXPECT_EQ(
                     "PersistentStringCache: set_handler(): invalid mask (0): value must be in the "
                     "range [1..127] (cache_path: " +
-                        TEST_DB + ")",
+                    TEST_DB + ")",
                     e.what());
             }
 
@@ -1219,7 +1268,7 @@ TEST(PersistentStringCacheImpl, exceptions)
                 EXPECT_EQ(
                     "PersistentStringCache: set_handler(): invalid mask (128): value must be in the "
                     "range [1..127] (cache_path: " +
-                        TEST_DB + ")",
+                    TEST_DB + ")",
                     e.what());
             }
         }
@@ -1266,7 +1315,7 @@ TEST(PersistentStringCacheImpl, exceptions)
             catch (system_error const& e)
             {
                 EXPECT_EQ("PersistentStringCache: check_version(): bad version: \"nan\" (cache_path: " + TEST_DB +
-                              "): Unknown error 666",
+                          "): Unknown error 666",
                           e.what());
             }
         }
@@ -1546,6 +1595,13 @@ TEST(PersistentStringCacheImpl, stats)
     unlink_db(TEST_DB);
 
     PersistentStringCacheImpl c(TEST_DB, 128, CacheDiscardPolicy::LRU_only);
+    auto s = c.stats();
+    auto hist = s.histogram();
+    for (unsigned i = 0; i < hist.size(); ++i)
+    {
+        EXPECT_EQ(0, hist[i]);  // Histogram must be empty
+    }
+
     c.put("x", "y");
     c.set_headroom(15);
 
@@ -1553,7 +1609,7 @@ TEST(PersistentStringCacheImpl, stats)
     EXPECT_TRUE(c.get("x", val));
     EXPECT_EQ("y", val);
 
-    auto s = c.stats();
+    s = c.stats();
     EXPECT_EQ(1, s.size());
     EXPECT_EQ(2, s.size_in_bytes());
     EXPECT_EQ(128, s.max_size_in_bytes());
@@ -1568,6 +1624,112 @@ TEST(PersistentStringCacheImpl, stats)
     EXPECT_EQ(128, s.max_size_in_bytes());
     EXPECT_EQ(15, s.headroom());
     EXPECT_EQ(0, s.hits());
+    EXPECT_EQ(1, s.histogram()[0]);
+
+    c.put("x", "y");  // Value was already there
+    s = c.stats();
+    hist = s.histogram();
+    EXPECT_EQ(1, hist[0]);
+    for (unsigned i = 1; i < hist.size(); ++i)
+    {
+        EXPECT_EQ(0, hist[i]);
+    }
+
+    c.put("y", "");  // New value
+    s = c.stats();
+    hist = s.histogram();
+    EXPECT_EQ(2, hist[0]);
+    for (unsigned i = 1; i < hist.size(); ++i)
+    {
+        EXPECT_EQ(0, hist[i]);
+    }
+
+    c.put("y", "ab");  // Replace value with larger one in same bin.
+    s = c.stats();
+    hist = s.histogram();
+    EXPECT_EQ(2, hist[0]);  // Bin count must still be the same.
+    for (unsigned i = 1; i < hist.size(); ++i)
+    {
+        EXPECT_EQ(0, hist[i]);
+    }
+
+    c.put("y", string(9, 'y'));  // Replace value with larger one in next bin.
+    s = c.stats();
+    hist = s.histogram();
+    EXPECT_EQ(1, hist[0]);
+    EXPECT_EQ(1, hist[1]);  // Value must have moved to new bin.
+    for (unsigned i = 2; i < hist.size(); ++i)
+    {
+        EXPECT_EQ(0, hist[i]);  // Other bins must still be empty.
+    }
+
+    c.put_metadata("y", string(1, 'm'));  // Add small metadata, value stays in same bin.
+    s = c.stats();
+    hist = s.histogram();
+    EXPECT_EQ(1, hist[0]);
+    EXPECT_EQ(1, hist[1]);  // Value must have moved to new bin.
+    for (unsigned i = 2; i < hist.size(); ++i)
+    {
+        EXPECT_EQ(0, hist[i]);  // Other bins must still be empty.
+    }
+
+    c.put_metadata("y", string(10, 'm'));  // Add larger metadata, value moves to next bin.
+    s = c.stats();
+    hist = s.histogram();
+    EXPECT_EQ(1, hist[0]);
+    EXPECT_EQ(0, hist[1]);
+    EXPECT_EQ(1, hist[2]);
+    for (unsigned i = 3; i < hist.size(); ++i)
+    {
+        EXPECT_EQ(0, hist[i]);  // Other bins must still be empty.
+    }
+
+    c.put_metadata("y", string(1, 'm'));  // Shrink metadata, value moves to previous bin.
+    s = c.stats();
+    hist = s.histogram();
+    EXPECT_EQ(1, hist[0]);
+    EXPECT_EQ(1, hist[1]);
+    for (unsigned i = 2; i < hist.size(); ++i)
+    {
+        EXPECT_EQ(0, hist[i]) << i;  // Other bins must still be empty.
+    }
+
+    c.put("new key", string(1, 'k'));
+    c.invalidate();
+    s = c.stats();
+    hist = s.histogram();
+    for (unsigned i = 0; i < hist.size(); ++i)
+    {
+        EXPECT_EQ(0, hist[i]);  // Histogram must have been emptied.
+    }
+
+    c.put("1", string(1, 'k'));   // First bin
+    c.put("2", string(10, 'k'));  // Second bin
+    c.put("3", string(20, 'k'));  // Third bin
+    c.put("4", string(30, 'k'));  // Fourth bin
+    c.invalidate({"2", "3"});
+    s = c.stats();
+    hist = s.histogram();
+    EXPECT_EQ(1, hist[0]);
+    EXPECT_EQ(0, hist[1]);
+    EXPECT_EQ(0, hist[2]);
+    EXPECT_EQ(1, hist[3]);
+    for (unsigned i = 4; i < hist.size(); ++i)
+    {
+        EXPECT_EQ(0, hist[i]);  // Other bins must still be empty.
+    }
+
+    c.invalidate("1");  // Invalidate specific entry
+    s = c.stats();
+    hist = s.histogram();
+    EXPECT_EQ(0, hist[0]);
+    EXPECT_EQ(0, hist[1]);
+    EXPECT_EQ(0, hist[2]);
+    EXPECT_EQ(1, hist[3]);
+    for (unsigned i = 4; i < hist.size(); ++i)
+    {
+        EXPECT_EQ(0, hist[i]);  // Other bins must still be empty.
+    }
 }
 
 TEST(PersistentStringCacheImpl, event_handlers)
@@ -1719,15 +1881,18 @@ TEST(PersistentStringCacheImpl, event_handlers)
 
     auto later = chrono::steady_clock::now() + chrono::milliseconds(50);
     c.put(bad_key, "", later);
-    this_thread::sleep_for(chrono::milliseconds(100));
+    while (chrono::steady_clock::now() <= later)
+    {
+        this_thread::sleep_for(chrono::milliseconds(5));
+    }
     c.get(bad_key, val);  // Already expired, so we must get a miss.
     ASSERT_EQ(1, map->size());
     er = (*map)[bad_key];
     EXPECT_EQ(CacheEvent::Miss, er.ev);
     EXPECT_EQ(1, er.stats.size());
     EXPECT_EQ(bad_key.size(), er.stats.size_in_bytes());
-    map->clear();
     c.invalidate();
+    map->clear();
 
     event_maps[CacheEvent::Invalidate].clear();
     event_maps[CacheEvent::Miss].clear();
@@ -1746,16 +1911,20 @@ TEST(PersistentStringCacheImpl, event_handlers)
     EXPECT_EQ(0, er.stats.size());
     EXPECT_EQ(0, er.stats.size_in_bytes());
 
-    map->clear();
     c.invalidate();
+    map->clear();
 
     // Check Evict_TTL
-    later = chrono::steady_clock::now() + chrono::milliseconds(50);
+    later = chrono::steady_clock::now() + chrono::milliseconds(100);
     c.put("1", "", later);
     this_thread::sleep_for(chrono::milliseconds(10));
-    later = chrono::steady_clock::now() + chrono::milliseconds(50);
+    later = chrono::steady_clock::now() + chrono::milliseconds(100);
     c.put("2", "", later);
-    this_thread::sleep_for(chrono::milliseconds(100));
+    while (chrono::steady_clock::now() <= later)
+    {
+        this_thread::sleep_for(chrono::milliseconds(5));
+    }
+    // Both entries have expired now.
     c.trim_to(1);
 
     // Both entries have expired. Even though we asked for a trim_to(1),
@@ -1792,4 +1961,18 @@ TEST(PersistentStringCacheImpl, event_handlers)
     // Entry "2" is youngest, so it gets deleted last.
     EXPECT_EQ(0, er.stats.size());
     EXPECT_EQ(0, er.stats.size_in_bytes());
+
+    // Rather than testing all 74 bins, we test a few critical ones.
+    // If they are right, so will be the others, seeing that they
+    // are generated.
+    auto bounds = PersistentCacheStats::histogram_bounds();
+    typedef pair<int32_t, int32_t> P;
+    EXPECT_EQ(P(1, 9), bounds[0]);
+    EXPECT_EQ(P(10, 19), bounds[1]);
+    EXPECT_EQ(P(20, 29), bounds[2]);
+    EXPECT_EQ(P(90, 99), bounds[9]);
+    EXPECT_EQ(P(100, 199), bounds[10]);
+    EXPECT_EQ(P(900, 999), bounds[18]);
+    EXPECT_EQ(P(900000000, 999999999), bounds[72]);
+    EXPECT_EQ(P(1000000000, numeric_limits<int32_t>::max()), bounds[73]);
 }

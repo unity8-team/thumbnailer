@@ -20,8 +20,6 @@
 
 #include <core/persistent_string_cache.h>
 
-#include <vector>
-
 namespace core
 {
 
@@ -290,16 +288,16 @@ public:
     //{@
 
     /**
-    \brief Adds or updates an entry. If `V` == `std::string`, an overload that accepts `const char*` and `size`
-    is provided as well.
+    \brief Adds or updates an entry. If `V` = `std::string`, the method is also overloaded to
+    to accept `char const*` and `size`.
     */
     bool put(K const& key,
              V const& value,
              std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
 
     /**
-    \brief Adds or updates an entry and its metadata. If 'V' or `M` == `std::string`,
-    an overload that accepts `const char*` and `size` is provided as well.
+    \brief Adds or updates an entry and its metadata. If 'V' or `M` = `std::string`,
+    the method is also overloaded to accept `char const*` and `size`.
     */
     bool put(K const& key,
              V const& value,
@@ -322,7 +320,7 @@ public:
     OptionalData get_or_put_data(K const& key, Loader const& load_func);
 
     /**
-    \brief Adds or replaces the metadata for an entry. If `M` == `std::string`, an overload that accepts
+    \brief Adds or replaces the metadata for an entry. If `M` = `std::string`, an overload that accepts
     `const char*` and `size` is provided as well.
     */
     bool put_metadata(K const& key, M const& metadata);

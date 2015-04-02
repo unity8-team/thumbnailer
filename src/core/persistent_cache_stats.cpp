@@ -20,8 +20,6 @@
 
 #include <core/internal/persistent_string_cache_stats.h>
 
-#include <cassert>
-
 using namespace std;
 
 namespace core
@@ -182,6 +180,35 @@ chrono::steady_clock::time_point PersistentCacheStats::longest_hit_run_time() co
 chrono::steady_clock::time_point PersistentCacheStats::longest_miss_run_time() const noexcept
 {
     return p_->longest_miss_run_time_;
+}
+
+PersistentCacheStats::Histogram const& PersistentCacheStats::histogram() const
+{
+    return p_->hist_;
+}
+
+PersistentCacheStats::HistogramBounds const& PersistentCacheStats::histogram_bounds()
+{
+    static HistogramBounds bounds = []()
+    {
+        HistogramBounds b;
+        b.push_back({1, 9});  // First bin collapses 1 - 9 into a single bin.
+
+        unsigned i = 1;
+        auto constexpr num_powers = (PersistentCacheStats::NUM_BINS - 2) / 9;
+        for (; i <= num_powers; ++i)
+        {
+            for (unsigned int j = 1; j < 10; ++j)
+            {
+                uint64_t lower = pow(10, i) * j;
+                uint64_t upper = lower + pow(10, i) - 1;
+                b.push_back({lower, upper});
+            }
+        }
+        b.push_back({pow(10, i), std::numeric_limits<decltype(b[0].second)>::max()});
+        return b;
+    }();
+    return bounds;
 }
 
 }  // namespace core

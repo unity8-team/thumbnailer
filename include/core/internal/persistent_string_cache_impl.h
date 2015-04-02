@@ -22,7 +22,6 @@
 
 #include <leveldb/db.h>
 
-#include <array>
 #include <mutex>
 #include <sstream>
 
@@ -132,6 +131,7 @@ private:
         {
             std::istringstream is(s);
             is >> atime >> etime >> size;
+            assert(!is.bad());
         }
 
         DataTuple(DataTuple const&) = default;
@@ -148,7 +148,7 @@ private:
         }
     };
 
-    void compute_count_and_size();
+    void init_stats();
     void init_db(leveldb::Options options);
     bool cache_is_new();
     void write_version();
