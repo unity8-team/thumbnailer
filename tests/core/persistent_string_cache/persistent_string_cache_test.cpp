@@ -134,8 +134,17 @@ TEST(PersistentStringCache, stats)
         EXPECT_EQ(0, s.misses());
         EXPECT_EQ(0, s.hits_since_last_miss());
         EXPECT_EQ(0, s.misses_since_last_hit());
+        EXPECT_EQ(0, s.longest_hit_run());
+        EXPECT_EQ(0, s.longest_miss_run());
         EXPECT_EQ(chrono::steady_clock::time_point(), s.most_recent_hit_time());
         EXPECT_EQ(chrono::steady_clock::time_point(), s.most_recent_miss_time());
+        EXPECT_EQ(chrono::steady_clock::time_point(), s.longest_hit_run_time());
+        EXPECT_EQ(chrono::steady_clock::time_point(), s.longest_miss_run_time());
+        auto hist = s.histogram();
+        for (unsigned i = 0; i < hist.size(); ++i)
+        {
+            EXPECT_EQ(0, hist[i]);  // Other bins must still be empty.
+        }
     }
 
     {

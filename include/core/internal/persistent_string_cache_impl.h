@@ -45,8 +45,8 @@ public:
     PersistentStringCacheImpl(PersistentStringCacheImpl const&) = delete;
     PersistentStringCacheImpl& operator=(PersistentStringCacheImpl const&) = delete;
 
-    PersistentStringCacheImpl(PersistentStringCacheImpl&&) = default;
-    PersistentStringCacheImpl& operator=(PersistentStringCacheImpl&&) = default;
+    PersistentStringCacheImpl(PersistentStringCacheImpl&&) = delete;
+    PersistentStringCacheImpl& operator=(PersistentStringCacheImpl&&) = delete;
 
     ~PersistentStringCacheImpl();
 

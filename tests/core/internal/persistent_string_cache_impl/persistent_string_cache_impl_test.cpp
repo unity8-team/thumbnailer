@@ -1592,143 +1592,176 @@ TEST(PersistentStringCacheImpl, headroom)
 
 TEST(PersistentStringCacheImpl, stats)
 {
-    unlink_db(TEST_DB);
-
-    PersistentStringCacheImpl c(TEST_DB, 128, CacheDiscardPolicy::LRU_only);
-    auto s = c.stats();
-    auto hist = s.histogram();
-    for (unsigned i = 0; i < hist.size(); ++i)
     {
-        EXPECT_EQ(0, hist[i]);  // Histogram must be empty
+        unlink_db(TEST_DB);
+
+        PersistentStringCacheImpl c(TEST_DB, 128, CacheDiscardPolicy::LRU_only);
+        auto s = c.stats();
+        auto hist = s.histogram();
+        for (unsigned i = 0; i < hist.size(); ++i)
+        {
+            EXPECT_EQ(0, hist[i]);  // Histogram must be empty
+        }
+
+        c.put("x", "y");
+        c.set_headroom(15);
+
+        string val;
+        EXPECT_TRUE(c.get("x", val));
+        EXPECT_EQ("y", val);
+
+        s = c.stats();
+        EXPECT_EQ(1, s.size());
+        EXPECT_EQ(2, s.size_in_bytes());
+        EXPECT_EQ(128, s.max_size_in_bytes());
+        EXPECT_EQ(15, s.headroom());
+        EXPECT_EQ(1, s.hits());
+
+        c.clear_stats();
+        s = c.stats();
+
+        EXPECT_EQ(1, s.size());
+        EXPECT_EQ(2, s.size_in_bytes());
+        EXPECT_EQ(128, s.max_size_in_bytes());
+        EXPECT_EQ(15, s.headroom());
+        EXPECT_EQ(0, s.hits());
+        EXPECT_EQ(1, s.histogram()[0]);
+
+        c.put("x", "y");  // Value was already there
+        s = c.stats();
+        hist = s.histogram();
+        EXPECT_EQ(1, hist[0]);
+        for (unsigned i = 1; i < hist.size(); ++i)
+        {
+            EXPECT_EQ(0, hist[i]);
+        }
+
+        c.put("y", "");  // New value
+        s = c.stats();
+        hist = s.histogram();
+        EXPECT_EQ(2, hist[0]);
+        for (unsigned i = 1; i < hist.size(); ++i)
+        {
+            EXPECT_EQ(0, hist[i]);
+        }
+
+        c.put("y", "ab");  // Replace value with larger one in same bin.
+        s = c.stats();
+        hist = s.histogram();
+        EXPECT_EQ(2, hist[0]);  // Bin count must still be the same.
+        for (unsigned i = 1; i < hist.size(); ++i)
+        {
+            EXPECT_EQ(0, hist[i]);
+        }
+
+        c.put("y", string(9, 'y'));  // Replace value with larger one in next bin.
+        s = c.stats();
+        hist = s.histogram();
+        EXPECT_EQ(1, hist[0]);
+        EXPECT_EQ(1, hist[1]);  // Value must have moved to new bin.
+        for (unsigned i = 2; i < hist.size(); ++i)
+        {
+            EXPECT_EQ(0, hist[i]);  // Other bins must still be empty.
+        }
+
+        c.put_metadata("y", string(1, 'm'));  // Add small metadata, value stays in same bin.
+        s = c.stats();
+        hist = s.histogram();
+        EXPECT_EQ(1, hist[0]);
+        EXPECT_EQ(1, hist[1]);  // Value must have moved to new bin.
+        for (unsigned i = 2; i < hist.size(); ++i)
+        {
+            EXPECT_EQ(0, hist[i]);  // Other bins must still be empty.
+        }
+
+        c.put_metadata("y", string(10, 'm'));  // Add larger metadata, value moves to next bin.
+        s = c.stats();
+        hist = s.histogram();
+        EXPECT_EQ(1, hist[0]);
+        EXPECT_EQ(0, hist[1]);
+        EXPECT_EQ(1, hist[2]);
+        for (unsigned i = 3; i < hist.size(); ++i)
+        {
+            EXPECT_EQ(0, hist[i]);  // Other bins must still be empty.
+        }
+
+        c.put_metadata("y", string(1, 'm'));  // Shrink metadata, value moves to previous bin.
+        s = c.stats();
+        hist = s.histogram();
+        EXPECT_EQ(1, hist[0]);
+        EXPECT_EQ(1, hist[1]);
+        for (unsigned i = 2; i < hist.size(); ++i)
+        {
+            EXPECT_EQ(0, hist[i]) << i;  // Other bins must still be empty.
+        }
+
+        c.put("new key", string(1, 'k'));
+        c.invalidate();
+        s = c.stats();
+        hist = s.histogram();
+        for (unsigned i = 0; i < hist.size(); ++i)
+        {
+            EXPECT_EQ(0, hist[i]);  // Histogram must have been emptied.
+        }
+
+        c.put("1", string(1, 'k'));   // First bin
+        c.put("2", string(10, 'k'));  // Second bin
+        c.put("3", string(20, 'k'));  // Third bin
+        c.put("4", string(30, 'k'));  // Fourth bin
+        c.invalidate({"2", "3"});
+        s = c.stats();
+        hist = s.histogram();
+        EXPECT_EQ(1, hist[0]);
+        EXPECT_EQ(0, hist[1]);
+        EXPECT_EQ(0, hist[2]);
+        EXPECT_EQ(1, hist[3]);
+        for (unsigned i = 4; i < hist.size(); ++i)
+        {
+            EXPECT_EQ(0, hist[i]);  // Other bins must still be empty.
+        }
+
+        c.invalidate("1");  // Invalidate specific entry
+        s = c.stats();
+        hist = s.histogram();
+        EXPECT_EQ(0, hist[0]);
+        EXPECT_EQ(0, hist[1]);
+        EXPECT_EQ(0, hist[2]);
+        EXPECT_EQ(1, hist[3]);
+        for (unsigned i = 4; i < hist.size(); ++i)
+        {
+            EXPECT_EQ(0, hist[i]);  // Other bins must still be empty.
+        }
+
+        // Rather than testing all 74 bins, we test a few critical ones.
+        // If they are right, so will be the others, seeing that they
+        // are generated.
+        auto bounds = PersistentCacheStats::histogram_bounds();
+        typedef pair<int32_t, int32_t> P;
+        EXPECT_EQ(P(1, 9), bounds[0]);
+        EXPECT_EQ(P(10, 19), bounds[1]);
+        EXPECT_EQ(P(20, 29), bounds[2]);
+        EXPECT_EQ(P(90, 99), bounds[9]);
+        EXPECT_EQ(P(100, 199), bounds[10]);
+        EXPECT_EQ(P(900, 999), bounds[18]);
+        EXPECT_EQ(P(900000000, 999999999), bounds[72]);
+        EXPECT_EQ(P(1000000000, numeric_limits<int32_t>::max()), bounds[73]);
     }
 
-    c.put("x", "y");
-    c.set_headroom(15);
-
-    string val;
-    EXPECT_TRUE(c.get("x", val));
-    EXPECT_EQ("y", val);
-
-    s = c.stats();
-    EXPECT_EQ(1, s.size());
-    EXPECT_EQ(2, s.size_in_bytes());
-    EXPECT_EQ(128, s.max_size_in_bytes());
-    EXPECT_EQ(15, s.headroom());
-    EXPECT_EQ(1, s.hits());
-
-    c.clear_stats();
-    s = c.stats();
-
-    EXPECT_EQ(1, s.size());
-    EXPECT_EQ(2, s.size_in_bytes());
-    EXPECT_EQ(128, s.max_size_in_bytes());
-    EXPECT_EQ(15, s.headroom());
-    EXPECT_EQ(0, s.hits());
-    EXPECT_EQ(1, s.histogram()[0]);
-
-    c.put("x", "y");  // Value was already there
-    s = c.stats();
-    hist = s.histogram();
-    EXPECT_EQ(1, hist[0]);
-    for (unsigned i = 1; i < hist.size(); ++i)
     {
-        EXPECT_EQ(0, hist[i]);
-    }
+        // Re-open previous cache.
+        PersistentStringCacheImpl c(TEST_DB);
 
-    c.put("y", "");  // New value
-    s = c.stats();
-    hist = s.histogram();
-    EXPECT_EQ(2, hist[0]);
-    for (unsigned i = 1; i < hist.size(); ++i)
-    {
-        EXPECT_EQ(0, hist[i]);
-    }
-
-    c.put("y", "ab");  // Replace value with larger one in same bin.
-    s = c.stats();
-    hist = s.histogram();
-    EXPECT_EQ(2, hist[0]);  // Bin count must still be the same.
-    for (unsigned i = 1; i < hist.size(); ++i)
-    {
-        EXPECT_EQ(0, hist[i]);
-    }
-
-    c.put("y", string(9, 'y'));  // Replace value with larger one in next bin.
-    s = c.stats();
-    hist = s.histogram();
-    EXPECT_EQ(1, hist[0]);
-    EXPECT_EQ(1, hist[1]);  // Value must have moved to new bin.
-    for (unsigned i = 2; i < hist.size(); ++i)
-    {
-        EXPECT_EQ(0, hist[i]);  // Other bins must still be empty.
-    }
-
-    c.put_metadata("y", string(1, 'm'));  // Add small metadata, value stays in same bin.
-    s = c.stats();
-    hist = s.histogram();
-    EXPECT_EQ(1, hist[0]);
-    EXPECT_EQ(1, hist[1]);  // Value must have moved to new bin.
-    for (unsigned i = 2; i < hist.size(); ++i)
-    {
-        EXPECT_EQ(0, hist[i]);  // Other bins must still be empty.
-    }
-
-    c.put_metadata("y", string(10, 'm'));  // Add larger metadata, value moves to next bin.
-    s = c.stats();
-    hist = s.histogram();
-    EXPECT_EQ(1, hist[0]);
-    EXPECT_EQ(0, hist[1]);
-    EXPECT_EQ(1, hist[2]);
-    for (unsigned i = 3; i < hist.size(); ++i)
-    {
-        EXPECT_EQ(0, hist[i]);  // Other bins must still be empty.
-    }
-
-    c.put_metadata("y", string(1, 'm'));  // Shrink metadata, value moves to previous bin.
-    s = c.stats();
-    hist = s.histogram();
-    EXPECT_EQ(1, hist[0]);
-    EXPECT_EQ(1, hist[1]);
-    for (unsigned i = 2; i < hist.size(); ++i)
-    {
-        EXPECT_EQ(0, hist[i]) << i;  // Other bins must still be empty.
-    }
-
-    c.put("new key", string(1, 'k'));
-    c.invalidate();
-    s = c.stats();
-    hist = s.histogram();
-    for (unsigned i = 0; i < hist.size(); ++i)
-    {
-        EXPECT_EQ(0, hist[i]);  // Histogram must have been emptied.
-    }
-
-    c.put("1", string(1, 'k'));   // First bin
-    c.put("2", string(10, 'k'));  // Second bin
-    c.put("3", string(20, 'k'));  // Third bin
-    c.put("4", string(30, 'k'));  // Fourth bin
-    c.invalidate({"2", "3"});
-    s = c.stats();
-    hist = s.histogram();
-    EXPECT_EQ(1, hist[0]);
-    EXPECT_EQ(0, hist[1]);
-    EXPECT_EQ(0, hist[2]);
-    EXPECT_EQ(1, hist[3]);
-    for (unsigned i = 4; i < hist.size(); ++i)
-    {
-        EXPECT_EQ(0, hist[i]);  // Other bins must still be empty.
-    }
-
-    c.invalidate("1");  // Invalidate specific entry
-    s = c.stats();
-    hist = s.histogram();
-    EXPECT_EQ(0, hist[0]);
-    EXPECT_EQ(0, hist[1]);
-    EXPECT_EQ(0, hist[2]);
-    EXPECT_EQ(1, hist[3]);
-    for (unsigned i = 4; i < hist.size(); ++i)
-    {
-        EXPECT_EQ(0, hist[i]);  // Other bins must still be empty.
+        // Histogram must be re-established when opened.
+        auto s = c.stats();
+        auto hist = s.histogram();
+        EXPECT_EQ(0, hist[0]);
+        EXPECT_EQ(0, hist[1]);
+        EXPECT_EQ(0, hist[2]);
+        EXPECT_EQ(1, hist[3]);
+        for (unsigned i = 4; i < hist.size(); ++i)
+        {
+            EXPECT_EQ(0, hist[i]);  // Other bins must still be empty.
+        }
     }
 }
 
@@ -1961,18 +1994,4 @@ TEST(PersistentStringCacheImpl, event_handlers)
     // Entry "2" is youngest, so it gets deleted last.
     EXPECT_EQ(0, er.stats.size());
     EXPECT_EQ(0, er.stats.size_in_bytes());
-
-    // Rather than testing all 74 bins, we test a few critical ones.
-    // If they are right, so will be the others, seeing that they
-    // are generated.
-    auto bounds = PersistentCacheStats::histogram_bounds();
-    typedef pair<int32_t, int32_t> P;
-    EXPECT_EQ(P(1, 9), bounds[0]);
-    EXPECT_EQ(P(10, 19), bounds[1]);
-    EXPECT_EQ(P(20, 29), bounds[2]);
-    EXPECT_EQ(P(90, 99), bounds[9]);
-    EXPECT_EQ(P(100, 199), bounds[10]);
-    EXPECT_EQ(P(900, 999), bounds[18]);
-    EXPECT_EQ(P(900000000, 999999999), bounds[72]);
-    EXPECT_EQ(P(1000000000, numeric_limits<int32_t>::max()), bounds[73]);
 }
