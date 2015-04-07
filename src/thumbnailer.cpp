@@ -336,6 +336,11 @@ std::string Thumbnailer::get_thumbnail(std::string const& filename, ThumbnailSiz
     return p_->cache.get_if_exists(abspath, desired_size);
 }
 
+string Thumbnailer::get_thumbnail(string const& filename, ThumbnailSize desired_size)
+{
+    return get_thumbnail(filename, desired_size, TN_LOCAL);
+}
+
 std::string Thumbnailer::get_album_art(std::string const& artist,
                                        std::string const& album,
                                        ThumbnailSize /* desired_size */,
