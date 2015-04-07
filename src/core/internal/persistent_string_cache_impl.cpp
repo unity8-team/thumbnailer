@@ -426,7 +426,7 @@ bool PersistentStringCacheImpl::get(string const& key, string& value, string* me
     if (!found)
     {
         stats_->inc_misses();
-        call_handler(key, internal::CacheEventIndex::Miss);
+        call_handler(key, CacheEventIndex::Miss);
         return false;
     }
 
@@ -434,7 +434,7 @@ bool PersistentStringCacheImpl::get(string const& key, string& value, string* me
     int64_t new_atime = now_ticks();
     if (stats_->policy_ == CacheDiscardPolicy::LRU_TTL && dt.etime != epoch_ticks() && dt.etime <= new_atime)
     {
-        call_handler(key, internal::CacheEventIndex::Miss);
+        call_handler(key, CacheEventIndex::Miss);
         stats_->inc_misses();
         return false;
     }
@@ -455,7 +455,7 @@ bool PersistentStringCacheImpl::get(string const& key, string& value, string* me
     throw_if_error(s, "put()");
 
     stats_->inc_hits();
-    call_handler(key, internal::CacheEventIndex::Get);
+    call_handler(key, CacheEventIndex::Get);
     return true;
 }
 
@@ -726,7 +726,7 @@ bool PersistentStringCacheImpl::put(string const& key,
     assert(stats_->cache_size_ == 0 || stats_->num_entries_ != 0);
     assert(stats_->num_entries_ == 0 || stats_->cache_size_ != 0);
 
-    call_handler(key, internal::CacheEventIndex::Put);
+    call_handler(key, CacheEventIndex::Put);
 
     return true;
 }
@@ -897,7 +897,7 @@ bool PersistentStringCacheImpl::take(string const& key, string& value, string* m
     if (!found)
     {
         stats_->inc_misses();
-        call_handler(key, internal::CacheEventIndex::Miss);
+        call_handler(key, CacheEventIndex::Miss);
         return false;
     }
 
@@ -908,14 +908,14 @@ bool PersistentStringCacheImpl::take(string const& key, string& value, string* m
     if (stats_->policy_ == CacheDiscardPolicy::LRU_TTL && dt.etime != epoch_ticks() && dt.etime <= now_ticks())
     {
         stats_->inc_misses();
-        call_handler(key, internal::CacheEventIndex::Invalidate);
-        call_handler(key, internal::CacheEventIndex::Miss);
+        call_handler(key, CacheEventIndex::Invalidate);
+        call_handler(key, CacheEventIndex::Miss);
         return false;  // Expired entries are hidden.
     }
     stats_->inc_hits();
     value = move(val);
-    call_handler(key, internal::CacheEventIndex::Get);
-    call_handler(key, internal::CacheEventIndex::Invalidate);
+    call_handler(key, CacheEventIndex::Get);
+    call_handler(key, CacheEventIndex::Invalidate);
     assert(stats_->num_entries_ == hist_sum(stats_->hist_));
     return true;
 }
@@ -941,7 +941,7 @@ bool PersistentStringCacheImpl::invalidate(string const& key)
     // a lot of work finding it, we may as well finish the job.
     delete_entry(key, dt);
 
-    call_handler(key, internal::CacheEventIndex::Invalidate);
+    call_handler(key, CacheEventIndex::Invalidate);
     if (stats_->policy_ == CacheDiscardPolicy::LRU_TTL && dt.etime != epoch_ticks() && dt.etime < now_ticks())
     {
         return false;  // Expired entries are hidden.
@@ -987,7 +987,7 @@ void PersistentStringCacheImpl::invalidate(It begin, It end)
         assert(stats_->cache_size_ == 0 || stats_->num_entries_ != 0);
         assert(stats_->num_entries_ == 0 || stats_->cache_size_ != 0);
 
-        call_handler(*it, internal::CacheEventIndex::Invalidate);
+        call_handler(*it, CacheEventIndex::Invalidate);
     }
 
     auto s = db_->Write(write_options, &batch);
@@ -1010,7 +1010,7 @@ void PersistentStringCacheImpl::invalidate()
         int64_t const batch_size = 1000;
 
         PersistentStringCache::EventCallback cb =
-            handlers_[static_cast<unsigned>(internal::CacheEventIndex::Invalidate)];
+            handlers_[static_cast<unsigned>(CacheEventIndex::Invalidate)];
 
         IteratorUPtr it(db_->NewIterator(read_options));
         it->Seek(ALL_BEGIN);
@@ -1026,7 +1026,7 @@ void PersistentStringCacheImpl::invalidate()
                 --stats_->num_entries_;
                 auto size = stoll(it->value().ToString());
                 stats_->cache_size_ -= size;
-                call_handler(atk.key, internal::CacheEventIndex::Invalidate);
+                call_handler(atk.key, CacheEventIndex::Invalidate);
             }
             if (++count == batch_size)
             {
@@ -1105,7 +1105,7 @@ bool PersistentStringCacheImpl::touch(string const& key, chrono::time_point<chro
     auto s = db_->Write(write_options, &batch);
     throw_if_error(s, "touch(): batch write error");
 
-    call_handler(key, internal::CacheEventIndex::Touch);
+    call_handler(key, CacheEventIndex::Touch);
 
     return true;
 }
@@ -1199,7 +1199,7 @@ void PersistentStringCacheImpl::set_handler(unsigned mask, PersistentStringCache
 
     lock_guard<decltype(mutex_)> lock(mutex_);
 
-    static constexpr auto index_limit = static_cast<unsigned>(internal::CacheEventIndex::END_);
+    static constexpr auto index_limit = static_cast<unsigned>(CacheEventIndex::END_);
     for (unsigned i = 0; i < index_limit; ++i)
     {
         if ((mask >> i) & 1)
@@ -1485,7 +1485,7 @@ void PersistentStringCacheImpl::delete_at_least(int64_t bytes_needed, string con
             --stats_->num_entries_;
             stats_->hist_decrement(size);
             stats_->cache_size_ -= size;
-            call_handler(ek.key, internal::CacheEventIndex::Evict_TTL);
+            call_handler(ek.key, CacheEventIndex::Evict_TTL);
 
             it->Next();
         }
@@ -1532,7 +1532,7 @@ void PersistentStringCacheImpl::delete_at_least(int64_t bytes_needed, string con
             --stats_->num_entries_;
             stats_->hist_decrement(size);
             stats_->cache_size_ -= size;
-            call_handler(atk.key, internal::CacheEventIndex::Evict_LRU);
+            call_handler(atk.key, CacheEventIndex::Evict_LRU);
 
             it->Next();
         }
@@ -1550,7 +1550,7 @@ void PersistentStringCacheImpl::delete_at_least(int64_t bytes_needed, string con
     assert(stats_->num_entries_ == 0 || stats_->cache_size_ != 0);
 }
 
-void PersistentStringCacheImpl::call_handler(string const& key, internal::CacheEventIndex event_index) const
+void PersistentStringCacheImpl::call_handler(string const& key, CacheEventIndex event_index) const
 {
     // mutex_ must be locked here!
 
