@@ -67,9 +67,9 @@ TEST(PersistentStringCache, basic)
     {
         auto c = PersistentStringCache::open(test_db);
 
-        PersistentStringCache::Optional<string> val;
-        PersistentStringCache::Optional<string> metadata;
-        PersistentStringCache::Optional<PersistentStringCache::Data> data;
+        Optional<string> val;
+        Optional<string> metadata;
+        Optional<PersistentStringCache::Data> data;
 
         val = c->get("x");
         EXPECT_FALSE(val);

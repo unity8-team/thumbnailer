@@ -114,7 +114,7 @@ TEST(PersistentStringCache, basic)
     auto c = PersistentStringCache::open(test_db, max_cache_size, CacheDiscardPolicy::LRU_only);
     c->set_headroom(int64_t(max_cache_size * headroom_percent));
 
-    static PersistentStringCache::Optional<string> val;
+    static Optional<string> val;
 
     auto start = chrono::system_clock::now();
     bool full = false;

@@ -148,15 +148,6 @@ public:
     typedef std::unique_ptr<PersistentStringCache> UPtr;
 
     /**
-    \brief Convenience typedef for returning nullable values.
-
-    \note You should use `PersistentStringCache::Optional` in preference to `boost::optional`
-    in your code. This will ease an eventual transition to `std::optional`.
-    */
-    template <typename T>
-    using Optional = boost::optional<T>;
-
-    /**
     \brief Simple pair of value and metadata.
     */
     struct Data

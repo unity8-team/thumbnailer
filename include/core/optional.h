@@ -19,3 +19,17 @@
 #pragma once
 
 #include <boost/optional.hpp>
+
+namespace core
+{
+
+/**
+\brief Convenience typedef for nullable values.
+
+\note You should use `core::Optional` in preference to `boost::optional`
+in your code. This will ease an eventual transition to `std::optional`.
+*/
+template <typename T>
+using Optional = boost::optional<T>;
+
+}  // namespace core
