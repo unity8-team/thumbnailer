@@ -59,7 +59,7 @@ namespace core  // Specializations must be placed into namespace core.
 
 template <>
 template <>
-string PersonCache::IOTraits<Person>::serialize(Person const& p)
+string PersonCache::Codec<Person>::encode(Person const& p)
 {
     ostringstream s;
     s << p.age << ' ' << p.name;
@@ -68,7 +68,7 @@ string PersonCache::IOTraits<Person>::serialize(Person const& p)
 
 template <>
 template <>
-Person PersonCache::IOTraits<Person>::deserialize(string const& str)
+Person PersonCache::Codec<Person>::decode(string const& str)
 {
     istringstream s(str);
     Person p;
@@ -103,42 +103,42 @@ namespace core
 
 template <>
 template <>
-string IDCCache::IOTraits<int>::serialize(int const& value)
+string IDCCache::Codec<int>::encode(int const& value)
 {
     return to_string(value);
 }
 
 template <>
 template <>
-int IDCCache::IOTraits<int>::deserialize(string const& s)
+int IDCCache::Codec<int>::decode(string const& s)
 {
     return stoi(s);
 }
 
 template <>
 template <>
-string IDCCache::IOTraits<double>::serialize(double const& value)
+string IDCCache::Codec<double>::encode(double const& value)
 {
     return to_string(value);
 }
 
 template <>
 template <>
-double IDCCache::IOTraits<double>::deserialize(string const& s)
+double IDCCache::Codec<double>::decode(string const& s)
 {
     return stod(s);
 }
 
 template <>
 template <>
-string IDCCache::IOTraits<char>::serialize(char const& value)
+string IDCCache::Codec<char>::encode(char const& value)
 {
     return string(1, value);
 }
 
 template <>
 template <>
-char IDCCache::IOTraits<char>::deserialize(string const& s)
+char IDCCache::Codec<char>::decode(string const& s)
 {
     return s.empty() ? '\0' : s[0];
 }
@@ -196,7 +196,7 @@ TEST(PersistentCache, IDCCache)
 
         data = c->get_data(1);
         EXPECT_EQ(2.0, data->value);
-        EXPECT_EQ('\0', data->metadata);  // deserialize() generates '\0' for empty metadata
+        EXPECT_EQ('\0', data->metadata);  // decode() generates '\0' for empty metadata
 
         metadata = c->get_metadata(1);
         EXPECT_FALSE(metadata);  // No metadata exists, so false
@@ -300,28 +300,28 @@ namespace core
 
 template <>
 template <>
-string SDCCache::IOTraits<double>::serialize(double const& value)
+string SDCCache::Codec<double>::encode(double const& value)
 {
     return to_string(value);
 }
 
 template <>
 template <>
-double SDCCache::IOTraits<double>::deserialize(string const& s)
+double SDCCache::Codec<double>::decode(string const& s)
 {
     return stod(s);
 }
 
 template <>
 template <>
-string SDCCache::IOTraits<char>::serialize(char const& value)
+string SDCCache::Codec<char>::encode(char const& value)
 {
     return string(1, value);
 }
 
 template <>
 template <>
-char SDCCache::IOTraits<char>::deserialize(string const& s)
+char SDCCache::Codec<char>::decode(string const& s)
 {
     return s.empty() ? '\0' : s[0];
 }
@@ -379,7 +379,7 @@ TEST(PersistentCache, SDCCache)
 
         data = c->get_data("1");
         EXPECT_EQ(2.0, data->value);
-        EXPECT_EQ('\0', data->metadata);  // deserialize() generates '\0' for empty metadata
+        EXPECT_EQ('\0', data->metadata);  // decode() generates '\0' for empty metadata
 
         metadata = c->get_metadata("1");
         EXPECT_FALSE(metadata);  // No metadata exists, so false
@@ -480,28 +480,28 @@ namespace core
 
 template <>
 template <>
-string ISCCache::IOTraits<int>::serialize(int const& value)
+string ISCCache::Codec<int>::encode(int const& value)
 {
     return to_string(value);
 }
 
 template <>
 template <>
-int ISCCache::IOTraits<int>::deserialize(string const& s)
+int ISCCache::Codec<int>::decode(string const& s)
 {
     return stoi(s);
 }
 
 template <>
 template <>
-string ISCCache::IOTraits<char>::serialize(char const& value)
+string ISCCache::Codec<char>::encode(char const& value)
 {
     return string(1, value);
 }
 
 template <>
 template <>
-char ISCCache::IOTraits<char>::deserialize(string const& s)
+char ISCCache::Codec<char>::decode(string const& s)
 {
     return s.empty() ? '\0' : s[0];
 }
@@ -559,7 +559,7 @@ TEST(PersistentCache, ISCCache)
 
         data = c->get_data(1);
         EXPECT_EQ("2.0", data->value);
-        EXPECT_EQ('\0', data->metadata);  // deserialize() generates '\0' for empty metadata
+        EXPECT_EQ('\0', data->metadata);  // decode() generates '\0' for empty metadata
 
         metadata = c->get_metadata(1);
         EXPECT_FALSE(metadata);  // No metadata exists, so false
@@ -674,28 +674,28 @@ namespace core
 
 template <>
 template <>
-string IDSCache::IOTraits<int>::serialize(int const& value)
+string IDSCache::Codec<int>::encode(int const& value)
 {
     return to_string(value);
 }
 
 template <>
 template <>
-int IDSCache::IOTraits<int>::deserialize(string const& s)
+int IDSCache::Codec<int>::decode(string const& s)
 {
     return stoi(s);
 }
 
 template <>
 template <>
-string IDSCache::IOTraits<double>::serialize(double const& value)
+string IDSCache::Codec<double>::encode(double const& value)
 {
     return to_string(value);
 }
 
 template <>
 template <>
-double IDSCache::IOTraits<double>::deserialize(string const& s)
+double IDSCache::Codec<double>::decode(string const& s)
 {
     return stod(s);
 }
@@ -753,7 +753,7 @@ TEST(PersistentCache, IDSCache)
 
         data = c->get_data(1);
         EXPECT_EQ(2.0, data->value);
-        EXPECT_EQ("\0", data->metadata);  // deserialize() generates '\0' for empty metadata
+        EXPECT_EQ("\0", data->metadata);  // decode() generates '\0' for empty metadata
 
         metadata = c->get_metadata(1);
         EXPECT_FALSE(metadata);  // No metadata exists, so false
@@ -868,14 +868,14 @@ namespace core
 
 template <>
 template <>
-string SSCCache::IOTraits<char>::serialize(char const& value)
+string SSCCache::Codec<char>::encode(char const& value)
 {
     return string(1, value);
 }
 
 template <>
 template <>
-char SSCCache::IOTraits<char>::deserialize(string const& s)
+char SSCCache::Codec<char>::decode(string const& s)
 {
     return s.empty() ? '\0' : s[0];
 }
@@ -933,7 +933,7 @@ TEST(PersistentCache, SSCCache)
 
         data = c->get_data("1");
         EXPECT_EQ("2.0", data->value);
-        EXPECT_EQ('\0', data->metadata);  // deserialize() generates '\0' for empty metadata
+        EXPECT_EQ('\0', data->metadata);  // decode() generates '\0' for empty metadata
 
         metadata = c->get_metadata("1");
         EXPECT_FALSE(metadata);  // No metadata exists, so false
@@ -1048,14 +1048,14 @@ namespace core
 
 template <>
 template <>
-string SDSCache::IOTraits<double>::serialize(double const& value)
+string SDSCache::Codec<double>::encode(double const& value)
 {
     return to_string(value);
 }
 
 template <>
 template <>
-double SDSCache::IOTraits<double>::deserialize(string const& s)
+double SDSCache::Codec<double>::decode(string const& s)
 {
     return stod(s);
 }
@@ -1228,14 +1228,14 @@ namespace core
 
 template <>
 template <>
-string ISSCache::IOTraits<int>::serialize(int const& value)
+string ISSCache::Codec<int>::encode(int const& value)
 {
     return to_string(value);
 }
 
 template <>
 template <>
-int ISSCache::IOTraits<int>::deserialize(string const& s)
+int ISSCache::Codec<int>::decode(string const& s)
 {
     return stoi(s);
 }
@@ -1293,7 +1293,7 @@ TEST(PersistentCache, ISSCache)
 
         data = c->get_data(1);
         EXPECT_EQ("2.0", data->value);
-        EXPECT_EQ("\0", data->metadata);  // deserialize() generates '\0' for empty metadata
+        EXPECT_EQ("\0", data->metadata);  // decode() generates '\0' for empty metadata
 
         metadata = c->get_metadata(1);
         EXPECT_FALSE(metadata);  // No metadata exists, so false
@@ -1461,7 +1461,7 @@ TEST(PersistentCache, SSSCache)
 
         data = c->get_data("1");
         EXPECT_EQ("2.0", data->value);
-        EXPECT_EQ("", data->metadata);  // deserialize() generates '\0' for empty metadata
+        EXPECT_EQ("", data->metadata);  // decode() generates '\0' for empty metadata
 
         metadata = c->get_metadata("1");
         EXPECT_FALSE(metadata);  // No metadata exists, so false
