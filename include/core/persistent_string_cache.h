@@ -549,7 +549,7 @@ public:
     \return A null value if the entry could not be found; the value of the entry, otherwise.
     \throws invalid_argument `key` is the empty string.
     */
-    Optional<std::string> take(std::string const& key) const;
+    Optional<std::string> take(std::string const& key);
 
     /**
     \brief Removes an entry and returns its value and metadata.
@@ -561,7 +561,7 @@ public:
     \return A null value if the entry could not be retrieved; the value and metadata of the entry, otherwise.
     \throws invalid_argument `key` is the empty string.
     */
-    Optional<Data> take_data(std::string const& key) const;
+    Optional<Data> take_data(std::string const& key);
 
     /**
     \brief Removes an entry and its associated metadata (if any).

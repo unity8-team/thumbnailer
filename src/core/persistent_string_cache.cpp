@@ -176,13 +176,13 @@ bool PersistentStringCache::put_metadata(string const& key, char const* metadata
     return p_->put_metadata(key, metadata, size);
 }
 
-PersistentStringCache::Optional<string> PersistentStringCache::take(string const& key) const
+PersistentStringCache::Optional<string> PersistentStringCache::take(string const& key)
 {
     string value;
     return p_->take(key, value) ? Optional<string>(move(value)) : Optional<string>();
 }
 
-PersistentStringCache::Optional<PersistentStringCache::Data> PersistentStringCache::take_data(string const& key) const
+PersistentStringCache::Optional<PersistentStringCache::Data> PersistentStringCache::take_data(string const& key)
 {
     string value;
     string metadata;

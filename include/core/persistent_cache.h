@@ -328,12 +328,12 @@ public:
     /**
     \brief Removes an entry and returns its value.
     */
-    OptionalValue take(K const& key) const;
+    OptionalValue take(K const& key);
 
     /**
     \brief Removes an entry and returns its value and metadata.
     */
-    OptionalData take_data(K const& key) const;
+    OptionalData take_data(K const& key);
 
     /**
     \brief Removes an entry and its associated metadata (if any).
@@ -581,14 +581,14 @@ bool PersistentCache<K, V, M>::put_metadata(K const& key, M const& metadata)
 }
 
 template <typename K, typename V, typename M>
-typename PersistentCache<K, V, M>::OptionalValue PersistentCache<K, V, M>::take(K const& key) const
+typename PersistentCache<K, V, M>::OptionalValue PersistentCache<K, V, M>::take(K const& key)
 {
     auto svalue = p_->take(IOTraits<K>::serialize(key));
     return svalue ? OptionalValue(IOTraits<V>::deserialize(*svalue)) : OptionalValue();
 }
 
 template <typename K, typename V, typename M>
-typename PersistentCache<K, V, M>::OptionalData PersistentCache<K, V, M>::take_data(K const& key) const
+typename PersistentCache<K, V, M>::OptionalData PersistentCache<K, V, M>::take_data(K const& key)
 {
     auto sdata = p_->take_data(IOTraits<K>::serialize(key));
     if (!sdata)
@@ -762,8 +762,8 @@ public:
     OptionalData get_or_put_data(std::string const& key, Loader const& load_func);
 
     bool put_metadata(std::string const& key, M const& metadata);
-    OptionalValue take(std::string const& key) const;
-    OptionalData take_data(std::string const& key) const;
+    OptionalValue take(std::string const& key);
+    OptionalData take_data(std::string const& key);
     bool invalidate(std::string const& key);
     void invalidate(std::vector<std::string> const& keys);
     template <typename It>
@@ -948,7 +948,7 @@ bool PersistentCache<std::string, V, M>::put_metadata(std::string const& key, M 
 
 template <typename V, typename M>
 typename PersistentCache<std::string, V, M>::OptionalValue PersistentCache<std::string, V, M>::take(
-    std::string const& key) const
+    std::string const& key)
 {
     auto svalue = p_->take(key);
     return svalue ? OptionalValue(IOTraits<V>::deserialize(*svalue)) : OptionalValue();
@@ -956,7 +956,7 @@ typename PersistentCache<std::string, V, M>::OptionalValue PersistentCache<std::
 
 template <typename V, typename M>
 typename PersistentCache<std::string, V, M>::OptionalData PersistentCache<std::string, V, M>::take_data(
-    std::string const& key) const
+    std::string const& key)
 {
     auto sdata = p_->take_data(key);
     if (!sdata)
@@ -1120,8 +1120,8 @@ public:
     OptionalData get_or_put_data(K const& key, Loader const& load_func);
 
     bool put_metadata(K const& key, M const& metadata);
-    OptionalValue take(K const& key) const;
-    OptionalData take_data(K const& key) const;
+    OptionalValue take(K const& key);
+    OptionalData take_data(K const& key);
     bool invalidate(K const& key);
     void invalidate(std::vector<K> const& keys);
     template <typename It>
@@ -1326,7 +1326,7 @@ bool PersistentCache<K, std::string, M>::put_metadata(K const& key, M const& met
 }
 
 template <typename K, typename M>
-typename PersistentCache<K, std::string, M>::OptionalValue PersistentCache<K, std::string, M>::take(K const& key) const
+typename PersistentCache<K, std::string, M>::OptionalValue PersistentCache<K, std::string, M>::take(K const& key)
 {
     auto svalue = p_->take(IOTraits<K>::serialize(key));
     return svalue ? OptionalValue(*svalue) : OptionalValue();
@@ -1334,7 +1334,7 @@ typename PersistentCache<K, std::string, M>::OptionalValue PersistentCache<K, st
 
 template <typename K, typename M>
 typename PersistentCache<K, std::string, M>::OptionalData PersistentCache<K, std::string, M>::take_data(
-    K const& key) const
+    K const& key)
 {
     auto sdata = p_->take_data(IOTraits<K>::serialize(key));
     if (!sdata)
@@ -1503,8 +1503,8 @@ public:
 
     bool put_metadata(K const& key, std::string const& metadata);
     bool put_metadata(K const& key, char const* metadata, int64_t size);
-    OptionalValue take(K const& key) const;
-    OptionalData take_data(K const& key) const;
+    OptionalValue take(K const& key);
+    OptionalData take_data(K const& key);
     bool invalidate(K const& key);
     void invalidate(std::vector<K> const& keys);
     template <typename It>
@@ -1707,7 +1707,7 @@ bool PersistentCache<K, V, std::string>::put_metadata(K const& key, char const* 
 }
 
 template <typename K, typename V>
-typename PersistentCache<K, V, std::string>::OptionalValue PersistentCache<K, V, std::string>::take(K const& key) const
+typename PersistentCache<K, V, std::string>::OptionalValue PersistentCache<K, V, std::string>::take(K const& key)
 {
     auto svalue = p_->take(IOTraits<K>::serialize(key));
     return svalue ? OptionalValue(IOTraits<V>::deserialize(*svalue)) : OptionalValue();
@@ -1715,7 +1715,7 @@ typename PersistentCache<K, V, std::string>::OptionalValue PersistentCache<K, V,
 
 template <typename K, typename V>
 typename PersistentCache<K, V, std::string>::OptionalData PersistentCache<K, V, std::string>::take_data(
-    K const& key) const
+    K const& key)
 {
     auto sdata = p_->take_data(IOTraits<K>::serialize(key));
     if (!sdata)
@@ -1887,8 +1887,8 @@ public:
     OptionalData get_or_put_data(std::string const& key, Loader const& load_func);
 
     bool put_metadata(std::string const& key, M const& metadata);
-    OptionalValue take(std::string const& key) const;
-    OptionalData take_data(std::string const& key) const;
+    OptionalValue take(std::string const& key);
+    OptionalData take_data(std::string const& key);
     bool invalidate(std::string const& key);
     void invalidate(std::vector<std::string> const& keys);
     template <typename It>
@@ -2096,7 +2096,7 @@ bool PersistentCache<std::string, std::string, M>::put_metadata(std::string cons
 
 template <typename M>
 typename PersistentCache<std::string, std::string, M>::OptionalValue PersistentCache<std::string, std::string, M>::take(
-    std::string const& key) const
+    std::string const& key)
 {
     auto svalue = p_->take(key);
     return svalue ? OptionalValue(*svalue) : OptionalValue();
@@ -2104,7 +2104,7 @@ typename PersistentCache<std::string, std::string, M>::OptionalValue PersistentC
 
 template <typename M>
 typename PersistentCache<std::string, std::string, M>::OptionalData
-    PersistentCache<std::string, std::string, M>::take_data(std::string const& key) const
+    PersistentCache<std::string, std::string, M>::take_data(std::string const& key)
 {
     auto sdata = p_->take_data(key);
     if (!sdata)
@@ -2265,8 +2265,8 @@ public:
 
     bool put_metadata(std::string const& key, std::string const& metadata);
     bool put_metadata(std::string const& key, char const* metadata, int64_t size);
-    OptionalValue take(std::string const& key) const;
-    OptionalData take_data(std::string const& key) const;
+    OptionalValue take(std::string const& key);
+    OptionalData take_data(std::string const& key);
     bool invalidate(std::string const& key);
     void invalidate(std::vector<std::string> const& keys);
     template <typename It>
@@ -2474,7 +2474,7 @@ bool PersistentCache<std::string, V, std::string>::put_metadata(std::string cons
 
 template <typename V>
 typename PersistentCache<std::string, V, std::string>::OptionalValue PersistentCache<std::string, V, std::string>::take(
-    std::string const& key) const
+    std::string const& key)
 {
     auto svalue = p_->take(key);
     return svalue ? OptionalValue(IOTraits<V>::deserialize(*svalue)) : OptionalValue();
@@ -2482,7 +2482,7 @@ typename PersistentCache<std::string, V, std::string>::OptionalValue PersistentC
 
 template <typename V>
 typename PersistentCache<std::string, V, std::string>::OptionalData
-    PersistentCache<std::string, V, std::string>::take_data(std::string const& key) const
+    PersistentCache<std::string, V, std::string>::take_data(std::string const& key)
 {
     auto sdata = p_->take_data(key);
     if (!sdata)
@@ -2648,8 +2648,8 @@ public:
 
     bool put_metadata(K const& key, std::string const& metadata);
     bool put_metadata(K const& key, char const* metadata, int64_t size);
-    OptionalValue take(K const& key) const;
-    OptionalData take_data(K const& key) const;
+    OptionalValue take(K const& key);
+    OptionalData take_data(K const& key);
     bool invalidate(K const& key);
     void invalidate(std::vector<K> const& keys);
     template <typename It>
@@ -2865,7 +2865,7 @@ bool PersistentCache<K, std::string, std::string>::put_metadata(K const& key, ch
 
 template <typename K>
 typename PersistentCache<K, std::string, std::string>::OptionalValue PersistentCache<K, std::string, std::string>::take(
-    K const& key) const
+    K const& key)
 {
     auto svalue = p_->take(IOTraits<K>::serialize(key));
     return svalue ? OptionalValue(*svalue) : OptionalValue();
@@ -2873,7 +2873,7 @@ typename PersistentCache<K, std::string, std::string>::OptionalValue PersistentC
 
 template <typename K>
 typename PersistentCache<K, std::string, std::string>::OptionalData
-    PersistentCache<K, std::string, std::string>::take_data(K const& key) const
+    PersistentCache<K, std::string, std::string>::take_data(K const& key)
 {
     auto sdata = p_->take_data(IOTraits<K>::serialize(key));
     if (!sdata)
@@ -3041,8 +3041,8 @@ public:
 
     bool put_metadata(std::string const& key, std::string const& metadata);
     bool put_metadata(std::string const& key, char const* metadata, int64_t size);
-    OptionalValue take(std::string const& key) const;
-    OptionalData take_data(std::string const& key) const;
+    OptionalValue take(std::string const& key);
+    OptionalData take_data(std::string const& key);
     bool invalidate(std::string const& key);
     void invalidate(std::vector<std::string> const& keys);
     template <typename It>
@@ -3239,14 +3239,14 @@ bool PersistentCache<std::string, std::string, std::string>::put_metadata(std::s
 }
 
 typename PersistentCache<std::string, std::string, std::string>::OptionalValue
-    PersistentCache<std::string, std::string, std::string>::take(std::string const& key) const
+    PersistentCache<std::string, std::string, std::string>::take(std::string const& key)
 {
     auto svalue = p_->take(key);
     return svalue ? OptionalValue(*svalue) : OptionalValue();
 }
 
 typename PersistentCache<std::string, std::string, std::string>::OptionalData
-    PersistentCache<std::string, std::string, std::string>::take_data(std::string const& key) const
+    PersistentCache<std::string, std::string, std::string>::take_data(std::string const& key)
 {
     auto sdata = p_->take_data(key);
     if (!sdata)
