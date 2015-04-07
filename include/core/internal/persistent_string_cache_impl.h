@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <core/internal/cache_event_indexes.h>
 #include <core/persistent_string_cache.h>
 
 #include <leveldb/db.h>
@@ -163,7 +164,7 @@ private:
     void batch_delete(std::string const& key, DataTuple const& data, leveldb::WriteBatch& batch);
     void delete_entry(std::string const& key, DataTuple const& data);
     void delete_at_least(int64_t bytes_needed, std::string const& skip_key = "");
-    void call_handler(std::string const& key, CacheEventIndex event) const;
+    void call_handler(std::string const& key, core::internal::CacheEventIndex event) const;
 
     std::string make_message(leveldb::Status const& s, std::string const& msg) const;
     std::string make_message(std::string const& msg) const;
