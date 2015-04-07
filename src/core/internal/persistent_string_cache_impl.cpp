@@ -1549,16 +1549,16 @@ void PersistentStringCacheImpl::delete_at_least(int64_t bytes_needed, string con
     assert(stats_->num_entries_ == 0 || stats_->cache_size_ != 0);
 }
 
-void PersistentStringCacheImpl::call_handler(string const& key, CacheEventIndex event) const
+void PersistentStringCacheImpl::call_handler(string const& key, CacheEventIndex event_index) const
 {
     // mutex_ must be locked here!
 
-    auto handler = handlers_[static_cast<unsigned>(event)];
+    auto handler = handlers_[static_cast<unsigned>(event_index)];
     if (handler)
     {
         try
         {
-            unsigned index = static_cast<unsigned>(event);
+            unsigned index = static_cast<unsigned>(event_index);
             handler(key, static_cast<CacheEvent>(1 << index), stats_);
         }
         catch (...)
