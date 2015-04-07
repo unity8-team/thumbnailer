@@ -456,9 +456,9 @@ public:
     \return A null value if the entry could not be retrieved or loaded; the value of the entry, otherwise.
     \throws runtime_error The load function threw an exception.
 
-    \note The load function must call one of the overloaded `put` methods to add a new entry for the
-    provided key. Calling any other method on the cache from within the load function
-    causes undefined behavior.
+    \note The load function must (synchronously) call one of the overloaded `put` methods to add a
+    new entry for the provided key. Calling any other method on the cache from within the load
+    function causes undefined behavior.
 
     \warning This operation holds a lock on the cache while the load function runs.
     This means that, if multiple threads call into the cache, they will be blocked
@@ -478,9 +478,9 @@ public:
     \return A null value if the entry could not be retrieved or loaded; the value and metadata of the entry, otherwise.
     \throws runtime_error The load function threw an exception.
 
-    \note The load function must call one of the overloaded `put` methods to add a new entry for the
-    provided key. Calling any other method on the cache from within the load function
-    causes undefined behavior.
+    \note The load function must (synchronously) call one of the overloaded `put` methods to add a
+    new entry for the provided key. Calling any other method on the cache from within the load
+    function causes undefined behavior.
 
     \warning This operation holds a lock on the cache while the load function runs.
     This means that, if multiple threads call into the cache, they will be blocked
