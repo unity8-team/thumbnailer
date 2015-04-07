@@ -7,7 +7,7 @@ add_executable(thumbnailer-service
   dbus-generated.c
 )
 
-target_link_libraries(thumbnailer-service thumbnailer ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(thumbnailer-service thumbnailer core ${CMAKE_THREAD_LIBS_INIT})
 
 install(
   TARGETS thumbnailer-service

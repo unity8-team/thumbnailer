@@ -21,11 +21,11 @@
 #include <internal/audioimageextractor.h>
 #include <internal/imagescaler.h>
 #include <internal/lastfmdownloader.h>
-#include <internal/mediaartcache.h>
 #include <internal/thumbnailcache.h>
 #include <internal/ubuntuserverdownloader.h>
 #include <internal/videoscreenshotter.h>
 
+#include <core/persistent_string_cache.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 
 #include <libexif/exif-loader.h>
@@ -35,6 +35,8 @@
 #include <gio/gio.h>
 
 #include <glib.h>
+
+#include <sys/stat.h>
 
 #include <cstring>
 #include <fstream>
@@ -57,6 +59,7 @@ class ThumbnailerPrivate
 {
 private:
     random_device rnd;
+    string cache_dir;
 
     string create_audio_thumbnail(string const& abspath, ThumbnailSize desired_size, ThumbnailPolicy policy);
     string create_video_thumbnail(string const& abspath, ThumbnailSize desired_size);
@@ -67,7 +70,7 @@ public:
     AudioImageExtractor audio;
     VideoScreenshotter video;
     ImageScaler scaler;
-    MediaArtCache macache;
+    core::PersistentStringCache::UPtr macache;
     std::unique_ptr<ArtDownloader> downloader;
 
     ThumbnailerPrivate()
@@ -81,6 +84,30 @@ public:
         {
             downloader.reset(new UbuntuServerDownloader());
         }
+
+        string xdg_base = g_get_user_cache_dir();
+
+        if (xdg_base == "") {
+            string s("Could not determine cache dir.");
+            throw runtime_error(s);
+        }
+
+        int ec = mkdir(xdg_base.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
+        if (ec < 0 && errno != EEXIST) {
+            string s("Could not create base dir.");
+            throw runtime_error(s);
+        }
+        cache_dir = xdg_base + "/media-art";
+        ec = mkdir(cache_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
+        if (ec < 0 && errno != EEXIST) {
+            string s("Could not create cache dir.");
+            throw runtime_error(s);
+        }
+
+        // TODO: No good to hard-wire the cache size. 20 MB will do for now.
+        macache = core::PersistentStringCache::open(cache_dir, 20 * 1024 * 1024, core::CacheDiscardPolicy::LRU_only);
+        // 5% headroom so, when we expire things, we expire a bunch of them, which is more efficient.
+        macache->set_headroom(macache->size_in_bytes() * 0.05);
     };
 
     string create_thumbnail(string const& abspath, ThumbnailSize desired_size, ThumbnailPolicy policy);
@@ -309,104 +336,54 @@ std::string Thumbnailer::get_thumbnail(std::string const& filename, ThumbnailSiz
     return p_->cache.get_if_exists(abspath, desired_size);
 }
 
-string Thumbnailer::get_thumbnail(string const& filename, ThumbnailSize desired_size)
-{
-    return get_thumbnail(filename, desired_size, TN_LOCAL);
-}
-
-unique_ptr<gchar, void (*)(gpointer)> get_art_file_content(string const& fname, gsize& content_size)
-{
-    gchar* contents;
-    GError* err = nullptr;
-    if (!g_file_get_contents(fname.c_str(), &contents, &content_size, &err))
-    {
-        unlink(fname.c_str());
-        std::string msg("Error reading file: ");
-        msg += err->message;
-        g_error_free(err);
-        throw std::runtime_error(msg);
-    }
-    unlink(fname.c_str());
-    return unique_ptr<gchar, void (*)(gpointer)>(contents, g_free);
-}
-
 std::string Thumbnailer::get_album_art(std::string const& artist,
                                        std::string const& album,
-                                       ThumbnailSize desired_size,
+                                       ThumbnailSize /* desired_size */,
                                        ThumbnailPolicy policy)
 {
-    if (!p_->macache.has_album_art(artist, album))
+    string key = artist + album;
+    auto thumbnail = p_->macache->get(key);
+    if (thumbnail)
     {
-        if (policy == TN_LOCAL)
-        {
-            // We don't have it cached and can't access the net
-            // -> nothing to be done.
-            return "";
-        }
-        char filebuf[] = "/tmp/some/long/text/here/so/path/will/fit";
-        std::string tmpname = tmpnam(filebuf);
-        std::string image = p_->downloader->download(artist, album);
-        if (!image.empty())
-        {
-            store_to_file(image, tmpname);
-        }
-        else
-        {
-            return image;
-        }
-
-        gsize content_size;
-        auto contents = get_art_file_content(tmpname, content_size);
-        p_->macache.add_album_art(artist, album, contents.get(), content_size);
+        return *thumbnail;
     }
-    // At this point we know we have the image in our art cache (unless
-    // someone just deleted it concurrently, in which case we can't
-    // really do anything.
-    std::string original = p_->macache.get_album_art_file(artist, album);
-    if (desired_size == TN_SIZE_ORIGINAL)
+    if (policy == TN_LOCAL)
     {
-        return original;
+        // We don't have it cached and can't access the net
+        // -> nothing to be done.
+        return "";
     }
-    return get_thumbnail(original, desired_size, policy);
+    std::string image = p_->downloader->download(artist, album);
+    if (image.empty())
+    {
+        return "";
+    }
+    p_->macache->put(key, image);
+    return image;
 }
 
 std::string Thumbnailer::get_artist_art(std::string const& artist,
                                         std::string const& album,
-                                        ThumbnailSize desired_size,
+                                        ThumbnailSize /* desired_size */,
                                         ThumbnailPolicy policy)
 {
-    if (!p_->macache.has_artist_art(artist, album))
+    string key = artist + album;
+    auto thumbnail = p_->macache->get(key);
+    if (thumbnail)
     {
-        if (policy == TN_LOCAL)
-        {
-            // We don't have it cached and can't access the net
-            // -> nothing to be done.
-            return "";
-        }
-        char filebuf[] = "/tmp/some/long/text/here/so/path/will/fit";
-        std::string tmpname = tmpnam(filebuf);
-        std::string image = p_->downloader->download_artist(artist, album);
-        if (!image.empty())
-        {
-            store_to_file(image, tmpname);
-        }
-        else
-        {
-            return image;
-        }
-        gsize content_size;
-        auto contents = get_art_file_content(tmpname, content_size);
-        p_->macache.add_artist_art(artist, album, contents.get(), content_size);
+        return *thumbnail;
     }
-    // At this point we know we have the image in our art cache (unless
-    // someone just deleted it concurrently, in which case we can't
-    // really do anything.
-    std::string original = p_->macache.get_artist_art_file(artist, album);
-    if (desired_size == TN_SIZE_ORIGINAL)
+    if (policy == TN_LOCAL)
     {
-        return original;
+        // We don't have it cached and can't access the net
+        // -> nothing to be done.
+        return "";
     }
-    return get_thumbnail(original, desired_size, policy);
-
-    return "";
+    std::string image = p_->downloader->download_artist(artist, album);
+    if (image.empty())
+    {
+        return "";
+    }
+    p_->macache->put(key, image);
+    return image;
 }

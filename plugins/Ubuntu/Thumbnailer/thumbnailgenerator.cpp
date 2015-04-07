@@ -58,7 +58,7 @@ QImage ThumbnailGenerator::requestImage(const QString &id, QSize *realSize,
         } else {
             desiredSize = TN_SIZE_SMALL;
         }
-        tgt_path = tn.get_thumbnail(src_path, desiredSize);
+        tgt_path = tn.get_thumbnail(src_path, desiredSize, TN_LOCAL);
         if(!tgt_path.empty()) {
             QString tgt(tgt_path.c_str());
             QImage image;

@@ -67,10 +67,6 @@ public:
      * std::runtime_error.
      */
     std::string get_thumbnail(std::string const& filename, ThumbnailSize desired_size, ThumbnailPolicy policy);
-    /**
-     * Deprecated. Do not use!
-     */
-    std::string get_thumbnail(std::string const& filename, ThumbnailSize desired_size);
 
     std::string get_album_art(std::string const& artist,
                               std::string const& album,

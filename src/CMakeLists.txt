@@ -4,7 +4,6 @@ add_library(thumbnailer SHARED
 audioimageextractor.cpp
 imagescaler.cpp
 lastfmdownloader.cpp
-mediaartcache.cpp
 soupdownloader.cpp
 thumbnailcache.cpp
 thumbnailer.cpp
