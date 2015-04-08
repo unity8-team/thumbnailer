@@ -36,7 +36,7 @@ namespace internal
 struct PersistentStringCacheStats
 {
     PersistentStringCacheStats() noexcept
-        : policy_(CacheDiscardPolicy::LRU_only)
+        : policy_(CacheDiscardPolicy::lru_only)
         , num_entries_(0)
         , cache_size_(0)
         , max_cache_size_(0)

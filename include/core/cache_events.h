@@ -30,14 +30,14 @@ namespace core
 
 enum class CacheEvent : unsigned
 {
-    Get        = 1 << 0,  ///< An entry was returned by a call to get(), get_or_put(), or take().
-    Put        = 1 << 1,  ///< An entry was added by a call to put() or get_or_put().
-    Invalidate = 1 << 2,  ///< An entry was removed by a call to invalidate() or take().
-    Touch      = 1 << 3,  ///< An entry was refreshed by a call to touch().
-    Miss       = 1 << 4,  ///< A call to get(), get_or_put(), or take() failed to return an entry.
-    Evict_TTL  = 1 << 5,  ///< An expired entry was evicted due to a call to put(),
+    get        = 1 << 0,  ///< An entry was returned by a call to get(), get_or_put(), take(), take_data().
+    put        = 1 << 1,  ///< An entry was added by a call to put() or get_or_put().
+    invalidate = 1 << 2,  ///< An entry was removed by a call to invalidate(), take(), or take_data().
+    touch      = 1 << 3,  ///< An entry was refreshed by a call to touch().
+    miss       = 1 << 4,  ///< A call to get(), get_or_put(), take(), or take_data() failed to return an entry.
+    evict_ttl  = 1 << 5,  ///< An expired entry was evicted due to a call to put(),
                           ///< get_or_put(), trim_to(), or resize().
-    Evict_LRU  = 1 << 6,  ///< The oldest entry was evicted due to a call to put(),
+    evict_lru  = 1 << 6,  ///< The oldest entry was evicted due to a call to put(),
                           ///< get_or_put(), trim_to(), or resize().
     END_       = 1 << 7   ///< End marker
 };

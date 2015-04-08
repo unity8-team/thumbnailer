@@ -53,7 +53,7 @@ TEST(PersistentStringCacheImpl, basic)
 {
     unlink_db(TEST_DB);
 
-    PersistentStringCacheImpl c(TEST_DB, 1024 * 1024, CacheDiscardPolicy::LRU_TTL);
+    PersistentStringCacheImpl c(TEST_DB, 1024 * 1024, CacheDiscardPolicy::lru_ttl);
     EXPECT_EQ(0, c.size());
     EXPECT_EQ(0, c.size_in_bytes());
     EXPECT_EQ(0, c.headroom());
@@ -223,7 +223,7 @@ TEST(PersistentStringCacheImpl, update)
 {
     unlink_db(TEST_DB);
 
-    PersistentStringCacheImpl c(TEST_DB, 1024, CacheDiscardPolicy::LRU_only);
+    PersistentStringCacheImpl c(TEST_DB, 1024, CacheDiscardPolicy::lru_only);
 
     string new_val;
     string val(899, '1');  // Large value, near size limit
@@ -273,7 +273,7 @@ TEST(PersistentStringCacheImpl, metadata)
     {
         unlink_db(TEST_DB);
 
-        PersistentStringCacheImpl c(TEST_DB, 1024 * 1024, CacheDiscardPolicy::LRU_TTL);
+        PersistentStringCacheImpl c(TEST_DB, 1024 * 1024, CacheDiscardPolicy::lru_ttl);
 
         string metadata = "md";
         EXPECT_FALSE(c.get_metadata("no_such_key", metadata));
@@ -359,7 +359,7 @@ TEST(PersistentStringCacheImpl, metadata)
     {
         unlink_db(TEST_DB);
 
-        PersistentStringCacheImpl c(TEST_DB, 100, CacheDiscardPolicy::LRU_TTL);
+        PersistentStringCacheImpl c(TEST_DB, 100, CacheDiscardPolicy::lru_ttl);
 
         EXPECT_TRUE(c.put("1", ""));                      // 1-byte entry that we'll add metadata to later.
         this_thread::sleep_for(chrono::milliseconds(2));  // Make sure we get different timestamps.
@@ -388,7 +388,7 @@ TEST(PersistentStringCacheImpl, batch_invalidate)
 {
     unlink_db(TEST_DB);
 
-    PersistentStringCacheImpl c(TEST_DB, 1024 * 1024, CacheDiscardPolicy::LRU_TTL);
+    PersistentStringCacheImpl c(TEST_DB, 1024 * 1024, CacheDiscardPolicy::lru_ttl);
     c.put("a", "");
     EXPECT_EQ(1, c.size());
 
@@ -421,7 +421,7 @@ TEST(PersistentStringCacheImpl, get_or_put)
 
     // Need to use PersistentStringCache::open() here because the implementation needs
     // back-pointer to the pimpl.
-    auto c = PersistentStringCache::open(TEST_DB, 1024 * 1024, CacheDiscardPolicy::LRU_TTL);
+    auto c = PersistentStringCache::open(TEST_DB, 1024 * 1024, CacheDiscardPolicy::lru_ttl);
 
     bool throw_std_exception_called;
     auto throw_std_exception = [&throw_std_exception_called](string const&, PersistentStringCache&)
@@ -561,7 +561,7 @@ TEST(PersistentStringCacheImpl, open)
     {
         unlink_db(TEST_DB);
 
-        PersistentStringCacheImpl(TEST_DB, 666, CacheDiscardPolicy::LRU_only);
+        PersistentStringCacheImpl(TEST_DB, 666, CacheDiscardPolicy::lru_only);
     }
 
     {
@@ -569,7 +569,7 @@ TEST(PersistentStringCacheImpl, open)
         EXPECT_EQ(666, c.max_size_in_bytes());
         EXPECT_EQ(0, c.size());
         EXPECT_EQ(0, c.size_in_bytes());
-        EXPECT_EQ(CacheDiscardPolicy::LRU_only, c.discard_policy());
+        EXPECT_EQ(CacheDiscardPolicy::lru_only, c.discard_policy());
 
         c.put("hello", "world");
         EXPECT_EQ(1, c.size());
@@ -581,7 +581,7 @@ TEST(PersistentStringCacheImpl, open)
         EXPECT_EQ(666, c.max_size_in_bytes());
         EXPECT_EQ(1, c.size());
         EXPECT_EQ(10, c.size_in_bytes());
-        EXPECT_EQ(CacheDiscardPolicy::LRU_only, c.discard_policy());
+        EXPECT_EQ(CacheDiscardPolicy::lru_only, c.discard_policy());
     }
 
     {
@@ -589,7 +589,7 @@ TEST(PersistentStringCacheImpl, open)
         EXPECT_EQ(666, c.max_size_in_bytes());
         EXPECT_EQ(1, c.size());
         EXPECT_EQ(10, c.size_in_bytes());
-        EXPECT_EQ(CacheDiscardPolicy::LRU_only, c.discard_policy());
+        EXPECT_EQ(CacheDiscardPolicy::lru_only, c.discard_policy());
         c.resize(999);
         EXPECT_EQ(999, c.max_size_in_bytes());
     }
@@ -599,7 +599,7 @@ TEST(PersistentStringCacheImpl, open)
         EXPECT_EQ(999, c.max_size_in_bytes());
         EXPECT_EQ(1, c.size());
         EXPECT_EQ(10, c.size_in_bytes());
-        EXPECT_EQ(CacheDiscardPolicy::LRU_only, c.discard_policy());
+        EXPECT_EQ(CacheDiscardPolicy::lru_only, c.discard_policy());
     }
 }
 
@@ -609,7 +609,7 @@ TEST(PersistentStringCacheImpl, trim_to)
     {
         unlink_db(TEST_DB);
 
-        PersistentStringCacheImpl c(TEST_DB, 3 * 1024, CacheDiscardPolicy::LRU_TTL);
+        PersistentStringCacheImpl c(TEST_DB, 3 * 1024, CacheDiscardPolicy::lru_ttl);
 
         auto now = chrono::steady_clock::now();
         auto later = now + chrono::milliseconds(100);
@@ -640,7 +640,7 @@ TEST(PersistentStringCacheImpl, trim_to)
     {
         unlink_db(TEST_DB);
 
-        PersistentStringCacheImpl c(TEST_DB, 3 * 1024, CacheDiscardPolicy::LRU_TTL);
+        PersistentStringCacheImpl c(TEST_DB, 3 * 1024, CacheDiscardPolicy::lru_ttl);
 
         auto now = chrono::steady_clock::now();
         auto later = now + chrono::milliseconds(100);
@@ -665,7 +665,7 @@ TEST(PersistentStringCacheImpl, trim_to)
     {
         unlink_db(TEST_DB);
 
-        PersistentStringCacheImpl c(TEST_DB, 3 * 1024, CacheDiscardPolicy::LRU_TTL);
+        PersistentStringCacheImpl c(TEST_DB, 3 * 1024, CacheDiscardPolicy::lru_ttl);
 
         auto now = chrono::steady_clock::now();
         auto later = now + chrono::milliseconds(100);
@@ -691,7 +691,7 @@ TEST(PersistentStringCacheImpl, trim_to)
     {
         unlink_db(TEST_DB);
 
-        PersistentStringCacheImpl c(TEST_DB, 3 * 1024, CacheDiscardPolicy::LRU_TTL);
+        PersistentStringCacheImpl c(TEST_DB, 3 * 1024, CacheDiscardPolicy::lru_ttl);
 
         auto now = chrono::steady_clock::now();
         auto later = now + chrono::milliseconds(200);
@@ -717,7 +717,7 @@ TEST(PersistentStringCacheImpl, trim_to)
     {
         unlink_db(TEST_DB);
 
-        PersistentStringCacheImpl c(TEST_DB, 3 * 1024, CacheDiscardPolicy::LRU_TTL);
+        PersistentStringCacheImpl c(TEST_DB, 3 * 1024, CacheDiscardPolicy::lru_ttl);
 
         string b(1023, 'x');
         c.put("a", b);
@@ -759,7 +759,7 @@ TEST(PersistentStringCacheImpl, policy_get_and_contains)
 {
     unlink_db(TEST_DB);
 
-    PersistentStringCacheImpl c(TEST_DB, 10 * 1024, CacheDiscardPolicy::LRU_TTL);
+    PersistentStringCacheImpl c(TEST_DB, 10 * 1024, CacheDiscardPolicy::lru_ttl);
 
     string b(20, 'x');
     string out_val;
@@ -783,11 +783,11 @@ TEST(PersistentStringCacheImpl, policy_get_and_contains)
     EXPECT_EQ(0, c.size_in_bytes());
 }
 
-TEST(PersistentStringCacheImpl, policy_take_LRU_TTL)
+TEST(PersistentStringCacheImpl, policy_take_lru_ttl)
 {
     unlink_db(TEST_DB);
 
-    PersistentStringCacheImpl c(TEST_DB, 10 * 1024, CacheDiscardPolicy::LRU_TTL);
+    PersistentStringCacheImpl c(TEST_DB, 10 * 1024, CacheDiscardPolicy::lru_ttl);
 
     string b(20, 'x');
 
@@ -800,7 +800,7 @@ TEST(PersistentStringCacheImpl, policy_take_LRU_TTL)
     EXPECT_EQ(1, c.size());
     EXPECT_EQ(21, c.size_in_bytes());
 
-    // take() must fail to remove the entry because policy is LRU_TTL.
+    // take() must fail to remove the entry because policy is lru_ttl.
     string out_val;
     EXPECT_FALSE(c.take("x", out_val));
     EXPECT_FALSE(c.contains_key("x"));
@@ -818,11 +818,11 @@ TEST(PersistentStringCacheImpl, exceptions)
 
     // Open with different size.
     {
-        PersistentStringCacheImpl c(TEST_DB, 1024, CacheDiscardPolicy::LRU_TTL);
+        PersistentStringCacheImpl c(TEST_DB, 1024, CacheDiscardPolicy::lru_ttl);
     }
     try
     {
-        PersistentStringCacheImpl c(TEST_DB, 2048, CacheDiscardPolicy::LRU_TTL);
+        PersistentStringCacheImpl c(TEST_DB, 2048, CacheDiscardPolicy::lru_ttl);
         FAIL();
     }
     catch (logic_error const& e)
@@ -837,14 +837,14 @@ TEST(PersistentStringCacheImpl, exceptions)
     // Open with different policy.
     try
     {
-        PersistentStringCacheImpl c(TEST_DB, 1024, CacheDiscardPolicy::LRU_only);
+        PersistentStringCacheImpl c(TEST_DB, 1024, CacheDiscardPolicy::lru_only);
         FAIL();
     }
     catch (logic_error const& e)
     {
         EXPECT_EQ(
-            "PersistentStringCache: existing cache opened with different policy (LRU_only), "
-            "existing policy = LRU_TTL (cache_path: " +
+            "PersistentStringCache: existing cache opened with different policy (lru_only), "
+            "existing policy = lru_ttl (cache_path: " +
             TEST_DB + ")",
             e.what());
     }
@@ -852,7 +852,7 @@ TEST(PersistentStringCacheImpl, exceptions)
     // Invalid size argument
     try
     {
-        PersistentStringCacheImpl c(TEST_DB, 0, CacheDiscardPolicy::LRU_TTL);
+        PersistentStringCacheImpl c(TEST_DB, 0, CacheDiscardPolicy::lru_ttl);
         FAIL();
     }
     catch (invalid_argument const& e)
@@ -868,7 +868,7 @@ TEST(PersistentStringCacheImpl, exceptions)
     ASSERT_EQ(0, system(string("chmod 000 " + TEST_DB).c_str()));
     try
     {
-        PersistentStringCacheImpl c(TEST_DB, 1024, CacheDiscardPolicy::LRU_TTL);
+        PersistentStringCacheImpl c(TEST_DB, 1024, CacheDiscardPolicy::lru_ttl);
         FAIL();
     }
     catch (runtime_error const& e)
@@ -883,7 +883,7 @@ TEST(PersistentStringCacheImpl, exceptions)
     try
     {
         unlink_db(TEST_DB);
-        PersistentStringCacheImpl c(TEST_DB, 1024, CacheDiscardPolicy::LRU_TTL);
+        PersistentStringCacheImpl c(TEST_DB, 1024, CacheDiscardPolicy::lru_ttl);
         {
             string key("a");
             string b(1023, 'b');
@@ -906,7 +906,7 @@ TEST(PersistentStringCacheImpl, exceptions)
 
     {
         unlink_db(TEST_DB);
-        PersistentStringCacheImpl c(TEST_DB, 1024, CacheDiscardPolicy::LRU_TTL);
+        PersistentStringCacheImpl c(TEST_DB, 1024, CacheDiscardPolicy::lru_ttl);
 
         // trim_to() with negative size
         try
@@ -1189,10 +1189,10 @@ TEST(PersistentStringCacheImpl, exceptions)
         }
     }
 
-    // touch() and put() with expiry time on LRU_only DB.
+    // touch() and put() with expiry time on lru_only DB.
     {
         unlink_db(TEST_DB);
-        PersistentStringCacheImpl c(TEST_DB, 1024, CacheDiscardPolicy::LRU_only);
+        PersistentStringCacheImpl c(TEST_DB, 1024, CacheDiscardPolicy::lru_only);
 
         auto expiry_time = chrono::steady_clock::now() + chrono::milliseconds(1000);
         try
@@ -1204,7 +1204,7 @@ TEST(PersistentStringCacheImpl, exceptions)
         catch (logic_error const& e)
         {
             string msg =
-                string("PersistentStringCache: touch(): policy is LRU_only, but expiry_time (") +
+                string("PersistentStringCache: touch(): policy is lru_only, but expiry_time (") +
                 to_string((chrono::duration_cast<chrono::milliseconds>(expiry_time.time_since_epoch())).count()) +
                 ") is not infinite (cache_path: " + TEST_DB + ")";
             EXPECT_EQ(msg, e.what());
@@ -1218,7 +1218,7 @@ TEST(PersistentStringCacheImpl, exceptions)
         catch (logic_error const& e)
         {
             string msg =
-                string("PersistentStringCache: put(): policy is LRU_only, but expiry_time (") +
+                string("PersistentStringCache: put(): policy is lru_only, but expiry_time (") +
                 to_string((chrono::duration_cast<chrono::milliseconds>(expiry_time.time_since_epoch())).count()) +
                 ") is not infinite (cache_path: " + TEST_DB + ")";
             EXPECT_EQ(msg, e.what());
@@ -1293,7 +1293,7 @@ TEST(PersistentStringCacheImpl, exceptions)
         unlink_db(TEST_DB);
 
         {
-            PersistentStringCacheImpl c(TEST_DB, 1024, CacheDiscardPolicy::LRU_only);
+            PersistentStringCacheImpl c(TEST_DB, 1024, CacheDiscardPolicy::lru_only);
             EXPECT_TRUE(c.put("y", "y"));
         }
 
@@ -1309,7 +1309,7 @@ TEST(PersistentStringCacheImpl, exceptions)
         {
             try
             {
-                PersistentStringCacheImpl c(TEST_DB, 1024, CacheDiscardPolicy::LRU_only);
+                PersistentStringCacheImpl c(TEST_DB, 1024, CacheDiscardPolicy::lru_only);
                 FAIL();
             }
             catch (system_error const& e)
@@ -1331,7 +1331,7 @@ TEST(PersistentStringCacheImpl, exceptions)
 
         {
             // Must succeed and will silently wipe the DB.
-            PersistentStringCacheImpl c(TEST_DB, 1024, CacheDiscardPolicy::LRU_only);
+            PersistentStringCacheImpl c(TEST_DB, 1024, CacheDiscardPolicy::lru_only);
             EXPECT_EQ(0, c.size());
             EXPECT_TRUE(c.put("y", "y"));
         }
@@ -1360,7 +1360,7 @@ TEST(PersistentStringCacheImpl, insert_small)
 
     const int num = 99;
 
-    PersistentStringCacheImpl c(TEST_DB, 1024 * 1024 * 1024, CacheDiscardPolicy::LRU_TTL);
+    PersistentStringCacheImpl c(TEST_DB, 1024 * 1024 * 1024, CacheDiscardPolicy::lru_ttl);
 
     // Insert num records, each with a 10 KB value
     string b(10 * 1024, 'b');
@@ -1375,7 +1375,7 @@ TEST(PersistentStringCacheImpl, insert_small)
 TEST(PersistentStringCacheImpl, trim_small)
 {
     // No unlink here, we trim the result of the previous test
-    PersistentStringCacheImpl c(TEST_DB, 1024 * 1024 * 1024, CacheDiscardPolicy::LRU_TTL);
+    PersistentStringCacheImpl c(TEST_DB, 1024 * 1024 * 1024, CacheDiscardPolicy::lru_ttl);
     EXPECT_EQ(0, c.headroom());
     c.trim_to(11 * 1024);
     EXPECT_LE(c.size(), 1);  // trim_to() may remove more than asked for.
@@ -1391,7 +1391,7 @@ TEST(PersistentStringCacheImpl, insert_large)
 
     const int num = 99;
 
-    PersistentStringCacheImpl c(TEST_DB, 100 * 1024 * 1024, CacheDiscardPolicy::LRU_TTL);
+    PersistentStringCacheImpl c(TEST_DB, 100 * 1024 * 1024, CacheDiscardPolicy::lru_ttl);
 
     // Insert num records, each with a 1 MB value
     string b(1024 * 1024, 'b');
@@ -1417,7 +1417,7 @@ TEST(PersistentStringCacheImpl, resize)
 {
     unlink_db(TEST_DB);
 
-    PersistentStringCacheImpl c(TEST_DB, 3 * 1024, CacheDiscardPolicy::LRU_TTL);
+    PersistentStringCacheImpl c(TEST_DB, 3 * 1024, CacheDiscardPolicy::lru_ttl);
     EXPECT_EQ(3 * 1024, c.max_size_in_bytes());
 
     string b(1023, 'b');
@@ -1449,7 +1449,7 @@ TEST(PersistentStringCacheImpl, insert_when_full)
 
     const int num = 50;
 
-    PersistentStringCacheImpl c(TEST_DB, 10 * 1024, CacheDiscardPolicy::LRU_TTL);  // Enough for 9 records
+    PersistentStringCacheImpl c(TEST_DB, 10 * 1024, CacheDiscardPolicy::lru_ttl);  // Enough for 9 records
     EXPECT_EQ(0, c.size());
     EXPECT_EQ(10 * 1024, c.max_size_in_bytes());
 
@@ -1470,7 +1470,7 @@ TEST(PersistentStringCacheImpl, invalidate)
 {
     unlink_db(TEST_DB);
 
-    PersistentStringCacheImpl c(TEST_DB, 1 * 1024 * 1024 * 1024, CacheDiscardPolicy::LRU_only);
+    PersistentStringCacheImpl c(TEST_DB, 1 * 1024 * 1024 * 1024, CacheDiscardPolicy::lru_only);
     c.invalidate();
     EXPECT_EQ(0, c.size());
     EXPECT_EQ(0, c.size_in_bytes());
@@ -1508,7 +1508,7 @@ TEST(PersistentStringCacheImpl, headroom)
     unlink_db(TEST_DB);
 
     // Cache with max size 128
-    PersistentStringCacheImpl c(TEST_DB, 128, CacheDiscardPolicy::LRU_only);
+    PersistentStringCacheImpl c(TEST_DB, 128, CacheDiscardPolicy::lru_only);
     EXPECT_EQ(128, c.max_size_in_bytes());
     EXPECT_EQ(0, c.headroom());
     c.set_headroom(1);
@@ -1595,7 +1595,7 @@ TEST(PersistentStringCacheImpl, stats)
     {
         unlink_db(TEST_DB);
 
-        PersistentStringCacheImpl c(TEST_DB, 128, CacheDiscardPolicy::LRU_only);
+        PersistentStringCacheImpl c(TEST_DB, 128, CacheDiscardPolicy::lru_only);
         auto s = c.stats();
         auto hist = s.histogram();
         for (unsigned i = 0; i < hist.size(); ++i)
@@ -1769,7 +1769,7 @@ TEST(PersistentStringCacheImpl, event_handlers)
 {
     unlink_db(TEST_DB);
 
-    PersistentStringCacheImpl c(TEST_DB, 1024, CacheDiscardPolicy::LRU_TTL);
+    PersistentStringCacheImpl c(TEST_DB, 1024, CacheDiscardPolicy::lru_ttl);
 
     // Copied from PersistentStringCache.h because the definition is private there.
     static constexpr unsigned END_ = 7;
@@ -1797,14 +1797,14 @@ TEST(PersistentStringCacheImpl, event_handlers)
     string val;
     EventRecord er;
 
-    auto map = &event_maps[CacheEvent::Put];
+    auto map = &event_maps[CacheEvent::put];
 
     // Check Put events.
 
     c.put("1", "x");
     ASSERT_EQ(1, map->size());
     er = (*map)["1"];
-    EXPECT_EQ(CacheEvent::Put, er.ev);
+    EXPECT_EQ(CacheEvent::put, er.ev);
     EXPECT_EQ(1, er.stats.size());
     EXPECT_EQ(2, er.stats.size_in_bytes());
 
@@ -1812,7 +1812,7 @@ TEST(PersistentStringCacheImpl, event_handlers)
     c.put("2", "x");
     ASSERT_EQ(2, map->size());
     er = (*map)["2"];
-    EXPECT_EQ(CacheEvent::Put, er.ev);
+    EXPECT_EQ(CacheEvent::put, er.ev);
     EXPECT_EQ(2, er.stats.size());
     EXPECT_EQ(4, er.stats.size_in_bytes());
 
@@ -1820,7 +1820,7 @@ TEST(PersistentStringCacheImpl, event_handlers)
     c.put("3", "x");
     ASSERT_EQ(3, map->size());
     er = (*map)["3"];
-    EXPECT_EQ(CacheEvent::Put, er.ev);
+    EXPECT_EQ(CacheEvent::put, er.ev);
     EXPECT_EQ(3, er.stats.size());
     EXPECT_EQ(6, er.stats.size_in_bytes());
 
@@ -1828,7 +1828,7 @@ TEST(PersistentStringCacheImpl, event_handlers)
     c.put("4", "x");
     ASSERT_EQ(4, map->size());
     er = (*map)["4"];
-    EXPECT_EQ(CacheEvent::Put, er.ev);
+    EXPECT_EQ(CacheEvent::put, er.ev);
     EXPECT_EQ(4, er.stats.size());
     EXPECT_EQ(8, er.stats.size_in_bytes());
 
@@ -1836,38 +1836,38 @@ TEST(PersistentStringCacheImpl, event_handlers)
 
     this_thread::sleep_for(chrono::milliseconds(5));
     c.get("3", val);
-    map = &event_maps[CacheEvent::Get];
+    map = &event_maps[CacheEvent::get];
     ASSERT_EQ(1, map->size());
     er = (*map)["3"];
-    EXPECT_EQ(CacheEvent::Get, er.ev);
+    EXPECT_EQ(CacheEvent::get, er.ev);
     EXPECT_EQ(4, er.stats.size());
     EXPECT_EQ(8, er.stats.size_in_bytes());
     map->clear();
 
     // Check invalidate and take.
 
-    map = &event_maps[CacheEvent::Invalidate];
+    map = &event_maps[CacheEvent::invalidate];
     c.invalidate("1");
     ASSERT_EQ(1, map->size());
     er = (*map)["1"];
-    EXPECT_EQ(CacheEvent::Invalidate, er.ev);
+    EXPECT_EQ(CacheEvent::invalidate, er.ev);
     EXPECT_EQ(3, er.stats.size());
     EXPECT_EQ(6, er.stats.size_in_bytes());
     map->clear();
 
     c.take("2", val);
-    map = &event_maps[CacheEvent::Get];
+    map = &event_maps[CacheEvent::get];
     ASSERT_EQ(1, map->size());
     er = (*map)["2"];
-    EXPECT_EQ(CacheEvent::Get, er.ev);
+    EXPECT_EQ(CacheEvent::get, er.ev);
     EXPECT_EQ(2, er.stats.size());
     EXPECT_EQ(4, er.stats.size_in_bytes());
     map->clear();
 
-    map = &event_maps[CacheEvent::Invalidate];
+    map = &event_maps[CacheEvent::invalidate];
     ASSERT_EQ(1, map->size());
     er = (*map)["2"];
-    EXPECT_EQ(CacheEvent::Invalidate, er.ev);
+    EXPECT_EQ(CacheEvent::invalidate, er.ev);
     EXPECT_EQ(2, er.stats.size());
     EXPECT_EQ(4, er.stats.size_in_bytes());
     map->clear();
@@ -1875,13 +1875,13 @@ TEST(PersistentStringCacheImpl, event_handlers)
     c.invalidate();
     ASSERT_EQ(2, map->size());
     er = (*map)["4"];
-    EXPECT_EQ(CacheEvent::Invalidate, er.ev);
+    EXPECT_EQ(CacheEvent::invalidate, er.ev);
     EXPECT_EQ(1, er.stats.size());
     EXPECT_EQ(2, er.stats.size_in_bytes());
 
     // 3 was accessed last, so it must be removed last.
     er = (*map)["3"];
-    EXPECT_EQ(CacheEvent::Invalidate, er.ev);
+    EXPECT_EQ(CacheEvent::invalidate, er.ev);
     EXPECT_EQ(0, er.stats.size());
     EXPECT_EQ(0, er.stats.size_in_bytes());
     map->clear();
@@ -1889,11 +1889,11 @@ TEST(PersistentStringCacheImpl, event_handlers)
     // Check touch
 
     c.put("1", "1");
-    map = &event_maps[CacheEvent::Touch];
+    map = &event_maps[CacheEvent::touch];
     c.touch("1");
     ASSERT_EQ(1, map->size());
     er = (*map)["1"];
-    EXPECT_EQ(CacheEvent::Touch, er.ev);
+    EXPECT_EQ(CacheEvent::touch, er.ev);
     EXPECT_EQ(1, er.stats.size());
     EXPECT_EQ(2, er.stats.size_in_bytes());
     c.invalidate();
@@ -1902,11 +1902,11 @@ TEST(PersistentStringCacheImpl, event_handlers)
 
     string bad_key = "no_such_key";
 
-    map = &event_maps[CacheEvent::Miss];
+    map = &event_maps[CacheEvent::miss];
     c.get(bad_key, val);
     ASSERT_EQ(1, map->size());
     er = (*map)[bad_key];
-    EXPECT_EQ(CacheEvent::Miss, er.ev);
+    EXPECT_EQ(CacheEvent::miss, er.ev);
     EXPECT_EQ(0, er.stats.size());
     EXPECT_EQ(0, er.stats.size_in_bytes());
     map->clear();
@@ -1921,33 +1921,33 @@ TEST(PersistentStringCacheImpl, event_handlers)
     c.get(bad_key, val);  // Already expired, so we must get a miss.
     ASSERT_EQ(1, map->size());
     er = (*map)[bad_key];
-    EXPECT_EQ(CacheEvent::Miss, er.ev);
+    EXPECT_EQ(CacheEvent::miss, er.ev);
     EXPECT_EQ(1, er.stats.size());
     EXPECT_EQ(bad_key.size(), er.stats.size_in_bytes());
     c.invalidate();
     map->clear();
 
-    event_maps[CacheEvent::Invalidate].clear();
-    event_maps[CacheEvent::Miss].clear();
+    event_maps[CacheEvent::invalidate].clear();
+    event_maps[CacheEvent::miss].clear();
 
     later = chrono::steady_clock::now() + chrono::milliseconds(50);
     c.put(bad_key, "", later);
     this_thread::sleep_for(chrono::milliseconds(60));
     c.invalidate(bad_key);  // Already expired, so we must get an invalidate, but not a miss.
 
-    map = &event_maps[CacheEvent::Miss];
+    map = &event_maps[CacheEvent::miss];
     ASSERT_EQ(0, map->size());
-    map = &event_maps[CacheEvent::Invalidate];
+    map = &event_maps[CacheEvent::invalidate];
     ASSERT_EQ(1, map->size());
     er = (*map)[bad_key];
-    EXPECT_EQ(CacheEvent::Invalidate, er.ev);
+    EXPECT_EQ(CacheEvent::invalidate, er.ev);
     EXPECT_EQ(0, er.stats.size());
     EXPECT_EQ(0, er.stats.size_in_bytes());
 
     c.invalidate();
     map->clear();
 
-    // Check Evict_TTL
+    // Check evict_ttl
     later = chrono::steady_clock::now() + chrono::milliseconds(100);
     c.put("1", "", later);
     this_thread::sleep_for(chrono::milliseconds(10));
@@ -1962,35 +1962,35 @@ TEST(PersistentStringCacheImpl, event_handlers)
 
     // Both entries have expired. Even though we asked for a trim_to(1),
     // both entries will be deleted as part of the trim_to().
-    map = &event_maps[CacheEvent::Evict_TTL];
+    map = &event_maps[CacheEvent::evict_ttl];
     ASSERT_EQ(2, map->size());
     er = (*map)["1"];
-    EXPECT_EQ(CacheEvent::Evict_TTL, er.ev);
+    EXPECT_EQ(CacheEvent::evict_ttl, er.ev);
     // Entry "1" expired first so, when it is deleted, entry "2" is still around.
     EXPECT_EQ(1, er.stats.size());
     EXPECT_EQ(1, er.stats.size_in_bytes());
 
     er = (*map)["2"];
-    EXPECT_EQ(CacheEvent::Evict_TTL, er.ev);
+    EXPECT_EQ(CacheEvent::evict_ttl, er.ev);
     // Entry "2" expired second.
     EXPECT_EQ(0, er.stats.size());
     EXPECT_EQ(0, er.stats.size_in_bytes());
 
-    // Check Evict_LRU
+    // Check evict_lru
     c.put("1", "");
     c.put("2", "");
     c.trim_to(0);
 
-    map = &event_maps[CacheEvent::Evict_LRU];
+    map = &event_maps[CacheEvent::evict_lru];
     ASSERT_EQ(2, map->size());
     er = (*map)["1"];
-    EXPECT_EQ(CacheEvent::Evict_LRU, er.ev);
+    EXPECT_EQ(CacheEvent::evict_lru, er.ev);
     // Entry "1" is oldest, so gets evicted first.
     EXPECT_EQ(1, er.stats.size());
     EXPECT_EQ(1, er.stats.size_in_bytes());
 
     er = (*map)["2"];
-    EXPECT_EQ(CacheEvent::Evict_LRU, er.ev);
+    EXPECT_EQ(CacheEvent::evict_lru, er.ev);
     // Entry "2" is youngest, so it gets deleted last.
     EXPECT_EQ(0, er.stats.size());
     EXPECT_EQ(0, er.stats.size_in_bytes());

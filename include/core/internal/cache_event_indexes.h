@@ -29,13 +29,13 @@ namespace internal
 
 enum class CacheEventIndex : unsigned
 {
-    Get        = 0,
-    Put        = 1,
-    Invalidate = 2,
-    Touch      = 3,
-    Miss       = 4,
-    Evict_TTL  = 5,
-    Evict_LRU  = 6,
+    get        = 0,
+    put        = 1,
+    invalidate = 2,
+    touch      = 3,
+    miss       = 4,
+    evict_ttl  = 5,
+    evict_lru  = 6,
     END_       = 7
 };
 

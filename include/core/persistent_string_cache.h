@@ -61,10 +61,10 @@ into the cache from multiple threads will not yield improved performance.
 
 ### Discard Policy
 
-The cache provides two different discard policies, `LRU_TTL`
-and `LRU_only`.
+The cache provides two different discard policies, `lru_ttl`
+and `lru_only`.
 
-For `LRU_TTL`, the discard policy of the cache is to first delete all
+For `lru_ttl`, the discard policy of the cache is to first delete all
 entries that have expired. If this does not free sufficient space
 to make room for a new entry, the cache then deletes entries in oldest
 to newest (LRU) order until sufficient space is available. This
@@ -72,7 +72,7 @@ deletion in LRU order may delete entries that have an
 expiry time, but have not expired yet, as well as entries with
 infinite expiry time.
 
-For `LRU_only`, entries do not maintain an expiry time and
+For `lru_only`, entries do not maintain an expiry time and
 are therefore discarded strictly in LRU order.
 
 Access and expiry times are recorded with millisecond granularity.
@@ -204,7 +204,7 @@ public:
     of this directory are exlusively owned by the cache; do not create additional files
     or directories there. The directory need not exist when creating a new cache.
     \param max_size_in_bytes The maximum size in bytes for the cache.
-    \param policy The discard policy for the cache (`LRU_only` or `LRU_TTL`). The discard
+    \param policy The discard policy for the cache (`lru_only` or `lru_ttl`). The discard
     policy cannot be changed once a cache has been created.
 
     The size of an entry is the sum of the sizes of its key, value, and metadata.
@@ -318,7 +318,7 @@ public:
 
     /**
     \brief Returns the discard policy of the cache.
-    \return The discard policy (`LRU_only` or `LRU_TTL`).
+    \return The discard policy (`lru_only` or `lru_ttl`).
     */
     CacheDiscardPolicy discard_policy() const noexcept;
 
@@ -346,11 +346,11 @@ public:
     This operation deletes any metadata associated with the entry.
 
     \return `true` if the entry was added or updated. `false` if the policy
-    is `LRU_TTL` and `expiry_time` is in the past.
+    is `lru_ttl` and `expiry_time` is in the past.
 
     \throws invalid_argument `key` is the empty string.
     \throws logic_error The size of the entry exceeds the maximum cache size.
-    \throws logic_error The cache policy is `LRU_only` and a non-infinite expiry time was provided.
+    \throws logic_error The cache policy is `lru_only` and a non-infinite expiry time was provided.
     */
     bool put(std::string const& key,
              std::string const& value,
@@ -367,7 +367,7 @@ public:
     This operation deletes any metadata associated with the entry.
 
     \return `true` if the entry was added or updated. `false` if the policy
-    is `LRU_TTL` and `expiry_time` is in the past.
+    is `lru_ttl` and `expiry_time` is in the past.
 
     \param key The key of the entry.
     \param value A pointer to the first byte of the value.
@@ -378,7 +378,7 @@ public:
     \throws invalid_argument `value` is `nullptr`.
     \throws invalid_argument `size` is negative.
     \throws logic_error The size of the entry exceeds the maximum cache size.
-    \throws logic_error The cache policy is `LRU_only` and a non-infinite expiry time was provided.
+    \throws logic_error The cache policy is `lru_only` and a non-infinite expiry time was provided.
     */
     bool put(std::string const& key,
              char const* value,
@@ -396,11 +396,11 @@ public:
     and metadata (and possibly expiry time).
 
     \return `true` if the entry was added or updated. `false` if the policy
-    is `LRU_TTL` and `expiry_time` is in the past.
+    is `lru_ttl` and `expiry_time` is in the past.
 
     \throws invalid_argument `key` is the empty string.
     \throws logic_error The sum of sizes of the entry and metadata exceeds the maximum cache size.
-    \throws logic_error The cache policy is `LRU_only` and a non-infinite expiry time was provided.
+    \throws logic_error The cache policy is `lru_only` and a non-infinite expiry time was provided.
     */
     bool put(std::string const& key,
              std::string const& value,
@@ -419,7 +419,7 @@ public:
     and metadata (and possibly expiry time).
 
     \return `true` if the entry was added or updated. `false` if the policy
-    is `LRU_TTL` and `expiry_time` is in the past.
+    is `lru_ttl` and `expiry_time` is in the past.
 
     \param key The key of the entry.
     \param value A pointer to the first byte of the value.
@@ -430,7 +430,7 @@ public:
 
     \throws invalid_argument `key` is the empty string.
     \throws logic_error The sum of sizes of the entry and metadata exceeds the maximum cache size.
-    \throws logic_error The cache policy is `LRU_only` and a non-infinite expiry time was provided.
+    \throws logic_error The cache policy is `lru_only` and a non-infinite expiry time was provided.
     */
     bool put(std::string const& key,
              char const* value,
@@ -611,13 +611,13 @@ public:
     \brief Updates the access time of an entry.
 
     If the entry specified by `key` is still in the cache (whether expired or not),
-    it is marked as the most-recently used entry. If the policy is `LRU_TTL`, the
+    it is marked as the most-recently used entry. If the policy is `lru_ttl`, the
     entry's expiry time is updated with the specified time (infinite expiry by default).
 
     \return `true` if the entry was updated; `false` if the entry could not be found.
     \throws invalid_argument `key` is the empty string.
     \throws logic_error `key` is the empty string.
-    \throws logic_error The cache policy is `LRU_only` and a non-infinite expiry time was provided.
+    \throws logic_error The cache policy is `lru_only` and a non-infinite expiry time was provided.
     */
     bool touch(
         std::string const& key,

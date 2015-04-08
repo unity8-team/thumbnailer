@@ -82,7 +82,7 @@ TEST(PersistentCache, person_key)
 {
     unlink_db(test_db);
 
-    auto c = PersonCache::open("my_db", 1024 * 1024 * 1024, CacheDiscardPolicy::LRU_only);
+    auto c = PersonCache::open("my_db", 1024 * 1024 * 1024, CacheDiscardPolicy::lru_only);
 
     Person bjarne{"Bjarne Stroustrup", 65};
     c->put(bjarne, "C++ inventor");
@@ -151,7 +151,7 @@ TEST(PersistentCache, IDCCache)
 
     {
         // Constructor and move constructor.
-        auto c = IDCCache::open(test_db, 1024, CacheDiscardPolicy::LRU_only);
+        auto c = IDCCache::open(test_db, 1024, CacheDiscardPolicy::lru_only);
         IDCCache c2(move(*c));
         EXPECT_EQ(1024, c2.max_size_in_bytes());
     }
@@ -159,7 +159,7 @@ TEST(PersistentCache, IDCCache)
     {
         // Constructor and move assignment.
         auto c = IDCCache::open(test_db);
-        auto c2 = IDCCache::open(test_db + "2", 2048, CacheDiscardPolicy::LRU_TTL);
+        auto c2 = IDCCache::open(test_db + "2", 2048, CacheDiscardPolicy::lru_ttl);
         *c = move(*c2);
         EXPECT_EQ(2048, c->max_size_in_bytes());
     }
@@ -182,7 +182,7 @@ TEST(PersistentCache, IDCCache)
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
         EXPECT_EQ(0, c->headroom());
-        EXPECT_EQ(CacheDiscardPolicy::LRU_only, c->discard_policy());
+        EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
 
         val = c->take(42);
         EXPECT_FALSE(val);
@@ -262,7 +262,7 @@ TEST(PersistentCache, IDCCache)
         EXPECT_TRUE(c->put(1, 1));
         EXPECT_TRUE(handler_called);
 
-        c->set_handler(CacheEvent::Put, handler);
+        c->set_handler(CacheEvent::put, handler);
         handler_called = false;
         EXPECT_TRUE(c->put(2, 2));
         EXPECT_TRUE(handler_called);
@@ -334,7 +334,7 @@ TEST(PersistentCache, SDCCache)
 
     {
         // Constructor and move constructor.
-        auto c = SDCCache::open(test_db, 1024, CacheDiscardPolicy::LRU_only);
+        auto c = SDCCache::open(test_db, 1024, CacheDiscardPolicy::lru_only);
         SDCCache c2(move(*c));
         EXPECT_EQ(1024, c2.max_size_in_bytes());
     }
@@ -342,7 +342,7 @@ TEST(PersistentCache, SDCCache)
     {
         // Constructor and move assignment.
         auto c = SDCCache::open(test_db);
-        auto c2 = SDCCache::open(test_db + "2", 2048, CacheDiscardPolicy::LRU_TTL);
+        auto c2 = SDCCache::open(test_db + "2", 2048, CacheDiscardPolicy::lru_ttl);
         *c = move(*c2);
         EXPECT_EQ(2048, c->max_size_in_bytes());
     }
@@ -365,7 +365,7 @@ TEST(PersistentCache, SDCCache)
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
         EXPECT_EQ(0, c->headroom());
-        EXPECT_EQ(CacheDiscardPolicy::LRU_only, c->discard_policy());
+        EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
 
         val = c->take("42");
         EXPECT_FALSE(val);
@@ -445,7 +445,7 @@ TEST(PersistentCache, SDCCache)
         EXPECT_TRUE(c->put("1", 1));
         EXPECT_TRUE(handler_called);
 
-        c->set_handler(CacheEvent::Put, handler);
+        c->set_handler(CacheEvent::put, handler);
         handler_called = false;
         EXPECT_TRUE(c->put("2", 2));
         EXPECT_TRUE(handler_called);
@@ -514,7 +514,7 @@ TEST(PersistentCache, ISCCache)
 
     {
         // Constructor and move constructor.
-        auto c = ISCCache::open(test_db, 1024, CacheDiscardPolicy::LRU_only);
+        auto c = ISCCache::open(test_db, 1024, CacheDiscardPolicy::lru_only);
         ISCCache c2(move(*c));
         EXPECT_EQ(1024, c2.max_size_in_bytes());
     }
@@ -522,7 +522,7 @@ TEST(PersistentCache, ISCCache)
     {
         // Constructor and move assignment.
         auto c = ISCCache::open(test_db);
-        auto c2 = ISCCache::open(test_db + "2", 2048, CacheDiscardPolicy::LRU_TTL);
+        auto c2 = ISCCache::open(test_db + "2", 2048, CacheDiscardPolicy::lru_ttl);
         *c = move(*c2);
         EXPECT_EQ(2048, c->max_size_in_bytes());
     }
@@ -545,7 +545,7 @@ TEST(PersistentCache, ISCCache)
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
         EXPECT_EQ(0, c->headroom());
-        EXPECT_EQ(CacheDiscardPolicy::LRU_only, c->discard_policy());
+        EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
 
         val = c->take(42);
         EXPECT_FALSE(val);
@@ -625,7 +625,7 @@ TEST(PersistentCache, ISCCache)
         EXPECT_TRUE(c->put(1, "1"));
         EXPECT_TRUE(handler_called);
 
-        c->set_handler(CacheEvent::Put, handler);
+        c->set_handler(CacheEvent::put, handler);
         handler_called = false;
         EXPECT_TRUE(c->put(2, "2"));
         EXPECT_TRUE(handler_called);
@@ -708,7 +708,7 @@ TEST(PersistentCache, IDSCache)
 
     {
         // Constructor and move constructor.
-        auto c = IDSCache::open(test_db, 1024, CacheDiscardPolicy::LRU_only);
+        auto c = IDSCache::open(test_db, 1024, CacheDiscardPolicy::lru_only);
         IDSCache c2(move(*c));
         EXPECT_EQ(1024, c2.max_size_in_bytes());
     }
@@ -716,7 +716,7 @@ TEST(PersistentCache, IDSCache)
     {
         // Constructor and move assignment.
         auto c = IDSCache::open(test_db);
-        auto c2 = IDSCache::open(test_db + "2", 2048, CacheDiscardPolicy::LRU_TTL);
+        auto c2 = IDSCache::open(test_db + "2", 2048, CacheDiscardPolicy::lru_ttl);
         *c = move(*c2);
         EXPECT_EQ(2048, c->max_size_in_bytes());
     }
@@ -739,7 +739,7 @@ TEST(PersistentCache, IDSCache)
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
         EXPECT_EQ(0, c->headroom());
-        EXPECT_EQ(CacheDiscardPolicy::LRU_only, c->discard_policy());
+        EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
 
         val = c->take(42);
         EXPECT_FALSE(val);
@@ -819,7 +819,7 @@ TEST(PersistentCache, IDSCache)
         EXPECT_TRUE(c->put(1, 1));
         EXPECT_TRUE(handler_called);
 
-        c->set_handler(CacheEvent::Put, handler);
+        c->set_handler(CacheEvent::put, handler);
         handler_called = false;
         EXPECT_TRUE(c->put(2, 2));
         EXPECT_TRUE(handler_called);
@@ -888,7 +888,7 @@ TEST(PersistentCache, SSCCache)
 
     {
         // Constructor and move constructor.
-        auto c = SSCCache::open(test_db, 1024, CacheDiscardPolicy::LRU_only);
+        auto c = SSCCache::open(test_db, 1024, CacheDiscardPolicy::lru_only);
         SSCCache c2(move(*c));
         EXPECT_EQ(1024, c2.max_size_in_bytes());
     }
@@ -896,7 +896,7 @@ TEST(PersistentCache, SSCCache)
     {
         // Constructor and move assignment.
         auto c = SSCCache::open(test_db);
-        auto c2 = SSCCache::open(test_db + "2", 2048, CacheDiscardPolicy::LRU_TTL);
+        auto c2 = SSCCache::open(test_db + "2", 2048, CacheDiscardPolicy::lru_ttl);
         *c = move(*c2);
         EXPECT_EQ(2048, c->max_size_in_bytes());
     }
@@ -919,7 +919,7 @@ TEST(PersistentCache, SSCCache)
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
         EXPECT_EQ(0, c->headroom());
-        EXPECT_EQ(CacheDiscardPolicy::LRU_only, c->discard_policy());
+        EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
 
         val = c->take("42");
         EXPECT_FALSE(val);
@@ -999,7 +999,7 @@ TEST(PersistentCache, SSCCache)
         EXPECT_TRUE(c->put("1", string("1")));
         EXPECT_TRUE(handler_called);
 
-        c->set_handler(CacheEvent::Put, handler);
+        c->set_handler(CacheEvent::put, handler);
         handler_called = false;
         EXPECT_TRUE(c->put("2", string("2")));
         EXPECT_TRUE(handler_called);
@@ -1068,7 +1068,7 @@ TEST(PersistentCache, SDSCache)
 
     {
         // Constructor and move constructor.
-        auto c = SDSCache::open(test_db, 1024, CacheDiscardPolicy::LRU_only);
+        auto c = SDSCache::open(test_db, 1024, CacheDiscardPolicy::lru_only);
         SDSCache c2(move(*c));
         EXPECT_EQ(1024, c2.max_size_in_bytes());
     }
@@ -1076,7 +1076,7 @@ TEST(PersistentCache, SDSCache)
     {
         // Constructor and move assignment.
         auto c = SDSCache::open(test_db);
-        auto c2 = SDSCache::open(test_db + "2", 2048, CacheDiscardPolicy::LRU_TTL);
+        auto c2 = SDSCache::open(test_db + "2", 2048, CacheDiscardPolicy::lru_ttl);
         *c = move(*c2);
         EXPECT_EQ(2048, c->max_size_in_bytes());
     }
@@ -1099,7 +1099,7 @@ TEST(PersistentCache, SDSCache)
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
         EXPECT_EQ(0, c->headroom());
-        EXPECT_EQ(CacheDiscardPolicy::LRU_only, c->discard_policy());
+        EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
 
         val = c->take("42");
         EXPECT_FALSE(val);
@@ -1179,7 +1179,7 @@ TEST(PersistentCache, SDSCache)
         EXPECT_TRUE(c->put("1", 1));
         EXPECT_TRUE(handler_called);
 
-        c->set_handler(CacheEvent::Put, handler);
+        c->set_handler(CacheEvent::put, handler);
         handler_called = false;
         EXPECT_TRUE(c->put("2", 2));
         EXPECT_TRUE(handler_called);
@@ -1248,7 +1248,7 @@ TEST(PersistentCache, ISSCache)
 
     {
         // Constructor and move constructor.
-        auto c = ISSCache::open(test_db, 1024, CacheDiscardPolicy::LRU_only);
+        auto c = ISSCache::open(test_db, 1024, CacheDiscardPolicy::lru_only);
         ISSCache c2(move(*c));
         EXPECT_EQ(1024, c2.max_size_in_bytes());
     }
@@ -1256,7 +1256,7 @@ TEST(PersistentCache, ISSCache)
     {
         // Constructor and move assignment.
         auto c = ISSCache::open(test_db);
-        auto c2 = ISSCache::open(test_db + "2", 2048, CacheDiscardPolicy::LRU_TTL);
+        auto c2 = ISSCache::open(test_db + "2", 2048, CacheDiscardPolicy::lru_ttl);
         *c = move(*c2);
         EXPECT_EQ(2048, c->max_size_in_bytes());
     }
@@ -1279,7 +1279,7 @@ TEST(PersistentCache, ISSCache)
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
         EXPECT_EQ(0, c->headroom());
-        EXPECT_EQ(CacheDiscardPolicy::LRU_only, c->discard_policy());
+        EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
 
         val = c->take(42);
         EXPECT_FALSE(val);
@@ -1359,7 +1359,7 @@ TEST(PersistentCache, ISSCache)
         EXPECT_TRUE(c->put(1, "1"));
         EXPECT_TRUE(handler_called);
 
-        c->set_handler(CacheEvent::Put, handler);
+        c->set_handler(CacheEvent::put, handler);
         handler_called = false;
         EXPECT_TRUE(c->put(2, "2"));
         EXPECT_TRUE(handler_called);
@@ -1416,7 +1416,7 @@ TEST(PersistentCache, SSSCache)
 
     {
         // Constructor and move constructor.
-        auto c = SSSCache::open(test_db, 1024, CacheDiscardPolicy::LRU_only);
+        auto c = SSSCache::open(test_db, 1024, CacheDiscardPolicy::lru_only);
         SSSCache c2(move(*c));
         EXPECT_EQ(1024, c2.max_size_in_bytes());
     }
@@ -1424,7 +1424,7 @@ TEST(PersistentCache, SSSCache)
     {
         // Constructor and move assignment.
         auto c = SSSCache::open(test_db);
-        auto c2 = SSSCache::open(test_db + "2", 2048, CacheDiscardPolicy::LRU_TTL);
+        auto c2 = SSSCache::open(test_db + "2", 2048, CacheDiscardPolicy::lru_ttl);
         *c = move(*c2);
         EXPECT_EQ(2048, c->max_size_in_bytes());
     }
@@ -1447,7 +1447,7 @@ TEST(PersistentCache, SSSCache)
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
         EXPECT_EQ(0, c->headroom());
-        EXPECT_EQ(CacheDiscardPolicy::LRU_only, c->discard_policy());
+        EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
 
         val = c->take("42");
         EXPECT_FALSE(val);
@@ -1527,7 +1527,7 @@ TEST(PersistentCache, SSSCache)
         EXPECT_TRUE(c->put("1", string("1")));
         EXPECT_TRUE(handler_called);
 
-        c->set_handler(CacheEvent::Put, handler);
+        c->set_handler(CacheEvent::put, handler);
         handler_called = false;
         EXPECT_TRUE(c->put("2", string("2")));
         EXPECT_TRUE(handler_called);

@@ -111,7 +111,7 @@ TEST(PersistentStringCache, basic)
     cout << "Record size:   " << record_size / 1024.0 << " kB" << endl;
     cout << "Iterations:    " << iterations << endl;
 
-    auto c = PersistentStringCache::open(test_db, max_cache_size, CacheDiscardPolicy::LRU_only);
+    auto c = PersistentStringCache::open(test_db, max_cache_size, CacheDiscardPolicy::lru_only);
     c->set_headroom(int64_t(max_cache_size * headroom_percent));
 
     static Optional<string> val;

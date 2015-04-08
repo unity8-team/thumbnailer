@@ -49,7 +49,7 @@ TEST(PersistentStringCache, basic)
 
     {
         // Constructor and move constructor.
-        auto c = PersistentStringCache::open(test_db, 1024, CacheDiscardPolicy::LRU_only);
+        auto c = PersistentStringCache::open(test_db, 1024, CacheDiscardPolicy::lru_only);
         PersistentStringCache c2(move(*c));
         EXPECT_EQ(1024, c2.max_size_in_bytes());
     }
@@ -57,7 +57,7 @@ TEST(PersistentStringCache, basic)
     {
         // Constructor and move assignment.
         auto c = PersistentStringCache::open(test_db);
-        auto c2 = PersistentStringCache::open(test_db + "2", 2048, CacheDiscardPolicy::LRU_TTL);
+        auto c2 = PersistentStringCache::open(test_db + "2", 2048, CacheDiscardPolicy::lru_ttl);
         *c = move(*c2);
         EXPECT_EQ(2048, c->max_size_in_bytes());
     }
@@ -83,7 +83,7 @@ TEST(PersistentStringCache, basic)
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
         EXPECT_EQ(0, c->headroom());
-        EXPECT_EQ(CacheDiscardPolicy::LRU_only, c->discard_policy());
+        EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
         EXPECT_TRUE(c->put("x", ""));
         EXPECT_TRUE(c->put("x", "x", 1));
         EXPECT_TRUE(c->put("x", "y", ""));
@@ -116,7 +116,7 @@ TEST(PersistentStringCache, basic)
         };
 
         c->set_handler(AllCacheEvents, handler);
-        c->set_handler(CacheEvent::Get, handler);
+        c->set_handler(CacheEvent::get, handler);
     }
 }
 
@@ -125,7 +125,7 @@ TEST(PersistentStringCache, stats)
     {
         PersistentCacheStats s;
         EXPECT_EQ("", s.cache_path());
-        EXPECT_EQ(CacheDiscardPolicy::LRU_only, s.policy());
+        EXPECT_EQ(CacheDiscardPolicy::lru_only, s.policy());
         EXPECT_EQ(0, s.size());
         EXPECT_EQ(0, s.size_in_bytes());
         EXPECT_EQ(0, s.max_size_in_bytes());
@@ -150,12 +150,12 @@ TEST(PersistentStringCache, stats)
     {
         unlink_db(test_db);
 
-        auto c = PersistentStringCache::open(test_db, 1024, CacheDiscardPolicy::LRU_TTL);
+        auto c = PersistentStringCache::open(test_db, 1024, CacheDiscardPolicy::lru_ttl);
 
         // Check that we start out with everything initialized.
         auto s = c->stats();
         EXPECT_EQ(test_db, s.cache_path());
-        EXPECT_EQ(CacheDiscardPolicy::LRU_TTL, s.policy());
+        EXPECT_EQ(CacheDiscardPolicy::lru_ttl, s.policy());
         EXPECT_EQ(0, s.size());
         EXPECT_EQ(0, s.size_in_bytes());
         EXPECT_EQ(1024, s.max_size_in_bytes());
@@ -180,7 +180,7 @@ TEST(PersistentStringCache, stats)
 
         s = c->stats();
         EXPECT_EQ(test_db, s.cache_path());                  // Must not have changed.
-        EXPECT_EQ(CacheDiscardPolicy::LRU_TTL, s.policy());  // Must not have changed.
+        EXPECT_EQ(CacheDiscardPolicy::lru_ttl, s.policy());  // Must not have changed.
         EXPECT_EQ(1, s.size());
         EXPECT_EQ(2, s.size_in_bytes());
         EXPECT_EQ(1024, s.max_size_in_bytes());              // Must not have changed.
@@ -276,7 +276,7 @@ TEST(PersistentStringCache, stats)
             // Copy constructor.
             auto s2(s);
             EXPECT_EQ(test_db, s2.cache_path());
-            EXPECT_EQ(CacheDiscardPolicy::LRU_TTL, s2.policy());
+            EXPECT_EQ(CacheDiscardPolicy::lru_ttl, s2.policy());
             EXPECT_EQ(1, s2.size());
             EXPECT_EQ(2, s2.size_in_bytes());
             EXPECT_EQ(1024, s2.max_size_in_bytes());
@@ -296,7 +296,7 @@ TEST(PersistentStringCache, stats)
             PersistentCacheStats s2;
             s2 = s;
             EXPECT_EQ(test_db, s2.cache_path());
-            EXPECT_EQ(CacheDiscardPolicy::LRU_TTL, s2.policy());
+            EXPECT_EQ(CacheDiscardPolicy::lru_ttl, s2.policy());
             EXPECT_EQ(1, s2.size());
             EXPECT_EQ(2, s2.size_in_bytes());
             EXPECT_EQ(1024, s2.max_size_in_bytes());
@@ -315,7 +315,7 @@ TEST(PersistentStringCache, stats)
             // Move constructor.
             PersistentCacheStats s2(move(s));
             EXPECT_EQ(test_db, s2.cache_path());
-            EXPECT_EQ(CacheDiscardPolicy::LRU_TTL, s2.policy());
+            EXPECT_EQ(CacheDiscardPolicy::lru_ttl, s2.policy());
             EXPECT_EQ(1, s2.size());
             EXPECT_EQ(2, s2.size_in_bytes());
             EXPECT_EQ(1024, s2.max_size_in_bytes());
@@ -335,7 +335,7 @@ TEST(PersistentStringCache, stats)
             PersistentCacheStats s3;
             s3 = move(s2);
             EXPECT_EQ(test_db, s3.cache_path());
-            EXPECT_EQ(CacheDiscardPolicy::LRU_TTL, s3.policy());
+            EXPECT_EQ(CacheDiscardPolicy::lru_ttl, s3.policy());
             EXPECT_EQ(1, s3.size());
             EXPECT_EQ(2, s3.size_in_bytes());
             EXPECT_EQ(1024, s3.max_size_in_bytes());
@@ -360,7 +360,7 @@ TEST(PersistentStringCache, stats)
         {
             PersistentCacheStats s2(s);
             EXPECT_EQ(test_db, s2.cache_path());
-            EXPECT_EQ(CacheDiscardPolicy::LRU_TTL, s2.policy());
+            EXPECT_EQ(CacheDiscardPolicy::lru_ttl, s2.policy());
             EXPECT_EQ(1, s2.size());
             EXPECT_EQ(2, s2.size_in_bytes());
             EXPECT_EQ(1024, s2.max_size_in_bytes());
@@ -376,7 +376,7 @@ TEST(PersistentStringCache, stats)
 
             EXPECT_EQ(test_db, s.cache_path());  // Source must remain intact.
         };
-        c->set_handler(CacheEvent::Touch, copy_construct_handler);
+        c->set_handler(CacheEvent::touch, copy_construct_handler);
         c->touch("x");
 
         auto move_assign_handler = [&](string const&, CacheEvent, PersistentCacheStats const& s)
@@ -384,7 +384,7 @@ TEST(PersistentStringCache, stats)
             PersistentCacheStats s2;
             s2 = move(s);
             EXPECT_EQ(test_db, s2.cache_path());
-            EXPECT_EQ(CacheDiscardPolicy::LRU_TTL, s2.policy());
+            EXPECT_EQ(CacheDiscardPolicy::lru_ttl, s2.policy());
             EXPECT_EQ(1, s2.size());
             EXPECT_EQ(2, s2.size_in_bytes());
             EXPECT_EQ(1024, s2.max_size_in_bytes());
@@ -400,7 +400,7 @@ TEST(PersistentStringCache, stats)
 
             EXPECT_EQ(test_db, s.cache_path());  // Moved-from instance wasn't really moved from.
         };
-        c->set_handler(CacheEvent::Touch, move_assign_handler);
+        c->set_handler(CacheEvent::touch, move_assign_handler);
         c->touch("x");
 
         // Move construction is impossible because handlers are passed a const ref

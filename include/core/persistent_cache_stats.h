@@ -45,7 +45,7 @@ public:
     /** @name Construction, Copy and Assignment
     Copy and assignment have the usual value semantics.
     The default constructor creates an instance with
-    an empty cache path, `LRU_only` policy, and the
+    an empty cache path, `lru_only` policy, and the
     remaining values set to zero.
     */
     //{@
@@ -67,7 +67,7 @@ public:
     std::string cache_path() const;
 
     /**
-    \brief Returns the discard policy (`LRU_only` or `LRU_TTL`).
+    \brief Returns the discard policy (`lru_only` or `lru_ttl`).
     */
     CacheDiscardPolicy policy() const noexcept;
 
