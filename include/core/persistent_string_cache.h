@@ -614,7 +614,8 @@ public:
     it is marked as the most-recently used entry. If the policy is `lru_ttl`, the
     entry's expiry time is updated with the specified time (infinite expiry by default).
 
-    \return `true` if the entry was updated; `false` if the entry could not be found.
+    \return `true` if the entry was updated; `false` if the entry could not be found or
+    `expiry_time` is in the past.
     \throws invalid_argument `key` is the empty string.
     \throws logic_error `key` is the empty string.
     \throws logic_error The cache policy is `lru_only` and a non-infinite expiry time was provided.
