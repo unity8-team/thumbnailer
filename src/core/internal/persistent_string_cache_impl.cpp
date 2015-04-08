@@ -1188,31 +1188,27 @@ void PersistentStringCacheImpl::set_headroom(int64_t headroom)
     stats_->headroom_ = headroom;
 }
 
-void PersistentStringCacheImpl::set_handler(unsigned mask, PersistentStringCache::EventCallback cb)
+void PersistentStringCacheImpl::set_handler(CacheEvent events, PersistentStringCache::EventCallback cb)
 {
-    static constexpr auto limit = static_cast<unsigned>(CacheEvent::END_);
-    if (mask == 0 || mask > limit - 1)
+    static constexpr auto limit = underlying_type<CacheEvent>::type(CacheEvent::END_);
+
+    auto evs = underlying_type<CacheEvent>::type(events);
+    if (evs == 0 || evs > limit - 1)
     {
-        throw_invalid_argument("set_handler(): invalid mask (" + to_string(mask) +
+        throw_invalid_argument("set_handler(): invalid events (" + to_string(evs) +
                                "): value must be in the range [1.." + to_string(limit - 1) + "]");
     }
 
     lock_guard<decltype(mutex_)> lock(mutex_);
 
-    static constexpr auto index_limit = static_cast<unsigned>(CacheEventIndex::END_);
-    for (unsigned i = 0; i < index_limit; ++i)
+    static constexpr auto index_limit = underlying_type<CacheEventIndex>::type(CacheEventIndex::END_);
+    for (underlying_type<CacheEventIndex>::type i = 0; i < index_limit; ++i)
     {
-        if ((mask >> i) & 1)
+        if ((evs >> i) & 1)
         {
             handlers_[i] = cb;
         }
     }
-}
-
-void PersistentStringCacheImpl::set_handler(CacheEvent event,
-                                            PersistentStringCache::EventCallback cb) noexcept
-{
-    set_handler(static_cast<unsigned>(event), cb);
 }
 
 void PersistentStringCacheImpl::init_db(leveldb::Options options)

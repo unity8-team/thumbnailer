@@ -403,12 +403,7 @@ public:
     /**
     \brief Installs a handler for one or more events.
     */
-    void set_handler(unsigned mask, EventCallback cb);
-
-    /**
-    \brief Installs a handler for a specific event.
-    */
-    void set_handler(CacheEvent event, EventCallback cb) noexcept;
+    void set_handler(CacheEvent events, EventCallback cb);
 
     //@}
 
@@ -665,23 +660,13 @@ void PersistentCache<K, V, M>::set_headroom(int64_t headroom)
 }
 
 template <typename K, typename V, typename M>
-void PersistentCache<K, V, M>::set_handler(unsigned mask, EventCallback cb)
+void PersistentCache<K, V, M>::set_handler(CacheEvent events, EventCallback cb)
 {
     auto scb = [cb](std::string const& key, CacheEvent ev, PersistentCacheStats const& c)
     {
         cb(Codec<K>::decode(key), ev, c);
     };
-    p_->set_handler(mask, scb);
-}
-
-template <typename K, typename V, typename M>
-void PersistentCache<K, V, M>::set_handler(CacheEvent event, EventCallback cb) noexcept
-{
-    auto scb = [cb](std::string const& key, CacheEvent ev, PersistentCacheStats const& c)
-    {
-        cb(Codec<K>::decode(key), ev, c);
-    };
-    p_->set_handler(event, scb);
+    p_->set_handler(events, scb);
 }
 
 // Below are specializations for the various combinations of one or more of K, V, and M
@@ -780,8 +765,7 @@ public:
 
     typedef std::function<void(std::string const& key, CacheEvent ev, PersistentCacheStats const& stats)> EventCallback;
 
-    void set_handler(unsigned mask, EventCallback cb);
-    void set_handler(CacheEvent event, EventCallback cb) noexcept;
+    void set_handler(CacheEvent events, EventCallback cb);
 
 private:
     PersistentCache(std::string const& cache_path, int64_t max_size_in_bytes, CacheDiscardPolicy policy);
@@ -1034,15 +1018,9 @@ void PersistentCache<std::string, V, M>::set_headroom(int64_t headroom)
 }
 
 template <typename V, typename M>
-void PersistentCache<std::string, V, M>::set_handler(unsigned mask, EventCallback cb)
+void PersistentCache<std::string, V, M>::set_handler(CacheEvent events, EventCallback cb)
 {
-    p_->set_handler(mask, cb);
-}
-
-template <typename V, typename M>
-void PersistentCache<std::string, V, M>::set_handler(CacheEvent event, EventCallback cb) noexcept
-{
-    p_->set_handler(event, cb);
+    p_->set_handler(events, cb);
 }
 
 // Specialization for V = std::string.
@@ -1138,8 +1116,7 @@ public:
 
     typedef std::function<void(K const& key, CacheEvent ev, PersistentCacheStats const& stats)> EventCallback;
 
-    void set_handler(unsigned mask, EventCallback cb);
-    void set_handler(CacheEvent event, EventCallback cb) noexcept;
+    void set_handler(CacheEvent events, EventCallback cb);
 
 private:
     PersistentCache(std::string const& cache_path, int64_t max_size_in_bytes, CacheDiscardPolicy policy);
@@ -1412,23 +1389,13 @@ void PersistentCache<K, std::string, M>::set_headroom(int64_t headroom)
 }
 
 template <typename K, typename M>
-void PersistentCache<K, std::string, M>::set_handler(unsigned mask, EventCallback cb)
+void PersistentCache<K, std::string, M>::set_handler(CacheEvent events, EventCallback cb)
 {
     auto scb = [cb](std::string const& key, CacheEvent ev, PersistentCacheStats const& c)
     {
         cb(Codec<K>::decode(key), ev, c);
     };
-    p_->set_handler(mask, scb);
-}
-
-template <typename K, typename M>
-void PersistentCache<K, std::string, M>::set_handler(CacheEvent event, EventCallback cb) noexcept
-{
-    auto scb = [cb](std::string const& key, CacheEvent ev, PersistentCacheStats const& c)
-    {
-        cb(Codec<K>::decode(key), ev, c);
-    };
-    p_->set_handler(event, scb);
+    p_->set_handler(events, scb);
 }
 
 // Specialization for M = std::string.
@@ -1521,8 +1488,7 @@ public:
 
     typedef std::function<void(K const& key, CacheEvent ev, PersistentCacheStats const& stats)> EventCallback;
 
-    void set_handler(unsigned mask, EventCallback cb);
-    void set_handler(CacheEvent event, EventCallback cb) noexcept;
+    void set_handler(CacheEvent events, EventCallback cb);
 
 private:
     PersistentCache(std::string const& cache_path, int64_t max_size_in_bytes, CacheDiscardPolicy policy);
@@ -1793,23 +1759,13 @@ void PersistentCache<K, V, std::string>::set_headroom(int64_t headroom)
 }
 
 template <typename K, typename V>
-void PersistentCache<K, V, std::string>::set_handler(unsigned mask, EventCallback cb)
+void PersistentCache<K, V, std::string>::set_handler(CacheEvent events, EventCallback cb)
 {
     auto scb = [cb](std::string const& key, CacheEvent ev, PersistentCacheStats const& c)
     {
         cb(Codec<K>::decode(key), ev, c);
     };
-    p_->set_handler(mask, scb);
-}
-
-template <typename K, typename V>
-void PersistentCache<K, V, std::string>::set_handler(CacheEvent event, EventCallback cb) noexcept
-{
-    auto scb = [cb](std::string const& key, CacheEvent ev, PersistentCacheStats const& c)
-    {
-        cb(Codec<K>::decode(key), ev, c);
-    };
-    p_->set_handler(event, scb);
+    p_->set_handler(events, scb);
 }
 
 // Specialization for K and V = std::string.
@@ -1905,8 +1861,7 @@ public:
 
     typedef std::function<void(std::string const& key, CacheEvent ev, PersistentCacheStats const& stats)> EventCallback;
 
-    void set_handler(unsigned mask, EventCallback cb);
-    void set_handler(CacheEvent event, EventCallback cb) noexcept;
+    void set_handler(CacheEvent events, EventCallback cb);
 
 private:
     PersistentCache(std::string const& cache_path, int64_t max_size_in_bytes, CacheDiscardPolicy policy);
@@ -2182,15 +2137,9 @@ void PersistentCache<std::string, std::string, M>::set_headroom(int64_t headroom
 }
 
 template <typename M>
-void PersistentCache<std::string, std::string, M>::set_handler(unsigned mask, EventCallback cb)
+void PersistentCache<std::string, std::string, M>::set_handler(CacheEvent events, EventCallback cb)
 {
-    p_->set_handler(mask, cb);
-}
-
-template <typename M>
-void PersistentCache<std::string, std::string, M>::set_handler(CacheEvent event, EventCallback cb) noexcept
-{
-    p_->set_handler(event, cb);
+    p_->set_handler(events, cb);
 }
 
 // Specialization for K and M = std::string.
@@ -2283,8 +2232,7 @@ public:
 
     typedef std::function<void(std::string const& key, CacheEvent ev, PersistentCacheStats const& stats)> EventCallback;
 
-    void set_handler(unsigned mask, EventCallback cb);
-    void set_handler(CacheEvent event, EventCallback cb) noexcept;
+    void set_handler(CacheEvent events, EventCallback cb);
 
 private:
     PersistentCache(std::string const& cache_path, int64_t max_size_in_bytes, CacheDiscardPolicy policy);
@@ -2560,15 +2508,9 @@ void PersistentCache<std::string, V, std::string>::set_headroom(int64_t headroom
 }
 
 template <typename V>
-void PersistentCache<std::string, V, std::string>::set_handler(unsigned mask, EventCallback cb)
+void PersistentCache<std::string, V, std::string>::set_handler(CacheEvent events, EventCallback cb)
 {
-    p_->set_handler(mask, cb);
-}
-
-template <typename V>
-void PersistentCache<std::string, V, std::string>::set_handler(CacheEvent event, EventCallback cb) noexcept
-{
-    p_->set_handler(event, cb);
+    p_->set_handler(events, cb);
 }
 
 // Specialization for V and M = std::string.
@@ -2666,8 +2608,7 @@ public:
 
     typedef std::function<void(K const& key, CacheEvent ev, PersistentCacheStats const& stats)> EventCallback;
 
-    void set_handler(unsigned mask, EventCallback cb);
-    void set_handler(CacheEvent event, EventCallback cb) noexcept;
+    void set_handler(CacheEvent events, EventCallback cb);
 
 private:
     PersistentCache(std::string const& cache_path, int64_t max_size_in_bytes, CacheDiscardPolicy policy);
@@ -2951,23 +2892,13 @@ void PersistentCache<K, std::string, std::string>::set_headroom(int64_t headroom
 }
 
 template <typename K>
-void PersistentCache<K, std::string, std::string>::set_handler(unsigned mask, EventCallback cb)
+void PersistentCache<K, std::string, std::string>::set_handler(CacheEvent events, EventCallback cb)
 {
     auto scb = [cb](std::string const& key, CacheEvent ev, PersistentCacheStats const& c)
     {
         cb(Codec<K>::decode(key), ev, c);
     };
-    p_->set_handler(mask, scb);
-}
-
-template <typename K>
-void PersistentCache<K, std::string, std::string>::set_handler(CacheEvent event, EventCallback cb) noexcept
-{
-    auto scb = [cb](std::string const& key, CacheEvent ev, PersistentCacheStats const& c)
-    {
-        cb(Codec<K>::decode(key), ev, c);
-    };
-    p_->set_handler(event, scb);
+    p_->set_handler(events, scb);
 }
 
 // Specialization for K, V, and M = std::string.
@@ -3059,8 +2990,7 @@ public:
 
     typedef std::function<void(std::string const& key, CacheEvent ev, PersistentCacheStats const& stats)> EventCallback;
 
-    void set_handler(unsigned mask, EventCallback cb);
-    void set_handler(CacheEvent event, EventCallback cb) noexcept;
+    void set_handler(CacheEvent events, EventCallback cb);
 
 private:
     PersistentCache(std::string const& cache_path, int64_t max_size_in_bytes, CacheDiscardPolicy policy);
@@ -3313,14 +3243,9 @@ void PersistentCache<std::string, std::string, std::string>::set_headroom(int64_
     p_->set_headroom(headroom);
 }
 
-void PersistentCache<std::string, std::string, std::string>::set_handler(unsigned mask, EventCallback cb)
+void PersistentCache<std::string, std::string, std::string>::set_handler(CacheEvent events, EventCallback cb)
 {
-    p_->set_handler(mask, cb);
-}
-
-void PersistentCache<std::string, std::string, std::string>::set_handler(CacheEvent event, EventCallback cb) noexcept
-{
-    p_->set_handler(event, cb);
+    p_->set_handler(events, cb);
 }
 
 // @endcond

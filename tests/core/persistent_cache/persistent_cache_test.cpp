@@ -251,6 +251,8 @@ TEST(PersistentCache, IDCCache)
         EXPECT_EQ(2048, stats.max_size_in_bytes());
         EXPECT_EQ(200, stats.headroom());
 
+        // Handlers
+
         bool handler_called;
         auto handler = [&](int const&, CacheEvent, PersistentCacheStats const&)
         {
@@ -266,6 +268,22 @@ TEST(PersistentCache, IDCCache)
         handler_called = false;
         EXPECT_TRUE(c->put(2, 2));
         EXPECT_TRUE(handler_called);
+
+        // Event operators
+
+        typedef std::underlying_type<CacheEvent>::type EventValue;
+
+        EXPECT_EQ(0x7f, EventValue(AllCacheEvents));
+        EXPECT_EQ(0x7e, EventValue(~CacheEvent::get));
+        EXPECT_EQ(0x3, EventValue(CacheEvent::get | CacheEvent::put));
+        EXPECT_EQ(0x2, EventValue(AllCacheEvents & CacheEvent::put));
+        CacheEvent v = CacheEvent::get | CacheEvent::put;
+        v |= CacheEvent::invalidate;
+        EXPECT_EQ(0x7, EventValue(v));
+        v &= ~CacheEvent::get;
+        EXPECT_EQ(0x6, EventValue(v));
+
+        // Loader methods
 
         bool loader_called;
         auto loader = [&](int const& key, IDCCache& c)

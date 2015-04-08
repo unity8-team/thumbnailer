@@ -102,8 +102,7 @@ public:
     void resize(int64_t size_in_bytes);
     void trim_to(int64_t used_size_in_bytes);
     void set_headroom(int64_t headroom);
-    void set_handler(unsigned mask, PersistentStringCache::EventCallback cb);
-    void set_handler(CacheEvent event, PersistentStringCache::EventCallback cb) noexcept;
+    void set_handler(CacheEvent events, PersistentStringCache::EventCallback cb);
 
 private:
     // Simple struct to serialize/deserialize a data tuple.

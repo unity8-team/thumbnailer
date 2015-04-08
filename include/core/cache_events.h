@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <type_traits>
+
 namespace core
 {
 
@@ -42,10 +44,41 @@ enum class CacheEvent : unsigned
     END_       = 1 << 7   ///< End marker
 };
 
+inline CacheEvent operator|(CacheEvent left, CacheEvent right)
+{
+    auto l = std::underlying_type<CacheEvent>::type(left);
+    auto r = std::underlying_type<CacheEvent>::type(right);
+    return CacheEvent(l | r);
+}
+
+inline CacheEvent& operator|=(CacheEvent& left, CacheEvent right)
+{
+    return left = left | right;
+}
+
+inline CacheEvent operator&(CacheEvent left, CacheEvent right)
+{
+    auto l = std::underlying_type<CacheEvent>::type(left);
+    auto r = std::underlying_type<CacheEvent>::type(right);
+    return CacheEvent(l & r);
+}
+
+inline CacheEvent& operator&=(CacheEvent& left, CacheEvent right)
+{
+    return left = left & right;
+}
+
+inline CacheEvent operator~(CacheEvent ev)
+{
+    auto mask = std::underlying_type<CacheEvent>::type(CacheEvent::END_) - 1;
+    auto event = std::underlying_type<CacheEvent>::type(ev);
+    return CacheEvent(~event & mask);
+}
+
 /**
 \brief Convenience definition for all event types.
 */
 
-static constexpr unsigned AllCacheEvents = static_cast<unsigned>(CacheEvent::END_) - 1;
+static constexpr CacheEvent AllCacheEvents = CacheEvent(std::underlying_type<CacheEvent>::type(CacheEvent::END_) - 1);
 
 }  // namespace core

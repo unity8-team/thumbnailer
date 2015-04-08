@@ -234,14 +234,9 @@ void PersistentStringCache::set_headroom(int64_t headroom)
     p_->set_headroom(headroom);
 }
 
-void PersistentStringCache::set_handler(unsigned mask, EventCallback cb)
+void PersistentStringCache::set_handler(CacheEvent events, EventCallback cb)
 {
-    p_->set_handler(mask, cb);
-}
-
-void PersistentStringCache::set_handler(CacheEvent event, EventCallback cb) noexcept
-{
-    p_->set_handler(event, cb);
+    p_->set_handler(events, cb);
 }
 
 }  // namespace core

@@ -1244,14 +1244,14 @@ TEST(PersistentStringCacheImpl, exceptions)
 
             try
             {
-                unsigned int mask = 0;
-                c.set_handler(mask, handler);
+                CacheEvent events = CacheEvent(0);
+                c.set_handler(events, handler);
                 FAIL();
             }
             catch (invalid_argument const& e)
             {
                 EXPECT_EQ(
-                    "PersistentStringCache: set_handler(): invalid mask (0): value must be in the "
+                    "PersistentStringCache: set_handler(): invalid events (0): value must be in the "
                     "range [1..127] (cache_path: " +
                     TEST_DB + ")",
                     e.what());
@@ -1259,14 +1259,14 @@ TEST(PersistentStringCacheImpl, exceptions)
 
             try
             {
-                unsigned int mask = static_cast<unsigned>(CacheEvent::END_);
-                c.set_handler(mask, handler);
+                CacheEvent events = CacheEvent::END_;
+                c.set_handler(events, handler);
                 FAIL();
             }
             catch (invalid_argument const& e)
             {
                 EXPECT_EQ(
-                    "PersistentStringCache: set_handler(): invalid mask (128): value must be in the "
+                    "PersistentStringCache: set_handler(): invalid events (128): value must be in the "
                     "range [1..127] (cache_path: " +
                     TEST_DB + ")",
                     e.what());

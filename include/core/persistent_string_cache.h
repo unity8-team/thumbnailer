@@ -710,20 +710,12 @@ public:
     /**
     \brief Installs a handler for one or more events.
 
-    \param mask A bitwise OR of the event types for which to install the handler. To install
+    \param events A bitwise OR of the event types for which to install the handler. To install
     a handler for all events, you can use PersistentStringCache::AllEvents.
 
     \param cb The handler to install. To cancel an existing handler, pass `nullptr`.
     */
-    void set_handler(unsigned mask, EventCallback cb);
-
-    /**
-    \brief Installs a handler for a specific event.
-
-    \param event The event type to be monitored by the handler.
-    \param cb The handler to install. To cancel an existing handler, pass `nullptr`.
-    */
-    void set_handler(CacheEvent event, EventCallback cb) noexcept;
+    void set_handler(CacheEvent events, EventCallback cb);
 
     //@}
 
