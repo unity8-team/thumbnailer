@@ -111,8 +111,8 @@ private:
 
     struct DataTuple
     {
-        int64_t atime;  // Last access time
-        int64_t etime;  // Expiry time
+        int64_t atime;  // Last access time, msec since the epoch
+        int64_t etime;  // Expiry time, msec since the epoch
         int64_t size;   // Size in bytes
 
         DataTuple(int64_t at, int64_t et, int64_t s)

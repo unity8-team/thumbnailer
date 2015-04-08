@@ -202,7 +202,7 @@ static string const SETTINGS_SCHEMA_VERSION = SETTINGS_BEGIN + "SCHEMA_VERSION";
 
 struct TimeKeyTuple
 {
-    int64_t time;
+    int64_t time;  // msec since the epoch
     string key;
 
     TimeKeyTuple(int64_t t, string const& s)
