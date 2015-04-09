@@ -66,6 +66,8 @@ struct PersistentStringCacheStats
     int64_t misses_since_last_hit_;
     int64_t longest_hit_run_;
     int64_t longest_miss_run_;
+    int64_t ttl_evictions_;
+    int64_t lru_evictions_;
     std::chrono::steady_clock::time_point most_recent_hit_time_;
     std::chrono::steady_clock::time_point most_recent_miss_time_;
     std::chrono::steady_clock::time_point longest_hit_run_time_;
@@ -141,6 +143,8 @@ struct PersistentStringCacheStats
         misses_since_last_hit_ = 0;
         longest_hit_run_ = 0;
         longest_miss_run_ = 0;
+        ttl_evictions_ = 0;
+        lru_evictions_ = 0;
         most_recent_hit_time_ = std::chrono::steady_clock::time_point();
         most_recent_miss_time_ = std::chrono::steady_clock::time_point();
         longest_hit_run_time_ = std::chrono::steady_clock::time_point();

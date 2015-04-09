@@ -21,6 +21,8 @@
 #include <boost/filesystem.hpp>
 #include <gtest/gtest.h>
 
+#include <thread>
+
 using namespace std;
 using namespace core;
 
@@ -136,6 +138,8 @@ TEST(PersistentStringCache, stats)
         EXPECT_EQ(0, s.misses_since_last_hit());
         EXPECT_EQ(0, s.longest_hit_run());
         EXPECT_EQ(0, s.longest_miss_run());
+        EXPECT_EQ(0, s.ttl_evictions());
+        EXPECT_EQ(0, s.lru_evictions());
         EXPECT_EQ(chrono::steady_clock::time_point(), s.most_recent_hit_time());
         EXPECT_EQ(chrono::steady_clock::time_point(), s.most_recent_miss_time());
         EXPECT_EQ(chrono::steady_clock::time_point(), s.longest_hit_run_time());
@@ -166,6 +170,8 @@ TEST(PersistentStringCache, stats)
         EXPECT_EQ(0, s.misses_since_last_hit());
         EXPECT_EQ(0, s.longest_hit_run());
         EXPECT_EQ(0, s.longest_miss_run());
+        EXPECT_EQ(0, s.ttl_evictions());
+        EXPECT_EQ(0, s.lru_evictions());
         EXPECT_EQ(chrono::steady_clock::time_point(), s.most_recent_hit_time());
         EXPECT_EQ(chrono::steady_clock::time_point(), s.most_recent_miss_time());
         EXPECT_EQ(chrono::steady_clock::time_point(), s.longest_hit_run_time());
@@ -191,6 +197,8 @@ TEST(PersistentStringCache, stats)
         EXPECT_EQ(0, s.misses_since_last_hit());
         EXPECT_EQ(1, s.longest_hit_run());
         EXPECT_EQ(1, s.longest_miss_run());
+        EXPECT_EQ(0, s.ttl_evictions());
+        EXPECT_EQ(0, s.lru_evictions());
         EXPECT_NE(chrono::steady_clock::time_point(), s.most_recent_hit_time());
         EXPECT_GE(s.most_recent_hit_time(), now);
         EXPECT_NE(chrono::steady_clock::time_point(), s.most_recent_miss_time());
@@ -217,6 +225,8 @@ TEST(PersistentStringCache, stats)
         EXPECT_EQ(0, s.misses_since_last_hit());
         EXPECT_EQ(3, s.longest_hit_run());
         EXPECT_EQ(1, s.longest_miss_run());
+        EXPECT_EQ(0, s.ttl_evictions());
+        EXPECT_EQ(0, s.lru_evictions());
         EXPECT_LE(last_hit_time, s.most_recent_hit_time());
         EXPECT_EQ(last_miss_time, s.most_recent_miss_time());
         EXPECT_LE(hit_run_time, s.longest_hit_run_time());
@@ -241,6 +251,8 @@ TEST(PersistentStringCache, stats)
         EXPECT_EQ(4, s.misses_since_last_hit());
         EXPECT_EQ(3, s.longest_hit_run());
         EXPECT_EQ(4, s.longest_miss_run());
+        EXPECT_EQ(0, s.ttl_evictions());
+        EXPECT_EQ(0, s.lru_evictions());
         EXPECT_EQ(last_hit_time, s.most_recent_hit_time());
         EXPECT_LE(last_miss_time, s.most_recent_miss_time());
         EXPECT_EQ(hit_run_time, s.longest_hit_run_time());
@@ -262,6 +274,8 @@ TEST(PersistentStringCache, stats)
         EXPECT_EQ(0, s.misses_since_last_hit());
         EXPECT_EQ(3, s.longest_hit_run());
         EXPECT_EQ(4, s.longest_miss_run());
+        EXPECT_EQ(0, s.ttl_evictions());
+        EXPECT_EQ(0, s.lru_evictions());
         EXPECT_LE(last_hit_time, s.most_recent_hit_time());
         EXPECT_EQ(last_miss_time, s.most_recent_miss_time());
         EXPECT_LE(hit_run_time, s.longest_hit_run_time());
@@ -285,6 +299,8 @@ TEST(PersistentStringCache, stats)
             EXPECT_EQ(5, s2.misses());
             EXPECT_EQ(1, s2.hits_since_last_miss());
             EXPECT_EQ(0, s2.misses_since_last_hit());
+            EXPECT_EQ(3, s.longest_hit_run());
+            EXPECT_EQ(4, s.longest_miss_run());
             EXPECT_EQ(last_hit_time, s2.most_recent_hit_time());
             EXPECT_EQ(last_miss_time, s2.most_recent_miss_time());
             EXPECT_EQ(hit_run_time, s2.longest_hit_run_time());
@@ -305,6 +321,8 @@ TEST(PersistentStringCache, stats)
             EXPECT_EQ(5, s2.misses());
             EXPECT_EQ(1, s2.hits_since_last_miss());
             EXPECT_EQ(0, s2.misses_since_last_hit());
+            EXPECT_EQ(3, s.longest_hit_run());
+            EXPECT_EQ(4, s.longest_miss_run());
             EXPECT_EQ(last_hit_time, s2.most_recent_hit_time());
             EXPECT_EQ(last_miss_time, s2.most_recent_miss_time());
             EXPECT_EQ(hit_run_time, s2.longest_hit_run_time());
@@ -324,6 +342,8 @@ TEST(PersistentStringCache, stats)
             EXPECT_EQ(5, s2.misses());
             EXPECT_EQ(1, s2.hits_since_last_miss());
             EXPECT_EQ(0, s2.misses_since_last_hit());
+            EXPECT_EQ(3, s.longest_hit_run());
+            EXPECT_EQ(4, s.longest_miss_run());
             EXPECT_EQ(last_hit_time, s2.most_recent_hit_time());
             EXPECT_EQ(last_miss_time, s2.most_recent_miss_time());
             EXPECT_EQ(hit_run_time, s2.longest_hit_run_time());
@@ -344,6 +364,8 @@ TEST(PersistentStringCache, stats)
             EXPECT_EQ(5, s3.misses());
             EXPECT_EQ(1, s3.hits_since_last_miss());
             EXPECT_EQ(0, s3.misses_since_last_hit());
+            EXPECT_EQ(3, s.longest_hit_run());
+            EXPECT_EQ(4, s.longest_miss_run());
             EXPECT_EQ(last_hit_time, s3.most_recent_hit_time());
             EXPECT_EQ(last_miss_time, s3.most_recent_miss_time());
             EXPECT_EQ(hit_run_time, s3.longest_hit_run_time());
@@ -369,6 +391,8 @@ TEST(PersistentStringCache, stats)
             EXPECT_EQ(5, s2.misses());
             EXPECT_EQ(1, s2.hits_since_last_miss());
             EXPECT_EQ(0, s2.misses_since_last_hit());
+            EXPECT_EQ(3, s.longest_hit_run());
+            EXPECT_EQ(4, s.longest_miss_run());
             EXPECT_EQ(last_hit_time, s2.most_recent_hit_time());
             EXPECT_EQ(last_miss_time, s2.most_recent_miss_time());
             EXPECT_EQ(hit_run_time, s2.longest_hit_run_time());
@@ -393,6 +417,8 @@ TEST(PersistentStringCache, stats)
             EXPECT_EQ(5, s2.misses());
             EXPECT_EQ(1, s2.hits_since_last_miss());
             EXPECT_EQ(0, s2.misses_since_last_hit());
+            EXPECT_EQ(3, s.longest_hit_run());
+            EXPECT_EQ(4, s.longest_miss_run());
             EXPECT_EQ(last_hit_time, s2.most_recent_hit_time());
             EXPECT_EQ(last_miss_time, s2.most_recent_miss_time());
             EXPECT_EQ(hit_run_time, s2.longest_hit_run_time());
@@ -405,5 +431,50 @@ TEST(PersistentStringCache, stats)
 
         // Move construction is impossible because handlers are passed a const ref
         // to the internal instance.
+    }
+
+    {
+        unlink_db(test_db);
+
+        auto c = PersistentStringCache::open(test_db, 1024, CacheDiscardPolicy::lru_ttl);
+
+        // Check that eviction counts are correct.
+        c->put("1", string(200, 'a'));
+        c->put("2", string(200, 'a'));
+        c->put("3", string(200, 'a'));
+        c->put("4", string(200, 'a'));
+        c->put("5", string(200, 'a'));
+
+        // Cache almost full now (1005 bytes). Adding a 401-byte record must evict two entries.
+        c->put("6", string(400, 'a'));
+        EXPECT_EQ(1004, c->size_in_bytes());
+        auto s = c->stats();
+        EXPECT_EQ(4, s.size());
+        EXPECT_EQ(0, s.ttl_evictions());
+        EXPECT_EQ(2, s.lru_evictions());
+
+        // Add two records that expire in 500ms. These must evict two more entries.
+        auto later = chrono::steady_clock::now() + chrono::milliseconds(500);
+        c->put("7", string(200, 'a'), later);
+        c->put("8", string(200, 'a'), later);
+        EXPECT_EQ(1004, c->size_in_bytes());
+        s = c->stats();
+        EXPECT_EQ(4, s.size());
+        EXPECT_EQ(0, s.ttl_evictions());
+        EXPECT_EQ(4, s.lru_evictions());
+
+        // Wait until records have expired.
+        while (chrono::steady_clock::now() <= later)
+        {
+            this_thread::sleep_for(chrono::milliseconds(5));
+        }
+
+        // Add a single record. That must evict both expired entries, even though evicting one would be enough.
+        c->put("9", string(300, 'a'));
+        EXPECT_EQ(903, c->size_in_bytes());
+        s = c->stats();
+        EXPECT_EQ(3, s.size());
+        EXPECT_EQ(2, s.ttl_evictions());
+        EXPECT_EQ(4, s.lru_evictions());
     }
 }

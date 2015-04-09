@@ -122,6 +122,17 @@ public:
     int64_t longest_miss_run() const noexcept;
 
     /**
+    \brief Returns the number of entries that were evicted due to being expired.
+    */
+    int64_t ttl_evictions() const noexcept;
+
+    /**
+    \brief Returns the number of entries that were evicted due to being
+    least recently used.
+    */
+    int64_t lru_evictions() const noexcept;
+
+    /**
     \brief Returns the timestamp of the most recent hit.
     */
     std::chrono::steady_clock::time_point most_recent_hit_time() const noexcept;

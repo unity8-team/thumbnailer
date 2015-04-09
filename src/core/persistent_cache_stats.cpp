@@ -162,6 +162,16 @@ int64_t PersistentCacheStats::longest_miss_run() const noexcept
     return p_->longest_miss_run_;
 }
 
+int64_t PersistentCacheStats::ttl_evictions() const noexcept
+{
+    return p_->ttl_evictions_;
+}
+
+int64_t PersistentCacheStats::lru_evictions() const noexcept
+{
+    return p_->lru_evictions_;
+}
+
 chrono::steady_clock::time_point PersistentCacheStats::most_recent_hit_time() const noexcept
 {
     return p_->most_recent_hit_time_;

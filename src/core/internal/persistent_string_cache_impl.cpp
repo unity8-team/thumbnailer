@@ -1479,6 +1479,7 @@ void PersistentStringCacheImpl::delete_at_least(int64_t bytes_needed, string con
             batch_delete(ek.key, dt, batch);
 
             --stats_->num_entries_;
+            ++stats_->ttl_evictions_;
             stats_->hist_decrement(size);
             stats_->cache_size_ -= size;
             call_handler(ek.key, CacheEventIndex::evict_ttl);
@@ -1526,6 +1527,7 @@ void PersistentStringCacheImpl::delete_at_least(int64_t bytes_needed, string con
             batch_delete(atk.key, dt, batch);
 
             --stats_->num_entries_;
+            ++stats_->lru_evictions_;
             stats_->hist_decrement(size);
             stats_->cache_size_ -= size;
             call_handler(atk.key, CacheEventIndex::evict_lru);

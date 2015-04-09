@@ -173,6 +173,7 @@ TEST(PersistentStringCache, basic)
     cout << "Avg rec. size: " << bytes_written / double(s.misses()) / 1024 << " kB" << endl;
     cout << "Hits:          " << s.hits() << endl;
     cout << "Misses:        " << s.misses() << endl;
+    cout << "Evictions:     " << s.lru_evictions() << endl;
     cout << "Disk size:     " << c->disk_size_in_bytes() / MB << " MB" << endl;
 
     cout << endl
