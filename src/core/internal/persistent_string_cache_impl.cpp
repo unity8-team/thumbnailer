@@ -26,7 +26,7 @@
 #include <system_error>
 
 /*
-    We have three tables and two secondary (non-unique) indexes in the DB:
+    We have three tables and two secondary indexes in the DB:
 
     - Key -> Value
       The Values table maps keys to values.
