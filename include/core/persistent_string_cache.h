@@ -359,6 +359,8 @@ public:
     /**
     \brief Adds or updates an entry.
 
+    \note This overload is provided to avoid the need to construct a string value.
+
     If an entry with the given key does not exist in the cache, it is added
     (possibly evicting a number of expired and/or older entries). If the entry
     still exists (whether expired or not), it is updated with the new value
@@ -387,8 +389,6 @@ public:
 
     /**
     \brief Adds or updates an entry and its metadata.
-
-    \note This overload is provided to avoid the need to construct a string value.
 
     If an entry with the given key does not exist in the cache, it is added
     (possibly evicting a number of expired and/or older entries). If the entry
