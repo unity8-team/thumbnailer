@@ -1414,6 +1414,8 @@ void PersistentStringCacheImpl::delete_entry(string const& key, DataTuple const&
 
 void PersistentStringCacheImpl::delete_at_least(int64_t bytes_needed, string const& skip_key)
 {
+    // mutex_ must be locked here!
+
     assert(bytes_needed > 0);
     assert(bytes_needed <= stats_->cache_size_);
 
