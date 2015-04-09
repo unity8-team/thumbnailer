@@ -16,29 +16,43 @@
  * Authored by: Pawel Stolowski <pawel.stolowski@canonical.com>
  */
 
-#ifndef UBUNTUSERVER_DOWNLOADER_H
-#define UBUNTUSERVER_DOWNLOADER_H
+#pragma once
 
-#include <string>
-#include <memory>
-#include <internal/httpdownloader.h>
 #include <internal/artdownloader.h>
+#include <internal/httpdownloader.h>
 
-class UbuntuServerDownloader final : public ArtDownloader {
+#include <memory>
+#include <string>
+
+namespace unity
+{
+
+namespace thumbnailer
+{
+
+namespace internal
+{
+
+class UbuntuServerDownloader final : public ArtDownloader
+{
 public:
     UbuntuServerDownloader();
-    UbuntuServerDownloader(HttpDownloader *o); // Takes ownership.
+    UbuntuServerDownloader(HttpDownloader* o);  // Takes ownership.
     ~UbuntuServerDownloader() = default;
 
-    bool download(const std::string &artist, const std::string &album, const std::string &fname) override;
-    bool download_artist(const std::string &artist, const std::string &album, const std::string &fname) override;
+    std::string download(std::string const& artist, std::string const& album) override;
+    std::string download_artist(std::string const& artist, std::string const& album) override;
 
 private:
-    bool download(const std::string &url, const std::string &fname);
+    std::string download(std::string const& url);
     void set_api_key();
 
     std::unique_ptr<HttpDownloader> dl;
     std::string api_key;
 };
 
-#endif
+}  // namespace internal
+
+}  // namespace thumbnailer
+
+}  // namespace unity

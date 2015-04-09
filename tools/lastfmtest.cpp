@@ -16,16 +16,18 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#include<string>
-#include<cstdio>
+#include <internal/lastfmdownloader.h>
 
-#include<internal/lastfmdownloader.h>
-#include<memory>
+#include <cstdio>
+#include <memory>
+#include <string>
 
 using namespace std;
+using namespace unity::thumbnailer::internal;
 
-int main(int /*argc*/, char **/*argv*/) {
+int main(int, char **)
+{
     LastFMDownloader dl;
-    dl.download("The Prodigy", "Music for the Jilted Generation", "image.jpg");
+    dl.download("The Prodigy", "Music for the Jilted Generation");
     return 0;
 }
