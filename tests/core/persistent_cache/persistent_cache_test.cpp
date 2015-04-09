@@ -52,14 +52,11 @@ struct Person
     int age;
 };
 
-using PersonCache = core::PersistentCache<Person, string>;
-
 namespace core  // Specializations must be placed into namespace core.
 {
 
 template <>
-template <>
-string PersonCache::Codec<Person>::encode(Person const& p)
+string CacheCodec<Person>::encode(Person const& p)
 {
     ostringstream s;
     s << p.age << ' ' << p.name;
@@ -67,8 +64,7 @@ string PersonCache::Codec<Person>::encode(Person const& p)
 }
 
 template <>
-template <>
-Person PersonCache::Codec<Person>::decode(string const& str)
+Person CacheCodec<Person>::decode(string const& str)
 {
     istringstream s(str);
     Person p;
@@ -81,6 +77,8 @@ Person PersonCache::Codec<Person>::decode(string const& str)
 TEST(PersistentCache, person_key)
 {
     unlink_db(test_db);
+
+    using PersonCache = core::PersistentCache<Person, string>;
 
     auto c = PersonCache::open("my_db", 1024 * 1024 * 1024, CacheDiscardPolicy::lru_only);
 
@@ -96,49 +94,41 @@ TEST(PersistentCache, person_key)
     assert(!value);
 }
 
-using IDCCache = PersistentCache<int, double, char>;
-
 namespace core
 {
 
 template <>
-template <>
-string IDCCache::Codec<int>::encode(int const& value)
+string CacheCodec<int>::encode(int const& value)
 {
     return to_string(value);
 }
 
 template <>
-template <>
-int IDCCache::Codec<int>::decode(string const& s)
+int CacheCodec<int>::decode(string const& s)
 {
     return stoi(s);
 }
 
 template <>
-template <>
-string IDCCache::Codec<double>::encode(double const& value)
+string CacheCodec<double>::encode(double const& value)
 {
     return to_string(value);
 }
 
 template <>
-template <>
-double IDCCache::Codec<double>::decode(string const& s)
+double CacheCodec<double>::decode(string const& s)
 {
     return stod(s);
 }
 
 template <>
-template <>
-string IDCCache::Codec<char>::encode(char const& value)
+string CacheCodec<char>::encode(char const& value)
 {
     return string(1, value);
 }
 
 template <>
-template <>
-char IDCCache::Codec<char>::decode(string const& s)
+char CacheCodec<char>::decode(string const& s)
 {
     return s.empty() ? '\0' : s[0];
 }
@@ -148,6 +138,8 @@ char IDCCache::Codec<char>::decode(string const& s)
 TEST(PersistentCache, IDCCache)
 {
     unlink_db(test_db);
+
+    using IDCCache = PersistentCache<int, double, char>;
 
     {
         // Constructor and move constructor.
@@ -311,44 +303,11 @@ TEST(PersistentCache, IDCCache)
 
 // K = string
 
-using SDCCache = PersistentCache<string, double, char>;
-
-namespace core
-{
-
-template <>
-template <>
-string SDCCache::Codec<double>::encode(double const& value)
-{
-    return to_string(value);
-}
-
-template <>
-template <>
-double SDCCache::Codec<double>::decode(string const& s)
-{
-    return stod(s);
-}
-
-template <>
-template <>
-string SDCCache::Codec<char>::encode(char const& value)
-{
-    return string(1, value);
-}
-
-template <>
-template <>
-char SDCCache::Codec<char>::decode(string const& s)
-{
-    return s.empty() ? '\0' : s[0];
-}
-
-}  // namespace core
-
 TEST(PersistentCache, SDCCache)
 {
     unlink_db(test_db);
+
+    using SDCCache = PersistentCache<string, double, char>;
 
     {
         // Constructor and move constructor.
@@ -491,44 +450,12 @@ TEST(PersistentCache, SDCCache)
 
 // V = string
 
-using ISCCache = PersistentCache<int, string, char>;
-
-namespace core
-{
-
-template <>
-template <>
-string ISCCache::Codec<int>::encode(int const& value)
-{
-    return to_string(value);
-}
-
-template <>
-template <>
-int ISCCache::Codec<int>::decode(string const& s)
-{
-    return stoi(s);
-}
-
-template <>
-template <>
-string ISCCache::Codec<char>::encode(char const& value)
-{
-    return string(1, value);
-}
-
-template <>
-template <>
-char ISCCache::Codec<char>::decode(string const& s)
-{
-    return s.empty() ? '\0' : s[0];
-}
-
-}  // namespace core
 
 TEST(PersistentCache, ISCCache)
 {
     unlink_db(test_db);
+
+    using ISCCache = PersistentCache<int, string, char>;
 
     {
         // Constructor and move constructor.
@@ -685,44 +612,11 @@ TEST(PersistentCache, ISCCache)
 
 // M = string
 
-using IDSCache = PersistentCache<int, double, string>;
-
-namespace core
-{
-
-template <>
-template <>
-string IDSCache::Codec<int>::encode(int const& value)
-{
-    return to_string(value);
-}
-
-template <>
-template <>
-int IDSCache::Codec<int>::decode(string const& s)
-{
-    return stoi(s);
-}
-
-template <>
-template <>
-string IDSCache::Codec<double>::encode(double const& value)
-{
-    return to_string(value);
-}
-
-template <>
-template <>
-double IDSCache::Codec<double>::decode(string const& s)
-{
-    return stod(s);
-}
-
-}  // namespace core
-
 TEST(PersistentCache, IDSCache)
 {
     unlink_db(test_db);
+
+    using IDSCache = PersistentCache<int, double, string>;
 
     {
         // Constructor and move constructor.
@@ -879,30 +773,11 @@ TEST(PersistentCache, IDSCache)
 
 // K and V = string
 
-using SSCCache = PersistentCache<string, string, char>;
-
-namespace core
-{
-
-template <>
-template <>
-string SSCCache::Codec<char>::encode(char const& value)
-{
-    return string(1, value);
-}
-
-template <>
-template <>
-char SSCCache::Codec<char>::decode(string const& s)
-{
-    return s.empty() ? '\0' : s[0];
-}
-
-}  // namespace core
-
 TEST(PersistentCache, SSCCache)
 {
     unlink_db(test_db);
+
+    using SSCCache = PersistentCache<string, string, char>;
 
     {
         // Constructor and move constructor.
@@ -1059,30 +934,11 @@ TEST(PersistentCache, SSCCache)
 
 // K and M = string
 
-using SDSCache = PersistentCache<string, double, string>;
-
-namespace core
-{
-
-template <>
-template <>
-string SDSCache::Codec<double>::encode(double const& value)
-{
-    return to_string(value);
-}
-
-template <>
-template <>
-double SDSCache::Codec<double>::decode(string const& s)
-{
-    return stod(s);
-}
-
-}  // namespace core
-
 TEST(PersistentCache, SDSCache)
 {
     unlink_db(test_db);
+
+    using SDSCache = PersistentCache<string, double, string>;
 
     {
         // Constructor and move constructor.
@@ -1239,30 +1095,11 @@ TEST(PersistentCache, SDSCache)
 
 // V and M = string
 
-using ISSCache = PersistentCache<int, string, string>;
-
-namespace core
-{
-
-template <>
-template <>
-string ISSCache::Codec<int>::encode(int const& value)
-{
-    return to_string(value);
-}
-
-template <>
-template <>
-int ISSCache::Codec<int>::decode(string const& s)
-{
-    return stoi(s);
-}
-
-}  // namespace core
-
 TEST(PersistentCache, ISSCache)
 {
     unlink_db(test_db);
+
+    using ISSCache = PersistentCache<int, string, string>;
 
     {
         // Constructor and move constructor.
