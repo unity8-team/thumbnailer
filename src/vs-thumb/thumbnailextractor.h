@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Canonical Ltd.
+ * Copyright (C) 2015 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License version 3 as
@@ -13,18 +13,28 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Pawel Stolowski <pawel.stolowski@canonical.com>
+ * Authored by: James Henstridge <james.henstridge@canonical.com>
  */
 
-#include <internal/ubuntuserverdownloader.h>
+#ifndef THUMBNAILEXTRACTOR_H
+#define THUMBNAILEXTRACTOR_H
 
-using namespace std;
-using namespace unity::thumbnailer::internal;
+#include <memory>
+#include <string>
 
-int main(int, char **)
-{
-    UbuntuServerDownloader dl;
-    dl.download("Radiohead", "Amnesiac");
-    dl.download_artist("Radiohead", "Amnesiac");
-    return 0;
-}
+class ThumbnailExtractor final {
+    struct Private;
+public:
+    ThumbnailExtractor();
+    ~ThumbnailExtractor();
+
+    void reset();
+    void set_uri(const std::string &uri);
+    bool extract_video_frame();
+    bool extract_audio_cover_art();
+    void save_screenshot(const std::string &filename);
+private:
+    std::unique_ptr<Private> p;
+};
+
+#endif

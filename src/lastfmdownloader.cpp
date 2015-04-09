@@ -16,80 +16,81 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#include<internal/lastfmdownloader.h>
-#include<internal/soupdownloader.h>
-#include<internal/gobj_memory.h>
-#include<memory>
+#include <internal/gobj_memory.h>
+#include <internal/lastfmdownloader.h>
+#include <internal/soupdownloader.h>
+
 #include <libxml/parser.h>
 #include <libxml/xmlmemory.h>
 #include <libxml/xpath.h>
 
-const char *NOTFOUND_IMAGE = "http://cdn.last.fm/flatness/catalogue/noimage/2/default_album_medium.png";
+#include <memory>
+
+char const* NOTFOUND_IMAGE = "http://cdn.last.fm/flatness/catalogue/noimage/2/default_album_medium.png";
 
 using namespace std;
+using namespace unity::thumbnailer::internal;
 
-LastFMDownloader::LastFMDownloader() : dl(new SoupDownloader()){
+LastFMDownloader::LastFMDownloader()
+    : dl(new SoupDownloader())
+{
 }
 
-LastFMDownloader::LastFMDownloader(HttpDownloader *o) : dl(o) {
+LastFMDownloader::LastFMDownloader(HttpDownloader* o)
+    : dl(o)
+{
 }
 
-LastFMDownloader::~LastFMDownloader() {
-}
-
-string LastFMDownloader::parseXML(const string &xml) {
+string LastFMDownloader::parse_xml(string const& xml)
+{
     string node = "/album/coverart/large";
-    unique_ptr<xmlDoc, void(*)(xmlDoc*)> doc(
-            xmlReadMemory(xml.c_str(), xmlStrlen ((xmlChar*) xml.c_str()), NULL, NULL,
-                          XML_PARSE_RECOVER | XML_PARSE_NOBLANKS), xmlFreeDoc);
-     if (!doc) {
-       return "";
-     }
-     unique_ptr<xmlXPathContext, void(*)(xmlXPathContext*)> cntx(
-             xmlXPathNewContext(doc.get()), xmlXPathFreeContext);
+    unique_ptr<xmlDoc, void (*)(xmlDoc*)> doc(
+        xmlReadMemory(
+            xml.c_str(), xmlStrlen((xmlChar*)xml.c_str()), NULL, NULL, XML_PARSE_RECOVER | XML_PARSE_NOBLANKS),
+        xmlFreeDoc);
+    if (!doc)
+    {
+        return "";
+    }
+    unique_ptr<xmlXPathContext, void (*)(xmlXPathContext*)> cntx(xmlXPathNewContext(doc.get()), xmlXPathFreeContext);
 
-     unique_ptr<xmlXPathObject, void(*)(xmlXPathObject *)> path(
-             xmlXPathEvalExpression((xmlChar *) node.c_str(),  cntx.get()),
-             xmlXPathFreeObject);
-     if (!path) {
-       return "";
-     }
+    unique_ptr<xmlXPathObject, void (*)(xmlXPathObject*)> path(
+        xmlXPathEvalExpression((xmlChar*)node.c_str(), cntx.get()), xmlXPathFreeObject);
+    if (!path)
+    {
+        return "";
+    }
 
-     string url;
-     if (path->nodesetval->nodeTab) {
-         char *imageurl;
-         imageurl = (char *) xmlNodeListGetString(doc.get(),
-                 path->nodesetval->nodeTab[0]->xmlChildrenNode, 1);
-         url = (char*)imageurl;
-         xmlFree(imageurl);
-     }
-     return url;
+    string url;
+    if (path->nodesetval->nodeTab)
+    {
+        char* imageurl;
+        imageurl = (char*)xmlNodeListGetString(doc.get(), path->nodesetval->nodeTab[0]->xmlChildrenNode, 1);
+        url = (char*)imageurl;
+        xmlFree(imageurl);
+    }
+    return url;
 }
 
-bool LastFMDownloader::download(const std::string &artist,
-        const std::string &album, const std::string &fname) {
-    const char *lastfmTemplate = "http://ws.audioscrobbler.com/1.0/album/%s/%s/info.xml";
-    const int bufsize = 1024;
+string LastFMDownloader::download(std::string const& artist, std::string const& album)
+{
+    char const* lastfmTemplate = "http://ws.audioscrobbler.com/1.0/album/%s/%s/info.xml";
+    int const bufsize = 1024;
     char buf[bufsize];
     snprintf(buf, bufsize, lastfmTemplate, artist.c_str(), album.c_str());
     string xml(dl->download(buf));
-    string parsed = parseXML(xml);
-    if(parsed.empty() ||
-       parsed == NOTFOUND_IMAGE) {
+    string parsed = parse_xml(xml);
+    if (parsed.empty() || parsed == NOTFOUND_IMAGE)
+    {
         fprintf(stderr, "Could not find album art.\n");
-        return false;
+        return string();
     }
 
-    string image(dl->download(parsed));
-    FILE *f = fopen(fname.c_str(), "w");
-    fwrite(image.c_str(), 1, image.length(), f);
-    fclose(f);
-    return true;
+    return dl->download(parsed);
 }
 
-bool LastFMDownloader::download_artist(const std::string &/*artist*/,
-        const std::string &/*album*/, const std::string &/*fname*/)
+string LastFMDownloader::download_artist(std::string const& /*artist*/, std::string const& /*album*/)
 {
     // not implemented
-    return false;
+    return string();
 }
