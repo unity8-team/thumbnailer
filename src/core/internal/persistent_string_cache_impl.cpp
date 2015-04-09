@@ -632,21 +632,13 @@ bool PersistentStringCacheImpl::put(string const& key,
     lock_guard<decltype(mutex_)> lock(mutex_);
 
     auto atime = now_ticks();
-    if (stats_->policy_ == CacheDiscardPolicy::lru_ttl)
+    if (stats_->policy_ == CacheDiscardPolicy::lru_ttl && etime != epoch_ticks() && etime <= atime)
     {
-        if (etime != epoch_ticks() && etime <= atime)
-        {
-            return false;  // Already expired, so don't add it.
-        }
-    }
-    else
-    {
-        etime = epoch_ticks();  // Silently ignore expiry times provided with lru_only.
+        return false;  // Already expired, so don't add it.
     }
 
     // The entry may or may not exist already.
     // Work out how many bytes of space we need.
-    //int64_t old_size = 0;
     int64_t bytes_needed = new_size;
 
     string prefixed_key = k_data(key);
