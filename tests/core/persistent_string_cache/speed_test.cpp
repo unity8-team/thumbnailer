@@ -59,7 +59,7 @@ int random_int(int min, int max)
 {
     static auto seed = random_device()();
     static mt19937 engine(seed);
-    static uniform_int_distribution<int> uniform_dist(min, max);
+    uniform_int_distribution<int> uniform_dist(min, max);
     return uniform_dist(engine);
 }
 
@@ -67,7 +67,7 @@ int random_size(double mean, double dev, int min, int max)
 {
     static auto seed = random_device()();
     static mt19937 engine(seed);
-    static normal_distribution<double> normal_dist(mean, dev);
+    normal_distribution<double> normal_dist(mean, dev);
 
     double val = round(normal_dist(engine));
     return val < min ? min : (val > max ? max : val);

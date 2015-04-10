@@ -152,9 +152,6 @@ public:
     your code in preference to `boost::optional`. This will ease an eventual
     transition to `std::optional`.
     */
-    template <typename T>
-    using Optional = boost::optional<T>;
-
     typedef Optional<K> OptionalKey;
     typedef Optional<V> OptionalValue;
     typedef Optional<M> OptionalMetadata;
@@ -665,9 +662,6 @@ class PersistentCache<std::string, V, M>
 public:
     typedef std::unique_ptr<PersistentCache<std::string, V, M>> UPtr;
 
-    template <typename T>
-    using Optional = boost::optional<T>;
-
     typedef Optional<std::string> OptionalKey;
     typedef Optional<V> OptionalValue;
     typedef Optional<M> OptionalMetadata;
@@ -999,9 +993,6 @@ class PersistentCache<K, std::string, M>
 {
 public:
     typedef std::unique_ptr<PersistentCache<K, std::string, M>> UPtr;
-
-    template <typename T>
-    using Optional = boost::optional<T>;
 
     typedef Optional<K> OptionalKey;
     typedef Optional<std::string> OptionalValue;
@@ -1368,9 +1359,6 @@ class PersistentCache<K, V, std::string>
 public:
     typedef std::unique_ptr<PersistentCache<K, V, std::string>> UPtr;
 
-    template <typename T>
-    using Optional = boost::optional<T>;
-
     typedef Optional<K> OptionalKey;
     typedef Optional<V> OptionalValue;
     typedef Optional<std::string> OptionalMetadata;
@@ -1730,9 +1718,6 @@ class PersistentCache<std::string, std::string, M>
 {
 public:
     typedef std::unique_ptr<PersistentCache<std::string, std::string, M>> UPtr;
-
-    template <typename T>
-    using Optional = boost::optional<T>;
 
     typedef Optional<std::string> OptionalKey;
     typedef Optional<std::string> OptionalValue;
@@ -2098,9 +2083,6 @@ class PersistentCache<std::string, V, std::string>
 public:
     typedef std::unique_ptr<PersistentCache<std::string, V, std::string>> UPtr;
 
-    template <typename T>
-    using Optional = boost::optional<T>;
-
     typedef Optional<std::string> OptionalKey;
     typedef Optional<V> OptionalValue;
     typedef Optional<std::string> OptionalMetadata;
@@ -2461,9 +2443,6 @@ class PersistentCache<K, std::string, std::string>
 {
 public:
     typedef std::unique_ptr<PersistentCache<K, std::string, std::string>> UPtr;
-
-    template <typename T>
-    using Optional = boost::optional<T>;
 
     typedef Optional<K> OptionalKey;
     typedef Optional<std::string> OptionalValue;
@@ -2842,9 +2821,6 @@ class PersistentCache<std::string, std::string, std::string>
 {
 public:
     typedef std::unique_ptr<PersistentCache<std::string, std::string, std::string>> UPtr;
-
-    template <typename T>
-    using Optional = boost::optional<T>;
 
     typedef Optional<std::string> OptionalKey;
     typedef Optional<std::string> OptionalValue;
