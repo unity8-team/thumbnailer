@@ -24,6 +24,7 @@
 #include <chrono>
 #include <iostream>
 #include <random>
+#include <thread>
 
 using namespace std;
 using namespace core;
@@ -63,11 +64,11 @@ int random_int(int min, int max)
     return uniform_dist(engine);
 }
 
-int random_size(double mean, double dev, int min, int max)
+int random_size(double mean, double stddev, int min, int max)
 {
     static auto seed = random_device()();
     static mt19937 engine(seed);
-    normal_distribution<double> normal_dist(mean, dev);
+    normal_distribution<double> normal_dist(mean, stddev);
 
     double val = round(normal_dist(engine));
     return val < min ? min : (val > max ? max : val);
@@ -86,57 +87,77 @@ string const& random_string(int size)
     return s;
 }
 
+// Returns random key padded with zeros to keylen.
+
+string make_key(int max_key, int keylen)
+{
+    static ostringstream s;
+    s << setfill('0') << setw(keylen) << random_int(0, max_key);
+    string key = s.str();
+    s.clear();
+    s.str("");
+    return key;
+}
+
 TEST(PersistentStringCache, basic)
 {
-    unlink_db(test_db);
+    double const kB = 1024.0;
+    double const MB = kB * 1024;
 
-    int const max_cache_size = 100 * 1024 * 1024;
-    double const headroom_percent = 0.05;
-    int const record_size = 20 * 1024;
-    double const dev = 7000.0;
-    int const num_records = max_cache_size / record_size;
+    // Adjustable parameters
+
+    int const max_cache_size = 100 * MB;
+    double const headroom_fraction = 0.02;
+    int const record_size = 20 * kB;
     double const hit_rate = 0.8;
+    int const iterations = 20000;
+    int keylen = 60;
+    double const stddev = record_size / 3;
+    auto const cost_of_miss = chrono::microseconds(0);
 
-    int const min_key = 0;
+    // End adjustable parameters
+
+    int const num_records = max_cache_size / record_size;
     int const max_key = ((1 - hit_rate) + 1) * num_records;
 
-    int const iterations = 10000;
-    double const MB = 1024.0 * 1024;
+    unlink_db(test_db);
+    auto c = PersistentStringCache::open(test_db, max_cache_size, CacheDiscardPolicy::lru_only);
+    c->set_headroom(int64_t(max_cache_size * headroom_fraction));
 
     cout.setf(ios::fixed, ios::floatfield);
     cout.precision(3);
 
-    cout << "Cache size:    " << max_cache_size / MB << " MB" << endl;
-    cout << "Records:       " << num_records << endl;
-    cout << "Record size:   " << record_size / 1024.0 << " kB" << endl;
-    cout << "Iterations:    " << iterations << endl;
-
-    auto c = PersistentStringCache::open(test_db, max_cache_size, CacheDiscardPolicy::lru_only);
-    c->set_headroom(int64_t(max_cache_size * headroom_percent));
+    cout << "Cache size:     " << max_cache_size / MB << " MB" << endl;
+    cout << "Headroom:       " << c->headroom() / MB << " MB" << endl;
+    cout << "Records:        " << num_records << endl;
+    cout << "Record size:    " << record_size / kB << " kB" << endl;
+    cout << "Std. deviation: " << stddev << endl;
+    cout << "Key length:     " << keylen << endl;
+    cout << "Hit rate:       " << hit_rate << endl;
+    cout << "Cost of miss:   "
+         << (cost_of_miss.count()  == 0
+             ? 0.0
+             : chrono::duration_cast<chrono::microseconds>(cost_of_miss).count() / 1000.0)
+         << " ms" << endl;
+    cout << "Iterations:     " << iterations << endl;
 
     static Optional<string> val;
 
     auto start = chrono::system_clock::now();
-    bool full = false;
-    while (!full)
+    for (int i = 0; i <= num_records; ++i)
     {
-        string key = to_string(random_int(min_key, max_key));
-
-        val = c->get(key);
-        if (!val)
-        {
-            string const& new_val = random_string(random_size(record_size, dev, 0, max_cache_size));
-            c->put(key, new_val);
-            if (c->size_in_bytes() >= max_cache_size * 0.99)
-            {
-                auto now = chrono::system_clock::now();
-                double secs = chrono::duration_cast<chrono::milliseconds>(now - start).count() / 1000.0;
-                cout << "Cache full, inserted " << c->size_in_bytes() / MB << " MB in " << secs << " seconds ("
-                     << c->size_in_bytes() / MB / secs << " MB/sec)" << endl;
-                full = true;
-            }
-        }
+        static ostringstream s;
+        s << setfill('0') << setw(keylen) << i;
+        string key = s.str();
+        s.clear();
+        s.str("");
+        string const& val = random_string(random_size(record_size, stddev, 0, max_cache_size));
+        c->put(key, val);
     }
+    auto now = chrono::system_clock::now();
+    double secs = chrono::duration_cast<chrono::milliseconds>(now - start).count() / 1000.0;
+    cout << "Cache full, inserted " << (num_records * record_size) / MB << " MB in " << secs << " seconds ("
+         << c->size_in_bytes() / MB / secs << " MB/sec)" << endl;
 
     int64_t bytes_read = 0;
     int64_t bytes_written = 0;
@@ -144,12 +165,12 @@ TEST(PersistentStringCache, basic)
     start = chrono::system_clock::now();
     for (auto i = 0; i < iterations; ++i)
     {
-        string key = to_string(random_int(min_key, max_key));
-
+        string key = make_key(max_key, keylen);
         val = c->get(key);
         if (!val)
         {
-            string const& new_val = random_string(random_size(record_size, dev, 0, max_cache_size));
+            string const& new_val = random_string(random_size(record_size, stddev, 0, max_cache_size));
+            this_thread::sleep_for(cost_of_miss);
             c->put(key, new_val);
             bytes_written += new_val.size();
         }
@@ -159,22 +180,21 @@ TEST(PersistentStringCache, basic)
         }
     }
 
-    auto now = chrono::system_clock::now();
-    double secs = chrono::duration_cast<chrono::milliseconds>(now - start).count() / 1000.0;
+    now = chrono::system_clock::now();
+    secs = chrono::duration_cast<chrono::milliseconds>(now - start).count() / 1000.0;
     cout << endl;
     cout << "Performed " << iterations << " lookups with " << hit_rate * 100 << "% hit rate in " << secs << " seconds."
          << endl;
-    cout << "Read:          " << bytes_read / MB << " MB (" << bytes_read / MB / secs << " MB/sec)" << endl;
-    cout << "Wrote:         " << bytes_written / MB << " MB (" << bytes_written / MB / secs << " MB/sec)" << endl;
+    cout << "Read:           " << bytes_read / MB << " MB (" << bytes_read / MB / secs << " MB/sec)" << endl;
+    cout << "Wrote:          " << bytes_written / MB << " MB (" << bytes_written / MB / secs << " MB/sec)" << endl;
     auto sum = bytes_read + bytes_written;
-    cout << "Total:         " << sum / MB << " MB (" << sum / MB / secs << " MB/sec)" << endl;
-    cout << "Records/sec:   " << iterations / secs << endl;
+    cout << "Total:          " << sum / MB << " MB (" << sum / MB / secs << " MB/sec)" << endl;
+    cout << "Records/sec:    " << iterations / secs << endl;
     auto s = c->stats();
-    cout << "Avg rec. size: " << bytes_written / double(s.misses()) / 1024 << " kB" << endl;
-    cout << "Hits:          " << s.hits() << endl;
-    cout << "Misses:        " << s.misses() << endl;
-    cout << "Evictions:     " << s.lru_evictions() << endl;
-    cout << "Disk size:     " << c->disk_size_in_bytes() / MB << " MB" << endl;
+    cout << "Hits:           " << s.hits() << endl;
+    cout << "Misses:         " << s.misses() << endl;
+    cout << "Evictions:      " << s.lru_evictions() << endl;
+    cout << "Disk size:      " << c->disk_size_in_bytes() / MB << " MB" << endl;
 
     cout << endl
          << "Compacting cache... " << flush;

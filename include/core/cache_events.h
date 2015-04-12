@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <type_traits>
 
 namespace core
@@ -30,7 +31,7 @@ namespace core
 // Note: Any change here must have a corresponding change to
 //       CacheEventIndex in core/internal/cache_event_indexes.h!
 
-enum class CacheEvent : unsigned
+enum class CacheEvent : uint32_t
 {
     get        = 1 << 0,  ///< An entry was returned by a call to get(), get_or_put(), take(), take_data().
     put        = 1 << 1,  ///< An entry was added by a call to put() or get_or_put().
@@ -44,6 +45,9 @@ enum class CacheEvent : unsigned
     END_       = 1 << 7   ///< End marker
 };
 
+/**
+\brief Returns the bitwise OR of two event types.
+*/
 inline CacheEvent operator|(CacheEvent left, CacheEvent right)
 {
     auto l = std::underlying_type<CacheEvent>::type(left);
@@ -51,11 +55,17 @@ inline CacheEvent operator|(CacheEvent left, CacheEvent right)
     return CacheEvent(l | r);
 }
 
+/**
+\brief Assigns the bitwise OR of `left` and `right` to `left`.
+*/
 inline CacheEvent& operator|=(CacheEvent& left, CacheEvent right)
 {
     return left = left | right;
 }
 
+/**
+\brief Returns the bitwise AND of two event types.
+*/
 inline CacheEvent operator&(CacheEvent left, CacheEvent right)
 {
     auto l = std::underlying_type<CacheEvent>::type(left);
@@ -63,11 +73,17 @@ inline CacheEvent operator&(CacheEvent left, CacheEvent right)
     return CacheEvent(l & r);
 }
 
+/**
+\brief Assigns the bitwise AND of `left` and `right` to `left`.
+*/
 inline CacheEvent& operator&=(CacheEvent& left, CacheEvent right)
 {
     return left = left & right;
 }
 
+/**
+\brief Returns the bitwise NOT of `ev`. Unused bits are set to zero.
+*/
 inline CacheEvent operator~(CacheEvent ev)
 {
     auto mask = std::underlying_type<CacheEvent>::type(CacheEvent::END_) - 1;
@@ -78,7 +94,6 @@ inline CacheEvent operator~(CacheEvent ev)
 /**
 \brief Convenience definition for all event types.
 */
-
 static constexpr CacheEvent AllCacheEvents = CacheEvent(std::underlying_type<CacheEvent>::type(CacheEvent::END_) - 1);
 
 }  // namespace core

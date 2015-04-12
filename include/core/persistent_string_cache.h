@@ -79,8 +79,10 @@ Access and expiry times are recorded with millisecond granularity.
 To indicate infinite expiry time, use the defaulted parameter value or
 `chrono::steady_clock::time_point()`.
 
+### Error reporting
+
 Methods throw `std::runtime_error` if the underlying database
-(leveldb) fails. If leveldb detects database corruption, the code
+(leveldb) reports an error. If leveldb detects database corruption, the code
 throws `std::system_error` with with a 666 error code. To recover
 from this error, remove all files in the cache directory.
 Other errors are indicated by throwing `std::logic_error` or
@@ -254,7 +256,8 @@ public:
     \param key The key for the entry.
     \return A null value if the entry could not be retrieved; the metadata of the entry, otherwise.
     \throws invalid_argument `key` is the empty string.
-    \note This operation does not update the access time of the entry.
+    \note This operation does _not_ update the access time of the entry.
+    \see touch()
     */
     Optional<std::string> get_metadata(std::string const& key) const;
 
@@ -263,7 +266,8 @@ public:
     \param key The key for the entry.
     \return `true` if the entry is in the cache; `false` otherwise.
     \throws invalid_argument `key` is the empty string.
-    \note This operation does not update the access time of the entry.
+    \note This operation does _not_ update the access time of the entry.
+    \see touch()
     */
     bool contains_key(std::string const& key) const;
 
@@ -308,11 +312,15 @@ public:
     space, the cache always frees at least headroom() bytes (more
     if the new entry requires more space than headroom()).
 
-    \note Setting a headroom of 5% can yield a 20% performance
+    \note Setting a headroom of 2% can yield a 20% performance
     improvement in some cases. However, this assumes zero-latency
     to produce a new record to insert. You need to test cache
-    performance to find the correct balance between efficient insertion
+    performance to find the correct balance between efficient eviction
     and the cost of producing a new record to add after a cache miss.
+    Typically, the cost of producing a new record is significantly
+    larger than the cost of inserting a record. In that case, setting
+    a non-zero headroom is unlikely to have any effect other than
+    needlessly reducing the cache hit rate.
     */
     int64_t headroom() const noexcept;
 
@@ -500,7 +508,7 @@ public:
     \throws invalid_argument `key` is the empty string.
     \throws logic_error The new size of the entry would exceed the maximum cache size.
 
-    \note This operation does not update the access time of the entry.
+    \note This operation does _not_ update the access time of the entry.
     \see touch()
     */
     bool put_metadata(std::string const& key, std::string const& metadata);
@@ -526,7 +534,7 @@ public:
     \throws invalid_argument `size` is negative.
     \throws logic_error The new size of the entry would exceed the maximum cache size.
 
-    \note This operation does not update the access time of the entry.
+    \note This operation does _not_ update the access time of the entry.
     \see touch()
     */
     bool put_metadata(std::string const& key, char const* metadata, int64_t size);
@@ -641,7 +649,9 @@ public:
     \throws logic_error headroom() is &gt; 50% of `size_in_bytes`.
 
     \note If a cache uses non-zero headroom, you probably need to also adjust the headroom to make
-    sense for the new size.
+    sense for the new size. When down-sizing, you likely want the headroom to become smaller. In
+    that case, reduce the headroom first and down-size second, to avoid evicting more existing
+    entries than necessary.
 
     \note This operation compacts the database to use the smallest possible amount of disk space.
 
@@ -669,8 +679,6 @@ public:
 
     \throws invalid_argument `headroom is &lt; 0`.
     \throws logic_error `headroom` is &gt; 50% of max_size_in_bytes().
-
-    \note This operation compacts the database to use the smallest possible amount of disk space.
     \see resize()
     */
     void set_headroom(int64_t headroom);
@@ -715,6 +723,20 @@ public:
     a handler for all events, you can use PersistentStringCache::AllEvents.
 
     \param cb The handler to install. To cancel an existing handler, pass `nullptr`.
+
+    For example, to install a handler for `get` and `put` events, you could use:
+
+    \code{.cpp}
+    auto cache = PersistentStringCache::open("my_cache");
+
+    auto handler = [](string const& key, CacheEvent event, PersistentCacheStats const& stats)
+    {
+        // ...
+    };
+    cache->set_handler(CacheEvent::get | CacheEvent::put, handler);
+    \endcode
+
+    \see CacheEvent
     */
     void set_handler(CacheEvent events, EventCallback cb);
 
