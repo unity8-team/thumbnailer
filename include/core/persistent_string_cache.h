@@ -720,7 +720,7 @@ public:
     \brief Installs a handler for one or more events.
 
     \param events A bitwise OR of the event types for which to install the handler. To install
-    a handler for all events, you can use PersistentStringCache::AllEvents.
+    a handler for all events, you can use core::AllCacheEvents.
 
     \param cb The handler to install. To cancel an existing handler, pass `nullptr`.
 
