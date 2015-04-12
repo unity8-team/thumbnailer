@@ -21,6 +21,10 @@
 #include <cstdint>
 #include <type_traits>
 
+/**
+\brief Top-level namespace for core functionality.
+*/
+
 namespace core
 {
 
