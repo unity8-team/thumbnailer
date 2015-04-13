@@ -84,7 +84,6 @@ TEST(PersistentStringCache, basic)
         EXPECT_EQ(0, c->size_in_bytes());
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
-        EXPECT_EQ(0, c->headroom());
         EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
         EXPECT_TRUE(c->put("x", ""));
         EXPECT_TRUE(c->put("x", "x", 1));
@@ -111,7 +110,6 @@ TEST(PersistentStringCache, basic)
         c->clear_stats();
         c->resize(2048);
         c->trim_to(0);
-        c->set_headroom(200);
 
         auto handler = [&](string const&, CacheEvent, PersistentCacheStats const&)
         {
@@ -131,7 +129,6 @@ TEST(PersistentStringCache, stats)
         EXPECT_EQ(0, s.size());
         EXPECT_EQ(0, s.size_in_bytes());
         EXPECT_EQ(0, s.max_size_in_bytes());
-        EXPECT_EQ(0, s.headroom());
         EXPECT_EQ(0, s.hits());
         EXPECT_EQ(0, s.misses());
         EXPECT_EQ(0, s.hits_since_last_miss());
@@ -163,7 +160,6 @@ TEST(PersistentStringCache, stats)
         EXPECT_EQ(0, s.size());
         EXPECT_EQ(0, s.size_in_bytes());
         EXPECT_EQ(1024, s.max_size_in_bytes());
-        EXPECT_EQ(0, s.headroom());
         EXPECT_EQ(0, s.hits());
         EXPECT_EQ(0, s.misses());
         EXPECT_EQ(0, s.hits_since_last_miss());
@@ -177,12 +173,11 @@ TEST(PersistentStringCache, stats)
         EXPECT_EQ(chrono::steady_clock::time_point(), s.longest_hit_run_time());
         EXPECT_EQ(chrono::steady_clock::time_point(), s.longest_miss_run_time());
 
-        // Change headroom and incur a miss followed by a hit.
+        // Incur a miss followed by a hit.
         auto now = chrono::steady_clock::now();
         c->put("x", "y");
         EXPECT_FALSE(c->get("y"));
         EXPECT_TRUE(c->get("x"));
-        c->set_headroom(10);
 
         s = c->stats();
         EXPECT_EQ(test_db, s.cache_path());                  // Must not have changed.
@@ -190,7 +185,6 @@ TEST(PersistentStringCache, stats)
         EXPECT_EQ(1, s.size());
         EXPECT_EQ(2, s.size_in_bytes());
         EXPECT_EQ(1024, s.max_size_in_bytes());              // Must not have changed.
-        EXPECT_EQ(10, s.headroom());                         // Was changed.
         EXPECT_EQ(1, s.hits());
         EXPECT_EQ(1, s.misses());
         EXPECT_EQ(1, s.hits_since_last_miss());
@@ -294,7 +288,6 @@ TEST(PersistentStringCache, stats)
             EXPECT_EQ(1, s2.size());
             EXPECT_EQ(2, s2.size_in_bytes());
             EXPECT_EQ(1024, s2.max_size_in_bytes());
-            EXPECT_EQ(10, s2.headroom());
             EXPECT_EQ(4, s2.hits());
             EXPECT_EQ(5, s2.misses());
             EXPECT_EQ(1, s2.hits_since_last_miss());
@@ -316,7 +309,6 @@ TEST(PersistentStringCache, stats)
             EXPECT_EQ(1, s2.size());
             EXPECT_EQ(2, s2.size_in_bytes());
             EXPECT_EQ(1024, s2.max_size_in_bytes());
-            EXPECT_EQ(10, s2.headroom());
             EXPECT_EQ(4, s2.hits());
             EXPECT_EQ(5, s2.misses());
             EXPECT_EQ(1, s2.hits_since_last_miss());
@@ -337,7 +329,6 @@ TEST(PersistentStringCache, stats)
             EXPECT_EQ(1, s2.size());
             EXPECT_EQ(2, s2.size_in_bytes());
             EXPECT_EQ(1024, s2.max_size_in_bytes());
-            EXPECT_EQ(10, s2.headroom());
             EXPECT_EQ(4, s2.hits());
             EXPECT_EQ(5, s2.misses());
             EXPECT_EQ(1, s2.hits_since_last_miss());
@@ -359,7 +350,6 @@ TEST(PersistentStringCache, stats)
             EXPECT_EQ(1, s3.size());
             EXPECT_EQ(2, s3.size_in_bytes());
             EXPECT_EQ(1024, s3.max_size_in_bytes());
-            EXPECT_EQ(10, s3.headroom());
             EXPECT_EQ(4, s3.hits());
             EXPECT_EQ(5, s3.misses());
             EXPECT_EQ(1, s3.hits_since_last_miss());
@@ -386,7 +376,6 @@ TEST(PersistentStringCache, stats)
             EXPECT_EQ(1, s2.size());
             EXPECT_EQ(2, s2.size_in_bytes());
             EXPECT_EQ(1024, s2.max_size_in_bytes());
-            EXPECT_EQ(10, s2.headroom());
             EXPECT_EQ(4, s2.hits());
             EXPECT_EQ(5, s2.misses());
             EXPECT_EQ(1, s2.hits_since_last_miss());
@@ -412,7 +401,6 @@ TEST(PersistentStringCache, stats)
             EXPECT_EQ(1, s2.size());
             EXPECT_EQ(2, s2.size_in_bytes());
             EXPECT_EQ(1024, s2.max_size_in_bytes());
-            EXPECT_EQ(10, s2.headroom());
             EXPECT_EQ(4, s2.hits());
             EXPECT_EQ(5, s2.misses());
             EXPECT_EQ(1, s2.hits_since_last_miss());

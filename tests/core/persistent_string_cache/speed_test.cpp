@@ -107,10 +107,9 @@ TEST(PersistentStringCache, basic)
     // Adjustable parameters
 
     int const max_cache_size = 100 * MB;
-    double const headroom_fraction = 0.02;
     int const record_size = 20 * kB;
     double const hit_rate = 0.8;
-    int const iterations = 20000;
+    int const iterations = 10000;
     int keylen = 60;
     double const stddev = record_size / 3;
     auto const cost_of_miss = chrono::microseconds(0);
@@ -122,13 +121,11 @@ TEST(PersistentStringCache, basic)
 
     unlink_db(test_db);
     auto c = PersistentStringCache::open(test_db, max_cache_size, CacheDiscardPolicy::lru_only);
-    c->set_headroom(int64_t(max_cache_size * headroom_fraction));
 
     cout.setf(ios::fixed, ios::floatfield);
     cout.precision(3);
 
     cout << "Cache size:     " << max_cache_size / MB << " MB" << endl;
-    cout << "Headroom:       " << c->headroom() / MB << " MB" << endl;
     cout << "Records:        " << num_records << endl;
     cout << "Record size:    " << record_size / kB << " kB" << endl;
     cout << "Std. deviation: " << stddev << endl;

@@ -101,11 +101,6 @@ int64_t PersistentStringCache::disk_size_in_bytes() const
     return p_->disk_size_in_bytes();
 }
 
-int64_t PersistentStringCache::headroom() const noexcept
-{
-    return p_->headroom();
-}
-
 CacheDiscardPolicy PersistentStringCache::discard_policy() const noexcept
 {
     return p_->discard_policy();
@@ -227,11 +222,6 @@ void PersistentStringCache::resize(int64_t size_in_bytes)
 void PersistentStringCache::trim_to(int64_t used_size_in_bytes)
 {
     p_->trim_to(used_size_in_bytes);
-}
-
-void PersistentStringCache::set_headroom(int64_t headroom)
-{
-    p_->set_headroom(headroom);
 }
 
 void PersistentStringCache::set_handler(CacheEvent events, EventCallback cb)
