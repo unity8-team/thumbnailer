@@ -280,8 +280,8 @@ public:
 
     /**
     \brief Returns the number of bytes consumed by entries in the cache.
-    \return The total number of entries in the cache.
-    \note The returned count includes possibly expired entries.
+    \return The total number of bytes in the cache.
+    \note The returned size includes possibly expired entries.
     */
     int64_t size_in_bytes() const noexcept;
 
