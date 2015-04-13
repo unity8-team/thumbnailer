@@ -344,7 +344,7 @@ std::string Thumbnailer::get_album_art(std::string const& artist,
                                        ThumbnailSize /* desired_size */,
                                        ThumbnailPolicy policy)
 {
-    string key = artist + album;
+    string key = artist + album + "album";
     auto thumbnail = p_->macache->get(key);
     if (thumbnail)
     {
@@ -370,7 +370,7 @@ std::string Thumbnailer::get_artist_art(std::string const& artist,
                                         ThumbnailSize /* desired_size */,
                                         ThumbnailPolicy policy)
 {
-    string key = artist + album;
+    string key = artist + album + "artist";
     auto thumbnail = p_->macache->get(key);
     if (thumbnail)
     {
