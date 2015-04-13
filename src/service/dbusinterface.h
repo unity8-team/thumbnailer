@@ -41,6 +41,7 @@ public:
 public Q_SLOTS:
     QDBusUnixFileDescriptor GetAlbumArt(const QString &artist, const QString &album, const QString &desiredSize);
     QDBusUnixFileDescriptor GetArtistArt(const QString &artist, const QString &album, const QString &desiredSize);
+    QDBusUnixFileDescriptor GetThumbnail(const QString &filename, const QDBusUnixFileDescriptor &filename_fd, const QString &desiredSize);
 
 private:
     std::unique_ptr<DBusInterfacePrivate> p;
