@@ -6,7 +6,7 @@ import sys
 from gi.repository import GLib, Gio
 
 if len(sys.argv) < 3:
-    sys.stderr.write("usage: get-thumbnail.py FILENAME OUTPUT.jpg\n")
+    sys.stderr.write("usage: get-thumbnail.py FILENAME OUTPUT.png\n")
     sys.exit(1)
 
 bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)

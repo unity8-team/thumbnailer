@@ -17,14 +17,27 @@
 */
 
 #include "thumbnailgenerator.h"
+#include "artgeneratorcommon.h"
+
 #include <stdexcept>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+
 #include <QDebug>
 #include <QMimeDatabase>
 #include <QUrl>
-#include <QImageReader>
+#include <QDBusUnixFileDescriptor>
+#include <QDBusReply>
 
 static const char *DEFAULT_VIDEO_ART = "/usr/share/thumbnailer/icons/video_missing.png";
 static const char *DEFAULT_ALBUM_ART = "/usr/share/thumbnailer/icons/album_missing.png";
+
+static const char BUS_NAME[] = "com.canonical.Thumbnailer";
+static const char BUS_PATH[] = "/com/canonical/Thumbnailer";
+static const char THUMBNAILER_IFACE[] = "com.canonical.Thumbnailer";
+static const char GET_THUMBNAIL[] = "GetThumbnail";
 
 ThumbnailGenerator::ThumbnailGenerator() : QQuickImageProvider(QQuickImageProvider::Image,
         QQmlImageProviderBase::ForceAsynchronousImageLoading) {
@@ -42,49 +55,38 @@ QImage ThumbnailGenerator::requestImage(const QString &id, QSize *realSize,
      * The only "solution" is setting Image.cache = false, but in some
      * cases we don't want to do that for performance reasons, so this
      * is the only way around the issue for now. */
-    std::string src_path(QUrl(id).path().toUtf8().data());
-    std::string tgt_path;
-    try {
-        ThumbnailSize desiredSize;
-        const int xlarge_cutoff = 512;
-        const int large_cutoff = 256;
-        const int small_cutoff = 128;
-        if(requestedSize.width() > xlarge_cutoff || requestedSize.height() > xlarge_cutoff) {
-            desiredSize = TN_SIZE_ORIGINAL;
-        } else if(requestedSize.width() > large_cutoff || requestedSize.height() > large_cutoff) {
-            desiredSize = TN_SIZE_XLARGE;
-        } else if(requestedSize.width() > small_cutoff || requestedSize.height() > small_cutoff) {
-            desiredSize = TN_SIZE_LARGE;
-        } else {
-            desiredSize = TN_SIZE_SMALL;
-        }
-        tgt_path = tn.get_thumbnail(src_path, desiredSize);
-        if(!tgt_path.empty()) {
-            QString tgt(tgt_path.c_str());
-            QImage image;
-            QImageReader reader;
-            reader.setFileName(tgt);
-            QSize imageSize = reader.size();
-            if (!requestedSize.isNull() &&
-                (imageSize.width() > requestedSize.width() ||
-                 imageSize.height() > requestedSize.height())) {
-                QSize validRequestedSize = requestedSize;
-                if (validRequestedSize.width() == 0) {
-                    validRequestedSize.setWidth(imageSize.width());
-                }
-                if (validRequestedSize.height() == 0) {
-                    validRequestedSize.setHeight(imageSize.height());
-                }
-                imageSize.scale(validRequestedSize, Qt::KeepAspectRatio);
-                reader.setScaledSize(imageSize);
-            }
-            image = reader.read();
-            *realSize = image.size();
-            return image;
-        }
-    } catch(std::runtime_error &e) {
-        qDebug() << "Thumbnail generator failed: " << e.what();
+    QString src_path = QUrl(id).path();
+    int fd = open(src_path.toUtf8().data(), O_RDONLY);
+    if (fd < 0) {
+        qDebug() << "Thumbnail generator failed: " << strerror(errno);
+        return getFallbackImage(id, realSize, requestedSize);
     }
+    QDBusUnixFileDescriptor unix_fd(fd);
+    close(fd);
+    QString desiredSize = sizeToDesiredSizeString(requestedSize);
+
+    if (!connection) {
+        // Create them here and not them on the constrcutor so they belong to the proper thread
+        connection.reset(new QDBusConnection(QDBusConnection::connectToBus(QDBusConnection::SessionBus, "thumbnail_generator_dbus_connection")));
+        iface.reset(new QDBusInterface(BUS_NAME, BUS_PATH, THUMBNAILER_IFACE, *connection));
+    }
+
+    QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
+        GET_THUMBNAIL, src_path, QVariant::fromValue(unix_fd), desiredSize);
+
+    if (!reply.isValid()) {
+        qWarning() << "D-Bus error: " << reply.error().message();
+        return getFallbackImage(id, realSize, requestedSize);
+    }
+
+    try {
+        return imageFromFd(reply.value().fileDescriptor(), realSize);
+    } catch (const std::exception &e) {
+        qDebug() << "Album art loader failed: " << e.what();
+    } catch (...) {
+        qDebug() << "Unknown error when generating image.";
+    }
+
     return getFallbackImage(id, realSize, requestedSize);
 }
 
