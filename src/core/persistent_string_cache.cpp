@@ -57,20 +57,20 @@ PersistentStringCache::UPtr PersistentStringCache::open(string const& cache_path
     return PersistentStringCache::UPtr(new PersistentStringCache(cache_path));
 }
 
-PersistentStringCache::Optional<string> PersistentStringCache::get(string const& key) const
+Optional<string> PersistentStringCache::get(string const& key) const
 {
     string value;
     return p_->get(key, value) ? Optional<string>(move(value)) : Optional<string>();
 }
 
-PersistentStringCache::Optional<PersistentStringCache::Data> PersistentStringCache::get_data(string const& key) const
+Optional<PersistentStringCache::Data> PersistentStringCache::get_data(string const& key) const
 {
     string value;
     string metadata;
     return p_->get(key, value, &metadata) ? Optional<Data>(move(Data{move(value), move(metadata)})) : Optional<Data>();
 }
 
-PersistentStringCache::Optional<string> PersistentStringCache::get_metadata(string const& key) const
+Optional<string> PersistentStringCache::get_metadata(string const& key) const
 {
     string metadata;
     return p_->get_metadata(key, metadata) ? Optional<string>(move(metadata)) : Optional<string>();
@@ -149,7 +149,7 @@ bool PersistentStringCache::put(string const& key,
     return p_->put(key, value, value_size, metadata, metadata_size, expiry_time);
 }
 
-PersistentStringCache::Optional<string> PersistentStringCache::get_or_put(
+Optional<string> PersistentStringCache::get_or_put(
     string const& key, PersistentStringCache::Loader const& load_func)
 {
     string value;
@@ -157,7 +157,7 @@ PersistentStringCache::Optional<string> PersistentStringCache::get_or_put(
     return found ? Optional<string>(move(value)) : Optional<string>();
 }
 
-PersistentStringCache::Optional<PersistentStringCache::Data> PersistentStringCache::get_or_put_data(
+Optional<PersistentStringCache::Data> PersistentStringCache::get_or_put_data(
     string const& key, PersistentStringCache::Loader const& load_func)
 {
     string value;
@@ -176,13 +176,13 @@ bool PersistentStringCache::put_metadata(string const& key, char const* metadata
     return p_->put_metadata(key, metadata, size);
 }
 
-PersistentStringCache::Optional<string> PersistentStringCache::take(string const& key) const
+Optional<string> PersistentStringCache::take(string const& key)
 {
     string value;
     return p_->take(key, value) ? Optional<string>(move(value)) : Optional<string>();
 }
 
-PersistentStringCache::Optional<PersistentStringCache::Data> PersistentStringCache::take_data(string const& key) const
+Optional<PersistentStringCache::Data> PersistentStringCache::take_data(string const& key)
 {
     string value;
     string metadata;
@@ -234,14 +234,9 @@ void PersistentStringCache::set_headroom(int64_t headroom)
     p_->set_headroom(headroom);
 }
 
-void PersistentStringCache::set_handler(unsigned mask, EventCallback cb)
+void PersistentStringCache::set_handler(CacheEvent events, EventCallback cb)
 {
-    p_->set_handler(mask, cb);
-}
-
-void PersistentStringCache::set_handler(CacheEvent event, EventCallback cb) noexcept
-{
-    p_->set_handler(event, cb);
+    p_->set_handler(events, cb);
 }
 
 }  // namespace core

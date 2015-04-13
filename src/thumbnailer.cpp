@@ -105,7 +105,7 @@ public:
         }
 
         // TODO: No good to hard-wire the cache size. 100 MB will do for now.
-        macache = core::PersistentStringCache::open(cache_dir, 100 * 1024 * 1024, core::CacheDiscardPolicy::LRU_only);
+        macache = core::PersistentStringCache::open(cache_dir, 100 * 1024 * 1024, core::CacheDiscardPolicy::lru_only);
         // 5% headroom so, when we expire things, we expire a bunch of them, which is more efficient.
         macache->set_headroom(macache->size_in_bytes() * 0.05);
     };

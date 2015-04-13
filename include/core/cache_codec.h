@@ -18,24 +18,33 @@
 
 #pragma once
 
+#include <string>
+
 namespace core
 {
 
 /**
-\brief Indicates the discard policy to make room for entries when the cache is full.
+Traits for serialization and deserialization of cache custom types.
+To use custom types, specialize this template
+for each custom type (other than string) in the `core` namespace.
 
-Once the cache is full and another entry is added,
-`lru_ttl` unconditionally deletes all entries that have expired and then,
-if deleting these entries did not create sufficient free space, deletes entries
-in LRU order until enough space is available.
+\warning Do _not_ specialize this struct for `std::string`!
+Doing so has no effect.
 
-If the discard policy is set to `lru_only`, entries do not maintain an expiry time and
-are therefore discarded strictly in LRU order.
+\see PersistentCache
 */
-enum class CacheDiscardPolicy
+
+template <typename T>
+struct CacheCodec
 {
-    lru_ttl,
-    lru_only
+    /**
+    \brief Converts a value of custom type T into a string.
+    */
+    static std::string encode(T const& value);
+    /**
+    \brief Converts a string into a value of custom type T.
+    */
+    static T decode(std::string const& s);
 };
 
 }  // namespace core

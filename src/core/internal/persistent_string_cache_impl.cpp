@@ -17,6 +17,7 @@
  */
 
 #include <core/internal/persistent_string_cache_impl.h>
+
 #include <core/internal/persistent_string_cache_stats.h>
 
 #include <leveldb/write_batch.h>
@@ -25,7 +26,7 @@
 #include <system_error>
 
 /*
-    We have three tables and two secondary (non-unique) indexes in the DB:
+    We have three tables and two secondary indexes in the DB:
 
     - Key -> Value
       The Values table maps keys to values.
@@ -45,9 +46,9 @@
 
     - <Expiry time, Key> -> Size
       The Etime index provides access in order of soonest-to-latest expiry time.
-      This allows efficient trimming of expired entries. For LRU_only,
+      This allows efficient trimming of expired entries. For lru_only,
       no entry is added to this index, and the corresponding expiry time in the
-      Data table is 0. For LRU_TTL, only entries that actually
+      Data table is 0. For lru_ttl, only entries that actually
       do have an expiry time are added.
 
     The tables and indexes each map to a different region of the leveldb based on a prefix.
@@ -56,7 +57,7 @@
     times are in milliseconds since the epoch, with fixed-width width zero padding
     and 13 decimal digits. (That works out to more than 316 years past the epoch.)
 
-    Some examples to illustrate how it hangs together with LRU_TTL. (Note that,
+    Some examples to illustrate how it hangs together with lru_ttl. (Note that,
     in reality, all four tables really sit inside the single leveldb table, separated
     by the prefixes of their keys. They are shown as separate tables below to
     make things easier to read.)
@@ -114,7 +115,7 @@
     stored redundantly so we can efficiently determine the point at which we have removed
     enough entries in order to make room for a new one.
 
-    If this example were to use LRU_only, the Etime index would remain empty, and the expiry times
+    If this example were to use lru_only, the Etime index would remain empty, and the expiry times
     in the Data table would all be chrono::duration_cast<chrono::milliseconds>(chrono::time_point()).count().
     That value typically is zero (but this is not guaranteed by the standard).
 
@@ -176,11 +177,6 @@ static string const ATIME_END = "E";
 static string const ETIME_BEGIN = "E";
 static string const ETIME_END = "F";
 
-// These span the entire range of keys in all tables.
-
-static string const ALL_BEGIN = VALUES_BEGIN;  // Must be lowest prefix for all tables and indexes.
-static string const ALL_END = ETIME_END;       // Must be highest prefix for all tables and indexes.
-
 // The settings range stores data about the cache itself, such as
 // max size and expiration policy. The prefix for this
 // range must be outside the range [ALL_BEGIN..ALL_END).
@@ -189,6 +185,11 @@ static string const ALL_END = ETIME_END;       // Must be highest prefix for all
 
 static string const SETTINGS_BEGIN = "Y";
 static string const SETTINGS_END = "Z";
+
+// These span the entire range of keys in all tables.
+
+static string const ALL_BEGIN = VALUES_BEGIN;  // Must be lowest prefix for all tables and indexes.
+static string const ALL_END = SETTINGS_BEGIN;  // Must be highest prefix for all tables and indexes.
 
 static string const SETTINGS_MAX_SIZE = SETTINGS_BEGIN + "MAX_SIZE";
 static string const SETTINGS_POLICY = SETTINGS_BEGIN + "POLICY";
@@ -201,7 +202,7 @@ static string const SETTINGS_SCHEMA_VERSION = SETTINGS_BEGIN + "SCHEMA_VERSION";
 
 struct TimeKeyTuple
 {
-    int64_t time;
+    int64_t time;  // msec since the epoch
     string key;
 
     TimeKeyTuple(int64_t t, string const& s)
@@ -217,6 +218,7 @@ struct TimeKeyTuple
         string t(s.substr(0, pos));
         istringstream is(t);
         is >> time;
+        assert(!is.bad());
         key = s.substr(pos + 1);
     }
 
@@ -282,6 +284,22 @@ int64_t epoch_ticks()
 
 typedef std::unique_ptr<leveldb::Iterator> IteratorUPtr;
 
+#ifndef NDEBUG
+
+// For assertions, so we can verify that num_entries_ matches the sum of entries in the histogram.
+
+int64_t hist_sum(PersistentCacheStats::Histogram const& h)
+{
+    int64_t size = 0;
+    for (auto num : h)
+    {
+        size += num;
+    }
+    return size;
+}
+
+#endif
+
 }  // namespace
 
 // Run over the Atime index (it's smaller than the Data table)
@@ -289,20 +307,24 @@ typedef std::unique_ptr<leveldb::Iterator> IteratorUPtr;
 // write for each modification to the cache at the cost of slightly
 // longer start-up time for large caches.
 
-void PersistentStringCacheImpl::compute_count_and_size()
+void PersistentStringCacheImpl::init_stats()
 {
     int64_t num = 0;
     int64_t size = 0;
     IteratorUPtr it(db_->NewIterator(read_options));
-    it->Seek(ATIME_BEGIN);
-    while (it->Valid() && it->key().ToString() < ATIME_END)
+    leveldb::Slice const atime_prefix(ATIME_BEGIN);
+    it->Seek(atime_prefix);
+    while (it->Valid() && it->key().starts_with(atime_prefix))
     {
         ++num;
-        size += stoll(it->value().ToString());
+        auto bytes = stoll(it->value().ToString());
+        size += bytes;
+        stats_->hist_increment(bytes);
         it->Next();
     }
     throw_if_error(it->status(), "cannot initialize cache");
     stats_->num_entries_ = num;
+    assert(stats_->num_entries_ == hist_sum(stats_->hist_));
     stats_->cache_size_ = size;
 }
 
@@ -348,7 +370,7 @@ PersistentStringCacheImpl::PersistentStringCacheImpl(string const& cache_path,
         {
             auto to_string = [](CacheDiscardPolicy p)
             {
-                return p == core::CacheDiscardPolicy::LRU_only ? "LRU_only" : "LRU_TTL";
+                return p == core::CacheDiscardPolicy::lru_only ? "lru_only" : "lru_ttl";
             };
             string msg = string("existing cache opened with different policy (") + to_string(policy) +
                          "), existing policy = " + to_string(stats_->policy_);
@@ -356,7 +378,7 @@ PersistentStringCacheImpl::PersistentStringCacheImpl(string const& cache_path,
         }
     }
 
-    compute_count_and_size();
+    init_stats();
 }
 
 // Open existing database.
@@ -372,7 +394,7 @@ PersistentStringCacheImpl::PersistentStringCacheImpl(string const& cache_path, P
     check_version();  // Wipes DB if version doesn't match.
     read_settings();
 
-    compute_count_and_size();
+    init_stats();
 }
 
 PersistentStringCacheImpl::~PersistentStringCacheImpl()
@@ -404,15 +426,15 @@ bool PersistentStringCacheImpl::get(string const& key, string& value, string* me
     if (!found)
     {
         stats_->inc_misses();
-        call_handler(key, CacheEventIndex::Miss);
+        call_handler(key, CacheEventIndex::miss);
         return false;
     }
 
     // Don't return expired entry.
     int64_t new_atime = now_ticks();
-    if (stats_->policy_ == CacheDiscardPolicy::LRU_TTL && dt.etime != epoch_ticks() && dt.etime <= new_atime)
+    if (stats_->policy_ == CacheDiscardPolicy::lru_ttl && dt.etime != epoch_ticks() && dt.etime <= new_atime)
     {
-        call_handler(key, CacheEventIndex::Miss);
+        call_handler(key, CacheEventIndex::miss);
         stats_->inc_misses();
         return false;
     }
@@ -433,7 +455,7 @@ bool PersistentStringCacheImpl::get(string const& key, string& value, string* me
     throw_if_error(s, "put()");
 
     stats_->inc_hits();
-    call_handler(key, CacheEventIndex::Get);
+    call_handler(key, CacheEventIndex::get);
     return true;
 }
 
@@ -455,7 +477,7 @@ bool PersistentStringCacheImpl::get_metadata(string const& key, string& metadata
     }
 
     // Don't return expired entry.
-    if (stats_->policy_ == CacheDiscardPolicy::LRU_TTL && dt.etime != epoch_ticks() && dt.etime <= now_ticks())
+    if (stats_->policy_ == CacheDiscardPolicy::lru_ttl && dt.etime != epoch_ticks() && dt.etime <= now_ticks())
     {
         return false;
     }
@@ -480,7 +502,7 @@ bool PersistentStringCacheImpl::contains_key(string const& key) const
     {
         return false;
     }
-    if (stats_->policy_ == CacheDiscardPolicy::LRU_TTL && dt.etime != epoch_ticks() && dt.etime <= now_ticks())
+    if (stats_->policy_ == CacheDiscardPolicy::lru_ttl && dt.etime != epoch_ticks() && dt.etime <= now_ticks())
     {
         return false;  // Expired entries are not returned.
     }
@@ -601,46 +623,37 @@ bool PersistentStringCacheImpl::put(string const& key,
     }
 
     auto etime = ticks(expiry_time);
-    if (stats_->policy_ == CacheDiscardPolicy::LRU_only && etime != epoch_ticks())
+    if (stats_->policy_ == CacheDiscardPolicy::lru_only && etime != epoch_ticks())
     {
-        throw_logic_error(string("put(): policy is LRU_only, but expiry_time (") + to_string(etime) +
+        throw_logic_error(string("put(): policy is lru_only, but expiry_time (") + to_string(etime) +
                           ") is not infinite");
     }
 
     lock_guard<decltype(mutex_)> lock(mutex_);
 
     auto atime = now_ticks();
-    if (stats_->policy_ == CacheDiscardPolicy::LRU_TTL)
+    if (stats_->policy_ == CacheDiscardPolicy::lru_ttl && etime != epoch_ticks() && etime <= atime)
     {
-        if (etime != epoch_ticks() && etime <= atime)
-        {
-            return false;  // Already expired, so don't add it.
-        }
-    }
-    else
-    {
-        etime = epoch_ticks();  // Silently ignore expiry times provided with LRU_only.
+        return false;  // Already expired, so don't add it.
     }
 
     // The entry may or may not exist already.
     // Work out how many bytes of space we need.
-    int64_t old_size = 0;
     int64_t bytes_needed = new_size;
 
     string prefixed_key = k_data(key);
     bool found;
-    auto old_meta = get_data(prefixed_key, found);
+    auto old_data = get_data(prefixed_key, found);
     if (found)
     {
-        old_size = old_meta.size;
-        bytes_needed = max(new_size - old_meta.size, int64_t(0));  // new_size could be < old size
+        bytes_needed = max(new_size - old_data.size, int64_t(0));  // new_size could be < old size
     }
     auto avail_bytes = stats_->max_cache_size_ - stats_->cache_size_;
 
     // Make room to add or replace the entry.
     if (bytes_needed > avail_bytes)
     {
-        delete_at_least(bytes_needed - avail_bytes);
+        delete_at_least(bytes_needed - avail_bytes, key);  // Don't delete the entry about to be updated!
     }
 
     leveldb::WriteBatch batch;
@@ -665,16 +678,16 @@ bool PersistentStringCacheImpl::put(string const& key,
     string atime_key = k_atime_index(atime, key);
     if (found)
     {
-        batch.Delete(k_atime_index(old_meta.atime, key));
+        batch.Delete(k_atime_index(old_data.atime, key));
     }
     batch.Put(atime_key, to_string(new_size));
 
     // Update the Etime index.
-    if (stats_->policy_ == CacheDiscardPolicy::LRU_TTL)
+    if (stats_->policy_ == CacheDiscardPolicy::lru_ttl)
     {
-        if (found && old_meta.etime != epoch_ticks())
+        if (found && old_data.etime != epoch_ticks())
         {
-            batch.Delete(k_etime_index(old_meta.etime, key));
+            batch.Delete(k_etime_index(old_data.etime, key));
         }
         // Etime index is not written to for non-expiring entries.
         if (etime != epoch_ticks())
@@ -688,18 +701,24 @@ bool PersistentStringCacheImpl::put(string const& key,
     throw_if_error(s, "put()");
 
     // Update cache size and number of entries;
-    stats_->cache_size_ = stats_->cache_size_ - old_size + new_size;
+    stats_->cache_size_ = stats_->cache_size_ - old_data.size + new_size;
+    stats_->hist_increment(new_size);
     if (!found)
     {
         ++stats_->num_entries_;
     }
+    else
+    {
+        stats_->hist_decrement(old_data.size);
+    }
     assert(stats_->num_entries_ >= 0);
+    assert(stats_->num_entries_ == hist_sum(stats_->hist_));
     assert(stats_->cache_size_ >= 0);
     assert(stats_->cache_size_ <= stats_->max_cache_size_);
     assert(stats_->cache_size_ == 0 || stats_->num_entries_ != 0);
     assert(stats_->num_entries_ == 0 || stats_->cache_size_ != 0);
 
-    call_handler(key, CacheEventIndex::Put);
+    call_handler(key, CacheEventIndex::put);
 
     return true;
 }
@@ -742,7 +761,8 @@ bool PersistentStringCacheImpl::get_or_put(string const& key,
 
     // We go for the raw DB here, to avoid counting an extra hit or miss.
     DataTuple dt;
-    return get_value_and_metadata(key, dt, value, metadata);
+    bool loaded = get_value_and_metadata(key, dt, value, metadata);
+    return loaded;
 }
 
 bool PersistentStringCacheImpl::put_metadata(std::string const& key, std::string const& metadata)
@@ -775,24 +795,25 @@ bool PersistentStringCacheImpl::put_metadata(std::string const& key, const char*
         return false;
     }
 
-    int64_t old_size = 0;
+    int64_t old_meta_size = 0;
     IteratorUPtr it(db_->NewIterator(read_options));
     string metadata_key = k_metadata(key);
     it->Seek(metadata_key);
     if (it->Valid() && it->key().ToString() == metadata_key)
     {
-        old_size = it->value().size();
+        old_meta_size = it->value().size();
     }
-    int64_t new_size = metadata_size;
-    if (dt.size - old_size + new_size > stats_->max_cache_size_)
+    int64_t new_meta_size = metadata_size;
+    if (dt.size - old_meta_size + new_meta_size > stats_->max_cache_size_)
     {
-        throw_logic_error(string("put_metadata(): cannot add ") + to_string(new_size) +
-                          "-byte metadata: record size (" + to_string(dt.size - old_size + new_size) +
+        throw_logic_error(string("put_metadata(): cannot add ") + to_string(new_meta_size) +
+                          "-byte metadata: record size (" + to_string(dt.size - old_meta_size + new_meta_size) +
                           ") exceeds maximum cache size of " + to_string(stats_->max_cache_size_));
     }
-    dt.size = dt.size - old_size + new_size;
+    int64_t original_size = dt.size;
+    dt.size = dt.size - old_meta_size + new_meta_size;
 
-    if (stats_->policy_ == CacheDiscardPolicy::LRU_TTL && dt.etime != epoch_ticks() && dt.etime <= now_ticks())
+    if (stats_->policy_ == CacheDiscardPolicy::lru_ttl && dt.etime != epoch_ticks() && dt.etime <= now_ticks())
     {
         return false;  // Entry has expired.
     }
@@ -801,19 +822,20 @@ bool PersistentStringCacheImpl::put_metadata(std::string const& key, const char*
     // evict some other entries to make room. However, we exclude this
     // record from trimming so we don't end up trimming the entry
     // that's about to be modified.
-    if (new_size > old_size)
+    if (new_meta_size > old_meta_size)
     {
         auto avail_bytes = stats_->max_cache_size_ - stats_->cache_size_;
-        int64_t bytes_needed = new_size - old_size;
+        int64_t bytes_needed = new_meta_size - old_meta_size;
         if (bytes_needed > avail_bytes)
         {
-            delete_at_least(bytes_needed, key);
+            bytes_needed = min(bytes_needed, avail_bytes);
+            delete_at_least(bytes_needed, key);  // Don't delete the entry about to be updated!
         }
     }
 
     leveldb::WriteBatch batch;
 
-    if (stats_->policy_ == CacheDiscardPolicy::LRU_TTL && dt.etime != epoch_ticks())
+    if (stats_->policy_ == CacheDiscardPolicy::lru_ttl && dt.etime != epoch_ticks())
     {
         it->Seek(k_etime_index(dt.etime, key));
         assert(it->Valid());
@@ -832,9 +854,12 @@ bool PersistentStringCacheImpl::put_metadata(std::string const& key, const char*
     auto s = db_->Write(write_options, &batch);
     throw_if_error(s, "put_metadata(): batch write error");
 
-    stats_->cache_size_ = stats_->cache_size_ - old_size + new_size;
+    stats_->cache_size_ = stats_->cache_size_ - old_meta_size + new_meta_size;
+    stats_->hist_increment(dt.size);
+    stats_->hist_decrement(original_size);
 
     assert(stats_->num_entries_ >= 0);
+    assert(stats_->num_entries_ == hist_sum(stats_->hist_));
     assert(stats_->cache_size_ >= 0);
     assert(stats_->cache_size_ <= stats_->max_cache_size_);
     assert(stats_->cache_size_ == 0 || stats_->num_entries_ != 0);
@@ -864,7 +889,7 @@ bool PersistentStringCacheImpl::take(string const& key, string& value, string* m
     if (!found)
     {
         stats_->inc_misses();
-        call_handler(key, CacheEventIndex::Miss);
+        call_handler(key, CacheEventIndex::miss);
         return false;
     }
 
@@ -872,17 +897,18 @@ bool PersistentStringCacheImpl::take(string const& key, string& value, string* m
     // a lot of work finding it, we may as well finish the job.
     delete_entry(key, dt);
 
-    if (stats_->policy_ == CacheDiscardPolicy::LRU_TTL && dt.etime != epoch_ticks() && dt.etime <= now_ticks())
+    if (stats_->policy_ == CacheDiscardPolicy::lru_ttl && dt.etime != epoch_ticks() && dt.etime <= now_ticks())
     {
         stats_->inc_misses();
-        call_handler(key, CacheEventIndex::Invalidate);
-        call_handler(key, CacheEventIndex::Miss);
+        call_handler(key, CacheEventIndex::invalidate);
+        call_handler(key, CacheEventIndex::miss);
         return false;  // Expired entries are hidden.
     }
     stats_->inc_hits();
     value = move(val);
-    call_handler(key, CacheEventIndex::Get);
-    call_handler(key, CacheEventIndex::Invalidate);
+    call_handler(key, CacheEventIndex::get);
+    call_handler(key, CacheEventIndex::invalidate);
+    assert(stats_->num_entries_ == hist_sum(stats_->hist_));
     return true;
 }
 
@@ -907,11 +933,12 @@ bool PersistentStringCacheImpl::invalidate(string const& key)
     // a lot of work finding it, we may as well finish the job.
     delete_entry(key, dt);
 
-    call_handler(key, CacheEventIndex::Invalidate);
-    if (stats_->policy_ == CacheDiscardPolicy::LRU_TTL && dt.etime != epoch_ticks() && dt.etime < now_ticks())
+    call_handler(key, CacheEventIndex::invalidate);
+    if (stats_->policy_ == CacheDiscardPolicy::lru_ttl && dt.etime != epoch_ticks() && dt.etime < now_ticks())
     {
         return false;  // Expired entries are hidden.
     }
+    assert(stats_->num_entries_ == hist_sum(stats_->hist_));
     return true;
 }
 
@@ -942,15 +969,17 @@ void PersistentStringCacheImpl::invalidate(It begin, It end)
         batch_delete(*it, dt, batch);
 
         // Update cache size and entries.
+        stats_->hist_decrement(dt.size);
         stats_->cache_size_ -= dt.size;
         assert(stats_->cache_size_ >= 0);
         assert(stats_->cache_size_ <= stats_->max_cache_size_);
         --stats_->num_entries_;
         assert(stats_->num_entries_ >= 0);
+        assert(stats_->num_entries_ == hist_sum(stats_->hist_));
         assert(stats_->cache_size_ == 0 || stats_->num_entries_ != 0);
         assert(stats_->num_entries_ == 0 || stats_->cache_size_ != 0);
 
-        call_handler(*it, CacheEventIndex::Invalidate);
+        call_handler(*it, CacheEventIndex::invalidate);
     }
 
     auto s = db_->Write(write_options, &batch);
@@ -973,13 +1002,13 @@ void PersistentStringCacheImpl::invalidate()
         int64_t const batch_size = 1000;
 
         PersistentStringCache::EventCallback cb =
-            handlers_[static_cast<unsigned>(CacheEventIndex::Invalidate)];
+            handlers_[static_cast<unsigned>(CacheEventIndex::invalidate)];
 
         IteratorUPtr it(db_->NewIterator(read_options));
         it->Seek(ALL_BEGIN);
         leveldb::Slice const atime_prefix = ATIME_BEGIN;
-        leveldb::Slice const end = ALL_END;
-        while (it->Valid() && it->key().compare(end) < 0)
+        leveldb::Slice const all_end = ALL_END;
+        while (it->Valid() && it->key().compare(all_end) < 0)
         {
             auto key = it->key();
             batch.Delete(key);
@@ -987,8 +1016,9 @@ void PersistentStringCacheImpl::invalidate()
             {
                 TimeKeyTuple atk(key.ToString().substr(1));
                 --stats_->num_entries_;
-                stats_->cache_size_ -= stoll(it->value().ToString());
-                call_handler(atk.key, CacheEventIndex::Invalidate);
+                auto size = stoll(it->value().ToString());
+                stats_->cache_size_ -= size;
+                call_handler(atk.key, CacheEventIndex::invalidate);
             }
             if (++count == batch_size)
             {
@@ -1011,6 +1041,7 @@ void PersistentStringCacheImpl::invalidate()
     db_->CompactRange(nullptr, nullptr);  // Avoid bulk deletions slowing down subsequent accesses.
 
     stats_->num_entries_ = 0;
+    stats_->hist_clear();
     stats_->cache_size_ = 0;
 }
 
@@ -1023,9 +1054,9 @@ bool PersistentStringCacheImpl::touch(string const& key, chrono::time_point<chro
 
     int64_t new_etime = ticks(expiry_time);
 
-    if (stats_->policy_ == CacheDiscardPolicy::LRU_only && new_etime != epoch_ticks())
+    if (stats_->policy_ == CacheDiscardPolicy::lru_only && new_etime != epoch_ticks())
     {
-        throw_logic_error(string("touch(): policy is LRU_only, but expiry_time (") + to_string(new_etime) +
+        throw_logic_error(string("touch(): policy is lru_only, but expiry_time (") + to_string(new_etime) +
                           ") is not infinite");
     }
 
@@ -1040,7 +1071,7 @@ bool PersistentStringCacheImpl::touch(string const& key, chrono::time_point<chro
     }
 
     int64_t now = now_ticks();
-    if (stats_->policy_ == CacheDiscardPolicy::LRU_TTL && new_etime != epoch_ticks() && new_etime <= now)
+    if (stats_->policy_ == CacheDiscardPolicy::lru_ttl && new_etime != epoch_ticks() && new_etime <= now)
     {
         return false;  // New expiry time is already older than the time now.
     }
@@ -1051,7 +1082,7 @@ bool PersistentStringCacheImpl::touch(string const& key, chrono::time_point<chro
     batch.Delete(k_atime_index(dt.atime, key));  // Delete old Atime index entry.
     batch.Put(k_atime_index(now, key), size);    // Write new Atime index entry.
 
-    if (stats_->policy_ == CacheDiscardPolicy::LRU_TTL)
+    if (stats_->policy_ == CacheDiscardPolicy::lru_ttl)
     {
         batch.Delete(k_etime_index(dt.etime, key));  // Delete old Etime index entry.
         if (new_etime != epoch_ticks())
@@ -1066,7 +1097,7 @@ bool PersistentStringCacheImpl::touch(string const& key, chrono::time_point<chro
     auto s = db_->Write(write_options, &batch);
     throw_if_error(s, "touch(): batch write error");
 
-    call_handler(key, CacheEventIndex::Touch);
+    call_handler(key, CacheEventIndex::touch);
 
     return true;
 }
@@ -1101,6 +1132,7 @@ void PersistentStringCacheImpl::resize(int64_t size_in_bytes)
     auto s = db_->Put(write_options, SETTINGS_MAX_SIZE, to_string(size_in_bytes));
     throw_if_error(s, "resize(): cannot write max size");
     stats_->max_cache_size_ = size_in_bytes;
+    assert(stats_->num_entries_ == hist_sum(stats_->hist_));
 }
 
 void PersistentStringCacheImpl::trim_to(int64_t used_size_in_bytes)
@@ -1122,6 +1154,7 @@ void PersistentStringCacheImpl::trim_to(int64_t used_size_in_bytes)
     {
         delete_at_least(stats_->cache_size_ - used_size_in_bytes);
     }
+    assert(stats_->num_entries_ == hist_sum(stats_->hist_));
 }
 
 void PersistentStringCacheImpl::set_headroom(int64_t headroom)
@@ -1147,31 +1180,27 @@ void PersistentStringCacheImpl::set_headroom(int64_t headroom)
     stats_->headroom_ = headroom;
 }
 
-void PersistentStringCacheImpl::set_handler(unsigned mask, PersistentStringCache::EventCallback cb)
+void PersistentStringCacheImpl::set_handler(CacheEvent events, PersistentStringCache::EventCallback cb)
 {
-    static constexpr auto limit = static_cast<unsigned>(CacheEvent::END_);
-    if (mask == 0 || mask > limit - 1)
+    static constexpr auto limit = underlying_type<CacheEvent>::type(CacheEvent::END_);
+
+    auto evs = underlying_type<CacheEvent>::type(events);
+    if (evs == 0 || evs > limit - 1)
     {
-        throw_invalid_argument("set_handler(): invalid mask (" + to_string(mask) +
+        throw_invalid_argument("set_handler(): invalid events (" + to_string(evs) +
                                "): value must be in the range [1.." + to_string(limit - 1) + "]");
     }
 
     lock_guard<decltype(mutex_)> lock(mutex_);
 
-    static constexpr auto index_limit = static_cast<unsigned>(CacheEventIndex::END_);
-    for (unsigned i = 0; i < index_limit; ++i)
+    static constexpr auto index_limit = underlying_type<CacheEventIndex>::type(CacheEventIndex::END_);
+    for (underlying_type<CacheEventIndex>::type i = 0; i < index_limit; ++i)
     {
-        if ((mask >> i) & 1)
+        if ((evs >> i) & 1)
         {
             handlers_[i] = cb;
         }
     }
-}
-
-void PersistentStringCacheImpl::set_handler(CacheEvent event,
-                                            PersistentStringCache::EventCallback cb) noexcept
-{
-    set_handler(static_cast<unsigned>(event), cb);
 }
 
 void PersistentStringCacheImpl::init_db(leveldb::Options options)
@@ -1231,9 +1260,10 @@ void PersistentStringCacheImpl::check_version()
         // Wipe all tables (but not settings).
         leveldb::WriteBatch batch;
         IteratorUPtr it(db_->NewIterator(read_options));
+
         it->Seek(ALL_BEGIN);
-        leveldb::Slice const end(ALL_END);
-        while (it->Valid() && it->key().compare(end) < 0)
+        leveldb::Slice const all_end(ALL_END);
+        while (it->Valid() && it->key().compare(ALL_END) < 0)
         {
             batch.Delete(it->key());
             it->Next();
@@ -1248,6 +1278,7 @@ void PersistentStringCacheImpl::check_version()
                               ", new version = " + to_string(SCHEMA_VERSION));
 
         stats_->num_entries_ = 0;
+        stats_->hist_clear();
         stats_->cache_size_ = 0;
     }
 }
@@ -1354,7 +1385,7 @@ void PersistentStringCacheImpl::batch_delete(string const& key, DataTuple const&
     prefixed_key[0] = METADATA_BEGIN[0];           // Avoid string copy.
     batch.Delete(prefixed_key);                    // Delete metadata
     batch.Delete(k_atime_index(data.atime, key));  // Delete atime index
-    if (stats_->policy_ == CacheDiscardPolicy::LRU_TTL)
+    if (stats_->policy_ == CacheDiscardPolicy::lru_ttl)
     {
         string etime_key = k_etime_index(data.etime, key);
         batch.Delete(etime_key);
@@ -1371,6 +1402,7 @@ void PersistentStringCacheImpl::delete_entry(string const& key, DataTuple const&
     throw_if_error(s, "delete_entry()");
 
     // Update cache size and entries.
+    stats_->hist_decrement(data.size);
     stats_->cache_size_ -= data.size;
     assert(stats_->cache_size_ >= 0);
     assert(stats_->cache_size_ <= stats_->max_cache_size_);
@@ -1382,6 +1414,8 @@ void PersistentStringCacheImpl::delete_entry(string const& key, DataTuple const&
 
 void PersistentStringCacheImpl::delete_at_least(int64_t bytes_needed, string const& skip_key)
 {
+    // mutex_ must be locked here!
+
     assert(bytes_needed > 0);
     assert(bytes_needed <= stats_->cache_size_);
 
@@ -1397,15 +1431,15 @@ void PersistentStringCacheImpl::delete_at_least(int64_t bytes_needed, string con
     leveldb::WriteBatch batch;
 
     // Step 1: Delete all expired entries.
-    if (stats_->policy_ == CacheDiscardPolicy::LRU_TTL)
+    if (stats_->policy_ == CacheDiscardPolicy::lru_ttl)
     {
         auto now_time = now_ticks();
         IteratorUPtr it(db_->NewIterator(read_options));
-        it->Seek(ETIME_BEGIN);
-        leveldb::Slice const end = ETIME_END;
+        leveldb::Slice const etime_prefix(ETIME_BEGIN);
+        it->Seek(etime_prefix);
         while (it->Valid())
         {
-            if (it->key().compare(end) >= 0)
+            if (!it->key().starts_with(etime_prefix))
             {
                 break;
             }
@@ -1439,8 +1473,10 @@ void PersistentStringCacheImpl::delete_at_least(int64_t bytes_needed, string con
             batch_delete(ek.key, dt, batch);
 
             --stats_->num_entries_;
+            ++stats_->ttl_evictions_;
+            stats_->hist_decrement(size);
             stats_->cache_size_ -= size;
-            call_handler(ek.key, CacheEventIndex::Evict_TTL);
+            call_handler(ek.key, CacheEventIndex::evict_ttl);
 
             it->Next();
         }
@@ -1460,13 +1496,10 @@ void PersistentStringCacheImpl::delete_at_least(int64_t bytes_needed, string con
     {
         // Run over the Atime index and delete in old-to-new order.
         IteratorUPtr it(db_->NewIterator(read_options));
-        it->Seek(ATIME_BEGIN);
-#ifndef NDEBUG
-        leveldb::Slice const end = ATIME_END;
-#endif
-        while (it->Valid() && bytes_needed > 0)
+        leveldb::Slice const atime_prefix(ATIME_BEGIN);
+        it->Seek(atime_prefix);
+        while (it->Valid() && bytes_needed > 0 && it->key().starts_with(atime_prefix))
         {
-            assert(it->key().compare(end) < 0);
             TimeKeyTuple atk(it->key().ToString().substr(1));  // Strip prefix to create the atime/key tuple.
             if (!skip_key.empty() && atk.key == skip_key)
             {
@@ -1479,17 +1512,19 @@ void PersistentStringCacheImpl::delete_at_least(int64_t bytes_needed, string con
             bytes_needed -= size;
             ++deleted_entries;
 
-            string data_serialized;
+            string data_string;
             string prefixed_key = k_data(atk.key);
-            auto s = db_->Get(read_options, prefixed_key, &data_serialized);
+            auto s = db_->Get(read_options, prefixed_key, &data_string);
             assert(!s.IsNotFound());
             throw_if_error(s, "delete_at_least()");
-            DataTuple dt(move(data_serialized));
+            DataTuple dt(move(data_string));
             batch_delete(atk.key, dt, batch);
 
             --stats_->num_entries_;
+            ++stats_->lru_evictions_;
+            stats_->hist_decrement(size);
             stats_->cache_size_ -= size;
-            call_handler(atk.key, CacheEventIndex::Evict_LRU);
+            call_handler(atk.key, CacheEventIndex::evict_lru);
 
             it->Next();
         }
@@ -1507,16 +1542,16 @@ void PersistentStringCacheImpl::delete_at_least(int64_t bytes_needed, string con
     assert(stats_->num_entries_ == 0 || stats_->cache_size_ != 0);
 }
 
-void PersistentStringCacheImpl::call_handler(string const& key, CacheEventIndex event) const
+void PersistentStringCacheImpl::call_handler(string const& key, CacheEventIndex event_index) const
 {
     // mutex_ must be locked here!
 
-    auto handler = handlers_[static_cast<unsigned>(event)];
+    auto handler = handlers_[static_cast<unsigned>(event_index)];
     if (handler)
     {
         try
         {
-            unsigned index = static_cast<unsigned>(event);
+            unsigned index = static_cast<unsigned>(event_index);
             handler(key, static_cast<CacheEvent>(1 << index), stats_);
         }
         catch (...)

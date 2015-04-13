@@ -21,21 +21,24 @@
 namespace core
 {
 
-/**
-\brief Indicates the discard policy to make room for entries when the cache is full.
-
-Once the cache is full and another entry is added,
-`lru_ttl` unconditionally deletes all entries that have expired and then,
-if deleting these entries did not create sufficient free space, deletes entries
-in LRU order until enough space is available.
-
-If the discard policy is set to `lru_only`, entries do not maintain an expiry time and
-are therefore discarded strictly in LRU order.
-*/
-enum class CacheDiscardPolicy
+namespace internal
 {
-    lru_ttl,
-    lru_only
+
+// Note: Any change here must have a corresponding change to
+//       CacheEvent in core/cache_events.h!
+
+enum class CacheEventIndex : unsigned
+{
+    get        = 0,
+    put        = 1,
+    invalidate = 2,
+    touch      = 3,
+    miss       = 4,
+    evict_ttl  = 5,
+    evict_lru  = 6,
+    END_       = 7
 };
+
+}  // namespace internal
 
 }  // namespace core

@@ -11,3 +11,4 @@ set(CORE_SRC ${CORE_SRC} ${CACHE_SRC})
 
 add_library(core STATIC ${CORE_SRC})
 set_target_properties(core PROPERTIES COMPILE_FLAGS "-fPIC")
+target_link_libraries(core ${LEVELDB})

@@ -20,21 +20,30 @@
 #ifndef DBUSINTERFACE_H
 #define DBUSINTERFACE_H
 
-#include <string>
+#include <memory>
+
+#include <QDBusContext>
+#include <QDBusUnixFileDescriptor>
+#include <QObject>
+#include <QString>
 
 struct DBusInterfacePrivate;
-typedef struct _GDBusConnection GDBusConnection;
 
-class DBusInterface final {
+class DBusInterface : public QObject, protected QDBusContext {
+    Q_OBJECT
 public:
-    DBusInterface(GDBusConnection *bus, const std::string& bus_path);
+    explicit DBusInterface(QObject *parent=nullptr);
     ~DBusInterface();
 
     DBusInterface(const DBusInterface&) = delete;
     DBusInterface& operator=(DBusInterface&) = delete;
 
+public Q_SLOTS:
+    QDBusUnixFileDescriptor GetAlbumArt(const QString &artist, const QString &album, const QString &desiredSize);
+    QDBusUnixFileDescriptor GetArtistArt(const QString &artist, const QString &album, const QString &desiredSize);
+
 private:
-    DBusInterfacePrivate *p;
+    std::unique_ptr<DBusInterfacePrivate> p;
 };
 
 #endif

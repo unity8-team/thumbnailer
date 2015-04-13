@@ -59,7 +59,7 @@ int random_int(int min, int max)
 {
     static auto seed = random_device()();
     static mt19937 engine(seed);
-    static uniform_int_distribution<int> uniform_dist(min, max);
+    uniform_int_distribution<int> uniform_dist(min, max);
     return uniform_dist(engine);
 }
 
@@ -67,7 +67,7 @@ int random_size(double mean, double dev, int min, int max)
 {
     static auto seed = random_device()();
     static mt19937 engine(seed);
-    static normal_distribution<double> normal_dist(mean, dev);
+    normal_distribution<double> normal_dist(mean, dev);
 
     double val = round(normal_dist(engine));
     return val < min ? min : (val > max ? max : val);
@@ -111,10 +111,10 @@ TEST(PersistentStringCache, basic)
     cout << "Record size:   " << record_size / 1024.0 << " kB" << endl;
     cout << "Iterations:    " << iterations << endl;
 
-    auto c = PersistentStringCache::open(test_db, max_cache_size, CacheDiscardPolicy::LRU_only);
+    auto c = PersistentStringCache::open(test_db, max_cache_size, CacheDiscardPolicy::lru_only);
     c->set_headroom(int64_t(max_cache_size * headroom_percent));
 
-    static PersistentStringCache::Optional<string> val;
+    static Optional<string> val;
 
     auto start = chrono::system_clock::now();
     bool full = false;
@@ -173,6 +173,7 @@ TEST(PersistentStringCache, basic)
     cout << "Avg rec. size: " << bytes_written / double(s.misses()) / 1024 << " kB" << endl;
     cout << "Hits:          " << s.hits() << endl;
     cout << "Misses:        " << s.misses() << endl;
+    cout << "Evictions:     " << s.lru_evictions() << endl;
     cout << "Disk size:     " << c->disk_size_in_bytes() / MB << " MB" << endl;
 
     cout << endl

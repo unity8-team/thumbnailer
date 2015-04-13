@@ -18,9 +18,8 @@
 
 #pragma once
 
+#include <core/cache_codec.h>
 #include <core/persistent_string_cache.h>
-
-#include <vector>
 
 namespace core
 {
@@ -35,7 +34,7 @@ core::PersistentStringCache. See the documentation there for details
 on cache operations and semantics.
 
 In order to use the cache with custom types (other than `std::string`),
-you must provide methods to serialize the type to `string`, and deserialize
+you must provide methods to encode the type to `string`, and decode
 from `string` back to the type.
 
 For example, suppose we have the following structure that we want to use
@@ -50,18 +49,14 @@ struct Person
 \endcode
 
 In order to use the cache with the `Person` struct as the key, you must specialize
-the PersistentCache::IOTraits struct in namespace `core`:
+the CacheCodec struct in namespace `core`:
 
 \code{.cpp}
-// Custom cache using Person as the key, and string as the value and metadata.
-using PersonCache = core::PersistentCache<Person, string>;
-
 namespace core  // Specializations must be placed into namespace core.
 {
 
 template <>
-template <>
-string PersonCache::IOTraits<Person>::serialize(Person const& p)
+string CacheCodec<Person>::encode(Person const& p)
 {
     ostringstream s;
     s << p.age << ' ' << p.name;
@@ -69,8 +64,7 @@ string PersonCache::IOTraits<Person>::serialize(Person const& p)
 }
 
 template <>
-template <>
-Person PersonCache::IOTraits<Person>::deserialize(string const& str)
+Person CacheCodec<Person>::decode(string const& str)
 {
     istringstream s;
     Person p;
@@ -82,7 +76,7 @@ Person PersonCache::IOTraits<Person>::deserialize(string const& str)
 \endcode
 
 For this example, it is convenient to stream the age first because this
-guarantees that `deserialize()` will work correctly even if the name contains
+guarantees that `decode()` will work correctly even if the name contains
 a space. The order in which you stream the fields does not matter, only that
 (for custom _key_ types) the string representation of each value is unique.
 
@@ -90,6 +84,9 @@ With these two methods defined, we can now use the cache with `Person` instances
 as the key. For example:
 
 \code{.cpp}
+// Custom cache using Person as the key, and string as the value and metadata.
+using PersonCache = core::PersistentCache<Person, string>;
+
 auto c = PersonCache::open("my_cache", 1024 * 1024 * 1024, CacheDiscardPolicy::LRU_only);
 
 Person bjarne{"Bjarne Stroustrup", 65};
@@ -111,8 +108,9 @@ Bjarne Stroustrup: C++ inventor
 \endcode
 
 You can use a custom type for the cache's value and metadata as well by simply providing
-PersistentCache::IOTraits specializations as needed.
+CacheCodec specializations as needed.
 
+\see core::CacheCodec
 \see core::PersistentStringCache
 */
 
@@ -120,28 +118,6 @@ template <typename K, typename V, typename M = std::string>
 class PersistentCache
 {
 public:
-    /**
-    Traits for serialization and deserialization.
-    To use custom types, specialize this template
-    for each custom type (other than string) in
-    the `core` namespace.
-
-    \warning Do _not_ specialize this struct for `std::string`!
-    Doing so has no effect.
-    */
-    template <typename T>
-    struct IOTraits
-    {
-        /**
-        \brief Converts a value of custom type T into a string.
-        */
-        static std::string serialize(T const& value);
-        /**
-        \brief Converts a string into a value of custom type T.
-        */
-        static T deserialize(std::string const& s);
-    };
-
     /**
     Convenience typedef for the return type of open().
     */
@@ -176,9 +152,6 @@ public:
     your code in preference to `boost::optional`. This will ease an eventual
     transition to `std::optional`.
     */
-    template <typename T>
-    using Optional = boost::optional<T>;
-
     typedef Optional<K> OptionalKey;
     typedef Optional<V> OptionalValue;
     typedef Optional<M> OptionalMetadata;
@@ -290,16 +263,16 @@ public:
     //{@
 
     /**
-    \brief Adds or updates an entry. If `V` == `std::string`, an overload that accepts `const char*` and `size`
-    is provided as well.
+    \brief Adds or updates an entry. If `V` = `std::string`, the method is also overloaded to
+    to accept `char const*` and `size`.
     */
     bool put(K const& key,
              V const& value,
              std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
 
     /**
-    \brief Adds or updates an entry and its metadata. If 'V' or `M` == `std::string`,
-    an overload that accepts `const char*` and `size` is provided as well.
+    \brief Adds or updates an entry and its metadata. If 'V' or `M` = `std::string`,
+    the method is also overloaded to accept `char const*` and `size`.
     */
     bool put(K const& key,
              V const& value,
@@ -322,7 +295,7 @@ public:
     OptionalData get_or_put_data(K const& key, Loader const& load_func);
 
     /**
-    \brief Adds or replaces the metadata for an entry. If `M` == `std::string`, an overload that accepts
+    \brief Adds or replaces the metadata for an entry. If `M` = `std::string`, an overload that accepts
     `const char*` and `size` is provided as well.
     */
     bool put_metadata(K const& key, M const& metadata);
@@ -330,12 +303,12 @@ public:
     /**
     \brief Removes an entry and returns its value.
     */
-    OptionalValue take(K const& key) const;
+    OptionalValue take(K const& key);
 
     /**
     \brief Removes an entry and returns its value and metadata.
     */
-    OptionalData take_data(K const& key) const;
+    OptionalData take_data(K const& key);
 
     /**
     \brief Removes an entry and its associated metadata (if any).
@@ -405,12 +378,7 @@ public:
     /**
     \brief Installs a handler for one or more events.
     */
-    void set_handler(unsigned mask, EventCallback cb);
-
-    /**
-    \brief Installs a handler for a specific event.
-    */
-    void set_handler(CacheEvent event, EventCallback cb) noexcept;
+    void set_handler(CacheEvent events, EventCallback cb);
 
     //@}
 
@@ -458,32 +426,32 @@ typename PersistentCache<K, V, M>::UPtr PersistentCache<K, V, M>::open(std::stri
 template <typename K, typename V, typename M>
 typename PersistentCache<K, V, M>::OptionalValue PersistentCache<K, V, M>::get(K const& key) const
 {
-    auto const& svalue = p_->get(IOTraits<K>::serialize(key));
-    return svalue ? OptionalValue(IOTraits<V>::deserialize(*svalue)) : OptionalValue();
+    auto const& svalue = p_->get(CacheCodec<K>::encode(key));
+    return svalue ? OptionalValue(CacheCodec<V>::decode(*svalue)) : OptionalValue();
 }
 
 template <typename K, typename V, typename M>
 typename PersistentCache<K, V, M>::OptionalData PersistentCache<K, V, M>::get_data(K const& key) const
 {
-    auto sdata = p_->get_data(IOTraits<K>::serialize(key));
+    auto sdata = p_->get_data(CacheCodec<K>::encode(key));
     if (!sdata)
     {
         return OptionalData();
     }
-    return OptionalData({IOTraits<V>::deserialize(sdata->value), IOTraits<M>::deserialize(sdata->metadata)});
+    return OptionalData({CacheCodec<V>::decode(sdata->value), CacheCodec<M>::decode(sdata->metadata)});
 }
 
 template <typename K, typename V, typename M>
 typename PersistentCache<K, V, M>::OptionalMetadata PersistentCache<K, V, M>::get_metadata(K const& key) const
 {
-    auto smeta = p_->get_metadata(IOTraits<K>::serialize(key));
-    return smeta ? OptionalMetadata(IOTraits<M>::deserialize(*smeta)) : OptionalMetadata();
+    auto smeta = p_->get_metadata(CacheCodec<K>::encode(key));
+    return smeta ? OptionalMetadata(CacheCodec<M>::decode(*smeta)) : OptionalMetadata();
 }
 
 template <typename K, typename V, typename M>
 bool PersistentCache<K, V, M>::contains_key(K const& key) const
 {
-    return p_->contains_key(IOTraits<K>::serialize(key));
+    return p_->contains_key(CacheCodec<K>::encode(key));
 }
 
 template <typename K, typename V, typename M>
@@ -533,7 +501,7 @@ bool PersistentCache<K, V, M>::put(K const& key,
                                    V const& value,
                                    std::chrono::time_point<std::chrono::steady_clock> expiry_time)
 {
-    return p_->put(IOTraits<K>::serialize(key), IOTraits<V>::serialize(value), expiry_time);
+    return p_->put(CacheCodec<K>::encode(key), CacheCodec<V>::encode(value), expiry_time);
 }
 
 template <typename K, typename V, typename M>
@@ -542,7 +510,7 @@ bool PersistentCache<K, V, M>::put(K const& key,
                                    M const& metadata,
                                    std::chrono::time_point<std::chrono::steady_clock> expiry_time)
 {
-    return p_->put(IOTraits<K>::serialize(key), IOTraits<V>::serialize(value), IOTraits<M>::serialize(metadata),
+    return p_->put(CacheCodec<K>::encode(key), CacheCodec<V>::encode(value), CacheCodec<M>::encode(metadata),
                    expiry_time);
 }
 
@@ -550,20 +518,20 @@ template <typename K, typename V, typename M>
 typename PersistentCache<K, V, M>::OptionalValue PersistentCache<K, V, M>::get_or_put(
     K const& key, PersistentCache<K, V, M>::Loader const& load_func)
 {
-    std::string const& skey = IOTraits<K>::serialize(key);
+    std::string const& skey = CacheCodec<K>::encode(key);
     auto sload_func = [&](std::string const&, PersistentStringCache const&)
     {
         load_func(key, *this);
     };
     auto svalue = p_->get_or_put(skey, sload_func);
-    return svalue ? OptionalValue(IOTraits<V>::deserialize(*svalue)) : OptionalValue();
+    return svalue ? OptionalValue(CacheCodec<V>::decode(*svalue)) : OptionalValue();
 }
 
 template <typename K, typename V, typename M>
 typename PersistentCache<K, V, M>::OptionalData PersistentCache<K, V, M>::get_or_put_data(
     K const& key, PersistentCache<K, V, M>::Loader const& load_func)
 {
-    std::string const& skey = IOTraits<K>::serialize(key);
+    std::string const& skey = CacheCodec<K>::encode(key);
     auto sload_func = [&](std::string const&, PersistentStringCache const&)
     {
         load_func(key, *this);
@@ -573,37 +541,37 @@ typename PersistentCache<K, V, M>::OptionalData PersistentCache<K, V, M>::get_or
     {
         return OptionalData();
     }
-    return OptionalData({IOTraits<V>::deserialize(sdata->value), IOTraits<M>::deserialize(sdata->metadata)});
+    return OptionalData({CacheCodec<V>::decode(sdata->value), CacheCodec<M>::decode(sdata->metadata)});
 }
 
 template <typename K, typename V, typename M>
 bool PersistentCache<K, V, M>::put_metadata(K const& key, M const& metadata)
 {
-    return p_->put_metadata(IOTraits<K>::serialize(key), IOTraits<M>::serialize(metadata));
+    return p_->put_metadata(CacheCodec<K>::encode(key), CacheCodec<M>::encode(metadata));
 }
 
 template <typename K, typename V, typename M>
-typename PersistentCache<K, V, M>::OptionalValue PersistentCache<K, V, M>::take(K const& key) const
+typename PersistentCache<K, V, M>::OptionalValue PersistentCache<K, V, M>::take(K const& key)
 {
-    auto svalue = p_->take(IOTraits<K>::serialize(key));
-    return svalue ? OptionalValue(IOTraits<V>::deserialize(*svalue)) : OptionalValue();
+    auto svalue = p_->take(CacheCodec<K>::encode(key));
+    return svalue ? OptionalValue(CacheCodec<V>::decode(*svalue)) : OptionalValue();
 }
 
 template <typename K, typename V, typename M>
-typename PersistentCache<K, V, M>::OptionalData PersistentCache<K, V, M>::take_data(K const& key) const
+typename PersistentCache<K, V, M>::OptionalData PersistentCache<K, V, M>::take_data(K const& key)
 {
-    auto sdata = p_->take_data(IOTraits<K>::serialize(key));
+    auto sdata = p_->take_data(CacheCodec<K>::encode(key));
     if (!sdata)
     {
         return OptionalData();
     }
-    return OptionalData({IOTraits<V>::deserialize(sdata->value), IOTraits<M>::deserialize(sdata->metadata)});
+    return OptionalData({CacheCodec<V>::decode(sdata->value), CacheCodec<M>::decode(sdata->metadata)});
 }
 
 template <typename K, typename V, typename M>
 bool PersistentCache<K, V, M>::invalidate(K const& key)
 {
-    return p_->invalidate(IOTraits<K>::serialize(key));
+    return p_->invalidate(CacheCodec<K>::encode(key));
 }
 
 template <typename K, typename V, typename M>
@@ -619,7 +587,7 @@ void PersistentCache<K, V, M>::invalidate(It begin, It end)
     std::vector<std::string> skeys;
     for (auto&& it = begin; it < end; ++it)
     {
-        skeys.push_back(IOTraits<K>::serialize(*it));
+        skeys.push_back(CacheCodec<K>::encode(*it));
     }
     p_->invalidate(skeys.begin(), skeys.end());
 }
@@ -639,7 +607,7 @@ void PersistentCache<K, V, M>::invalidate()
 template <typename K, typename V, typename M>
 bool PersistentCache<K, V, M>::touch(K const& key, std::chrono::time_point<std::chrono::steady_clock> expiry_time)
 {
-    return p_->touch(IOTraits<K>::serialize(key), expiry_time);
+    return p_->touch(CacheCodec<K>::encode(key), expiry_time);
 }
 
 template <typename K, typename V, typename M>
@@ -667,36 +635,24 @@ void PersistentCache<K, V, M>::set_headroom(int64_t headroom)
 }
 
 template <typename K, typename V, typename M>
-void PersistentCache<K, V, M>::set_handler(unsigned mask, EventCallback cb)
+void PersistentCache<K, V, M>::set_handler(CacheEvent events, EventCallback cb)
 {
     auto scb = [cb](std::string const& key, CacheEvent ev, PersistentCacheStats const& c)
     {
-        cb(IOTraits<K>::deserialize(key), ev, c);
+        cb(CacheCodec<K>::decode(key), ev, c);
     };
-    p_->set_handler(mask, scb);
-}
-
-template <typename K, typename V, typename M>
-void PersistentCache<K, V, M>::set_handler(CacheEvent event, EventCallback cb) noexcept
-{
-    auto scb = [cb](std::string const& key, CacheEvent ev, PersistentCacheStats const& c)
-    {
-        cb(IOTraits<K>::deserialize(key), ev, c);
-    };
-    p_->set_handler(event, scb);
+    p_->set_handler(events, scb);
 }
 
 // Below are specializations for the various combinations of one or more of K, V, and M
-// being of type std::string. Without this, we force the user to provide IOTraits
-// for conversion string to string, which is inconvenient and also forces a string copy
-// for everything of type string, which is brutally inefficient.
+// being of type std::string. Without this, we would end up calling through a string-to-string
+// codec, which would force a copy for everything of type string, which is brutally inefficient.
 //
 // This is verbose because we must specialize the class template in order to avoid
-// redundantly calling the IOTraits methods. The combinations that follow are
+// calling the CacheCodec methods for type string. The combinations that follow are
 // <s,V,M>, <K,s,M>, <K,V,s>, <s,s,M>, <s,V,s>, <K,s,s>, and <s,s,s>.
 // The code is identical, except that, where we know that K, V, or M are std::string,
-// it avoids calling the serialize()/deserialize() methods, so we don't make
-// endless redundant string copies.
+// it avoids calling the encode()/decode() methods.
 
 // Specialization for K = std::string.
 
@@ -704,17 +660,7 @@ template <typename V, typename M>
 class PersistentCache<std::string, V, M>
 {
 public:
-    template <typename T>
-    struct IOTraits
-    {
-        static std::string serialize(T const& value);
-        static T deserialize(std::string const& s);
-    };
-
     typedef std::unique_ptr<PersistentCache<std::string, V, M>> UPtr;
-
-    template <typename T>
-    using Optional = boost::optional<T>;
 
     typedef Optional<std::string> OptionalKey;
     typedef Optional<V> OptionalValue;
@@ -764,8 +710,8 @@ public:
     OptionalData get_or_put_data(std::string const& key, Loader const& load_func);
 
     bool put_metadata(std::string const& key, M const& metadata);
-    OptionalValue take(std::string const& key) const;
-    OptionalData take_data(std::string const& key) const;
+    OptionalValue take(std::string const& key);
+    OptionalData take_data(std::string const& key);
     bool invalidate(std::string const& key);
     void invalidate(std::vector<std::string> const& keys);
     template <typename It>
@@ -782,8 +728,7 @@ public:
 
     typedef std::function<void(std::string const& key, CacheEvent ev, PersistentCacheStats const& stats)> EventCallback;
 
-    void set_handler(unsigned mask, EventCallback cb);
-    void set_handler(CacheEvent event, EventCallback cb) noexcept;
+    void set_handler(CacheEvent events, EventCallback cb);
 
 private:
     PersistentCache(std::string const& cache_path, int64_t max_size_in_bytes, CacheDiscardPolicy policy);
@@ -826,7 +771,7 @@ typename PersistentCache<std::string, V, M>::OptionalValue PersistentCache<std::
     std::string const& key) const
 {
     auto const& svalue = p_->get(key);
-    return svalue ? OptionalValue(IOTraits<V>::deserialize(*svalue)) : OptionalValue();
+    return svalue ? OptionalValue(CacheCodec<V>::decode(*svalue)) : OptionalValue();
 }
 
 template <typename V, typename M>
@@ -838,7 +783,7 @@ typename PersistentCache<std::string, V, M>::OptionalData PersistentCache<std::s
     {
         return OptionalData();
     }
-    return OptionalData({IOTraits<V>::deserialize(sdata->value), IOTraits<M>::deserialize(sdata->metadata)});
+    return OptionalData({CacheCodec<V>::decode(sdata->value), CacheCodec<M>::decode(sdata->metadata)});
 }
 
 template <typename V, typename M>
@@ -846,7 +791,7 @@ typename PersistentCache<std::string, V, M>::OptionalMetadata PersistentCache<st
     std::string const& key) const
 {
     auto smeta = p_->get_metadata(key);
-    return smeta ? OptionalMetadata(IOTraits<M>::deserialize(*smeta)) : OptionalMetadata();
+    return smeta ? OptionalMetadata(CacheCodec<M>::decode(*smeta)) : OptionalMetadata();
 }
 
 template <typename V, typename M>
@@ -902,7 +847,7 @@ bool PersistentCache<std::string, V, M>::put(std::string const& key,
                                              V const& value,
                                              std::chrono::time_point<std::chrono::steady_clock> expiry_time)
 {
-    return p_->put(key, IOTraits<V>::serialize(value), expiry_time);
+    return p_->put(key, CacheCodec<V>::encode(value), expiry_time);
 }
 
 template <typename V, typename M>
@@ -911,7 +856,7 @@ bool PersistentCache<std::string, V, M>::put(std::string const& key,
                                              M const& metadata,
                                              std::chrono::time_point<std::chrono::steady_clock> expiry_time)
 {
-    return p_->put(key, IOTraits<V>::serialize(value), IOTraits<M>::serialize(metadata), expiry_time);
+    return p_->put(key, CacheCodec<V>::encode(value), CacheCodec<M>::encode(metadata), expiry_time);
 }
 
 template <typename V, typename M>
@@ -923,7 +868,7 @@ typename PersistentCache<std::string, V, M>::OptionalValue PersistentCache<std::
         load_func(key, *this);
     };
     auto svalue = p_->get_or_put(key, sload_func);
-    return svalue ? OptionalValue(IOTraits<V>::deserialize(*svalue)) : OptionalValue();
+    return svalue ? OptionalValue(CacheCodec<V>::decode(*svalue)) : OptionalValue();
 }
 
 template <typename V, typename M>
@@ -939,33 +884,33 @@ typename PersistentCache<std::string, V, M>::OptionalData PersistentCache<std::s
     {
         return OptionalData();
     }
-    return OptionalData({IOTraits<V>::deserialize(sdata->value), IOTraits<M>::deserialize(sdata->metadata)});
+    return OptionalData({CacheCodec<V>::decode(sdata->value), CacheCodec<M>::decode(sdata->metadata)});
 }
 
 template <typename V, typename M>
 bool PersistentCache<std::string, V, M>::put_metadata(std::string const& key, M const& metadata)
 {
-    return p_->put_metadata(key, IOTraits<M>::serialize(metadata));
+    return p_->put_metadata(key, CacheCodec<M>::encode(metadata));
 }
 
 template <typename V, typename M>
 typename PersistentCache<std::string, V, M>::OptionalValue PersistentCache<std::string, V, M>::take(
-    std::string const& key) const
+    std::string const& key)
 {
     auto svalue = p_->take(key);
-    return svalue ? OptionalValue(IOTraits<V>::deserialize(*svalue)) : OptionalValue();
+    return svalue ? OptionalValue(CacheCodec<V>::decode(*svalue)) : OptionalValue();
 }
 
 template <typename V, typename M>
 typename PersistentCache<std::string, V, M>::OptionalData PersistentCache<std::string, V, M>::take_data(
-    std::string const& key) const
+    std::string const& key)
 {
     auto sdata = p_->take_data(key);
     if (!sdata)
     {
         return OptionalData();
     }
-    return OptionalData({IOTraits<V>::deserialize(sdata->value), IOTraits<M>::deserialize(sdata->metadata)});
+    return OptionalData({CacheCodec<V>::decode(sdata->value), CacheCodec<M>::decode(sdata->metadata)});
 }
 
 template <typename V, typename M>
@@ -1036,15 +981,9 @@ void PersistentCache<std::string, V, M>::set_headroom(int64_t headroom)
 }
 
 template <typename V, typename M>
-void PersistentCache<std::string, V, M>::set_handler(unsigned mask, EventCallback cb)
+void PersistentCache<std::string, V, M>::set_handler(CacheEvent events, EventCallback cb)
 {
-    p_->set_handler(mask, cb);
-}
-
-template <typename V, typename M>
-void PersistentCache<std::string, V, M>::set_handler(CacheEvent event, EventCallback cb) noexcept
-{
-    p_->set_handler(event, cb);
+    p_->set_handler(events, cb);
 }
 
 // Specialization for V = std::string.
@@ -1053,17 +992,7 @@ template <typename K, typename M>
 class PersistentCache<K, std::string, M>
 {
 public:
-    template <typename T>
-    struct IOTraits
-    {
-        static std::string serialize(T const& value);
-        static T deserialize(std::string const& s);
-    };
-
     typedef std::unique_ptr<PersistentCache<K, std::string, M>> UPtr;
-
-    template <typename T>
-    using Optional = boost::optional<T>;
 
     typedef Optional<K> OptionalKey;
     typedef Optional<std::string> OptionalValue;
@@ -1122,8 +1051,8 @@ public:
     OptionalData get_or_put_data(K const& key, Loader const& load_func);
 
     bool put_metadata(K const& key, M const& metadata);
-    OptionalValue take(K const& key) const;
-    OptionalData take_data(K const& key) const;
+    OptionalValue take(K const& key);
+    OptionalData take_data(K const& key);
     bool invalidate(K const& key);
     void invalidate(std::vector<K> const& keys);
     template <typename It>
@@ -1140,8 +1069,7 @@ public:
 
     typedef std::function<void(K const& key, CacheEvent ev, PersistentCacheStats const& stats)> EventCallback;
 
-    void set_handler(unsigned mask, EventCallback cb);
-    void set_handler(CacheEvent event, EventCallback cb) noexcept;
+    void set_handler(CacheEvent events, EventCallback cb);
 
 private:
     PersistentCache(std::string const& cache_path, int64_t max_size_in_bytes, CacheDiscardPolicy policy);
@@ -1182,7 +1110,7 @@ typename PersistentCache<K, std::string, M>::UPtr PersistentCache<K, std::string
 template <typename K, typename M>
 typename PersistentCache<K, std::string, M>::OptionalValue PersistentCache<K, std::string, M>::get(K const& key) const
 {
-    auto const& svalue = p_->get(IOTraits<K>::serialize(key));
+    auto const& svalue = p_->get(CacheCodec<K>::encode(key));
     return svalue ? OptionalValue(*svalue) : OptionalValue();
 }
 
@@ -1190,26 +1118,26 @@ template <typename K, typename M>
 typename PersistentCache<K, std::string, M>::OptionalData PersistentCache<K, std::string, M>::get_data(
     K const& key) const
 {
-    auto sdata = p_->get_data(IOTraits<K>::serialize(key));
+    auto sdata = p_->get_data(CacheCodec<K>::encode(key));
     if (!sdata)
     {
         return OptionalData();
     }
-    return OptionalData({sdata->value, IOTraits<M>::deserialize(sdata->metadata)});
+    return OptionalData({sdata->value, CacheCodec<M>::decode(sdata->metadata)});
 }
 
 template <typename K, typename M>
 typename PersistentCache<K, std::string, M>::OptionalMetadata PersistentCache<K, std::string, M>::get_metadata(
     K const& key) const
 {
-    auto smeta = p_->get_metadata(IOTraits<K>::serialize(key));
-    return smeta ? OptionalMetadata(IOTraits<M>::deserialize(*smeta)) : OptionalMetadata();
+    auto smeta = p_->get_metadata(CacheCodec<K>::encode(key));
+    return smeta ? OptionalMetadata(CacheCodec<M>::decode(*smeta)) : OptionalMetadata();
 }
 
 template <typename K, typename M>
 bool PersistentCache<K, std::string, M>::contains_key(K const& key) const
 {
-    return p_->contains_key(IOTraits<K>::serialize(key));
+    return p_->contains_key(CacheCodec<K>::encode(key));
 }
 
 template <typename K, typename M>
@@ -1259,7 +1187,7 @@ bool PersistentCache<K, std::string, M>::put(K const& key,
                                              std::string const& value,
                                              std::chrono::time_point<std::chrono::steady_clock> expiry_time)
 {
-    return p_->put(IOTraits<K>::serialize(key), value, expiry_time);
+    return p_->put(CacheCodec<K>::encode(key), value, expiry_time);
 }
 
 template <typename K, typename M>
@@ -1268,7 +1196,7 @@ bool PersistentCache<K, std::string, M>::put(K const& key,
                                              int64_t size,
                                              std::chrono::time_point<std::chrono::steady_clock> expiry_time)
 {
-    return p_->put(IOTraits<K>::serialize(key), value, size, expiry_time);
+    return p_->put(CacheCodec<K>::encode(key), value, size, expiry_time);
 }
 
 template <typename K, typename M>
@@ -1277,7 +1205,7 @@ bool PersistentCache<K, std::string, M>::put(K const& key,
                                              M const& metadata,
                                              std::chrono::time_point<std::chrono::steady_clock> expiry_time)
 {
-    return p_->put(IOTraits<K>::serialize(key), value, IOTraits<M>::serialize(metadata), expiry_time);
+    return p_->put(CacheCodec<K>::encode(key), value, CacheCodec<M>::encode(metadata), expiry_time);
 }
 
 template <typename K, typename M>
@@ -1287,15 +1215,15 @@ bool PersistentCache<K, std::string, M>::put(K const& key,
                                              M const& metadata,
                                              std::chrono::time_point<std::chrono::steady_clock> expiry_time)
 {
-    std::string md = IOTraits<M>::serialize(metadata);
-    return p_->put(IOTraits<K>::serialize(key), value, size, md.data(), md.size(), expiry_time);
+    std::string md = CacheCodec<M>::encode(metadata);
+    return p_->put(CacheCodec<K>::encode(key), value, size, md.data(), md.size(), expiry_time);
 }
 
 template <typename K, typename M>
 typename PersistentCache<K, std::string, M>::OptionalValue PersistentCache<K, std::string, M>::get_or_put(
     K const& key, PersistentCache<K, std::string, M>::Loader const& load_func)
 {
-    std::string const& skey = IOTraits<K>::serialize(key);
+    std::string const& skey = CacheCodec<K>::encode(key);
     auto sload_func = [&](std::string const&, PersistentStringCache const&)
     {
         load_func(key, *this);
@@ -1308,7 +1236,7 @@ template <typename K, typename M>
 typename PersistentCache<K, std::string, M>::OptionalData PersistentCache<K, std::string, M>::get_or_put_data(
     K const& key, PersistentCache<K, std::string, M>::Loader const& load_func)
 {
-    std::string const& skey = IOTraits<K>::serialize(key);
+    std::string const& skey = CacheCodec<K>::encode(key);
     auto sload_func = [&](std::string const&, PersistentStringCache const&)
     {
         load_func(key, *this);
@@ -1318,38 +1246,38 @@ typename PersistentCache<K, std::string, M>::OptionalData PersistentCache<K, std
     {
         return OptionalData();
     }
-    return OptionalData({sdata->value, IOTraits<M>::deserialize(sdata->metadata)});
+    return OptionalData({sdata->value, CacheCodec<M>::decode(sdata->metadata)});
 }
 
 template <typename K, typename M>
 bool PersistentCache<K, std::string, M>::put_metadata(K const& key, M const& metadata)
 {
-    return p_->put_metadata(IOTraits<K>::serialize(key), IOTraits<M>::serialize(metadata));
+    return p_->put_metadata(CacheCodec<K>::encode(key), CacheCodec<M>::encode(metadata));
 }
 
 template <typename K, typename M>
-typename PersistentCache<K, std::string, M>::OptionalValue PersistentCache<K, std::string, M>::take(K const& key) const
+typename PersistentCache<K, std::string, M>::OptionalValue PersistentCache<K, std::string, M>::take(K const& key)
 {
-    auto svalue = p_->take(IOTraits<K>::serialize(key));
+    auto svalue = p_->take(CacheCodec<K>::encode(key));
     return svalue ? OptionalValue(*svalue) : OptionalValue();
 }
 
 template <typename K, typename M>
 typename PersistentCache<K, std::string, M>::OptionalData PersistentCache<K, std::string, M>::take_data(
-    K const& key) const
+    K const& key)
 {
-    auto sdata = p_->take_data(IOTraits<K>::serialize(key));
+    auto sdata = p_->take_data(CacheCodec<K>::encode(key));
     if (!sdata)
     {
         return OptionalData();
     }
-    return OptionalData({sdata->value, IOTraits<M>::deserialize(sdata->metadata)});
+    return OptionalData({sdata->value, CacheCodec<M>::decode(sdata->metadata)});
 }
 
 template <typename K, typename M>
 bool PersistentCache<K, std::string, M>::invalidate(K const& key)
 {
-    return p_->invalidate(IOTraits<K>::serialize(key));
+    return p_->invalidate(CacheCodec<K>::encode(key));
 }
 
 template <typename K, typename M>
@@ -1365,7 +1293,7 @@ void PersistentCache<K, std::string, M>::invalidate(It begin, It end)
     std::vector<std::string> skeys;
     for (auto&& it = begin; it < end; ++it)
     {
-        skeys.push_back(IOTraits<K>::serialize(*it));
+        skeys.push_back(CacheCodec<K>::encode(*it));
     }
     p_->invalidate(skeys.begin(), skeys.end());
 }
@@ -1386,7 +1314,7 @@ template <typename K, typename M>
 bool PersistentCache<K, std::string, M>::touch(K const& key,
                                                std::chrono::time_point<std::chrono::steady_clock> expiry_time)
 {
-    return p_->touch(IOTraits<K>::serialize(key), expiry_time);
+    return p_->touch(CacheCodec<K>::encode(key), expiry_time);
 }
 
 template <typename K, typename M>
@@ -1414,23 +1342,13 @@ void PersistentCache<K, std::string, M>::set_headroom(int64_t headroom)
 }
 
 template <typename K, typename M>
-void PersistentCache<K, std::string, M>::set_handler(unsigned mask, EventCallback cb)
+void PersistentCache<K, std::string, M>::set_handler(CacheEvent events, EventCallback cb)
 {
     auto scb = [cb](std::string const& key, CacheEvent ev, PersistentCacheStats const& c)
     {
-        cb(IOTraits<K>::deserialize(key), ev, c);
+        cb(CacheCodec<K>::decode(key), ev, c);
     };
-    p_->set_handler(mask, scb);
-}
-
-template <typename K, typename M>
-void PersistentCache<K, std::string, M>::set_handler(CacheEvent event, EventCallback cb) noexcept
-{
-    auto scb = [cb](std::string const& key, CacheEvent ev, PersistentCacheStats const& c)
-    {
-        cb(IOTraits<K>::deserialize(key), ev, c);
-    };
-    p_->set_handler(event, scb);
+    p_->set_handler(events, scb);
 }
 
 // Specialization for M = std::string.
@@ -1439,17 +1357,7 @@ template <typename K, typename V>
 class PersistentCache<K, V, std::string>
 {
 public:
-    template <typename T>
-    struct IOTraits
-    {
-        static std::string serialize(T const& value);
-        static T deserialize(std::string const& s);
-    };
-
     typedef std::unique_ptr<PersistentCache<K, V, std::string>> UPtr;
-
-    template <typename T>
-    using Optional = boost::optional<T>;
 
     typedef Optional<K> OptionalKey;
     typedef Optional<V> OptionalValue;
@@ -1505,8 +1413,8 @@ public:
 
     bool put_metadata(K const& key, std::string const& metadata);
     bool put_metadata(K const& key, char const* metadata, int64_t size);
-    OptionalValue take(K const& key) const;
-    OptionalData take_data(K const& key) const;
+    OptionalValue take(K const& key);
+    OptionalData take_data(K const& key);
     bool invalidate(K const& key);
     void invalidate(std::vector<K> const& keys);
     template <typename It>
@@ -1523,8 +1431,7 @@ public:
 
     typedef std::function<void(K const& key, CacheEvent ev, PersistentCacheStats const& stats)> EventCallback;
 
-    void set_handler(unsigned mask, EventCallback cb);
-    void set_handler(CacheEvent event, EventCallback cb) noexcept;
+    void set_handler(CacheEvent events, EventCallback cb);
 
 private:
     PersistentCache(std::string const& cache_path, int64_t max_size_in_bytes, CacheDiscardPolicy policy);
@@ -1565,34 +1472,34 @@ typename PersistentCache<K, V, std::string>::UPtr PersistentCache<K, V, std::str
 template <typename K, typename V>
 typename PersistentCache<K, V, std::string>::OptionalValue PersistentCache<K, V, std::string>::get(K const& key) const
 {
-    auto const& svalue = p_->get(IOTraits<K>::serialize(key));
-    return svalue ? OptionalValue(IOTraits<V>::deserialize(*svalue)) : OptionalValue();
+    auto const& svalue = p_->get(CacheCodec<K>::encode(key));
+    return svalue ? OptionalValue(CacheCodec<V>::decode(*svalue)) : OptionalValue();
 }
 
 template <typename K, typename V>
 typename PersistentCache<K, V, std::string>::OptionalData PersistentCache<K, V, std::string>::get_data(
     K const& key) const
 {
-    auto sdata = p_->get_data(IOTraits<K>::serialize(key));
+    auto sdata = p_->get_data(CacheCodec<K>::encode(key));
     if (!sdata)
     {
         return OptionalData();
     }
-    return OptionalData({IOTraits<V>::deserialize(sdata->value), sdata->metadata});
+    return OptionalData({CacheCodec<V>::decode(sdata->value), sdata->metadata});
 }
 
 template <typename K, typename V>
 typename PersistentCache<K, V, std::string>::OptionalMetadata PersistentCache<K, V, std::string>::get_metadata(
     K const& key) const
 {
-    auto smeta = p_->get_metadata(IOTraits<K>::serialize(key));
+    auto smeta = p_->get_metadata(CacheCodec<K>::encode(key));
     return smeta ? OptionalMetadata(*smeta) : OptionalMetadata();
 }
 
 template <typename K, typename V>
 bool PersistentCache<K, V, std::string>::contains_key(K const& key) const
 {
-    return p_->contains_key(IOTraits<K>::serialize(key));
+    return p_->contains_key(CacheCodec<K>::encode(key));
 }
 
 template <typename K, typename V>
@@ -1642,7 +1549,7 @@ bool PersistentCache<K, V, std::string>::put(K const& key,
                                              V const& value,
                                              std::chrono::time_point<std::chrono::steady_clock> expiry_time)
 {
-    return p_->put(IOTraits<K>::serialize(key), IOTraits<V>::serialize(value), expiry_time);
+    return p_->put(CacheCodec<K>::encode(key), CacheCodec<V>::encode(value), expiry_time);
 }
 
 template <typename K, typename V>
@@ -1651,8 +1558,8 @@ bool PersistentCache<K, V, std::string>::put(K const& key,
                                              std::string const& metadata,
                                              std::chrono::time_point<std::chrono::steady_clock> expiry_time)
 {
-    std::string v = IOTraits<V>::serialize(value);
-    return p_->put(IOTraits<K>::serialize(key), v.data(), v.size(), metadata.data(), metadata.size(), expiry_time);
+    std::string v = CacheCodec<V>::encode(value);
+    return p_->put(CacheCodec<K>::encode(key), v.data(), v.size(), metadata.data(), metadata.size(), expiry_time);
 }
 
 template <typename K, typename V>
@@ -1662,28 +1569,28 @@ bool PersistentCache<K, V, std::string>::put(K const& key,
                                              int64_t size,
                                              std::chrono::time_point<std::chrono::steady_clock> expiry_time)
 {
-    std::string v = IOTraits<V>::serialize(value);
-    return p_->put(IOTraits<K>::serialize(key), v.data(), v.size(), metadata, size, expiry_time);
+    std::string v = CacheCodec<V>::encode(value);
+    return p_->put(CacheCodec<K>::encode(key), v.data(), v.size(), metadata, size, expiry_time);
 }
 
 template <typename K, typename V>
 typename PersistentCache<K, V, std::string>::OptionalValue PersistentCache<K, V, std::string>::get_or_put(
     K const& key, PersistentCache<K, V, std::string>::Loader const& load_func)
 {
-    std::string const& skey = IOTraits<K>::serialize(key);
+    std::string const& skey = CacheCodec<K>::encode(key);
     auto sload_func = [&](std::string const&, PersistentStringCache const&)
     {
         load_func(key, *this);
     };
     auto svalue = p_->get_or_put(skey, sload_func);
-    return svalue ? OptionalValue(IOTraits<V>::deserialize(*svalue)) : OptionalValue();
+    return svalue ? OptionalValue(CacheCodec<V>::decode(*svalue)) : OptionalValue();
 }
 
 template <typename K, typename V>
 typename PersistentCache<K, V, std::string>::OptionalData PersistentCache<K, V, std::string>::get_or_put_data(
     K const& key, PersistentCache<K, V, std::string>::Loader const& load_func)
 {
-    std::string const& skey = IOTraits<K>::serialize(key);
+    std::string const& skey = CacheCodec<K>::encode(key);
     auto sload_func = [&](std::string const&, PersistentStringCache const&)
     {
         load_func(key, *this);
@@ -1693,44 +1600,44 @@ typename PersistentCache<K, V, std::string>::OptionalData PersistentCache<K, V, 
     {
         return OptionalData();
     }
-    return OptionalData({IOTraits<V>::deserialize(sdata->value), sdata->metadata});
+    return OptionalData({CacheCodec<V>::decode(sdata->value), sdata->metadata});
 }
 
 template <typename K, typename V>
 bool PersistentCache<K, V, std::string>::put_metadata(K const& key, std::string const& metadata)
 {
-    return p_->put_metadata(IOTraits<K>::serialize(key), metadata);
+    return p_->put_metadata(CacheCodec<K>::encode(key), metadata);
 }
 
 template <typename K, typename V>
 bool PersistentCache<K, V, std::string>::put_metadata(K const& key, char const* metadata, int64_t size)
 {
-    return p_->put_metadata(IOTraits<K>::serialize(key), metadata, size);
+    return p_->put_metadata(CacheCodec<K>::encode(key), metadata, size);
 }
 
 template <typename K, typename V>
-typename PersistentCache<K, V, std::string>::OptionalValue PersistentCache<K, V, std::string>::take(K const& key) const
+typename PersistentCache<K, V, std::string>::OptionalValue PersistentCache<K, V, std::string>::take(K const& key)
 {
-    auto svalue = p_->take(IOTraits<K>::serialize(key));
-    return svalue ? OptionalValue(IOTraits<V>::deserialize(*svalue)) : OptionalValue();
+    auto svalue = p_->take(CacheCodec<K>::encode(key));
+    return svalue ? OptionalValue(CacheCodec<V>::decode(*svalue)) : OptionalValue();
 }
 
 template <typename K, typename V>
 typename PersistentCache<K, V, std::string>::OptionalData PersistentCache<K, V, std::string>::take_data(
-    K const& key) const
+    K const& key)
 {
-    auto sdata = p_->take_data(IOTraits<K>::serialize(key));
+    auto sdata = p_->take_data(CacheCodec<K>::encode(key));
     if (!sdata)
     {
         return OptionalData();
     }
-    return OptionalData({IOTraits<V>::deserialize(sdata->value), sdata->metadata});
+    return OptionalData({CacheCodec<V>::decode(sdata->value), sdata->metadata});
 }
 
 template <typename K, typename V>
 bool PersistentCache<K, V, std::string>::invalidate(K const& key)
 {
-    return p_->invalidate(IOTraits<K>::serialize(key));
+    return p_->invalidate(CacheCodec<K>::encode(key));
 }
 
 template <typename K, typename V>
@@ -1746,7 +1653,7 @@ void PersistentCache<K, V, std::string>::invalidate(It begin, It end)
     std::vector<std::string> skeys;
     for (auto&& it = begin; it < end; ++it)
     {
-        skeys.push_back(IOTraits<K>::serialize(*it));
+        skeys.push_back(CacheCodec<K>::encode(*it));
     }
     p_->invalidate(skeys.begin(), skeys.end());
 }
@@ -1767,7 +1674,7 @@ template <typename K, typename V>
 bool PersistentCache<K, V, std::string>::touch(K const& key,
                                                std::chrono::time_point<std::chrono::steady_clock> expiry_time)
 {
-    return p_->touch(IOTraits<K>::serialize(key), expiry_time);
+    return p_->touch(CacheCodec<K>::encode(key), expiry_time);
 }
 
 template <typename K, typename V>
@@ -1795,23 +1702,13 @@ void PersistentCache<K, V, std::string>::set_headroom(int64_t headroom)
 }
 
 template <typename K, typename V>
-void PersistentCache<K, V, std::string>::set_handler(unsigned mask, EventCallback cb)
+void PersistentCache<K, V, std::string>::set_handler(CacheEvent events, EventCallback cb)
 {
     auto scb = [cb](std::string const& key, CacheEvent ev, PersistentCacheStats const& c)
     {
-        cb(IOTraits<K>::deserialize(key), ev, c);
+        cb(CacheCodec<K>::decode(key), ev, c);
     };
-    p_->set_handler(mask, scb);
-}
-
-template <typename K, typename V>
-void PersistentCache<K, V, std::string>::set_handler(CacheEvent event, EventCallback cb) noexcept
-{
-    auto scb = [cb](std::string const& key, CacheEvent ev, PersistentCacheStats const& c)
-    {
-        cb(IOTraits<K>::deserialize(key), ev, c);
-    };
-    p_->set_handler(event, scb);
+    p_->set_handler(events, scb);
 }
 
 // Specialization for K and V = std::string.
@@ -1820,17 +1717,7 @@ template <typename M>
 class PersistentCache<std::string, std::string, M>
 {
 public:
-    template <typename T>
-    struct IOTraits
-    {
-        static std::string serialize(T const& value);
-        static T deserialize(std::string const& s);
-    };
-
     typedef std::unique_ptr<PersistentCache<std::string, std::string, M>> UPtr;
-
-    template <typename T>
-    using Optional = boost::optional<T>;
 
     typedef Optional<std::string> OptionalKey;
     typedef Optional<std::string> OptionalValue;
@@ -1889,8 +1776,8 @@ public:
     OptionalData get_or_put_data(std::string const& key, Loader const& load_func);
 
     bool put_metadata(std::string const& key, M const& metadata);
-    OptionalValue take(std::string const& key) const;
-    OptionalData take_data(std::string const& key) const;
+    OptionalValue take(std::string const& key);
+    OptionalData take_data(std::string const& key);
     bool invalidate(std::string const& key);
     void invalidate(std::vector<std::string> const& keys);
     template <typename It>
@@ -1907,8 +1794,7 @@ public:
 
     typedef std::function<void(std::string const& key, CacheEvent ev, PersistentCacheStats const& stats)> EventCallback;
 
-    void set_handler(unsigned mask, EventCallback cb);
-    void set_handler(CacheEvent event, EventCallback cb) noexcept;
+    void set_handler(CacheEvent events, EventCallback cb);
 
 private:
     PersistentCache(std::string const& cache_path, int64_t max_size_in_bytes, CacheDiscardPolicy policy);
@@ -1964,7 +1850,7 @@ typename PersistentCache<std::string, std::string, M>::OptionalData
     {
         return OptionalData();
     }
-    return OptionalData({sdata->value, IOTraits<M>::deserialize(sdata->metadata)});
+    return OptionalData({sdata->value, CacheCodec<M>::decode(sdata->metadata)});
 }
 
 template <typename M>
@@ -1972,7 +1858,7 @@ typename PersistentCache<std::string, std::string, M>::OptionalMetadata
     PersistentCache<std::string, std::string, M>::get_metadata(std::string const& key) const
 {
     auto smeta = p_->get_metadata(key);
-    return smeta ? OptionalMetadata(IOTraits<M>::deserialize(*smeta)) : OptionalMetadata();
+    return smeta ? OptionalMetadata(CacheCodec<M>::decode(*smeta)) : OptionalMetadata();
 }
 
 template <typename M>
@@ -2046,7 +1932,7 @@ bool PersistentCache<std::string, std::string, M>::put(std::string const& key,
                                                        M const& metadata,
                                                        std::chrono::time_point<std::chrono::steady_clock> expiry_time)
 {
-    return p_->put(key, value, IOTraits<M>::serialize(metadata), expiry_time);
+    return p_->put(key, value, CacheCodec<M>::encode(metadata), expiry_time);
 }
 
 template <typename M>
@@ -2056,7 +1942,7 @@ bool PersistentCache<std::string, std::string, M>::put(std::string const& key,
                                                        M const& metadata,
                                                        std::chrono::time_point<std::chrono::steady_clock> expiry_time)
 {
-    std::string md = IOTraits<M>::serialize(metadata);
+    std::string md = CacheCodec<M>::encode(metadata);
     return p_->put(key, value, size, md.data(), md.size(), expiry_time);
 }
 
@@ -2087,18 +1973,18 @@ typename PersistentCache<std::string, std::string, M>::OptionalData
     {
         return OptionalData();
     }
-    return OptionalData({sdata->value, IOTraits<M>::deserialize(sdata->metadata)});
+    return OptionalData({sdata->value, CacheCodec<M>::decode(sdata->metadata)});
 }
 
 template <typename M>
 bool PersistentCache<std::string, std::string, M>::put_metadata(std::string const& key, M const& metadata)
 {
-    return p_->put_metadata(key, IOTraits<M>::serialize(metadata));
+    return p_->put_metadata(key, CacheCodec<M>::encode(metadata));
 }
 
 template <typename M>
 typename PersistentCache<std::string, std::string, M>::OptionalValue PersistentCache<std::string, std::string, M>::take(
-    std::string const& key) const
+    std::string const& key)
 {
     auto svalue = p_->take(key);
     return svalue ? OptionalValue(*svalue) : OptionalValue();
@@ -2106,14 +1992,14 @@ typename PersistentCache<std::string, std::string, M>::OptionalValue PersistentC
 
 template <typename M>
 typename PersistentCache<std::string, std::string, M>::OptionalData
-    PersistentCache<std::string, std::string, M>::take_data(std::string const& key) const
+    PersistentCache<std::string, std::string, M>::take_data(std::string const& key)
 {
     auto sdata = p_->take_data(key);
     if (!sdata)
     {
         return OptionalData();
     }
-    return OptionalData({sdata->value, IOTraits<M>::deserialize(sdata->metadata)});
+    return OptionalData({sdata->value, CacheCodec<M>::decode(sdata->metadata)});
 }
 
 template <typename M>
@@ -2184,15 +2070,9 @@ void PersistentCache<std::string, std::string, M>::set_headroom(int64_t headroom
 }
 
 template <typename M>
-void PersistentCache<std::string, std::string, M>::set_handler(unsigned mask, EventCallback cb)
+void PersistentCache<std::string, std::string, M>::set_handler(CacheEvent events, EventCallback cb)
 {
-    p_->set_handler(mask, cb);
-}
-
-template <typename M>
-void PersistentCache<std::string, std::string, M>::set_handler(CacheEvent event, EventCallback cb) noexcept
-{
-    p_->set_handler(event, cb);
+    p_->set_handler(events, cb);
 }
 
 // Specialization for K and M = std::string.
@@ -2201,17 +2081,7 @@ template <typename V>
 class PersistentCache<std::string, V, std::string>
 {
 public:
-    template <typename T>
-    struct IOTraits
-    {
-        static std::string serialize(T const& value);
-        static T deserialize(std::string const& s);
-    };
-
     typedef std::unique_ptr<PersistentCache<std::string, V, std::string>> UPtr;
-
-    template <typename T>
-    using Optional = boost::optional<T>;
 
     typedef Optional<std::string> OptionalKey;
     typedef Optional<V> OptionalValue;
@@ -2267,8 +2137,8 @@ public:
 
     bool put_metadata(std::string const& key, std::string const& metadata);
     bool put_metadata(std::string const& key, char const* metadata, int64_t size);
-    OptionalValue take(std::string const& key) const;
-    OptionalData take_data(std::string const& key) const;
+    OptionalValue take(std::string const& key);
+    OptionalData take_data(std::string const& key);
     bool invalidate(std::string const& key);
     void invalidate(std::vector<std::string> const& keys);
     template <typename It>
@@ -2285,8 +2155,7 @@ public:
 
     typedef std::function<void(std::string const& key, CacheEvent ev, PersistentCacheStats const& stats)> EventCallback;
 
-    void set_handler(unsigned mask, EventCallback cb);
-    void set_handler(CacheEvent event, EventCallback cb) noexcept;
+    void set_handler(CacheEvent events, EventCallback cb);
 
 private:
     PersistentCache(std::string const& cache_path, int64_t max_size_in_bytes, CacheDiscardPolicy policy);
@@ -2330,7 +2199,7 @@ typename PersistentCache<std::string, V, std::string>::OptionalValue PersistentC
     std::string const& key) const
 {
     auto const& svalue = p_->get(key);
-    return svalue ? OptionalValue(IOTraits<V>::deserialize(*svalue)) : OptionalValue();
+    return svalue ? OptionalValue(CacheCodec<V>::decode(*svalue)) : OptionalValue();
 }
 
 template <typename V>
@@ -2342,7 +2211,7 @@ typename PersistentCache<std::string, V, std::string>::OptionalData
     {
         return OptionalData();
     }
-    return OptionalData({IOTraits<V>::deserialize(sdata->value), sdata->metadata});
+    return OptionalData({CacheCodec<V>::decode(sdata->value), sdata->metadata});
 }
 
 template <typename V>
@@ -2406,7 +2275,7 @@ bool PersistentCache<std::string, V, std::string>::put(std::string const& key,
                                                        V const& value,
                                                        std::chrono::time_point<std::chrono::steady_clock> expiry_time)
 {
-    return p_->put(key, IOTraits<V>::serialize(value), expiry_time);
+    return p_->put(key, CacheCodec<V>::encode(value), expiry_time);
 }
 
 template <typename V>
@@ -2415,7 +2284,7 @@ bool PersistentCache<std::string, V, std::string>::put(std::string const& key,
                                                        std::string const& metadata,
                                                        std::chrono::time_point<std::chrono::steady_clock> expiry_time)
 {
-    std::string v = IOTraits<V>::serialize(value);
+    std::string v = CacheCodec<V>::encode(value);
     return p_->put(key, v.data(), v.size(), metadata.data(), metadata.size(), expiry_time);
 }
 
@@ -2426,7 +2295,7 @@ bool PersistentCache<std::string, V, std::string>::put(std::string const& key,
                                                        int64_t size,
                                                        std::chrono::time_point<std::chrono::steady_clock> expiry_time)
 {
-    std::string v = IOTraits<V>::serialize(value);
+    std::string v = CacheCodec<V>::encode(value);
     return p_->put(key, v.data(), v.size(), metadata, size, expiry_time);
 }
 
@@ -2440,7 +2309,7 @@ typename PersistentCache<std::string, V, std::string>::OptionalValue
         load_func(key, *this);
     };
     auto svalue = p_->get_or_put(key, sload_func);
-    return svalue ? OptionalValue(IOTraits<V>::deserialize(*svalue)) : OptionalValue();
+    return svalue ? OptionalValue(CacheCodec<V>::decode(*svalue)) : OptionalValue();
 }
 
 template <typename V>
@@ -2457,7 +2326,7 @@ typename PersistentCache<std::string, V, std::string>::OptionalData
     {
         return OptionalData();
     }
-    return OptionalData({IOTraits<V>::deserialize(sdata->value), sdata->metadata});
+    return OptionalData({CacheCodec<V>::decode(sdata->value), sdata->metadata});
 }
 
 template <typename V>
@@ -2476,22 +2345,22 @@ bool PersistentCache<std::string, V, std::string>::put_metadata(std::string cons
 
 template <typename V>
 typename PersistentCache<std::string, V, std::string>::OptionalValue PersistentCache<std::string, V, std::string>::take(
-    std::string const& key) const
+    std::string const& key)
 {
     auto svalue = p_->take(key);
-    return svalue ? OptionalValue(IOTraits<V>::deserialize(*svalue)) : OptionalValue();
+    return svalue ? OptionalValue(CacheCodec<V>::decode(*svalue)) : OptionalValue();
 }
 
 template <typename V>
 typename PersistentCache<std::string, V, std::string>::OptionalData
-    PersistentCache<std::string, V, std::string>::take_data(std::string const& key) const
+    PersistentCache<std::string, V, std::string>::take_data(std::string const& key)
 {
     auto sdata = p_->take_data(key);
     if (!sdata)
     {
         return OptionalData();
     }
-    return OptionalData({IOTraits<V>::deserialize(sdata->value), sdata->metadata});
+    return OptionalData({CacheCodec<V>::decode(sdata->value), sdata->metadata});
 }
 
 template <typename V>
@@ -2562,15 +2431,9 @@ void PersistentCache<std::string, V, std::string>::set_headroom(int64_t headroom
 }
 
 template <typename V>
-void PersistentCache<std::string, V, std::string>::set_handler(unsigned mask, EventCallback cb)
+void PersistentCache<std::string, V, std::string>::set_handler(CacheEvent events, EventCallback cb)
 {
-    p_->set_handler(mask, cb);
-}
-
-template <typename V>
-void PersistentCache<std::string, V, std::string>::set_handler(CacheEvent event, EventCallback cb) noexcept
-{
-    p_->set_handler(event, cb);
+    p_->set_handler(events, cb);
 }
 
 // Specialization for V and M = std::string.
@@ -2579,17 +2442,7 @@ template <typename K>
 class PersistentCache<K, std::string, std::string>
 {
 public:
-    template <typename T>
-    struct IOTraits
-    {
-        static std::string serialize(T const& value);
-        static T deserialize(std::string const& s);
-    };
-
     typedef std::unique_ptr<PersistentCache<K, std::string, std::string>> UPtr;
-
-    template <typename T>
-    using Optional = boost::optional<T>;
 
     typedef Optional<K> OptionalKey;
     typedef Optional<std::string> OptionalValue;
@@ -2650,8 +2503,8 @@ public:
 
     bool put_metadata(K const& key, std::string const& metadata);
     bool put_metadata(K const& key, char const* metadata, int64_t size);
-    OptionalValue take(K const& key) const;
-    OptionalData take_data(K const& key) const;
+    OptionalValue take(K const& key);
+    OptionalData take_data(K const& key);
     bool invalidate(K const& key);
     void invalidate(std::vector<K> const& keys);
     template <typename It>
@@ -2668,8 +2521,7 @@ public:
 
     typedef std::function<void(K const& key, CacheEvent ev, PersistentCacheStats const& stats)> EventCallback;
 
-    void set_handler(unsigned mask, EventCallback cb);
-    void set_handler(CacheEvent event, EventCallback cb) noexcept;
+    void set_handler(CacheEvent events, EventCallback cb);
 
 private:
     PersistentCache(std::string const& cache_path, int64_t max_size_in_bytes, CacheDiscardPolicy policy);
@@ -2712,7 +2564,7 @@ template <typename K>
 typename PersistentCache<K, std::string, std::string>::OptionalValue PersistentCache<K, std::string, std::string>::get(
     K const& key) const
 {
-    auto const& svalue = p_->get(IOTraits<K>::serialize(key));
+    auto const& svalue = p_->get(CacheCodec<K>::encode(key));
     return svalue ? OptionalValue(*svalue) : OptionalValue();
 }
 
@@ -2720,7 +2572,7 @@ template <typename K>
 typename PersistentCache<K, std::string, std::string>::OptionalData
     PersistentCache<K, std::string, std::string>::get_data(K const& key) const
 {
-    auto sdata = p_->get_data(IOTraits<K>::serialize(key));
+    auto sdata = p_->get_data(CacheCodec<K>::encode(key));
     if (!sdata)
     {
         return OptionalData();
@@ -2732,14 +2584,14 @@ template <typename K>
 typename PersistentCache<K, std::string, std::string>::OptionalMetadata
     PersistentCache<K, std::string, std::string>::get_metadata(K const& key) const
 {
-    auto smeta = p_->get_metadata(IOTraits<K>::serialize(key));
+    auto smeta = p_->get_metadata(CacheCodec<K>::encode(key));
     return smeta ? OptionalMetadata(*smeta) : OptionalMetadata();
 }
 
 template <typename K>
 bool PersistentCache<K, std::string, std::string>::contains_key(K const& key) const
 {
-    return p_->contains_key(IOTraits<K>::serialize(key));
+    return p_->contains_key(CacheCodec<K>::encode(key));
 }
 
 template <typename K>
@@ -2789,7 +2641,7 @@ bool PersistentCache<K, std::string, std::string>::put(K const& key,
                                                        std::string const& value,
                                                        std::chrono::time_point<std::chrono::steady_clock> expiry_time)
 {
-    return p_->put(IOTraits<K>::serialize(key), value, expiry_time);
+    return p_->put(CacheCodec<K>::encode(key), value, expiry_time);
 }
 
 template <typename K>
@@ -2798,7 +2650,7 @@ bool PersistentCache<K, std::string, std::string>::put(K const& key,
                                                        int64_t size,
                                                        std::chrono::time_point<std::chrono::steady_clock> expiry_time)
 {
-    return p_->put(IOTraits<K>::serialize(key), value, size, expiry_time);
+    return p_->put(CacheCodec<K>::encode(key), value, size, expiry_time);
 }
 
 template <typename K>
@@ -2807,7 +2659,7 @@ bool PersistentCache<K, std::string, std::string>::put(K const& key,
                                                        std::string const& metadata,
                                                        std::chrono::time_point<std::chrono::steady_clock> expiry_time)
 {
-    return p_->put(IOTraits<K>::serialize(key), value, metadata, expiry_time);
+    return p_->put(CacheCodec<K>::encode(key), value, metadata, expiry_time);
 }
 
 template <typename K>
@@ -2818,7 +2670,7 @@ bool PersistentCache<K, std::string, std::string>::put(K const& key,
                                                        int64_t metadata_size,
                                                        std::chrono::time_point<std::chrono::steady_clock> expiry_time)
 {
-    return p_->put(IOTraits<K>::serialize(key), value, value_size, metadata, metadata_size, expiry_time);
+    return p_->put(CacheCodec<K>::encode(key), value, value_size, metadata, metadata_size, expiry_time);
 }
 
 template <typename K>
@@ -2826,7 +2678,7 @@ typename PersistentCache<K, std::string, std::string>::OptionalValue
     PersistentCache<K, std::string, std::string>::get_or_put(
         K const& key, PersistentCache<K, std::string, std::string>::Loader const& load_func)
 {
-    auto skey = IOTraits<K>::serialize(key);
+    auto skey = CacheCodec<K>::encode(key);
     auto sload_func = [&](std::string const&, PersistentStringCache const&)
     {
         load_func(key, *this);
@@ -2840,7 +2692,7 @@ typename PersistentCache<K, std::string, std::string>::OptionalData
     PersistentCache<K, std::string, std::string>::get_or_put_data(
         K const& key, PersistentCache<K, std::string, std::string>::Loader const& load_func)
 {
-    auto skey = IOTraits<K>::serialize(key);
+    auto skey = CacheCodec<K>::encode(key);
     auto sload_func = [&](std::string const&, PersistentStringCache const&)
     {
         load_func(key, *this);
@@ -2856,28 +2708,28 @@ typename PersistentCache<K, std::string, std::string>::OptionalData
 template <typename K>
 bool PersistentCache<K, std::string, std::string>::put_metadata(K const& key, std::string const& metadata)
 {
-    return p_->put_metadata(IOTraits<K>::serialize(key), metadata);
+    return p_->put_metadata(CacheCodec<K>::encode(key), metadata);
 }
 
 template <typename K>
 bool PersistentCache<K, std::string, std::string>::put_metadata(K const& key, char const* metadata, int64_t size)
 {
-    return p_->put_metadata(IOTraits<K>::serialize(key), metadata, size);
+    return p_->put_metadata(CacheCodec<K>::encode(key), metadata, size);
 }
 
 template <typename K>
 typename PersistentCache<K, std::string, std::string>::OptionalValue PersistentCache<K, std::string, std::string>::take(
-    K const& key) const
+    K const& key)
 {
-    auto svalue = p_->take(IOTraits<K>::serialize(key));
+    auto svalue = p_->take(CacheCodec<K>::encode(key));
     return svalue ? OptionalValue(*svalue) : OptionalValue();
 }
 
 template <typename K>
 typename PersistentCache<K, std::string, std::string>::OptionalData
-    PersistentCache<K, std::string, std::string>::take_data(K const& key) const
+    PersistentCache<K, std::string, std::string>::take_data(K const& key)
 {
-    auto sdata = p_->take_data(IOTraits<K>::serialize(key));
+    auto sdata = p_->take_data(CacheCodec<K>::encode(key));
     if (!sdata)
     {
         return OptionalData();
@@ -2888,7 +2740,7 @@ typename PersistentCache<K, std::string, std::string>::OptionalData
 template <typename K>
 bool PersistentCache<K, std::string, std::string>::invalidate(K const& key)
 {
-    return p_->invalidate(IOTraits<K>::serialize(key));
+    return p_->invalidate(CacheCodec<K>::encode(key));
 }
 
 template <typename K>
@@ -2904,7 +2756,7 @@ void PersistentCache<K, std::string, std::string>::invalidate(It begin, It end)
     std::vector<std::string> skeys;
     for (auto&& it = begin; it < end; ++it)
     {
-        skeys.push_back(IOTraits<K>::serialize(*it));
+        skeys.push_back(CacheCodec<K>::encode(*it));
     }
     p_->invalidate(skeys.begin(), skeys.end());
 }
@@ -2925,7 +2777,7 @@ template <typename K>
 bool PersistentCache<K, std::string, std::string>::touch(K const& key,
                                                          std::chrono::time_point<std::chrono::steady_clock> expiry_time)
 {
-    return p_->touch(IOTraits<K>::serialize(key), expiry_time);
+    return p_->touch(CacheCodec<K>::encode(key), expiry_time);
 }
 
 template <typename K>
@@ -2953,23 +2805,13 @@ void PersistentCache<K, std::string, std::string>::set_headroom(int64_t headroom
 }
 
 template <typename K>
-void PersistentCache<K, std::string, std::string>::set_handler(unsigned mask, EventCallback cb)
+void PersistentCache<K, std::string, std::string>::set_handler(CacheEvent events, EventCallback cb)
 {
     auto scb = [cb](std::string const& key, CacheEvent ev, PersistentCacheStats const& c)
     {
-        cb(IOTraits<K>::deserialize(key), ev, c);
+        cb(CacheCodec<K>::decode(key), ev, c);
     };
-    p_->set_handler(mask, scb);
-}
-
-template <typename K>
-void PersistentCache<K, std::string, std::string>::set_handler(CacheEvent event, EventCallback cb) noexcept
-{
-    auto scb = [cb](std::string const& key, CacheEvent ev, PersistentCacheStats const& c)
-    {
-        cb(IOTraits<K>::deserialize(key), ev, c);
-    };
-    p_->set_handler(event, scb);
+    p_->set_handler(events, scb);
 }
 
 // Specialization for K, V, and M = std::string.
@@ -2979,9 +2821,6 @@ class PersistentCache<std::string, std::string, std::string>
 {
 public:
     typedef std::unique_ptr<PersistentCache<std::string, std::string, std::string>> UPtr;
-
-    template <typename T>
-    using Optional = boost::optional<T>;
 
     typedef Optional<std::string> OptionalKey;
     typedef Optional<std::string> OptionalValue;
@@ -3043,8 +2882,8 @@ public:
 
     bool put_metadata(std::string const& key, std::string const& metadata);
     bool put_metadata(std::string const& key, char const* metadata, int64_t size);
-    OptionalValue take(std::string const& key) const;
-    OptionalData take_data(std::string const& key) const;
+    OptionalValue take(std::string const& key);
+    OptionalData take_data(std::string const& key);
     bool invalidate(std::string const& key);
     void invalidate(std::vector<std::string> const& keys);
     template <typename It>
@@ -3061,8 +2900,7 @@ public:
 
     typedef std::function<void(std::string const& key, CacheEvent ev, PersistentCacheStats const& stats)> EventCallback;
 
-    void set_handler(unsigned mask, EventCallback cb);
-    void set_handler(CacheEvent event, EventCallback cb) noexcept;
+    void set_handler(CacheEvent events, EventCallback cb);
 
 private:
     PersistentCache(std::string const& cache_path, int64_t max_size_in_bytes, CacheDiscardPolicy policy);
@@ -3241,14 +3079,14 @@ bool PersistentCache<std::string, std::string, std::string>::put_metadata(std::s
 }
 
 typename PersistentCache<std::string, std::string, std::string>::OptionalValue
-    PersistentCache<std::string, std::string, std::string>::take(std::string const& key) const
+    PersistentCache<std::string, std::string, std::string>::take(std::string const& key)
 {
     auto svalue = p_->take(key);
     return svalue ? OptionalValue(*svalue) : OptionalValue();
 }
 
 typename PersistentCache<std::string, std::string, std::string>::OptionalData
-    PersistentCache<std::string, std::string, std::string>::take_data(std::string const& key) const
+    PersistentCache<std::string, std::string, std::string>::take_data(std::string const& key)
 {
     auto sdata = p_->take_data(key);
     if (!sdata)
@@ -3315,14 +3153,9 @@ void PersistentCache<std::string, std::string, std::string>::set_headroom(int64_
     p_->set_headroom(headroom);
 }
 
-void PersistentCache<std::string, std::string, std::string>::set_handler(unsigned mask, EventCallback cb)
+void PersistentCache<std::string, std::string, std::string>::set_handler(CacheEvent events, EventCallback cb)
 {
-    p_->set_handler(mask, cb);
-}
-
-void PersistentCache<std::string, std::string, std::string>::set_handler(CacheEvent event, EventCallback cb) noexcept
-{
-    p_->set_handler(event, cb);
+    p_->set_handler(events, cb);
 }
 
 // @endcond

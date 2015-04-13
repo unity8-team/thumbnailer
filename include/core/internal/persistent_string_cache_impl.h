@@ -18,11 +18,11 @@
 
 #pragma once
 
+#include <core/internal/cache_event_indexes.h>
 #include <core/persistent_string_cache.h>
 
 #include <leveldb/db.h>
 
-#include <array>
 #include <mutex>
 #include <sstream>
 
@@ -46,8 +46,8 @@ public:
     PersistentStringCacheImpl(PersistentStringCacheImpl const&) = delete;
     PersistentStringCacheImpl& operator=(PersistentStringCacheImpl const&) = delete;
 
-    PersistentStringCacheImpl(PersistentStringCacheImpl&&) = default;
-    PersistentStringCacheImpl& operator=(PersistentStringCacheImpl&&) = default;
+    PersistentStringCacheImpl(PersistentStringCacheImpl&&) = delete;
+    PersistentStringCacheImpl& operator=(PersistentStringCacheImpl&&) = delete;
 
     ~PersistentStringCacheImpl();
 
@@ -102,8 +102,7 @@ public:
     void resize(int64_t size_in_bytes);
     void trim_to(int64_t used_size_in_bytes);
     void set_headroom(int64_t headroom);
-    void set_handler(unsigned mask, PersistentStringCache::EventCallback cb);
-    void set_handler(CacheEvent event, PersistentStringCache::EventCallback cb) noexcept;
+    void set_handler(CacheEvent events, PersistentStringCache::EventCallback cb);
 
 private:
     // Simple struct to serialize/deserialize a data tuple.
@@ -112,8 +111,8 @@ private:
 
     struct DataTuple
     {
-        int64_t atime;  // Last access time
-        int64_t etime;  // Expiry time
+        int64_t atime;  // Last access time, msec since the epoch
+        int64_t etime;  // Expiry time, msec since the epoch
         int64_t size;   // Size in bytes
 
         DataTuple(int64_t at, int64_t et, int64_t s)
@@ -132,6 +131,7 @@ private:
         {
             std::istringstream is(s);
             is >> atime >> etime >> size;
+            assert(!is.bad());
         }
 
         DataTuple(DataTuple const&) = default;
@@ -148,7 +148,7 @@ private:
         }
     };
 
-    void compute_count_and_size();
+    void init_stats();
     void init_db(leveldb::Options options);
     bool cache_is_new();
     void write_version();
@@ -163,7 +163,7 @@ private:
     void batch_delete(std::string const& key, DataTuple const& data, leveldb::WriteBatch& batch);
     void delete_entry(std::string const& key, DataTuple const& data);
     void delete_at_least(int64_t bytes_needed, std::string const& skip_key = "");
-    void call_handler(std::string const& key, CacheEventIndex event) const;
+    void call_handler(std::string const& key, core::internal::CacheEventIndex event) const;
 
     std::string make_message(leveldb::Status const& s, std::string const& msg) const;
     std::string make_message(std::string const& msg) const;

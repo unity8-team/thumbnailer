@@ -52,14 +52,11 @@ struct Person
     int age;
 };
 
-using PersonCache = core::PersistentCache<Person, string>;
-
 namespace core  // Specializations must be placed into namespace core.
 {
 
 template <>
-template <>
-string PersonCache::IOTraits<Person>::serialize(Person const& p)
+string CacheCodec<Person>::encode(Person const& p)
 {
     ostringstream s;
     s << p.age << ' ' << p.name;
@@ -67,8 +64,7 @@ string PersonCache::IOTraits<Person>::serialize(Person const& p)
 }
 
 template <>
-template <>
-Person PersonCache::IOTraits<Person>::deserialize(string const& str)
+Person CacheCodec<Person>::decode(string const& str)
 {
     istringstream s(str);
     Person p;
@@ -82,7 +78,9 @@ TEST(PersistentCache, person_key)
 {
     unlink_db(test_db);
 
-    auto c = PersonCache::open("my_db", 1024 * 1024 * 1024, CacheDiscardPolicy::LRU_only);
+    using PersonCache = core::PersistentCache<Person, string>;
+
+    auto c = PersonCache::open("my_db", 1024 * 1024 * 1024, CacheDiscardPolicy::lru_only);
 
     Person bjarne{"Bjarne Stroustrup", 65};
     c->put(bjarne, "C++ inventor");
@@ -96,49 +94,41 @@ TEST(PersistentCache, person_key)
     assert(!value);
 }
 
-using IDCCache = PersistentCache<int, double, char>;
-
 namespace core
 {
 
 template <>
-template <>
-string IDCCache::IOTraits<int>::serialize(int const& value)
+string CacheCodec<int>::encode(int const& value)
 {
     return to_string(value);
 }
 
 template <>
-template <>
-int IDCCache::IOTraits<int>::deserialize(string const& s)
+int CacheCodec<int>::decode(string const& s)
 {
     return stoi(s);
 }
 
 template <>
-template <>
-string IDCCache::IOTraits<double>::serialize(double const& value)
+string CacheCodec<double>::encode(double const& value)
 {
     return to_string(value);
 }
 
 template <>
-template <>
-double IDCCache::IOTraits<double>::deserialize(string const& s)
+double CacheCodec<double>::decode(string const& s)
 {
     return stod(s);
 }
 
 template <>
-template <>
-string IDCCache::IOTraits<char>::serialize(char const& value)
+string CacheCodec<char>::encode(char const& value)
 {
     return string(1, value);
 }
 
 template <>
-template <>
-char IDCCache::IOTraits<char>::deserialize(string const& s)
+char CacheCodec<char>::decode(string const& s)
 {
     return s.empty() ? '\0' : s[0];
 }
@@ -149,9 +139,11 @@ TEST(PersistentCache, IDCCache)
 {
     unlink_db(test_db);
 
+    using IDCCache = PersistentCache<int, double, char>;
+
     {
         // Constructor and move constructor.
-        auto c = IDCCache::open(test_db, 1024, CacheDiscardPolicy::LRU_only);
+        auto c = IDCCache::open(test_db, 1024, CacheDiscardPolicy::lru_only);
         IDCCache c2(move(*c));
         EXPECT_EQ(1024, c2.max_size_in_bytes());
     }
@@ -159,7 +151,7 @@ TEST(PersistentCache, IDCCache)
     {
         // Constructor and move assignment.
         auto c = IDCCache::open(test_db);
-        auto c2 = IDCCache::open(test_db + "2", 2048, CacheDiscardPolicy::LRU_TTL);
+        auto c2 = IDCCache::open(test_db + "2", 2048, CacheDiscardPolicy::lru_ttl);
         *c = move(*c2);
         EXPECT_EQ(2048, c->max_size_in_bytes());
     }
@@ -182,7 +174,7 @@ TEST(PersistentCache, IDCCache)
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
         EXPECT_EQ(0, c->headroom());
-        EXPECT_EQ(CacheDiscardPolicy::LRU_only, c->discard_policy());
+        EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
 
         val = c->take(42);
         EXPECT_FALSE(val);
@@ -196,7 +188,7 @@ TEST(PersistentCache, IDCCache)
 
         data = c->get_data(1);
         EXPECT_EQ(2.0, data->value);
-        EXPECT_EQ('\0', data->metadata);  // deserialize() generates '\0' for empty metadata
+        EXPECT_EQ('\0', data->metadata);  // decode() generates '\0' for empty metadata
 
         metadata = c->get_metadata(1);
         EXPECT_FALSE(metadata);  // No metadata exists, so false
@@ -251,6 +243,8 @@ TEST(PersistentCache, IDCCache)
         EXPECT_EQ(2048, stats.max_size_in_bytes());
         EXPECT_EQ(200, stats.headroom());
 
+        // Handlers
+
         bool handler_called;
         auto handler = [&](int const&, CacheEvent, PersistentCacheStats const&)
         {
@@ -262,10 +256,26 @@ TEST(PersistentCache, IDCCache)
         EXPECT_TRUE(c->put(1, 1));
         EXPECT_TRUE(handler_called);
 
-        c->set_handler(CacheEvent::Put, handler);
+        c->set_handler(CacheEvent::put, handler);
         handler_called = false;
         EXPECT_TRUE(c->put(2, 2));
         EXPECT_TRUE(handler_called);
+
+        // Event operators
+
+        typedef std::underlying_type<CacheEvent>::type EventValue;
+
+        EXPECT_EQ(0x7f, EventValue(AllCacheEvents));
+        EXPECT_EQ(0x7e, EventValue(~CacheEvent::get));
+        EXPECT_EQ(0x3, EventValue(CacheEvent::get | CacheEvent::put));
+        EXPECT_EQ(0x2, EventValue(AllCacheEvents & CacheEvent::put));
+        CacheEvent v = CacheEvent::get | CacheEvent::put;
+        v |= CacheEvent::invalidate;
+        EXPECT_EQ(0x7, EventValue(v));
+        v &= ~CacheEvent::get;
+        EXPECT_EQ(0x6, EventValue(v));
+
+        // Loader methods
 
         bool loader_called;
         auto loader = [&](int const& key, IDCCache& c)
@@ -293,48 +303,15 @@ TEST(PersistentCache, IDCCache)
 
 // K = string
 
-using SDCCache = PersistentCache<string, double, char>;
-
-namespace core
-{
-
-template <>
-template <>
-string SDCCache::IOTraits<double>::serialize(double const& value)
-{
-    return to_string(value);
-}
-
-template <>
-template <>
-double SDCCache::IOTraits<double>::deserialize(string const& s)
-{
-    return stod(s);
-}
-
-template <>
-template <>
-string SDCCache::IOTraits<char>::serialize(char const& value)
-{
-    return string(1, value);
-}
-
-template <>
-template <>
-char SDCCache::IOTraits<char>::deserialize(string const& s)
-{
-    return s.empty() ? '\0' : s[0];
-}
-
-}  // namespace core
-
 TEST(PersistentCache, SDCCache)
 {
     unlink_db(test_db);
 
+    using SDCCache = PersistentCache<string, double, char>;
+
     {
         // Constructor and move constructor.
-        auto c = SDCCache::open(test_db, 1024, CacheDiscardPolicy::LRU_only);
+        auto c = SDCCache::open(test_db, 1024, CacheDiscardPolicy::lru_only);
         SDCCache c2(move(*c));
         EXPECT_EQ(1024, c2.max_size_in_bytes());
     }
@@ -342,7 +319,7 @@ TEST(PersistentCache, SDCCache)
     {
         // Constructor and move assignment.
         auto c = SDCCache::open(test_db);
-        auto c2 = SDCCache::open(test_db + "2", 2048, CacheDiscardPolicy::LRU_TTL);
+        auto c2 = SDCCache::open(test_db + "2", 2048, CacheDiscardPolicy::lru_ttl);
         *c = move(*c2);
         EXPECT_EQ(2048, c->max_size_in_bytes());
     }
@@ -365,7 +342,7 @@ TEST(PersistentCache, SDCCache)
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
         EXPECT_EQ(0, c->headroom());
-        EXPECT_EQ(CacheDiscardPolicy::LRU_only, c->discard_policy());
+        EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
 
         val = c->take("42");
         EXPECT_FALSE(val);
@@ -379,7 +356,7 @@ TEST(PersistentCache, SDCCache)
 
         data = c->get_data("1");
         EXPECT_EQ(2.0, data->value);
-        EXPECT_EQ('\0', data->metadata);  // deserialize() generates '\0' for empty metadata
+        EXPECT_EQ('\0', data->metadata);  // decode() generates '\0' for empty metadata
 
         metadata = c->get_metadata("1");
         EXPECT_FALSE(metadata);  // No metadata exists, so false
@@ -445,7 +422,7 @@ TEST(PersistentCache, SDCCache)
         EXPECT_TRUE(c->put("1", 1));
         EXPECT_TRUE(handler_called);
 
-        c->set_handler(CacheEvent::Put, handler);
+        c->set_handler(CacheEvent::put, handler);
         handler_called = false;
         EXPECT_TRUE(c->put("2", 2));
         EXPECT_TRUE(handler_called);
@@ -473,48 +450,16 @@ TEST(PersistentCache, SDCCache)
 
 // V = string
 
-using ISCCache = PersistentCache<int, string, char>;
-
-namespace core
-{
-
-template <>
-template <>
-string ISCCache::IOTraits<int>::serialize(int const& value)
-{
-    return to_string(value);
-}
-
-template <>
-template <>
-int ISCCache::IOTraits<int>::deserialize(string const& s)
-{
-    return stoi(s);
-}
-
-template <>
-template <>
-string ISCCache::IOTraits<char>::serialize(char const& value)
-{
-    return string(1, value);
-}
-
-template <>
-template <>
-char ISCCache::IOTraits<char>::deserialize(string const& s)
-{
-    return s.empty() ? '\0' : s[0];
-}
-
-}  // namespace core
 
 TEST(PersistentCache, ISCCache)
 {
     unlink_db(test_db);
 
+    using ISCCache = PersistentCache<int, string, char>;
+
     {
         // Constructor and move constructor.
-        auto c = ISCCache::open(test_db, 1024, CacheDiscardPolicy::LRU_only);
+        auto c = ISCCache::open(test_db, 1024, CacheDiscardPolicy::lru_only);
         ISCCache c2(move(*c));
         EXPECT_EQ(1024, c2.max_size_in_bytes());
     }
@@ -522,7 +467,7 @@ TEST(PersistentCache, ISCCache)
     {
         // Constructor and move assignment.
         auto c = ISCCache::open(test_db);
-        auto c2 = ISCCache::open(test_db + "2", 2048, CacheDiscardPolicy::LRU_TTL);
+        auto c2 = ISCCache::open(test_db + "2", 2048, CacheDiscardPolicy::lru_ttl);
         *c = move(*c2);
         EXPECT_EQ(2048, c->max_size_in_bytes());
     }
@@ -545,7 +490,7 @@ TEST(PersistentCache, ISCCache)
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
         EXPECT_EQ(0, c->headroom());
-        EXPECT_EQ(CacheDiscardPolicy::LRU_only, c->discard_policy());
+        EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
 
         val = c->take(42);
         EXPECT_FALSE(val);
@@ -559,7 +504,7 @@ TEST(PersistentCache, ISCCache)
 
         data = c->get_data(1);
         EXPECT_EQ("2.0", data->value);
-        EXPECT_EQ('\0', data->metadata);  // deserialize() generates '\0' for empty metadata
+        EXPECT_EQ('\0', data->metadata);  // decode() generates '\0' for empty metadata
 
         metadata = c->get_metadata(1);
         EXPECT_FALSE(metadata);  // No metadata exists, so false
@@ -625,7 +570,7 @@ TEST(PersistentCache, ISCCache)
         EXPECT_TRUE(c->put(1, "1"));
         EXPECT_TRUE(handler_called);
 
-        c->set_handler(CacheEvent::Put, handler);
+        c->set_handler(CacheEvent::put, handler);
         handler_called = false;
         EXPECT_TRUE(c->put(2, "2"));
         EXPECT_TRUE(handler_called);
@@ -667,48 +612,15 @@ TEST(PersistentCache, ISCCache)
 
 // M = string
 
-using IDSCache = PersistentCache<int, double, string>;
-
-namespace core
-{
-
-template <>
-template <>
-string IDSCache::IOTraits<int>::serialize(int const& value)
-{
-    return to_string(value);
-}
-
-template <>
-template <>
-int IDSCache::IOTraits<int>::deserialize(string const& s)
-{
-    return stoi(s);
-}
-
-template <>
-template <>
-string IDSCache::IOTraits<double>::serialize(double const& value)
-{
-    return to_string(value);
-}
-
-template <>
-template <>
-double IDSCache::IOTraits<double>::deserialize(string const& s)
-{
-    return stod(s);
-}
-
-}  // namespace core
-
 TEST(PersistentCache, IDSCache)
 {
     unlink_db(test_db);
 
+    using IDSCache = PersistentCache<int, double, string>;
+
     {
         // Constructor and move constructor.
-        auto c = IDSCache::open(test_db, 1024, CacheDiscardPolicy::LRU_only);
+        auto c = IDSCache::open(test_db, 1024, CacheDiscardPolicy::lru_only);
         IDSCache c2(move(*c));
         EXPECT_EQ(1024, c2.max_size_in_bytes());
     }
@@ -716,7 +628,7 @@ TEST(PersistentCache, IDSCache)
     {
         // Constructor and move assignment.
         auto c = IDSCache::open(test_db);
-        auto c2 = IDSCache::open(test_db + "2", 2048, CacheDiscardPolicy::LRU_TTL);
+        auto c2 = IDSCache::open(test_db + "2", 2048, CacheDiscardPolicy::lru_ttl);
         *c = move(*c2);
         EXPECT_EQ(2048, c->max_size_in_bytes());
     }
@@ -739,7 +651,7 @@ TEST(PersistentCache, IDSCache)
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
         EXPECT_EQ(0, c->headroom());
-        EXPECT_EQ(CacheDiscardPolicy::LRU_only, c->discard_policy());
+        EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
 
         val = c->take(42);
         EXPECT_FALSE(val);
@@ -753,7 +665,7 @@ TEST(PersistentCache, IDSCache)
 
         data = c->get_data(1);
         EXPECT_EQ(2.0, data->value);
-        EXPECT_EQ("\0", data->metadata);  // deserialize() generates '\0' for empty metadata
+        EXPECT_EQ("\0", data->metadata);  // decode() generates '\0' for empty metadata
 
         metadata = c->get_metadata(1);
         EXPECT_FALSE(metadata);  // No metadata exists, so false
@@ -819,7 +731,7 @@ TEST(PersistentCache, IDSCache)
         EXPECT_TRUE(c->put(1, 1));
         EXPECT_TRUE(handler_called);
 
-        c->set_handler(CacheEvent::Put, handler);
+        c->set_handler(CacheEvent::put, handler);
         handler_called = false;
         EXPECT_TRUE(c->put(2, 2));
         EXPECT_TRUE(handler_called);
@@ -861,34 +773,15 @@ TEST(PersistentCache, IDSCache)
 
 // K and V = string
 
-using SSCCache = PersistentCache<string, string, char>;
-
-namespace core
-{
-
-template <>
-template <>
-string SSCCache::IOTraits<char>::serialize(char const& value)
-{
-    return string(1, value);
-}
-
-template <>
-template <>
-char SSCCache::IOTraits<char>::deserialize(string const& s)
-{
-    return s.empty() ? '\0' : s[0];
-}
-
-}  // namespace core
-
 TEST(PersistentCache, SSCCache)
 {
     unlink_db(test_db);
 
+    using SSCCache = PersistentCache<string, string, char>;
+
     {
         // Constructor and move constructor.
-        auto c = SSCCache::open(test_db, 1024, CacheDiscardPolicy::LRU_only);
+        auto c = SSCCache::open(test_db, 1024, CacheDiscardPolicy::lru_only);
         SSCCache c2(move(*c));
         EXPECT_EQ(1024, c2.max_size_in_bytes());
     }
@@ -896,7 +789,7 @@ TEST(PersistentCache, SSCCache)
     {
         // Constructor and move assignment.
         auto c = SSCCache::open(test_db);
-        auto c2 = SSCCache::open(test_db + "2", 2048, CacheDiscardPolicy::LRU_TTL);
+        auto c2 = SSCCache::open(test_db + "2", 2048, CacheDiscardPolicy::lru_ttl);
         *c = move(*c2);
         EXPECT_EQ(2048, c->max_size_in_bytes());
     }
@@ -919,7 +812,7 @@ TEST(PersistentCache, SSCCache)
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
         EXPECT_EQ(0, c->headroom());
-        EXPECT_EQ(CacheDiscardPolicy::LRU_only, c->discard_policy());
+        EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
 
         val = c->take("42");
         EXPECT_FALSE(val);
@@ -933,7 +826,7 @@ TEST(PersistentCache, SSCCache)
 
         data = c->get_data("1");
         EXPECT_EQ("2.0", data->value);
-        EXPECT_EQ('\0', data->metadata);  // deserialize() generates '\0' for empty metadata
+        EXPECT_EQ('\0', data->metadata);  // decode() generates '\0' for empty metadata
 
         metadata = c->get_metadata("1");
         EXPECT_FALSE(metadata);  // No metadata exists, so false
@@ -999,7 +892,7 @@ TEST(PersistentCache, SSCCache)
         EXPECT_TRUE(c->put("1", string("1")));
         EXPECT_TRUE(handler_called);
 
-        c->set_handler(CacheEvent::Put, handler);
+        c->set_handler(CacheEvent::put, handler);
         handler_called = false;
         EXPECT_TRUE(c->put("2", string("2")));
         EXPECT_TRUE(handler_called);
@@ -1041,34 +934,15 @@ TEST(PersistentCache, SSCCache)
 
 // K and M = string
 
-using SDSCache = PersistentCache<string, double, string>;
-
-namespace core
-{
-
-template <>
-template <>
-string SDSCache::IOTraits<double>::serialize(double const& value)
-{
-    return to_string(value);
-}
-
-template <>
-template <>
-double SDSCache::IOTraits<double>::deserialize(string const& s)
-{
-    return stod(s);
-}
-
-}  // namespace core
-
 TEST(PersistentCache, SDSCache)
 {
     unlink_db(test_db);
 
+    using SDSCache = PersistentCache<string, double, string>;
+
     {
         // Constructor and move constructor.
-        auto c = SDSCache::open(test_db, 1024, CacheDiscardPolicy::LRU_only);
+        auto c = SDSCache::open(test_db, 1024, CacheDiscardPolicy::lru_only);
         SDSCache c2(move(*c));
         EXPECT_EQ(1024, c2.max_size_in_bytes());
     }
@@ -1076,7 +950,7 @@ TEST(PersistentCache, SDSCache)
     {
         // Constructor and move assignment.
         auto c = SDSCache::open(test_db);
-        auto c2 = SDSCache::open(test_db + "2", 2048, CacheDiscardPolicy::LRU_TTL);
+        auto c2 = SDSCache::open(test_db + "2", 2048, CacheDiscardPolicy::lru_ttl);
         *c = move(*c2);
         EXPECT_EQ(2048, c->max_size_in_bytes());
     }
@@ -1099,7 +973,7 @@ TEST(PersistentCache, SDSCache)
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
         EXPECT_EQ(0, c->headroom());
-        EXPECT_EQ(CacheDiscardPolicy::LRU_only, c->discard_policy());
+        EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
 
         val = c->take("42");
         EXPECT_FALSE(val);
@@ -1179,7 +1053,7 @@ TEST(PersistentCache, SDSCache)
         EXPECT_TRUE(c->put("1", 1));
         EXPECT_TRUE(handler_called);
 
-        c->set_handler(CacheEvent::Put, handler);
+        c->set_handler(CacheEvent::put, handler);
         handler_called = false;
         EXPECT_TRUE(c->put("2", 2));
         EXPECT_TRUE(handler_called);
@@ -1221,34 +1095,15 @@ TEST(PersistentCache, SDSCache)
 
 // V and M = string
 
-using ISSCache = PersistentCache<int, string, string>;
-
-namespace core
-{
-
-template <>
-template <>
-string ISSCache::IOTraits<int>::serialize(int const& value)
-{
-    return to_string(value);
-}
-
-template <>
-template <>
-int ISSCache::IOTraits<int>::deserialize(string const& s)
-{
-    return stoi(s);
-}
-
-}  // namespace core
-
 TEST(PersistentCache, ISSCache)
 {
     unlink_db(test_db);
 
+    using ISSCache = PersistentCache<int, string, string>;
+
     {
         // Constructor and move constructor.
-        auto c = ISSCache::open(test_db, 1024, CacheDiscardPolicy::LRU_only);
+        auto c = ISSCache::open(test_db, 1024, CacheDiscardPolicy::lru_only);
         ISSCache c2(move(*c));
         EXPECT_EQ(1024, c2.max_size_in_bytes());
     }
@@ -1256,7 +1111,7 @@ TEST(PersistentCache, ISSCache)
     {
         // Constructor and move assignment.
         auto c = ISSCache::open(test_db);
-        auto c2 = ISSCache::open(test_db + "2", 2048, CacheDiscardPolicy::LRU_TTL);
+        auto c2 = ISSCache::open(test_db + "2", 2048, CacheDiscardPolicy::lru_ttl);
         *c = move(*c2);
         EXPECT_EQ(2048, c->max_size_in_bytes());
     }
@@ -1279,7 +1134,7 @@ TEST(PersistentCache, ISSCache)
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
         EXPECT_EQ(0, c->headroom());
-        EXPECT_EQ(CacheDiscardPolicy::LRU_only, c->discard_policy());
+        EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
 
         val = c->take(42);
         EXPECT_FALSE(val);
@@ -1293,7 +1148,7 @@ TEST(PersistentCache, ISSCache)
 
         data = c->get_data(1);
         EXPECT_EQ("2.0", data->value);
-        EXPECT_EQ("\0", data->metadata);  // deserialize() generates '\0' for empty metadata
+        EXPECT_EQ("\0", data->metadata);  // decode() generates '\0' for empty metadata
 
         metadata = c->get_metadata(1);
         EXPECT_FALSE(metadata);  // No metadata exists, so false
@@ -1359,7 +1214,7 @@ TEST(PersistentCache, ISSCache)
         EXPECT_TRUE(c->put(1, "1"));
         EXPECT_TRUE(handler_called);
 
-        c->set_handler(CacheEvent::Put, handler);
+        c->set_handler(CacheEvent::put, handler);
         handler_called = false;
         EXPECT_TRUE(c->put(2, "2"));
         EXPECT_TRUE(handler_called);
@@ -1416,7 +1271,7 @@ TEST(PersistentCache, SSSCache)
 
     {
         // Constructor and move constructor.
-        auto c = SSSCache::open(test_db, 1024, CacheDiscardPolicy::LRU_only);
+        auto c = SSSCache::open(test_db, 1024, CacheDiscardPolicy::lru_only);
         SSSCache c2(move(*c));
         EXPECT_EQ(1024, c2.max_size_in_bytes());
     }
@@ -1424,7 +1279,7 @@ TEST(PersistentCache, SSSCache)
     {
         // Constructor and move assignment.
         auto c = SSSCache::open(test_db);
-        auto c2 = SSSCache::open(test_db + "2", 2048, CacheDiscardPolicy::LRU_TTL);
+        auto c2 = SSSCache::open(test_db + "2", 2048, CacheDiscardPolicy::lru_ttl);
         *c = move(*c2);
         EXPECT_EQ(2048, c->max_size_in_bytes());
     }
@@ -1447,7 +1302,7 @@ TEST(PersistentCache, SSSCache)
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
         EXPECT_EQ(0, c->headroom());
-        EXPECT_EQ(CacheDiscardPolicy::LRU_only, c->discard_policy());
+        EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
 
         val = c->take("42");
         EXPECT_FALSE(val);
@@ -1461,7 +1316,7 @@ TEST(PersistentCache, SSSCache)
 
         data = c->get_data("1");
         EXPECT_EQ("2.0", data->value);
-        EXPECT_EQ("", data->metadata);  // deserialize() generates '\0' for empty metadata
+        EXPECT_EQ("", data->metadata);  // decode() generates '\0' for empty metadata
 
         metadata = c->get_metadata("1");
         EXPECT_FALSE(metadata);  // No metadata exists, so false
@@ -1527,7 +1382,7 @@ TEST(PersistentCache, SSSCache)
         EXPECT_TRUE(c->put("1", string("1")));
         EXPECT_TRUE(handler_called);
 
-        c->set_handler(CacheEvent::Put, handler);
+        c->set_handler(CacheEvent::put, handler);
         handler_called = false;
         EXPECT_TRUE(c->put("2", string("2")));
         EXPECT_TRUE(handler_called);

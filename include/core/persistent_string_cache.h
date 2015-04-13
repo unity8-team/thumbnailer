@@ -46,7 +46,7 @@ A cache has a maximum size (which can be changed at any time). Once
 the cache reaches its maximum size, when adding an entry,
 the cache automatically discards enough entries to make room for the new entry.
 
-Keys can be (possibly binary) strings of size > 0. Values can be
+Keys can be (possibly binary) strings of size &gt; 0. Values can be
 (possibly binary) strings including the empty string.
 
 Entries maintain an access time, which is used to keep them in
@@ -61,10 +61,10 @@ into the cache from multiple threads will not yield improved performance.
 
 ### Discard Policy
 
-The cache provides two different discard policies, `LRU_TTL`
-and `LRU_only`.
+The cache provides two different discard policies, `lru_ttl`
+and `lru_only`.
 
-For `LRU_TTL`, the discard policy of the cache is to first delete all
+For `lru_ttl`, the discard policy of the cache is to first delete all
 entries that have expired. If this does not free sufficient space
 to make room for a new entry, the cache then deletes entries in oldest
 to newest (LRU) order until sufficient space is available. This
@@ -72,7 +72,7 @@ deletion in LRU order may delete entries that have an
 expiry time, but have not expired yet, as well as entries with
 infinite expiry time.
 
-For `LRU_only`, entries do not maintain an expiry time and
+For `lru_only`, entries do not maintain an expiry time and
 are therefore discarded strictly in LRU order.
 
 Access and expiry times are recorded with millisecond granularity.
@@ -148,15 +148,6 @@ public:
     typedef std::unique_ptr<PersistentStringCache> UPtr;
 
     /**
-    \brief Convenience typedef for returning nullable values.
-
-    \note You should use `PersistentStringCache::Optional` in preference to `boost::optional`
-    in your code. This will ease an eventual transition to `std::optional`.
-    */
-    template <typename T>
-    using Optional = boost::optional<T>;
-
-    /**
     \brief Simple pair of value and metadata.
     */
     struct Data
@@ -213,14 +204,14 @@ public:
     of this directory are exlusively owned by the cache; do not create additional files
     or directories there. The directory need not exist when creating a new cache.
     \param max_size_in_bytes The maximum size in bytes for the cache.
-    \param policy The discard policy for the cache (`LRU_only` or `LRU_TTL`). The discard
+    \param policy The discard policy for the cache (`lru_only` or `lru_ttl`). The discard
     policy cannot be changed once a cache has been created.
 
     The size of an entry is the sum of the sizes of its key, value, and metadata.
     The maximum size of the cache is the sum of the sizes of all its entries.
 
     \return A <code>unique_ptr</code> to the instance.
-    \throws invalid_argument `max_size_in_bytes` is < 1.
+    \throws invalid_argument `max_size_in_bytes` is &lt; 1.
     \throws logic_error `max_size_in_bytes` or `policy` do not match the settings of a pre-existing cache.
     */
     static UPtr open(std::string const& cache_path, int64_t max_size_in_bytes, CacheDiscardPolicy policy);
@@ -327,7 +318,7 @@ public:
 
     /**
     \brief Returns the discard policy of the cache.
-    \return The discard policy (`LRU_only` or `LRU_TTL`).
+    \return The discard policy (`lru_only` or `lru_ttl`).
     */
     CacheDiscardPolicy discard_policy() const noexcept;
 
@@ -355,11 +346,11 @@ public:
     This operation deletes any metadata associated with the entry.
 
     \return `true` if the entry was added or updated. `false` if the policy
-    is `LRU_TTL` and `expiry_time` is in the past.
+    is `lru_ttl` and `expiry_time` is in the past.
 
     \throws invalid_argument `key` is the empty string.
     \throws logic_error The size of the entry exceeds the maximum cache size.
-    \throws logic_error The cache policy is `LRU_only` and a non-infinite expiry time was provided.
+    \throws logic_error The cache policy is `lru_only` and a non-infinite expiry time was provided.
     */
     bool put(std::string const& key,
              std::string const& value,
@@ -367,6 +358,8 @@ public:
 
     /**
     \brief Adds or updates an entry.
+
+    \note This overload is provided to avoid the need to construct a string value.
 
     If an entry with the given key does not exist in the cache, it is added
     (possibly evicting a number of expired and/or older entries). If the entry
@@ -376,7 +369,7 @@ public:
     This operation deletes any metadata associated with the entry.
 
     \return `true` if the entry was added or updated. `false` if the policy
-    is `LRU_TTL` and `expiry_time` is in the past.
+    is `lru_ttl` and `expiry_time` is in the past.
 
     \param key The key of the entry.
     \param value A pointer to the first byte of the value.
@@ -387,7 +380,7 @@ public:
     \throws invalid_argument `value` is `nullptr`.
     \throws invalid_argument `size` is negative.
     \throws logic_error The size of the entry exceeds the maximum cache size.
-    \throws logic_error The cache policy is `LRU_only` and a non-infinite expiry time was provided.
+    \throws logic_error The cache policy is `lru_only` and a non-infinite expiry time was provided.
     */
     bool put(std::string const& key,
              char const* value,
@@ -397,19 +390,17 @@ public:
     /**
     \brief Adds or updates an entry and its metadata.
 
-    \note This overload is provided to avoid the need to construct a string value.
-
     If an entry with the given key does not exist in the cache, it is added
     (possibly evicting a number of expired and/or older entries). If the entry
     still exists (whether expired or not), it is updated with the new value
     and metadata (and possibly expiry time).
 
     \return `true` if the entry was added or updated. `false` if the policy
-    is `LRU_TTL` and `expiry_time` is in the past.
+    is `lru_ttl` and `expiry_time` is in the past.
 
     \throws invalid_argument `key` is the empty string.
     \throws logic_error The sum of sizes of the entry and metadata exceeds the maximum cache size.
-    \throws logic_error The cache policy is `LRU_only` and a non-infinite expiry time was provided.
+    \throws logic_error The cache policy is `lru_only` and a non-infinite expiry time was provided.
     */
     bool put(std::string const& key,
              std::string const& value,
@@ -428,7 +419,7 @@ public:
     and metadata (and possibly expiry time).
 
     \return `true` if the entry was added or updated. `false` if the policy
-    is `LRU_TTL` and `expiry_time` is in the past.
+    is `lru_ttl` and `expiry_time` is in the past.
 
     \param key The key of the entry.
     \param value A pointer to the first byte of the value.
@@ -439,7 +430,7 @@ public:
 
     \throws invalid_argument `key` is the empty string.
     \throws logic_error The sum of sizes of the entry and metadata exceeds the maximum cache size.
-    \throws logic_error The cache policy is `LRU_only` and a non-infinite expiry time was provided.
+    \throws logic_error The cache policy is `lru_only` and a non-infinite expiry time was provided.
     */
     bool put(std::string const& key,
              char const* value,
@@ -465,9 +456,9 @@ public:
     \return A null value if the entry could not be retrieved or loaded; the value of the entry, otherwise.
     \throws runtime_error The load function threw an exception.
 
-    \note The load function must call one of the overloaded `put` methods to add a new entry for the
-    provided key. Calling any other method on the cache from within the load function
-    causes undefined behavior.
+    \note The load function must (synchronously) call one of the overloaded `put` methods to add a
+    new entry for the provided key. Calling any other method on the cache from within the load
+    function causes undefined behavior.
 
     \warning This operation holds a lock on the cache while the load function runs.
     This means that, if multiple threads call into the cache, they will be blocked
@@ -487,9 +478,9 @@ public:
     \return A null value if the entry could not be retrieved or loaded; the value and metadata of the entry, otherwise.
     \throws runtime_error The load function threw an exception.
 
-    \note The load function must call one of the overloaded `put` methods to add a new entry for the
-    provided key. Calling any other method on the cache from within the load function
-    causes undefined behavior.
+    \note The load function must (synchronously) call one of the overloaded `put` methods to add a
+    new entry for the provided key. Calling any other method on the cache from within the load
+    function causes undefined behavior.
 
     \warning This operation holds a lock on the cache while the load function runs.
     This means that, if multiple threads call into the cache, they will be blocked
@@ -549,7 +540,7 @@ public:
     \return A null value if the entry could not be found; the value of the entry, otherwise.
     \throws invalid_argument `key` is the empty string.
     */
-    Optional<std::string> take(std::string const& key) const;
+    Optional<std::string> take(std::string const& key);
 
     /**
     \brief Removes an entry and returns its value and metadata.
@@ -561,7 +552,7 @@ public:
     \return A null value if the entry could not be retrieved; the value and metadata of the entry, otherwise.
     \throws invalid_argument `key` is the empty string.
     */
-    Optional<Data> take_data(std::string const& key) const;
+    Optional<Data> take_data(std::string const& key);
 
     /**
     \brief Removes an entry and its associated metadata (if any).
@@ -620,13 +611,14 @@ public:
     \brief Updates the access time of an entry.
 
     If the entry specified by `key` is still in the cache (whether expired or not),
-    it is marked as the most-recently used entry. If the policy is `LRU_TTL`, the
+    it is marked as the most-recently used entry. If the policy is `lru_ttl`, the
     entry's expiry time is updated with the specified time (infinite expiry by default).
 
-    \return `true` if the entry was updated; `false` if the entry could not be found.
+    \return `true` if the entry was updated; `false` if the entry could not be found or
+    `expiry_time` is in the past.
     \throws invalid_argument `key` is the empty string.
     \throws logic_error `key` is the empty string.
-    \throws logic_error The cache policy is `LRU_only` and a non-infinite expiry time was provided.
+    \throws logic_error The cache policy is `lru_only` and a non-infinite expiry time was provided.
     */
     bool touch(
         std::string const& key,
@@ -645,8 +637,8 @@ public:
     If `size_in_bytes` is less than max_size_in_bytes(), the cache discards existing entries until
     the size falls to (or below) `size_in_bytes` and sets the cache size to the new value.
 
-    \throws invalid_argument `size_in_bytes` is < 1
-    \throws logic_error headroom() is > 50% of `size_in_bytes`.
+    \throws invalid_argument `size_in_bytes` is &lt; 1
+    \throws logic_error headroom() is &gt; 50% of `size_in_bytes`.
 
     \note If a cache uses non-zero headroom, you probably need to also adjust the headroom to make
     sense for the new size.
@@ -664,8 +656,8 @@ public:
     `used_size_in_bytes`. If `used_size_in_bytes` is less than the current cache size, this
     operation is a no-op.
 
-    \throws invalid_argument `used_size_in_bytes` is < 0
-    \throws logic_error `used_size_in_bytes` is > max_size_in_bytes().
+    \throws invalid_argument `used_size_in_bytes` is &lt; 0
+    \throws logic_error `used_size_in_bytes` is &gt; max_size_in_bytes().
 
     \note If trimming actually took place, this operation compacts the database to use the
     smallest possible amount of disk space.
@@ -675,8 +667,8 @@ public:
     /**
     \brief Changes the amount of headroom.
 
-    \throws invalid_argument `headroom is < 0`.
-    \throws logic_error `headroom` is > 50% of max_size_in_bytes().
+    \throws invalid_argument `headroom is &lt; 0`.
+    \throws logic_error `headroom` is &gt; 50% of max_size_in_bytes().
 
     \note This operation compacts the database to use the smallest possible amount of disk space.
     \see resize()
@@ -719,20 +711,12 @@ public:
     /**
     \brief Installs a handler for one or more events.
 
-    \param mask A bitwise OR of the event types for which to install the handler. To install
+    \param events A bitwise OR of the event types for which to install the handler. To install
     a handler for all events, you can use PersistentStringCache::AllEvents.
 
     \param cb The handler to install. To cancel an existing handler, pass `nullptr`.
     */
-    void set_handler(unsigned mask, EventCallback cb);
-
-    /**
-    \brief Installs a handler for a specific event.
-
-    \param event The event type to be monitored by the handler.
-    \param cb The handler to install. To cancel an existing handler, pass `nullptr`.
-    */
-    void set_handler(CacheEvent event, EventCallback cb) noexcept;
+    void set_handler(CacheEvent events, EventCallback cb);
 
     //@}
 

@@ -21,6 +21,10 @@
 #include <core/cache_discard_policy.h>
 #include <core/persistent_cache_stats.h>
 
+#include <cassert>
+#include <cmath>
+#include <cstring>
+
 namespace core
 {
 
@@ -32,7 +36,7 @@ namespace internal
 struct PersistentStringCacheStats
 {
     PersistentStringCacheStats() noexcept
-        : policy_(CacheDiscardPolicy::LRU_only)
+        : policy_(CacheDiscardPolicy::lru_only)
         , num_entries_(0)
         , cache_size_(0)
         , max_cache_size_(0)
@@ -40,6 +44,7 @@ struct PersistentStringCacheStats
         , state_(Initialized)
     {
         clear();
+        hist_.resize(PersistentCacheStats::NUM_BINS, 0);
     }
 
     PersistentStringCacheStats(PersistentStringCacheStats const&) = default;
@@ -61,10 +66,13 @@ struct PersistentStringCacheStats
     int64_t misses_since_last_hit_;
     int64_t longest_hit_run_;
     int64_t longest_miss_run_;
+    int64_t ttl_evictions_;
+    int64_t lru_evictions_;
     std::chrono::steady_clock::time_point most_recent_hit_time_;
     std::chrono::steady_clock::time_point most_recent_miss_time_;
     std::chrono::steady_clock::time_point longest_hit_run_time_;
     std::chrono::steady_clock::time_point longest_miss_run_time_;
+    PersistentCacheStats::Histogram hist_;
 
     enum State
     {
@@ -110,6 +118,23 @@ struct PersistentStringCacheStats
         }
     }
 
+    void hist_decrement(int64_t size)
+    {
+        assert(size > 0);
+        --hist_[size_to_index(size)];
+    }
+
+    void hist_increment(int64_t size)
+    {
+        assert(size > 0);
+        ++hist_[size_to_index(size)];
+    }
+
+    void hist_clear()
+    {
+        memset(&hist_[0], 0, hist_.size() * sizeof(PersistentCacheStats::Histogram::value_type));
+    }
+
     void clear() noexcept
     {
         hits_ = 0;
@@ -118,10 +143,25 @@ struct PersistentStringCacheStats
         misses_since_last_hit_ = 0;
         longest_hit_run_ = 0;
         longest_miss_run_ = 0;
+        ttl_evictions_ = 0;
+        lru_evictions_ = 0;
         most_recent_hit_time_ = std::chrono::steady_clock::time_point();
         most_recent_miss_time_ = std::chrono::steady_clock::time_point();
         longest_hit_run_time_ = std::chrono::steady_clock::time_point();
         longest_miss_run_time_ = std::chrono::steady_clock::time_point();
+    }
+
+private:
+    unsigned size_to_index(int64_t size)
+    {
+        using namespace std;
+        assert(size > 0);
+        unsigned log = floor(log10(size));     // 0..9 = 0, 10..99 = 1, 100..199 = 2, etc.
+        unsigned exp = pow(10, log);           // 0..9 = 1, 10..99 = 10, 100..199 = 100, etc.
+        unsigned div = size / exp;             // Extracts first decimal digit of size.
+        int index = log * 10 + div - log - 1;  // Partition each power of 10 into 9 bins.
+        index -= 8;                            // Sizes < 10 all go into bin 0;
+        return index < 0 ? 0 : (index > int(hist_.size()) - 1 ? hist_.size() - 1 : index);
     }
 };
 

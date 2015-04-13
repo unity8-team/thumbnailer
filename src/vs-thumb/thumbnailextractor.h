@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Canonical Ltd
+ * Copyright (C) 2015 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License version 3 as
@@ -13,23 +13,28 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Michi Henning <michi.henning@canonical.com>
+ * Authored by: James Henstridge <james.henstridge@canonical.com>
  */
 
-#pragma once
+#ifndef THUMBNAILEXTRACTOR_H
+#define THUMBNAILEXTRACTOR_H
 
-#include <boost/optional.hpp>
+#include <memory>
+#include <string>
 
-namespace core
-{
+class ThumbnailExtractor final {
+    struct Private;
+public:
+    ThumbnailExtractor();
+    ~ThumbnailExtractor();
 
-/**
-\brief Convenience typedef for nullable values.
+    void reset();
+    void set_uri(const std::string &uri);
+    bool extract_video_frame();
+    bool extract_audio_cover_art();
+    void save_screenshot(const std::string &filename);
+private:
+    std::unique_ptr<Private> p;
+};
 
-\note You should use `core::Optional` in preference to `boost::optional`
-in your code. This will ease an eventual transition to `std::optional`.
-*/
-template <typename T>
-using Optional = boost::optional<T>;
-
-}  // namespace core
+#endif
