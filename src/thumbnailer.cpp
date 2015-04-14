@@ -54,9 +54,9 @@ private:
     random_device rnd;
     string cache_dir;
 
-    string create_audio_thumbnail(string const& abspath, ThumbnailSize desired_size, ThumbnailPolicy policy);
-    string create_video_thumbnail(string const& abspath, ThumbnailSize desired_size);
-    string create_generic_thumbnail(string const& abspath, ThumbnailSize desired_size);
+    string create_audio_thumbnail(string const& abspath, int desired_size, ThumbnailPolicy policy);
+    string create_video_thumbnail(string const& abspath, int desired_size);
+    string create_generic_thumbnail(string const& abspath, int desired_size);
 
 public:
     ThumbnailCache cache;
@@ -101,7 +101,7 @@ public:
         macache = core::PersistentStringCache::open(cache_dir, 100 * 1024 * 1024, core::CacheDiscardPolicy::lru_only);
     };
 
-    string create_thumbnail(string const& abspath, ThumbnailSize desired_size, ThumbnailPolicy policy);
+    string create_thumbnail(string const& abspath, int desired_size, ThumbnailPolicy policy);
     string create_random_filename();
     string extract_exif_thumbnail(std::string const& abspath);
     string fetch_thumbnail(string const& artist,
@@ -152,7 +152,7 @@ string ThumbnailerPrivate::extract_exif_thumbnail(std::string const& abspath)
 }
 
 string ThumbnailerPrivate::create_audio_thumbnail(string const& abspath,
-                                                  ThumbnailSize desired_size,
+                                                  int desired_size,
                                                   ThumbnailPolicy /*policy*/)
 {
     string tnfile = cache.get_cache_file_name(abspath, desired_size);
@@ -176,12 +176,12 @@ string ThumbnailerPrivate::create_audio_thumbnail(string const& abspath,
     }
     return "";
 }
-string ThumbnailerPrivate::create_generic_thumbnail(string const& abspath, ThumbnailSize desired_size)
+string ThumbnailerPrivate::create_generic_thumbnail(string const& abspath, int desired_size)
 {
     int tmpw, tmph;
     string tnfile = cache.get_cache_file_name(abspath, desired_size);
     // Special case: full size image files are their own preview.
-    if (desired_size == TN_SIZE_ORIGINAL && gdk_pixbuf_get_file_info(abspath.c_str(), &tmpw, &tmph))
+    if (desired_size == 0 && gdk_pixbuf_get_file_info(abspath.c_str(), &tmpw, &tmph))
     {
         return abspath;
     }
@@ -199,7 +199,7 @@ string ThumbnailerPrivate::create_generic_thumbnail(string const& abspath, Thumb
     return "";
 }
 
-string ThumbnailerPrivate::create_video_thumbnail(string const& abspath, ThumbnailSize desired_size)
+string ThumbnailerPrivate::create_video_thumbnail(string const& abspath, int desired_size)
 {
     string tnfile = cache.get_cache_file_name(abspath, desired_size);
     string tmpname = create_random_filename();
@@ -212,7 +212,7 @@ string ThumbnailerPrivate::create_video_thumbnail(string const& abspath, Thumbna
     throw runtime_error("Video extraction failed.");
 }
 
-string ThumbnailerPrivate::create_thumbnail(string const& abspath, ThumbnailSize desired_size, ThumbnailPolicy policy)
+string ThumbnailerPrivate::create_thumbnail(string const& abspath, int desired_size, ThumbnailPolicy policy)
 {
     // Every now and then see if we have too much stuff and delete them if so.
     if ((rnd() % 100) == 0)  // No, this is not perfectly random. It does not need to be.
@@ -251,7 +251,7 @@ string ThumbnailerPrivate::create_thumbnail(string const& abspath, ThumbnailSize
     {
         return create_video_thumbnail(abspath, desired_size);
     }
-    if (desired_size != TN_SIZE_ORIGINAL)
+    if (desired_size != 0)
     {
         try
         {
@@ -286,8 +286,10 @@ Thumbnailer::Thumbnailer() : p_(new ThumbnailerPrivate())
 
 Thumbnailer::~Thumbnailer() = default;
 
-std::string Thumbnailer::get_thumbnail(std::string const& filename, ThumbnailSize desired_size, ThumbnailPolicy policy)
+std::string Thumbnailer::get_thumbnail(std::string const& filename, int desired_size, ThumbnailPolicy policy)
 {
+    assert(desired_size >= 0);
+
     string abspath;
     if (filename.empty())
     {
@@ -332,11 +334,6 @@ std::string Thumbnailer::get_thumbnail(std::string const& filename, ThumbnailSiz
     return p_->cache.get_if_exists(abspath, desired_size);
 }
 
-string Thumbnailer::get_thumbnail(string const& filename, ThumbnailSize desired_size)
-{
-    return get_thumbnail(filename, desired_size, TN_LOCAL);
-}
-
 string ThumbnailerPrivate::fetch_thumbnail(string const& artist,
                            string const& album,
                            string const& suffix,
@@ -366,9 +363,11 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& artist,
 
 std::string Thumbnailer::get_album_art(std::string const& artist,
                                        std::string const& album,
-                                       ThumbnailSize /* desired_size */,
+                                       int desired_size,
                                        ThumbnailPolicy policy)
 {
+    assert(desired_size >= 0);
+
     auto download = [this](string const& artist, string const& album)
     {
         return p_->downloader->download(artist, album);
@@ -378,9 +377,11 @@ std::string Thumbnailer::get_album_art(std::string const& artist,
 
 std::string Thumbnailer::get_artist_art(std::string const& artist,
                                         std::string const& album,
-                                        ThumbnailSize /* desired_size */,
+                                        int desired_size,
                                         ThumbnailPolicy policy)
 {
+    assert(desired_size >= 0);
+
     auto download = [this](string const& artist, string const& album)
     {
         return p_->downloader->download_artist(artist, album);

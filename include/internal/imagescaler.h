@@ -19,7 +19,6 @@
 #ifndef IMAGESCALER_H_
 #define IMAGESCALER_H_
 
-#include<thumbnailer.h>
 #include<string>
 
 class ImageScalerPrivate;
@@ -34,7 +33,7 @@ public:
 
     bool scale(const std::string &ifilename,
             const std::string &ofilename,
-            ThumbnailSize wanted,
+            int wanted_size,
 
             // String pointing to the location of the original file,
             // as an example /home/someone/video.avi

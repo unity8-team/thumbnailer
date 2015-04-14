@@ -23,6 +23,7 @@
 
 class ThumbnailerPrivate;
 
+/*
 enum ThumbnailSize
 {
     TN_SIZE_SMALL,    // maximum dimension 128 pixels
@@ -30,6 +31,7 @@ enum ThumbnailSize
     TN_SIZE_XLARGE,   // maximum dimension 512 pixels
     TN_SIZE_ORIGINAL  // Whatever the original size was, e.g. 1920x1080 for FullHD video
 };
+*/
 
 enum ThumbnailPolicy
 {
@@ -66,20 +68,20 @@ public:
      * In case of unexpected problems, the function throws a
      * std::runtime_error.
      */
-    std::string get_thumbnail(std::string const& filename, ThumbnailSize desired_size, ThumbnailPolicy policy);
+    std::string get_thumbnail(std::string const& filename, int desired_size, ThumbnailPolicy policy);
     /**
      * Deprecated. Do not use!
      */
-    std::string get_thumbnail(std::string const& filename, ThumbnailSize desired_size);
+    std::string get_thumbnail(std::string const& filename, int desired_size);
 
     std::string get_album_art(std::string const& artist,
                               std::string const& album,
-                              ThumbnailSize desiredSize,
+                              int desiredSize,
                               ThumbnailPolicy policy);
 
     std::string get_artist_art(std::string const& artist,
                                std::string const& album,
-                               ThumbnailSize desiredSize,
+                               int desiredSize,
                                ThumbnailPolicy policy);
 
 private:

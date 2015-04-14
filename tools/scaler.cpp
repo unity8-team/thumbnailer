@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
     try {
         std::string ifilename(argv[1]);
         std::string ofilename(argv[2]);
-        sc.scale(ifilename, ofilename, TN_SIZE_LARGE, ifilename);
+        sc.scale(ifilename, ofilename, 256, ifilename);
     } catch(std::runtime_error &e) {
         printf("Failed: %s\n", e.what());
         return 1;

@@ -131,7 +131,7 @@ public:
     ~ThumbnailCachePrivate() {};
 
     string md5(const string &str) const;
-    string get_cache_file_name(const std::string &original, ThumbnailSize desired) const;
+    string get_cache_file_name(const std::string &original, int desired) const;
     string get_fail_file_name(const std::string &original) const;
     void clear();
     void delete_from_cache(const std::string &abs_path);
@@ -166,11 +166,11 @@ void ThumbnailCachePrivate::prune() {
 }
 
 void ThumbnailCachePrivate::delete_from_cache(const std::string &abs_path) {
-    unlink(get_cache_file_name(abs_path, TN_SIZE_SMALL).c_str());
-    unlink(get_cache_file_name(abs_path, TN_SIZE_LARGE).c_str());
-    unlink(get_cache_file_name(abs_path, TN_SIZE_XLARGE).c_str());
-    unlink(get_cache_file_name(abs_path, TN_SIZE_ORIGINAL).c_str());
-    unlink(get_fail_file_name(abs_path).c_str());
+    //unlink(get_cache_file_name(abs_path, TN_SIZE_SMALL).c_str());
+    //unlink(get_cache_file_name(abs_path, TN_SIZE_LARGE).c_str());
+    //unlink(get_cache_file_name(abs_path, TN_SIZE_XLARGE).c_str());
+    //unlink(get_cache_file_name(abs_path, TN_SIZE_ORIGINAL).c_str());
+    //unlink(get_fail_file_name(abs_path).c_str());
 }
 
 static string makedir(const string &base, const string &subdir) {
@@ -252,10 +252,11 @@ string ThumbnailCachePrivate::md5(const string &str) const {
     return final_result;
 }
 
-string ThumbnailCachePrivate::get_cache_file_name(const std::string & abs_original, ThumbnailSize desired) const {
+string ThumbnailCachePrivate::get_cache_file_name(const std::string & abs_original, int desired) const {
     assert(!abs_original.empty());
     assert(abs_original[0] == '/');
     string path;
+#if 0
     switch(desired) {
     case TN_SIZE_SMALL : path = smalldir; break;
     case TN_SIZE_LARGE : path = largedir; break;
@@ -263,6 +264,7 @@ string ThumbnailCachePrivate::get_cache_file_name(const std::string & abs_origin
     case TN_SIZE_ORIGINAL : path = originaldir; break;
     default : throw runtime_error("Unreachable code");
     }
+#endif
     path += "/" + md5("file://" + abs_original) + ".png";
     return path;
 }
@@ -289,7 +291,7 @@ ThumbnailCache::~ThumbnailCache() {
     delete p;
 }
 
-std::string ThumbnailCache::get_if_exists(const std::string &abs_path, ThumbnailSize desired_size) const {
+std::string ThumbnailCache::get_if_exists(const std::string &abs_path, int desired_size) const {
     assert(abs_path[0] == '/');
     string fname = p->get_cache_file_name(abs_path, desired_size);
     FILE *f = fopen(abs_path.c_str(), "r");
@@ -317,7 +319,7 @@ std::string ThumbnailCache::get_if_exists(const std::string &abs_path, Thumbnail
     return existed ? fname : string("");
 }
 
-std::string ThumbnailCache::get_cache_file_name(const std::string &abs_path, ThumbnailSize desired) const {
+std::string ThumbnailCache::get_cache_file_name(const std::string &abs_path, int desired) const {
     return p->get_cache_file_name(abs_path, desired);
 }
 

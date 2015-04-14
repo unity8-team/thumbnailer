@@ -19,7 +19,6 @@
 #ifndef THUMBNAILCACHE_H_
 #define THUMBNAILCACHE_H_
 
-#include<thumbnailer.h>
 #include<string>
 
 class ThumbnailCachePrivate;
@@ -34,8 +33,8 @@ public:
     ThumbnailCache(ThumbnailCache &&t) = delete;
     ThumbnailCache & operator=(ThumbnailCache &&t) = delete;
 
-    std::string get_if_exists(const std::string &abs_path, ThumbnailSize desired_size) const;
-    std::string get_cache_file_name(const std::string &as_path, ThumbnailSize desired_size) const;
+    std::string get_if_exists(const std::string &abs_path, int desired_size) const;
+    std::string get_cache_file_name(const std::string &as_path, int desired_size) const;
     std::string get_fail_file_name(const std::string &as_path) const;
     void mark_failure(const std::string &abs_path) noexcept;
     bool has_failure(const std::string &abs_path) const;

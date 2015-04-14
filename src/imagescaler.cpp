@@ -30,12 +30,12 @@
 using namespace std;
 
 static void determine_new_size(const int w, const int h, int &neww, int &newh,
-        const ThumbnailSize wanted) {
-    if(wanted == TN_SIZE_ORIGINAL) {
+        const int wanted) {
+    if(wanted == 0) {
         neww = w;
         newh = h;
     } else {
-        int max_dim = ((wanted == TN_SIZE_SMALL) ? 128 : ((wanted == TN_SIZE_LARGE) ? 256 : 512));
+        int max_dim = wanted;
         if(w > h) {
             neww = max_dim;
             newh = ((double)(max_dim))*h/w;
@@ -94,7 +94,7 @@ ImageScaler::~ImageScaler() {
     delete p;
 }
 
-bool ImageScaler::scale(const std::string &ifilename, const std::string &ofilename, ThumbnailSize wanted,
+bool ImageScaler::scale(const std::string &ifilename, const std::string &ofilename, int wanted_size,
         const std::string &original_location, const std::string &rotation_source_file) const {
     const std::string &rotation_info = rotation_source_file.empty() ? ifilename : rotation_source_file;
     random_device rnd;
@@ -120,7 +120,7 @@ bool ImageScaler::scale(const std::string &ifilename, const std::string &ofilena
     }
 
     int neww, newh;
-    determine_new_size(w, h, neww, newh, wanted);
+    determine_new_size(w, h, neww, newh, wanted_size);
     unique_gobj<GdkPixbuf> dst(gdk_pixbuf_scale_simple(src.get(), neww, newh, GDK_INTERP_BILINEAR));
     gboolean save_ok;
     if(original_location.empty()) {

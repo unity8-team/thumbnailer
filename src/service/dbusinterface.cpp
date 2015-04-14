@@ -47,16 +47,16 @@ struct DBusInterfacePrivate {
 
 namespace {
 
-ThumbnailSize desiredSizeFromString(const QString &size)
+int desiredSizeFromString(const QString &size)
 {
     if (size == "small") {
-        return TN_SIZE_SMALL;
+        return 128;
     } else if (size == "large") {
-        return TN_SIZE_LARGE;
+        return 256;
     } else if (size == "xlarge") {
-        return TN_SIZE_XLARGE;
+        return 512;
     } else if (size == "original") {
-        return TN_SIZE_ORIGINAL;
+        return 0;
     }
     std::string error("Unknown size: ");
     error += size.toStdString();
@@ -84,7 +84,7 @@ DBusInterface::~DBusInterface() {
 QDBusUnixFileDescriptor DBusInterface::GetAlbumArt(const QString &artist, const QString &album, const QString &desiredSize) {
     qDebug() << "Look up cover art for" << artist << "/" << album << "at size" << desiredSize;
 
-    ThumbnailSize size;
+    int size;
     try {
         size = desiredSizeFromString(desiredSize);
     } catch (const std::logic_error& e) {
@@ -128,7 +128,7 @@ QDBusUnixFileDescriptor DBusInterface::GetAlbumArt(const QString &artist, const 
 QDBusUnixFileDescriptor DBusInterface::GetArtistArt(const QString &artist, const QString &album, const QString &desiredSize) {
     qDebug() << "Look up artist art for" << artist << "/" << album << "at size" << desiredSize;
 
-    ThumbnailSize size;
+    int size;
     try {
         size = desiredSizeFromString(desiredSize);
     } catch (const std::logic_error& e) {
@@ -172,7 +172,7 @@ QDBusUnixFileDescriptor DBusInterface::GetArtistArt(const QString &artist, const
 QDBusUnixFileDescriptor DBusInterface::GetThumbnail(const QString &filename, const QDBusUnixFileDescriptor &filename_fd, const QString &desiredSize) {
     qDebug() << "Look thumbnail for" << filename << "at size" << desiredSize;
 
-    ThumbnailSize size;
+    int size;
     try {
         size = desiredSizeFromString(desiredSize);
     } catch (const std::logic_error& e) {
