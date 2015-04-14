@@ -221,7 +221,7 @@ void TestDownloader::test_threads()
 {
     QVector<WorkerThread*> threads;
 
-    int NUM_THREADS = 1;
+    int NUM_THREADS = 100;
     for (auto i = 0; i < NUM_THREADS; ++i)
     {
         QString download_id = QString("TEST_%1").arg(i);

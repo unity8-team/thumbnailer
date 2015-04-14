@@ -40,7 +40,6 @@ def read_file(path):
         content = content.replace("DOWNLOAD_ROOT", "127.0.0.1:%s" % PORT )
     else:
         raise Exception("File '%s' not found\n" % file)
-    print(content)
     return content
 
 class ErrorHandler(tornado.web.RequestHandler):
@@ -94,7 +93,7 @@ def new_app():
         (r"/images/(\w+).png", LastFMImagesProvider),
         (r"/musicproxy/v1/album-art", UbuntuAlbumImagesProvider),
         (r"/musicproxy/v1/artist-art", UbuntuArtistImagesProvider)
-    ], gzip=True, debug=True)
+    ], gzip=True)
     sockets = tornado.netutil.bind_sockets(0, '127.0.0.1')
     server = tornado.httpserver.HTTPServer(application)
     server.add_sockets(sockets)
