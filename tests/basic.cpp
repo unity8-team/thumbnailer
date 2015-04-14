@@ -16,11 +16,12 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#include<thumbnailer.h>
 #include<testsetup.h>
 #include<gtest/gtest.h>
 #include<unistd.h>
 #include<gdk-pixbuf/gdk-pixbuf.h>
+
+#include<thumbnailer.h>
 
 #define TESTIMAGE TESTDATADIR "/testimage.jpg"
 #define TESTIMAGE_NOEXIF TESTDATADIR "/testimage_noexif.png"

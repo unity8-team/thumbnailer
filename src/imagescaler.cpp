@@ -16,7 +16,7 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#include<internal/imagescaler.h>
+
 #include<internal/gobj_memory.h>
 #include<gdk-pixbuf/gdk-pixbuf.h>
 #include<libexif/exif-loader.h>
@@ -26,6 +26,8 @@
 #include<cassert>
 #include<random>
 #include<cstring>
+
+#include<internal/imagescaler.h>
 
 using namespace std;
 

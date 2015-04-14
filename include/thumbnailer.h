@@ -18,10 +18,14 @@
 
 #pragma once
 
+#include <QObject>
+
+
 #include <memory>
 #include <string>
 
 class ThumbnailerPrivate;
+class QNetworkReply;
 
 enum ThumbnailSize
 {
@@ -48,10 +52,11 @@ enum ThumbnailPolicy
  * Errors are reported as exceptions.
  */
 
-class Thumbnailer
+class Thumbnailer : public QObject
 {
+    Q_OBJECT
 public:
-    Thumbnailer();
+    Thumbnailer(QObject *parent=nullptr);
     ~Thumbnailer();
 
     /**

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Canonical Ltd.
+ * Copyright (C) 2015 Canonical Ltd
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License version 3 as
@@ -13,13 +13,12 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Pawel Stolowski <pawel.stolowski@canonical.com>
+ * Authored by: Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
 #pragma once
 
-#include <memory>
-#include "qartdownloader.h"
+#include "../include/internal/qartdownloader.h"
 
 namespace unity
 {
@@ -30,24 +29,23 @@ namespace thumbnailer
 namespace internal
 {
 
-class UbuntuServerDownloader final : public QArtDownloader
+namespace test
+{
+
+class TestUrlDownloader : public QArtDownloader
 {
     Q_OBJECT
 public:
-    UbuntuServerDownloader(QObject *parent=nullptr);
-    ~UbuntuServerDownloader() = default;
+    TestUrlDownloader(QObject *parent=nullptr);
+    ~TestUrlDownloader() = default;
 
     QString download(QString const& artist, QString const& album) override;
     QString download_artist(QString const& artist, QString const& album) override;
 
-    UbuntuServerDownloader(UbuntuServerDownloader const&) = delete;
-    UbuntuServerDownloader& operator=(UbuntuServerDownloader const&) = delete;
-
-private:
-    void set_api_key();
-
-    QString api_key;
+    QString download_url(QUrl const &url);
 };
+
+} // namespace test
 
 }  // namespace internal
 

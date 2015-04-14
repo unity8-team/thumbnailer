@@ -16,6 +16,12 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
+#include <QImage>
+#include <QFileInfo>
+#include <QMap>
+#include <QMimeDatabase>
+#include <QMimeType>
+
 #include <thumbnailer.h>
 
 #include <internal/audioimageextractor.h>
@@ -26,15 +32,9 @@
 #include <internal/ubuntuserverdownloader.h>
 #include <internal/videoscreenshotter.h>
 
-#include <gdk-pixbuf/gdk-pixbuf.h>
-
 #include <libexif/exif-loader.h>
 
 #include <gst/gst.h>
-
-#include <gio/gio.h>
-
-#include <glib.h>
 
 #include <cstring>
 #include <fstream>
@@ -46,46 +46,69 @@
 using namespace std;
 using namespace unity::thumbnailer::internal;
 
-void store_to_file(string const& content, string const& file_path)
+void store_to_file(QByteArray const& content, QString const& file_path)
 {
-    ofstream out_stream(file_path);
-    out_stream << content;
-    out_stream.close();
+    QFile file(file_path);
+    file.open(QIODevice::WriteOnly);
+    file.write(content);
+    file.close();
 }
 
-class ThumbnailerPrivate
+class ThumbnailerPrivate : public QObject
 {
-private:
+    Q_OBJECT
+public:
+    enum DownloadType
+    {
+        ARTIST_ART,
+        ALBUM_ART
+    };
+
+    struct ActiveDownloadInfo
+    {
+        QString artist;
+        QString album;
+        DownloadType type;
+    };
+
     random_device rnd;
 
     string create_audio_thumbnail(string const& abspath, ThumbnailSize desired_size, ThumbnailPolicy policy);
     string create_video_thumbnail(string const& abspath, ThumbnailSize desired_size);
     string create_generic_thumbnail(string const& abspath, ThumbnailSize desired_size);
 
-public:
     ThumbnailCache cache;
     AudioImageExtractor audio;
     VideoScreenshotter video;
     ImageScaler scaler;
     MediaArtCache macache;
-    std::unique_ptr<ArtDownloader> downloader;
+    std::unique_ptr<QArtDownloader> downloader;
+    QMap<QString, ActiveDownloadInfo> map_download_type;
 
-    ThumbnailerPrivate()
+    ThumbnailerPrivate(QObject *parent=nullptr) : QObject(parent)
     {
         char* artservice = getenv("THUMBNAILER_ART_PROVIDER");
         if (artservice != nullptr && strcmp(artservice, "lastfm") == 0)
         {
-            downloader.reset(new LastFMDownloader());
+            // Disable LastFM by now
+            // downloader.reset(new LastFMDownloader());
         }
         else
         {
             downloader.reset(new UbuntuServerDownloader());
         }
+
+        connect(downloader.get(), &QArtDownloader::file_downloaded, this, &ThumbnailerPrivate::download_finished);
     };
 
     string create_thumbnail(string const& abspath, ThumbnailSize desired_size, ThumbnailPolicy policy);
     string create_random_filename();
     string extract_exif_thumbnail(std::string const& abspath);
+
+    void download_art(DownloadType type, QString const& artist, QString const &album);
+
+public slots:
+    void download_finished(QString, QByteArray const &data);
 };
 
 string ThumbnailerPrivate::create_random_filename()
@@ -155,10 +178,10 @@ string ThumbnailerPrivate::create_audio_thumbnail(string const& abspath,
 }
 string ThumbnailerPrivate::create_generic_thumbnail(string const& abspath, ThumbnailSize desired_size)
 {
-    int tmpw, tmph;
     string tnfile = cache.get_cache_file_name(abspath, desired_size);
     // Special case: full size image files are their own preview.
-    if (desired_size == TN_SIZE_ORIGINAL && gdk_pixbuf_get_file_info(abspath.c_str(), &tmpw, &tmph))
+    QImage image;
+    if (desired_size == TN_SIZE_ORIGINAL && image.load(QString::fromStdString(abspath)))
     {
         return abspath;
     }
@@ -196,37 +219,24 @@ string ThumbnailerPrivate::create_thumbnail(string const& abspath, ThumbnailSize
     {
         cache.prune();
     }
-    std::unique_ptr<GFile, void (*)(void*)> file(g_file_new_for_path(abspath.c_str()), g_object_unref);
-    if (!file)
-    {
-        return "";
+    QFileInfo file_info(QString::fromStdString(abspath));
+    if (!file_info.exists() || !file_info.isFile()) {
+        // TODO throw exception as something weird happened
     }
 
-    std::unique_ptr<GFileInfo, void (*)(void*)> info(g_file_query_info(file.get(),
-                                                                       G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
-                                                                       G_FILE_QUERY_INFO_NONE,
-                                                                       /* cancellable */ NULL,
-                                                                       /* error */ NULL),
-                                                     g_object_unref);
-    if (!info)
-    {
-        return "";
-    }
-
-    std::string content_type(g_file_info_get_content_type(info.get()));
-    if (content_type.empty())
-    {
-        return "";
-    }
-
-    if (content_type.find("audio/") == 0)
+    QMimeDatabase mimeDatabase;
+    QMimeType mime = mimeDatabase.mimeTypeForFile(file_info);
+    if(mime.name().contains("audio"))
     {
         return create_audio_thumbnail(abspath, desired_size, policy);
     }
-
-    if (content_type.find("video/") == 0)
+    else if(mime.name().contains("video"))
     {
         return create_video_thumbnail(abspath, desired_size);
+    }
+    else
+    {
+        // TODO throw exception as file is not a video nor an image
     }
     if (desired_size != TN_SIZE_ORIGINAL)
     {
@@ -257,7 +267,37 @@ string ThumbnailerPrivate::create_thumbnail(string const& abspath, ThumbnailSize
     return create_generic_thumbnail(abspath, desired_size);
 }
 
-Thumbnailer::Thumbnailer() : p_(new ThumbnailerPrivate())
+void ThumbnailerPrivate::download_art(ThumbnailerPrivate::DownloadType type, QString const& artist, QString const &album)
+{
+    auto url = downloader->download(artist, album);
+
+    ActiveDownloadInfo download_info;
+    download_info.artist = artist;
+    download_info.album = album;
+    download_info.type = type;
+    map_download_type[url] = download_info;
+}
+
+void ThumbnailerPrivate::download_finished(QString url, QByteArray const &data)
+{
+    QMap<QString, ActiveDownloadInfo>::iterator iter = map_download_type.find(url);
+    if (iter != map_download_type.end())
+    {
+        if ((*iter).type == ALBUM_ART)
+        {
+            macache.add_album_art((*iter).artist.toStdString(), (*iter).album.toStdString(),
+                    data.constData(), data.size());
+        }
+        else
+        {
+            macache.add_artist_art((*iter).artist.toStdString(), (*iter).album.toStdString(),
+                                data.constData(), data.size());
+        }
+        map_download_type.erase(iter);
+    }
+}
+
+Thumbnailer::Thumbnailer(QObject *parent) : QObject(parent), p_(new ThumbnailerPrivate())
 {
 }
 
@@ -314,22 +354,6 @@ string Thumbnailer::get_thumbnail(string const& filename, ThumbnailSize desired_
     return get_thumbnail(filename, desired_size, TN_LOCAL);
 }
 
-unique_ptr<gchar, void (*)(gpointer)> get_art_file_content(string const& fname, gsize& content_size)
-{
-    gchar* contents;
-    GError* err = nullptr;
-    if (!g_file_get_contents(fname.c_str(), &contents, &content_size, &err))
-    {
-        unlink(fname.c_str());
-        std::string msg("Error reading file: ");
-        msg += err->message;
-        g_error_free(err);
-        throw std::runtime_error(msg);
-    }
-    unlink(fname.c_str());
-    return unique_ptr<gchar, void (*)(gpointer)>(contents, g_free);
-}
-
 std::string Thumbnailer::get_album_art(std::string const& artist,
                                        std::string const& album,
                                        ThumbnailSize desired_size,
@@ -344,30 +368,36 @@ std::string Thumbnailer::get_album_art(std::string const& artist,
             return "";
         }
         char filebuf[] = "/tmp/some/long/text/here/so/path/will/fit";
-        std::string tmpname = tmpnam(filebuf);
-        std::string image = p_->downloader->download(artist, album);
-        if (!image.empty())
-        {
-            store_to_file(image, tmpname);
-        }
-        else
-        {
-            return image;
-        }
+//        std::string tmpname = tmpnam(filebuf);
+        p_->downloader->download(QString::fromStdString(artist), QString::fromStdString(album));
 
-        gsize content_size;
-        auto contents = get_art_file_content(tmpname, content_size);
-        p_->macache.add_album_art(artist, album, contents.get(), content_size);
+        return "";
+////        std::string image = p_->downloader->download(artist, album);
+//        if (!image.empty())
+//        {
+//            store_to_file(image, tmpname);
+//        }
+//        else
+//        {
+//            return image;
+//        }
+//        QFile qfile(QString::fromStdString(tmpname));
+//        if (!qfile.open(QFile::ReadOnly))
+//        {
+//            // TODO throw exception
+//        }
+//        p_->macache.add_album_art(artist, album, qfile.readAll().constData(), qfile.size());
     }
-    // At this point we know we have the image in our art cache (unless
-    // someone just deleted it concurrently, in which case we can't
-    // really do anything.
-    std::string original = p_->macache.get_album_art_file(artist, album);
-    if (desired_size == TN_SIZE_ORIGINAL)
-    {
-        return original;
-    }
-    return get_thumbnail(original, desired_size, policy);
+    return "";
+//    // At this point we know we have the image in our art cache (unless
+//    // someone just deleted it concurrently, in which case we can't
+//    // really do anything.
+//    std::string original = p_->macache.get_album_art_file(artist, album);
+//    if (desired_size == TN_SIZE_ORIGINAL)
+//    {
+//        return original;
+//    }
+//    return get_thumbnail(original, desired_size, policy);
 }
 
 std::string Thumbnailer::get_artist_art(std::string const& artist,
@@ -385,28 +415,36 @@ std::string Thumbnailer::get_artist_art(std::string const& artist,
         }
         char filebuf[] = "/tmp/some/long/text/here/so/path/will/fit";
         std::string tmpname = tmpnam(filebuf);
-        std::string image = p_->downloader->download_artist(artist, album);
-        if (!image.empty())
-        {
-            store_to_file(image, tmpname);
-        }
-        else
-        {
-            return image;
-        }
-        gsize content_size;
-        auto contents = get_art_file_content(tmpname, content_size);
-        p_->macache.add_artist_art(artist, album, contents.get(), content_size);
+        p_->downloader->download_artist(QString::fromStdString(artist), QString::fromStdString(album));
+        return "";
+//
+//        if (!image.empty())
+//        {
+//            store_to_file(image, tmpname);
+//        }
+//        else
+//        {
+//            return image;
+//        }
+//        QFile qfile(QString::fromStdString(tmpname));
+//        if (!qfile.open(QFile::ReadOnly))
+//        {
+//            // TODO throw exception
+//        }
+//        p_->macache.add_artist_art(artist, album, qfile.readAll().constData(), qfile.size());
     }
-    // At this point we know we have the image in our art cache (unless
-    // someone just deleted it concurrently, in which case we can't
-    // really do anything.
-    std::string original = p_->macache.get_artist_art_file(artist, album);
-    if (desired_size == TN_SIZE_ORIGINAL)
-    {
-        return original;
-    }
-    return get_thumbnail(original, desired_size, policy);
+//    // At this point we know we have the image in our art cache (unless
+//    // someone just deleted it concurrently, in which case we can't
+//    // really do anything.
+//    std::string original = p_->macache.get_artist_art_file(artist, album);
+//    if (desired_size == TN_SIZE_ORIGINAL)
+//    {
+//        return original;
+//    }
+//    return get_thumbnail(original, desired_size, policy);
 
     return "";
 }
+
+#include "thumbnailer.moc"
+

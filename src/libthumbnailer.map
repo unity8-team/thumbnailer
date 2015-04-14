@@ -1,7 +1,7 @@
 {
 global:
     extern "C++" {
-        "Thumbnailer::Thumbnailer()";
+        "Thumbnailer::Thumbnailer(QObject*)";
         "Thumbnailer::~Thumbnailer()";
         "Thumbnailer::get_thumbnail(std::string const&, ThumbnailSize)";
         "Thumbnailer::get_thumbnail(std::string const&, ThumbnailSize, ThumbnailPolicy)";
