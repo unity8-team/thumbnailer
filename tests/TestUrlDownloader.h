@@ -36,16 +36,16 @@ class TestUrlDownloader : public QArtDownloader
 {
     Q_OBJECT
 public:
-    TestUrlDownloader(QObject *parent=nullptr);
+    TestUrlDownloader(QObject* parent = nullptr);
     ~TestUrlDownloader() = default;
 
     QString download(QString const& artist, QString const& album) override;
     QString download_artist(QString const& artist, QString const& album) override;
 
-    QString download_url(QUrl const &url);
+    QString download_url(QUrl const& url);
 };
 
-} // namespace test
+}  // namespace test
 
 }  // namespace internal
 

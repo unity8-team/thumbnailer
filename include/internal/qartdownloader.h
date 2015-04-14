@@ -36,7 +36,7 @@ class QArtDownloader : public QObject
 {
     Q_OBJECT
 public:
-    QArtDownloader(QObject *parent=nullptr);
+    QArtDownloader(QObject* parent = nullptr);
     virtual ~QArtDownloader() = default;
 
     // Returns the url of the image to download for the given artist and album
@@ -62,14 +62,14 @@ protected:
     // Starts the download of the given url
     // Returns a pointer to the QNetworkReply returned by QNetworkAccessManager
     // so the user can connect to its signals or get any information
-    QNetworkReply *start_download(QUrl const &url);
+    QNetworkReply* start_download(QUrl const& url);
 
 protected slots:
-    void reply_finished(QNetworkReply *reply);
+    void reply_finished(QNetworkReply* reply);
 
 signals:
-    void file_downloaded(QString const &url, QByteArray const &data);
-    void download_error(QString const &url, QNetworkReply::NetworkError error, QString const& error_message);
+    void file_downloaded(QString const& url, QByteArray const& data);
+    void download_error(QString const& url, QNetworkReply::NetworkError error, QString const& error_message);
 
 private:
     QNetworkAccessManager network_manager_;

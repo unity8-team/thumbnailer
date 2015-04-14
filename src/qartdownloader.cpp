@@ -22,20 +22,20 @@
 
 using namespace unity::thumbnailer::internal;
 
-QArtDownloader::QArtDownloader(QObject *parent) : QObject(parent)
+QArtDownloader::QArtDownloader(QObject* parent)
+    : QObject(parent)
 {
 }
 
-QNetworkReply *QArtDownloader::start_download(QUrl const &url)
+QNetworkReply* QArtDownloader::start_download(QUrl const& url)
 {
     // start downloading a file using the QNetworkAccessManager
-    QNetworkReply *reply = network_manager_.get(QNetworkRequest(url));
-    connect(&network_manager_, &QNetworkAccessManager::finished,
-            this, &QArtDownloader::reply_finished);
+    QNetworkReply* reply = network_manager_.get(QNetworkRequest(url));
+    connect(&network_manager_, &QNetworkAccessManager::finished, this, &QArtDownloader::reply_finished);
     return reply;
 }
 
-void QArtDownloader::reply_finished(QNetworkReply *reply)
+void QArtDownloader::reply_finished(QNetworkReply* reply)
 {
     if (!reply->error())
     {

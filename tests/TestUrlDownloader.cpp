@@ -21,23 +21,24 @@
 using namespace unity::thumbnailer::internal::test;
 using namespace unity::thumbnailer::internal;
 
-TestUrlDownloader::TestUrlDownloader(QObject *parent) : QArtDownloader(parent)
+TestUrlDownloader::TestUrlDownloader(QObject* parent)
+    : QArtDownloader(parent)
 {
 }
 
-QString TestUrlDownloader::download(QString const& , QString const& )
-{
-    // does nothing, this class is only intended for testing purposes
-    return "";
-}
-
-QString TestUrlDownloader::download_artist(QString const& , QString const& )
+QString TestUrlDownloader::download(QString const&, QString const&)
 {
     // does nothing, this class is only intended for testing purposes
     return "";
 }
 
-QString TestUrlDownloader::download_url(QUrl const &url)
+QString TestUrlDownloader::download_artist(QString const&, QString const&)
+{
+    // does nothing, this class is only intended for testing purposes
+    return "";
+}
+
+QString TestUrlDownloader::download_url(QUrl const& url)
 {
     // starts the download
     return start_download(url)->url().toString();

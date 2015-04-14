@@ -34,7 +34,7 @@ class UbuntuServerDownloader final : public QArtDownloader
 {
     Q_OBJECT
 public:
-    UbuntuServerDownloader(QObject *parent=nullptr);
+    UbuntuServerDownloader(QObject* parent = nullptr);
     ~UbuntuServerDownloader() = default;
 
     QString download(QString const& artist, QString const& album) override;

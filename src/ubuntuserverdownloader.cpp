@@ -34,12 +34,13 @@ QString const ALBUM_ART_BASE_URL = "musicproxy/v1/album-art";
 QString const ARTIST_ART_BASE_URL = "musicproxy/v1/artist-art";
 
 // helper methods to retrieve image urls
-QString get_parameter(QString const &parameter, QString const &value)
+QString get_parameter(QString const& parameter, QString const& value)
 {
     return parameter + QString("=") + value;
 }
 
-QString get_art_url(QString const &base_url, QString const &size, QString const &artist, QString const &album, QString const &api_key)
+QString get_art_url(
+    QString const& base_url, QString const& size, QString const& artist, QString const& album, QString const& api_key)
 {
     QString prefix_api_root = UBUNTU_SERVER_BASE_URL;
     char const* apiroot_c = getenv("THUMBNAILER_UBUNTU_APIROOT");
@@ -48,24 +49,22 @@ QString get_art_url(QString const &base_url, QString const &size, QString const 
         prefix_api_root = apiroot_c;
     }
 
-    return prefix_api_root + "/" + base_url + "?"
-                           + get_parameter("artist", artist) + "&"
-                           + get_parameter("album", album) + "&"
-                           + get_parameter("size", size) + "&"
-                           + get_parameter("key", api_key);
+    return prefix_api_root + "/" + base_url + "?" + get_parameter("artist", artist) + "&" +
+           get_parameter("album", album) + "&" + get_parameter("size", size) + "&" + get_parameter("key", api_key);
 }
 
-QString get_album_art_url(QString const &artist, QString const &album, QString const &api_key)
+QString get_album_art_url(QString const& artist, QString const& album, QString const& api_key)
 {
     return get_art_url(ALBUM_ART_BASE_URL, REQUESTED_ALBUM_IMAGE_SIZE, artist, album, api_key);
 }
 
-QString get_artist_art_url(QString const &artist, QString const &album, QString const &api_key)
+QString get_artist_art_url(QString const& artist, QString const& album, QString const& api_key)
 {
     return get_art_url(ARTIST_ART_BASE_URL, REQUESTED_ARTIST_IMAGE_SIZE, artist, album, api_key);
 }
 
-UbuntuServerDownloader::UbuntuServerDownloader(QObject *parent) : QArtDownloader(parent)
+UbuntuServerDownloader::UbuntuServerDownloader(QObject* parent)
+    : QArtDownloader(parent)
 {
     set_api_key();
 }
