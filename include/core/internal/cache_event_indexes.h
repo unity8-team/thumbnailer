@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 namespace core
 {
 
@@ -27,7 +29,7 @@ namespace internal
 // Note: Any change here must have a corresponding change to
 //       CacheEvent in core/cache_events.h!
 
-enum class CacheEventIndex : unsigned
+enum class CacheEventIndex : uint32_t
 {
     get        = 0,
     put        = 1,

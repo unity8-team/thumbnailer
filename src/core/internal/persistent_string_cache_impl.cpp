@@ -1002,7 +1002,7 @@ void PersistentStringCacheImpl::invalidate()
         int64_t const batch_size = 1000;
 
         PersistentStringCache::EventCallback cb =
-            handlers_[static_cast<unsigned>(CacheEventIndex::invalidate)];
+            handlers_[static_cast<underlying_type<CacheEventIndex>::type>(CacheEventIndex::invalidate)];
 
         IteratorUPtr it(db_->NewIterator(read_options));
         it->Seek(ALL_BEGIN);
@@ -1172,7 +1172,7 @@ void PersistentStringCacheImpl::set_headroom(int64_t headroom)
 
     lock_guard<decltype(mutex_)> lock(mutex_);
 
-    // No need to trim here. Once there is no room for new entry, delete_at_least()
+    // No need to trim here. Once there is no room for a new entry, delete_at_least()
     // creates at least stats_->headroom_ free space.
 
     auto s = db_->Put(write_options, SETTINGS_HEADROOM, to_string(headroom));
@@ -1546,12 +1546,13 @@ void PersistentStringCacheImpl::call_handler(string const& key, CacheEventIndex 
 {
     // mutex_ must be locked here!
 
-    auto handler = handlers_[static_cast<unsigned>(event_index)];
+    typedef underlying_type<CacheEventIndex>::type IndexType;
+    auto handler = handlers_[static_cast<IndexType>(event_index)];
     if (handler)
     {
         try
         {
-            unsigned index = static_cast<unsigned>(event_index);
+            IndexType index = static_cast<IndexType>(event_index);
             handler(key, static_cast<CacheEvent>(1 << index), stats_);
         }
         catch (...)

@@ -849,6 +849,20 @@ TEST(PersistentStringCacheImpl, exceptions)
             e.what());
     }
 
+    // Open non-existent cache
+    try
+    {
+        PersistentStringCacheImpl c("no_such_cache");
+        FAIL();
+    }
+    catch (runtime_error const& e)
+    {
+        EXPECT_STREQ(
+            "PersistentStringCache: cannot open or create cache: Invalid argument: no_such_cache: "
+            "does not exist (create_if_missing is false) (cache_path: no_such_cache)",
+            e.what());
+    }
+
     // Invalid size argument
     try
     {
