@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
         return 1;
     }
     std::string ifilename(argv[1]);
-    std::string ofilename = t.get_thumbnail(ifilename, TN_SIZE_LARGE);
+    std::string ofilename = t.get_thumbnail(ifilename, TN_SIZE_LARGE, TN_LOCAL);
     if(ofilename.empty())
         printf("Thumbnail could not be generated.\n");
     else

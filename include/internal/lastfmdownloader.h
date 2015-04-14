@@ -55,4 +55,3 @@ private:
 }  // namespace thumbnailer
 
 }  // namespace unity
-

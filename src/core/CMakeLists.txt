@@ -10,3 +10,4 @@ set(CACHE_SRC
 set(CORE_SRC ${CORE_SRC} ${CACHE_SRC})
 
 add_library(core STATIC ${CORE_SRC})
+target_link_libraries(core ${LEVELDB})

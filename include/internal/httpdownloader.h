@@ -27,5 +27,4 @@ public:
     virtual ~HttpDownloader() {};
 };
 
-
 #endif
