@@ -87,11 +87,6 @@ public:
     int64_t max_size_in_bytes() const noexcept;
 
     /**
-    \brief Returns the currently set headroom.
-    */
-    int64_t headroom() const noexcept;
-
-    /**
     \brief Returns the number of hits since the statistics were last reset.
     */
     int64_t hits() const noexcept;

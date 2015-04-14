@@ -113,7 +113,6 @@ inserts a new record into the cache.
 Setting     | Value
 ----------  | ------
 Cache size  | 100 MB
-Headroom    |   5 MB
 # Records   | ~5120
 Record size | 20 kB, normal distribution, stddev = 7000
 
@@ -299,30 +298,6 @@ public:
     if there are updates to the cache that have not yet been written to disk.
     */
     int64_t disk_size_in_bytes() const;
-
-    /**
-    \brief Returns the headroom in bytes.
-
-    By default, the cache has a headroom of `0`, meaning that, if there
-    is insufficient free space to add or update an entry, the cache
-    discards the smallest possible number of non-expired old entries
-    in order to make room for the new entry.
-
-    If the headroom is non-zero, when discarding entries to create free
-    space, the cache always frees at least headroom() bytes (more
-    if the new entry requires more space than headroom()).
-
-    \note Setting a headroom of 2% can yield a 20% performance
-    improvement in some cases. However, this assumes zero-latency
-    to produce a new record to insert. You need to test cache
-    performance to find the correct balance between efficient eviction
-    and the cost of producing a new record to add after a cache miss.
-    Typically, the cost of producing a new record is significantly
-    larger than the cost of inserting a record. In that case, setting
-    a non-zero headroom is unlikely to have any effect other than
-    needlessly reducing the cache hit rate.
-    */
-    int64_t headroom() const noexcept;
 
     /**
     \brief Returns the discard policy of the cache.
@@ -646,16 +621,8 @@ public:
     the size falls to (or below) `size_in_bytes` and sets the cache size to the new value.
 
     \throws invalid_argument `size_in_bytes` is &lt; 1
-    \throws logic_error headroom() is &gt; 50% of `size_in_bytes`.
-
-    \note If a cache uses non-zero headroom, you probably need to also adjust the headroom to make
-    sense for the new size. When down-sizing, you likely want the headroom to become smaller. In
-    that case, reduce the headroom first and down-size second, to avoid evicting more existing
-    entries than necessary.
 
     \note This operation compacts the database to use the smallest possible amount of disk space.
-
-    \see set_headroom()
     */
     void resize(int64_t size_in_bytes);
 
@@ -673,15 +640,6 @@ public:
     smallest possible amount of disk space.
     */
     void trim_to(int64_t used_size_in_bytes);
-
-    /**
-    \brief Changes the amount of headroom.
-
-    \throws invalid_argument `headroom is &lt; 0`.
-    \throws logic_error `headroom` is &gt; 50% of max_size_in_bytes().
-    \see resize()
-    */
-    void set_headroom(int64_t headroom);
 
     //@}
 
