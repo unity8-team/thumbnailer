@@ -80,10 +80,11 @@ DBusInterface::~DBusInterface() {
 namespace
 {
 
-typedef unity::util::ResourcePtr<int, decltype(&::close)> FdPtr;
-
-FdPtr write_to_tmpfile(string const& image)
+QDBusUnixFileDescriptor write_to_tmpfile(string const& image)
 {
+
+    typedef unity::util::ResourcePtr<int, decltype(&::close)> FdPtr;
+
     static auto find_tmpdir = []
     {
         char const* dirp = getenv("TMPDIR");
@@ -112,7 +113,7 @@ FdPtr write_to_tmpfile(string const& image)
     }
     lseek(fd, SEEK_SET, 0);  // No error check needed, can't fail.
 
-    return fd_ptr;
+    return QDBusUnixFileDescriptor(fd_ptr.get());
 }
 
 }
@@ -150,8 +151,7 @@ QDBusUnixFileDescriptor DBusInterface::GetAlbumArt(const QString &artist, const 
 
         try
         {
-            auto fd_ptr = write_to_tmpfile(art_image);
-            QDBusUnixFileDescriptor unix_fd(fd_ptr.get());
+            auto unix_fd = write_to_tmpfile(art_image);
             bus.send(msg.createReply(QVariant::fromValue(unix_fd)));
         }
         catch (runtime_error const& e)
@@ -196,8 +196,7 @@ QDBusUnixFileDescriptor DBusInterface::GetArtistArt(const QString &artist, const
 
         try
         {
-            auto fd_ptr = write_to_tmpfile(art_image);
-            QDBusUnixFileDescriptor unix_fd(fd_ptr.get());
+            auto unix_fd = write_to_tmpfile(art_image);
             bus.send(msg.createReply(QVariant::fromValue(unix_fd)));
         }
         catch (runtime_error const& e)
