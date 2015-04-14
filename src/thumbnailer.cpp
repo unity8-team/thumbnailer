@@ -48,13 +48,6 @@
 using namespace std;
 using namespace unity::thumbnailer::internal;
 
-void store_to_file(string const& content, string const& file_path)
-{
-    ofstream out_stream(file_path);
-    out_stream << content;
-    out_stream.close();
-}
-
 class ThumbnailerPrivate
 {
 private:
@@ -111,6 +104,11 @@ public:
     string create_thumbnail(string const& abspath, ThumbnailSize desired_size, ThumbnailPolicy policy);
     string create_random_filename();
     string extract_exif_thumbnail(std::string const& abspath);
+    string fetch_thumbnail(string const& artist,
+                           string const& album,
+                           string const& suffix,
+                           ThumbnailPolicy policy,
+                           function<string(string const&, string const&)> downloader);
 };
 
 string ThumbnailerPrivate::create_random_filename()
@@ -339,13 +337,14 @@ string Thumbnailer::get_thumbnail(string const& filename, ThumbnailSize desired_
     return get_thumbnail(filename, desired_size, TN_LOCAL);
 }
 
-std::string Thumbnailer::get_album_art(std::string const& artist,
-                                       std::string const& album,
-                                       ThumbnailSize /* desired_size */,
-                                       ThumbnailPolicy policy)
+string ThumbnailerPrivate::fetch_thumbnail(string const& artist,
+                           string const& album,
+                           string const& suffix,
+                           ThumbnailPolicy policy,
+                           function<string(string const&, string const&)> downloader)
 {
-    string key = artist + album + "album";
-    auto thumbnail = p_->macache->get(key);
+    string key = artist + "\0" + album + "\0" + suffix;
+    auto thumbnail = macache->get(key);
     if (thumbnail)
     {
         return *thumbnail;
@@ -356,13 +355,25 @@ std::string Thumbnailer::get_album_art(std::string const& artist,
         // -> nothing to be done.
         return "";
     }
-    std::string image = p_->downloader->download(artist, album);
+    string image = downloader(artist, album);
     if (image.empty())
     {
         return "";
     }
-    p_->macache->put(key, image);
+    macache->put(key, image);
     return image;
+}
+
+std::string Thumbnailer::get_album_art(std::string const& artist,
+                                       std::string const& album,
+                                       ThumbnailSize /* desired_size */,
+                                       ThumbnailPolicy policy)
+{
+    auto download = [this](string const& artist, string const& album)
+    {
+        return p_->downloader->download(artist, album);
+    };
+    return p_->fetch_thumbnail(artist, album, string("album"), policy, download);
 }
 
 std::string Thumbnailer::get_artist_art(std::string const& artist,
@@ -370,23 +381,9 @@ std::string Thumbnailer::get_artist_art(std::string const& artist,
                                         ThumbnailSize /* desired_size */,
                                         ThumbnailPolicy policy)
 {
-    string key = artist + album + "artist";
-    auto thumbnail = p_->macache->get(key);
-    if (thumbnail)
+    auto download = [this](string const& artist, string const& album)
     {
-        return *thumbnail;
-    }
-    if (policy == TN_LOCAL)
-    {
-        // We don't have it cached and can't access the net
-        // -> nothing to be done.
-        return "";
-    }
-    std::string image = p_->downloader->download_artist(artist, album);
-    if (image.empty())
-    {
-        return "";
-    }
-    p_->macache->put(key, image);
-    return image;
+        return p_->downloader->download_artist(artist, album);
+    };
+    return p_->fetch_thumbnail(artist, album, string("artist"), policy, download);
 }
