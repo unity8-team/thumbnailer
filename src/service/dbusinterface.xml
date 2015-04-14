@@ -16,9 +16,12 @@
       <arg direction="out" type="h" name="fd" />
       <annotation name="org.gtk.GDBus.C.UnixFD" value="true" />
     </method>
-    <!-- Note: if adding additional thumbnailing methods that take a
-         file name as input, ensure that the calling process has
-         permission to read said file.  Otherwise we will leak
-         information to confined applications. -->
+    <method name="GetThumbnail">
+      <arg direction="in" type="s" name="filename" />
+      <arg direction="in" type="h" name="filename_fd" />
+      <arg direction="in" type="s" name="desiredSize" />
+      <arg direction="out" type="h" name="fd" />
+      <annotation name="org.gtk.GDBus.C.UnixFD" value="true" />
+    </method>
   </interface>
 </node>

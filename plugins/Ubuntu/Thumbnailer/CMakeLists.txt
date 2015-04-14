@@ -11,7 +11,7 @@ add_library(thumbnailer-qml MODULE
 
 set_target_properties(thumbnailer-qml PROPERTIES AUTOMOC TRUE)
 qt5_use_modules(thumbnailer-qml Qml Quick DBus)
-target_link_libraries(thumbnailer-qml thumbnailer core)
+target_link_libraries(thumbnailer-qml)
 
 install(
   TARGETS thumbnailer-qml

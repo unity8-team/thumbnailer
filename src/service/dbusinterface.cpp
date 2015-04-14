@@ -24,6 +24,8 @@
 #include <stdexcept>
 #include <string>
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include <QDBusConnection>
@@ -152,6 +154,67 @@ QDBusUnixFileDescriptor DBusInterface::GetArtistArt(const QString &artist, const
             bus.send(msg.createErrorReply(ART_ERROR, "Could not get thumbnail"));
             return;
         }
+        int fd = open(art.c_str(), O_RDONLY);
+        if (fd < 0) {
+            bus.send(msg.createErrorReply(ART_ERROR, strerror(errno)));
+            return;
+        }
+
+        QDBusUnixFileDescriptor unix_fd(fd);
+        close(fd);
+
+        bus.send(msg.createReply(QVariant::fromValue(unix_fd)));
+    }));
+
+    return QDBusUnixFileDescriptor();
+}
+
+QDBusUnixFileDescriptor DBusInterface::GetThumbnail(const QString &filename, const QDBusUnixFileDescriptor &filename_fd, const QString &desiredSize) {
+    qDebug() << "Look thumbnail for" << filename << "at size" << desiredSize;
+
+    ThumbnailSize size;
+    try {
+        size = desiredSizeFromString(desiredSize);
+    } catch (const std::logic_error& e) {
+        sendErrorReply(ART_ERROR, e.what());
+        return QDBusUnixFileDescriptor();
+    }
+
+    struct stat filename_stat, fd_stat;
+    if (stat(filename.toUtf8(), &filename_stat) < 0) {
+        sendErrorReply(ART_ERROR, "Could not stat file");
+        return QDBusUnixFileDescriptor();
+    }
+    if (fstat(filename_fd.fileDescriptor(), &fd_stat) < 0) {
+        sendErrorReply(ART_ERROR, "Could not stat file descriptor");
+        return QDBusUnixFileDescriptor();
+    }
+    if (filename_stat.st_dev != fd_stat.st_dev ||
+        filename_stat.st_ino != fd_stat.st_ino) {
+        sendErrorReply(ART_ERROR, "filename refers to a different file to the file descriptor");
+        return QDBusUnixFileDescriptor();
+    }
+
+    setDelayedReply(true);
+    auto thumbnailer = p->thumbnailer;
+    auto bus = connection();
+    auto msg = message();
+    p->pool.start(new Task([=]() {
+        std::string art;
+        try {
+            art = thumbnailer->get_thumbnail(
+                filename.toStdString(), size, TN_REMOTE);
+        } catch (const std::exception &e) {
+            bus.send(msg.createErrorReply(ART_ERROR, e.what()));
+            return;
+        }
+
+        if (art.empty()) {
+            bus.send(msg.createErrorReply(ART_ERROR, "Could not get thumbnail"));
+            return;
+        }
+
+        // FIXME: check that the thumbnail was produced for fd_stat
         int fd = open(art.c_str(), O_RDONLY);
         if (fd < 0) {
             bus.send(msg.createErrorReply(ART_ERROR, strerror(errno)));
