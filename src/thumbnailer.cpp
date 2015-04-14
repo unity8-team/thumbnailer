@@ -97,7 +97,7 @@ public:
             string s("Could not create base dir.");
             throw runtime_error(s);
         }
-        cache_dir = xdg_base + "/media-art";
+        cache_dir = xdg_base + "/unity-thumbnailer";
         ec = mkdir(cache_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
         if (ec < 0 && errno != EEXIST) {
             string s("Could not create cache dir.");
@@ -344,7 +344,7 @@ std::string Thumbnailer::get_album_art(std::string const& artist,
                                        ThumbnailSize /* desired_size */,
                                        ThumbnailPolicy policy)
 {
-    string key = artist + album + "album";
+    string key = artist + "\0" + album + "\0album";
     auto thumbnail = p_->macache->get(key);
     if (thumbnail)
     {
@@ -370,7 +370,7 @@ std::string Thumbnailer::get_artist_art(std::string const& artist,
                                         ThumbnailSize /* desired_size */,
                                         ThumbnailPolicy policy)
 {
-    string key = artist + album + "artist";
+    string key = artist + "\0" + album + "\0artist";
     auto thumbnail = p_->macache->get(key);
     if (thumbnail)
     {

@@ -25,11 +25,6 @@ add_test(basic basic)
 set_property(TEST basic PROPERTY ENVIRONMENT "XDG_CACHE_HOME=${CMAKE_CURRENT_BINARY_DIR}")
 set_property(TEST basic APPEND PROPERTY ENVIRONMENT "TN_UTILDIR=${CMAKE_BINARY_DIR}/src/vs-thumb")
 
-#add_executable(mediaartcachetest mediaartcachetest.cpp ../src/mediaartcache.cpp)
-#target_link_libraries(mediaartcachetest ${GIO_DEPS_LDFLAGS} gtest)
-#add_test(mediaartcache mediaartcachetest)
-#set_property(TEST mediaartcache PROPERTY ENVIRONMENT "XDG_CACHE_HOME=${CMAKE_CURRENT_BINARY_DIR}")
-
 add_executable(downloadtest download.cpp ../src/lastfmdownloader.cpp ../src/ubuntuserverdownloader.cpp ../src/soupdownloader.cpp)
 target_link_libraries(downloadtest ${XML_DEPS_LDFLAGS} ${SOUP_DEPS_LDFLAGS} gtest)
 add_test(downloadtest downloadtest)

@@ -19,22 +19,18 @@
 
 #include "dbusinterface.h"
 
-#include <functional>
-#include <memory>
-#include <stdexcept>
-#include <string>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
+#include <thumbnailer.h>
 
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <QDebug>
 #include <QRunnable>
 #include <QThreadPool>
+#include <unity/util/ResourcePtr.h>
 
-#include <thumbnailer.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 using namespace std;
 
@@ -81,6 +77,47 @@ DBusInterface::DBusInterface(QObject *parent)
 DBusInterface::~DBusInterface() {
 }
 
+namespace
+{
+
+typedef unity::util::ResourcePtr<int, decltype(&::close)> FdPtr;
+
+FdPtr write_to_tmpfile(string const& image)
+{
+    static auto find_tmpdir = []
+    {
+        char const* dirp = getenv("TMPDIR");
+        string dir = dirp ? dirp : "/tmp";
+        return dir;
+    };
+    static string dir = find_tmpdir();
+
+    int fd = open(dir.c_str(), O_TMPFILE | O_RDWR);
+    if (fd < 0) {
+        string err = "cannot create tmpfile in " + dir + ": " + strerror(errno);
+        throw runtime_error(err);
+    }
+    FdPtr fd_ptr(fd, ::close);
+    auto rc = write(fd_ptr.get(), &image[0], image.size());
+    if (rc == -1)
+    {
+        string err = "cannot write image data in " + dir + ": " + strerror(errno);
+        throw runtime_error(err);
+    }
+    else if (string::size_type(rc) != image.size())
+    {
+        string err = "short write for image data in " + dir +
+                     "(requested = " + to_string(image.size()) + ", actual = " + to_string(rc) + ")";
+        throw runtime_error(err);
+    }
+    lseek(fd, SEEK_SET, 0);  // No error check needed, can't fail.
+
+    return fd_ptr;
+}
+
+}
+
+
 QDBusUnixFileDescriptor DBusInterface::GetAlbumArt(const QString &artist, const QString &album, const QString &desiredSize) {
     qDebug() << "Look up cover art for" << artist << "/" << album << "at size" << desiredSize;
 
@@ -97,29 +134,31 @@ QDBusUnixFileDescriptor DBusInterface::GetAlbumArt(const QString &artist, const 
     auto bus = connection();
     auto msg = message();
     p->pool.start(new Task([thumbnailer, artist, album, size, bus, msg]() {
-        std::string art;
+        std::string art_image;
         try {
-            art = thumbnailer->get_album_art(
+            art_image = thumbnailer->get_album_art(
                 artist.toStdString(), album.toStdString(), size, TN_REMOTE);
         } catch (const std::exception &e) {
             bus.send(msg.createErrorReply(ART_ERROR, e.what()));
             return;
         }
 
-        if (art.empty()) {
+        if (art_image.empty()) {
             bus.send(msg.createErrorReply(ART_ERROR, "Could not get thumbnail"));
             return;
         }
-        int fd = open(art.c_str(), O_RDONLY);
-        if (fd < 0) {
-            bus.send(msg.createErrorReply(ART_ERROR, strerror(errno)));
-            return;
+
+        try
+        {
+            auto fd_ptr = write_to_tmpfile(art_image);
+            QDBusUnixFileDescriptor unix_fd(fd_ptr.get());
+            bus.send(msg.createReply(QVariant::fromValue(unix_fd)));
         }
-
-        QDBusUnixFileDescriptor unix_fd(fd);
-        close(fd);
-
-        bus.send(msg.createReply(QVariant::fromValue(unix_fd)));
+        catch (runtime_error const& e)
+        {
+            string err = string("GetAlbumArt(): ") + e.what();
+            bus.send(msg.createErrorReply(ART_ERROR, err.c_str()));
+        }
     }));
 
     return QDBusUnixFileDescriptor();
@@ -141,29 +180,31 @@ QDBusUnixFileDescriptor DBusInterface::GetArtistArt(const QString &artist, const
     auto bus = connection();
     auto msg = message();
     p->pool.start(new Task([thumbnailer, artist, album, size, bus, msg]() {
-        std::string art;
+        std::string art_image;
         try {
-            art = thumbnailer->get_artist_art(
+            art_image = thumbnailer->get_artist_art(
                 artist.toStdString(), album.toStdString(), size, TN_REMOTE);
         } catch (const std::exception &e) {
             bus.send(msg.createErrorReply(ART_ERROR, e.what()));
             return;
         }
 
-        if (art.empty()) {
+        if (art_image.empty()) {
             bus.send(msg.createErrorReply(ART_ERROR, "Could not get thumbnail"));
             return;
         }
-        int fd = open(art.c_str(), O_RDONLY);
-        if (fd < 0) {
-            bus.send(msg.createErrorReply(ART_ERROR, strerror(errno)));
-            return;
+
+        try
+        {
+            auto fd_ptr = write_to_tmpfile(art_image);
+            QDBusUnixFileDescriptor unix_fd(fd_ptr.get());
+            bus.send(msg.createReply(QVariant::fromValue(unix_fd)));
         }
-
-        QDBusUnixFileDescriptor unix_fd(fd);
-        close(fd);
-
-        bus.send(msg.createReply(QVariant::fromValue(unix_fd)));
+        catch (runtime_error const& e)
+        {
+            string err = string("GetArtistArt(): ") + e.what();
+            bus.send(msg.createErrorReply(ART_ERROR, err.c_str()));
+        }
     }));
 
     return QDBusUnixFileDescriptor();
