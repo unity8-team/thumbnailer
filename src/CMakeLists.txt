@@ -1,6 +1,6 @@
 add_subdirectory(core)
 
-add_library(thumbnailer SHARED
+add_library(thumbnailer STATIC
 audioimageextractor.cpp
 imagescaler.cpp
 lastfmdownloader.cpp
@@ -11,8 +11,6 @@ ubuntuserverdownloader.cpp
 videoscreenshotter.cpp
 )
 
-set(symbol_map "${CMAKE_CURRENT_SOURCE_DIR}/libthumbnailer.map")
-
 target_link_libraries(thumbnailer
  core
  ${GLIB_DEPS_LDFLAGS}
@@ -20,17 +18,6 @@ target_link_libraries(thumbnailer
  ${IMG_DEPS_LDFLAGS}
  ${XML_DEPS_LDFLAGS}
  ${SOUP_DEPS_LDFLAGS})
-set_target_properties(thumbnailer PROPERTIES VERSION ${SO_VERSION} SOVERSION ${ABI_VERSION})
-set_target_properties(thumbnailer PROPERTIES
-                      LINK_FLAGS "${ldflags} -Wl,--version-script,${symbol_map}")
-set_target_properties(thumbnailer PROPERTIES LINK_DEPENDS ${symbol_map})
-
-install(
-  TARGETS thumbnailer
-  ARCHIVE DESTINATION ${LIBDIR}
-  RUNTIME DESTINATION bin
-  LIBRARY DESTINATION ${LIBDIR}
-)
 
 add_subdirectory(service)
 add_subdirectory(vs-thumb)

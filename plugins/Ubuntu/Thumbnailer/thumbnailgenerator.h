@@ -19,13 +19,16 @@
 #ifndef THUMBNAIL_GENERATOR_H
 #define THUMBNAIL_GENERATOR_H
 
+#include <memory>
+
+#include <QDBusInterface>
 #include <QQuickImageProvider>
-#include <thumbnailer.h>
 
 class ThumbnailGenerator: public QQuickImageProvider
 {
 private:
-    Thumbnailer tn;
+    std::unique_ptr<QDBusConnection> connection;
+    std::unique_ptr<QDBusInterface> iface;
 
 public:
     ThumbnailGenerator();
@@ -34,7 +37,7 @@ public:
     ThumbnailGenerator(ThumbnailGenerator &&other) = delete;
     const ThumbnailGenerator & operator=(ThumbnailGenerator &&other) = delete;
 
-    QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize);
+    QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize) override;
     QImage getFallbackImage(const QString &id, QSize *size, const QSize &requestedSize);
 };
 
