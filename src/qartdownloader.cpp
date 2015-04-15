@@ -40,11 +40,11 @@ void QArtDownloader::reply_finished(QNetworkReply* reply)
     if (!reply->error())
     {
         QByteArray data = reply->readAll();
-        emit file_downloaded(reply->url().toString(), data);
+        Q_EMIT file_downloaded(reply->url().toString(), data);
     }
     else
     {
-        emit download_error(reply->url().toString(), reply->error(), reply->errorString());
+        Q_EMIT download_error(reply->url().toString(), reply->error(), reply->errorString());
     }
     reply->deleteLater();
 }

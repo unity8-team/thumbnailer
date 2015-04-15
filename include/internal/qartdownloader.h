@@ -64,10 +64,10 @@ protected:
     // so the user can connect to its signals or get any information
     QNetworkReply* start_download(QUrl const& url);
 
-protected slots:
+protected Q_SLOTS:
     void reply_finished(QNetworkReply* reply);
 
-signals:
+Q_SIGNALS:
     void file_downloaded(QString const& url, QByteArray const& data);
     void download_error(QString const& url, QNetworkReply::NetworkError error, QString const& error_message);
 

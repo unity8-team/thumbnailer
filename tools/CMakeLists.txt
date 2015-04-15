@@ -11,6 +11,7 @@ add_definitions(
   -Wall
   -Wextra
   -fPIC
+  -DQT_NO_KEYWORDS
 )
 
 find_package(Qt5Core REQUIRED)
