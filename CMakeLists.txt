@@ -33,6 +33,7 @@ find_package(Boost COMPONENTS filesystem system REQUIRED)
 find_package(Threads REQUIRED)
 find_package(Qt5Core REQUIRED)
 find_package(Qt5DBus REQUIRED)
+
 include(FindPkgConfig)
 pkg_check_modules(GST_DEPS REQUIRED gstreamer-1.0 gstreamer-plugins-base-1.0 gstreamer-tag-1.0)
 pkg_check_modules(GIO_DEPS REQUIRED gio-2.0 gio-unix-2.0)
@@ -50,6 +51,7 @@ include_directories(include)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 
 enable_testing()
+
 add_subdirectory(src)
 add_subdirectory(data)
 add_subdirectory(plugins/Ubuntu/Thumbnailer)

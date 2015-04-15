@@ -23,12 +23,6 @@
 
 class ThumbnailerPrivate;
 
-enum ThumbnailPolicy
-{
-    TN_LOCAL,   // Use only local information
-    TN_REMOTE,  // Use remote services (e.g. album art downloading)
-};
-
 /**
  * This class provides a way to generate and access
  * thumbnails of video, audio and image files.
@@ -46,8 +40,8 @@ public:
     Thumbnailer();
     ~Thumbnailer();
 
-    Thumbnailer(Thumbnailer const& t) = delete;
-    Thumbnailer& operator=(Thumbnailer const& t) = delete;
+    Thumbnailer(Thumbnailer const&) = delete;
+    Thumbnailer& operator=(Thumbnailer const&) = delete;
 
     /**
      * Gets a thumbnail of the given input file in the requested size.
@@ -61,17 +55,9 @@ public:
      * In case of unexpected problems, the function throws a
      * std::runtime_error.
      */
-    std::string get_thumbnail(std::string const& filename, int desired_size, ThumbnailPolicy policy);
-
-    std::string get_album_art(std::string const& artist,
-                              std::string const& album,
-                              int desiredSize,
-                              ThumbnailPolicy policy);
-
-    std::string get_artist_art(std::string const& artist,
-                               std::string const& album,
-                               int desiredSize,
-                               ThumbnailPolicy policy);
+    std::string get_thumbnail(std::string const& filename, int desired_size);
+    std::string get_album_art(std::string const& artist, std::string const& album, int desiredSize);
+    std::string get_artist_art(std::string const& artist, std::string const& album, int desiredSize);
 
 private:
     std::unique_ptr<ThumbnailerPrivate> p_;

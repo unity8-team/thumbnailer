@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Canonical Ltd.
+ * Copyright (C) 2015 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License version 3 as
@@ -13,25 +13,34 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
+ * Authored by: MichiHenning <michi@canonical.com>
  */
 
-#include<thumbnailer.h>
-#include<cstdio>
-#include<gst/gst.h>
-#include<stdexcept>
+#pragma once
 
-int main(int argc, char **argv) {
-    Thumbnailer t;
-    if(argc != 2) {
-        printf("%s <file name>\n", argv[0]);
-        return 1;
-    }
-    std::string ifilename(argv[1]);
-    std::string ofilename = t.get_thumbnail(ifilename, 256);
-    if(ofilename.empty())
-        printf("Thumbnail could not be generated.\n");
-    else
-        printf("Thumbnail file is %s.\n", ofilename.c_str());
-    return 0;
-}
+#include <internal/gobj_memory.h>
+
+#include <gdk-pixbuf/gdk-pixbuf.h>
+
+#include<string>
+
+class Image
+{
+public:
+    Image();
+    Image(std::string const& data);
+
+    Image(Image const&) = delete;
+    Image& operator=(Image const&) = delete;
+    Image(Image&&) = delete;
+    Image& operator=(Image &&) = delete;
+
+    int width() const;
+    int height() const;
+    int max_size() const;
+    void scale_to(int desired_size);
+    std::string get_jpeg() const;
+
+private:
+    unique_gobj<GdkPixbuf> pixbuf_;
+};

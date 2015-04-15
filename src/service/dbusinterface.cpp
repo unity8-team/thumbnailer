@@ -138,7 +138,7 @@ QDBusUnixFileDescriptor DBusInterface::GetAlbumArt(const QString &artist, const 
         std::string art_image;
         try {
             art_image = thumbnailer->get_album_art(
-                artist.toStdString(), album.toStdString(), size, TN_REMOTE);
+                artist.toStdString(), album.toStdString(), size);
         } catch (const std::exception &e) {
             bus.send(msg.createErrorReply(ART_ERROR, e.what()));
             return;
@@ -183,7 +183,7 @@ QDBusUnixFileDescriptor DBusInterface::GetArtistArt(const QString &artist, const
         std::string art_image;
         try {
             art_image = thumbnailer->get_artist_art(
-                artist.toStdString(), album.toStdString(), size, TN_REMOTE);
+                artist.toStdString(), album.toStdString(), size);
         } catch (const std::exception &e) {
             bus.send(msg.createErrorReply(ART_ERROR, e.what()));
             return;
@@ -242,8 +242,7 @@ QDBusUnixFileDescriptor DBusInterface::GetThumbnail(const QString &filename, con
     p->pool.start(new Task([=]() {
         std::string art;
         try {
-            art = thumbnailer->get_thumbnail(
-                filename.toStdString(), size, TN_REMOTE);
+            art = thumbnailer->get_thumbnail(filename.toStdString(), size);
         } catch (const std::exception &e) {
             bus.send(msg.createErrorReply(ART_ERROR, e.what()));
             return;

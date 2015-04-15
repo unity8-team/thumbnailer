@@ -65,10 +65,10 @@ TEST(Thumbnailer, trivial) {
 static void file_test(Thumbnailer &tn, string &ifile) {
     int w, h;
     ASSERT_TRUE(file_exists(ifile));
-    string thumbfile = tn.get_thumbnail(ifile, 128, TN_LOCAL);
+    string thumbfile = tn.get_thumbnail(ifile, 128);
     unlink(thumbfile.c_str());
     ASSERT_FALSE(file_exists(thumbfile));
-    string thumbfile2 = tn.get_thumbnail(ifile, 128, TN_LOCAL);
+    string thumbfile2 = tn.get_thumbnail(ifile, 128);
     ASSERT_EQ(thumbfile, thumbfile2);
     ASSERT_TRUE(file_exists(thumbfile));
     ASSERT_TRUE(gdk_pixbuf_get_file_info(thumbfile.c_str(), &w, &h));
@@ -99,10 +99,10 @@ TEST(Thumbnailer, rotate) {
     string imfile(ROTTESTIMAGE);
     int w, h;
     ASSERT_TRUE(file_exists(imfile));
-    string thumbfile = tn.get_thumbnail(imfile, 256, TN_LOCAL);
+    string thumbfile = tn.get_thumbnail(imfile, 256);
     unlink(thumbfile.c_str());
     ASSERT_FALSE(file_exists(thumbfile));
-    string thumbfile2 = tn.get_thumbnail(imfile, 256, TN_LOCAL);
+    string thumbfile2 = tn.get_thumbnail(imfile, 256);
     ASSERT_EQ(thumbfile, thumbfile2);
     ASSERT_TRUE(file_exists(thumbfile));
     ASSERT_TRUE(gdk_pixbuf_get_file_info(imfile.c_str(), &w, &h));
@@ -116,7 +116,7 @@ TEST(Thumbnailer, video_original) {
     Thumbnailer tn;
     int w, h;
     string videofile(TESTVIDEO);
-    string origsize = tn.get_thumbnail(videofile, 0, TN_LOCAL);
+    string origsize = tn.get_thumbnail(videofile, 0);
     ASSERT_TRUE(file_exists(origsize));
     ASSERT_TRUE(gdk_pixbuf_get_file_info(origsize.c_str(), &w, &h));
     ASSERT_EQ(w, 1920);
@@ -128,9 +128,9 @@ TEST(Thumbnailer, size) {
     Thumbnailer tn;
     int w, h;
     string imfile(TESTIMAGE);
-    string thumbfile = tn.get_thumbnail(imfile, 128, TN_LOCAL);
-    string thumbfile2 = tn.get_thumbnail(imfile, 256, TN_LOCAL);
-    string thumbfile3 = tn.get_thumbnail(imfile, 512, TN_LOCAL);
+    string thumbfile = tn.get_thumbnail(imfile, 128);
+    string thumbfile2 = tn.get_thumbnail(imfile, 256);
+    string thumbfile3 = tn.get_thumbnail(imfile, 512);
     ASSERT_FALSE(thumbfile.empty());
     ASSERT_FALSE(thumbfile2.empty());
     ASSERT_FALSE(thumbfile3.empty());
@@ -154,14 +154,14 @@ TEST(Thumbnailer, deletetest) {
     string workimage("working_image.jpg");
     copy_file(srcimg, workimage);
     ASSERT_TRUE(file_exists(workimage));
-    string thumbfile = tn.get_thumbnail(workimage, 128, TN_LOCAL);
-    string thumbfile2 = tn.get_thumbnail(workimage, 256, TN_LOCAL);
-    string thumbfile3 = tn.get_thumbnail(workimage, 512, TN_LOCAL);
+    string thumbfile = tn.get_thumbnail(workimage, 128);
+    string thumbfile2 = tn.get_thumbnail(workimage, 256);
+    string thumbfile3 = tn.get_thumbnail(workimage, 512);
     ASSERT_TRUE(file_exists(thumbfile));
     ASSERT_TRUE(file_exists(thumbfile2));
     ASSERT_TRUE(file_exists(thumbfile3));
     unlink(workimage.c_str());
-    string tmp = tn.get_thumbnail(workimage, 128, TN_LOCAL);
+    string tmp = tn.get_thumbnail(workimage, 128);
     ASSERT_TRUE(tmp.empty());
     ASSERT_FALSE(file_exists(thumbfile));
     ASSERT_FALSE(file_exists(thumbfile2));
@@ -171,7 +171,7 @@ TEST(Thumbnailer, deletetest) {
 TEST(Thumbnailer, no_image_cache) {
     Thumbnailer tn;
     string srcimg(TESTIMAGE);
-    string dstimg = tn.get_thumbnail(srcimg, 0, TN_LOCAL);
+    string dstimg = tn.get_thumbnail(srcimg, 0);
     ASSERT_EQ(srcimg, dstimg);
 }
 
@@ -181,8 +181,8 @@ TEST(Thumbnailer, album_and_artist_art) {
     Thumbnailer tn;
     string artist("The Prodigy");
     string album("Music for the Jilted Generation");
-    tn.get_album_art(artist, album, 0, TN_LOCAL);
-    tn.get_artist_art(artist, album, 0, TN_LOCAL);
+    tn.get_album_art(artist, album, 0);
+    tn.get_artist_art(artist, album, 0);
 }
 
 TEST(Thumbnailer, chinese_text) {
@@ -200,7 +200,7 @@ TEST(Thumbnailer, chinese_text) {
         ASSERT_EQ(status, 0);
         if(!S_ISDIR(buffer.st_mode)) {
             string srcimg(path);
-            string thumbfile = tn.get_thumbnail(srcimg, 128, TN_LOCAL);
+            string thumbfile = tn.get_thumbnail(srcimg, 128);
             ASSERT_TRUE(file_exists(thumbfile));
         }
     }

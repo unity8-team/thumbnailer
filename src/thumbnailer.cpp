@@ -21,34 +21,23 @@
 
 #include <internal/audioimageextractor.h>
 #include <internal/gobj_memory.h>
+#include <internal/image.h>
 #include <internal/imagescaler.h>
 #include <internal/lastfmdownloader.h>
-#include <internal/thumbnailcache.h>
+#include <internal/make_directories.h>
 #include <internal/ubuntuserverdownloader.h>
 #include <internal/videoscreenshotter.h>
 
 #include <boost/filesystem.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/uuid/random_generator.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include <core/persistent_string_cache.h>
-#include <gdk-pixbuf/gdk-pixbuf.h>
-
 #include <libexif/exif-loader.h>
-
-#include <gst/gst.h>
-
-#include <gio/gio.h>
-
-#include <glib.h>
+#include <unity/util/ResourcePtr.h>
 
 #include <fcntl.h>
 #include <sys/stat.h>
-#include <unity/util/ResourcePtr.h>
-
-#include <cstring>
-#include <fstream>
-#include <memory>
-#include <unistd.h>
-#include <random>
-#include <stdexcept>
 
 using namespace std;
 using namespace unity::thumbnailer::internal;
@@ -56,15 +45,14 @@ using namespace unity::thumbnailer::internal;
 class ThumbnailerPrivate
 {
 private:
-    random_device rnd;
-    string cache_dir;
-
-    string create_audio_thumbnail(string const& abspath, int desired_size, ThumbnailPolicy policy);
-    string create_video_thumbnail(string const& abspath, int desired_size);
-    string create_generic_thumbnail(string const& abspath, int desired_size);
+    string extract_exif_image(std::string const& filename);
+    string extract_image_from_audio(string const& filename);
+    string extract_image_from_video(string const& filename);
+    string extract_image_from_other(string const& filename);
+    string create_tmp_filename();
+    string read_file(string const& filename);
 
 public:
-    ThumbnailCache cache;
     AudioImageExtractor audio_;
     VideoScreenshotter video_;
     ImageScaler scaler_;
@@ -72,176 +60,176 @@ public:
     core::PersistentStringCache::UPtr thumbnail_cache_;  // Large cache of scaled images.
     std::unique_ptr<ArtDownloader> downloader_;
 
-    ThumbnailerPrivate()
-    {
-        char const* artservice = getenv("THUMBNAILER_ART_PROVIDER");
-        if (artservice && strcmp(artservice, "lastfm") == 0)
-        {
-            downloader_.reset(new LastFMDownloader());
-        }
-        else
-        {
-            downloader_.reset(new UbuntuServerDownloader());
-        }
+    ThumbnailerPrivate();
 
-        string xdg_base = g_get_user_cache_dir();
-        if (xdg_base == "")
-        {
-            string s("Thumbnailer(): Could not determine cache dir.");
-            throw runtime_error(s);
-        }
-
-        if (mkdir(xdg_base.c_str(), S_IRUSR | S_IWUSR | S_IXUSR) == -1)
-        {
-            if (errno != EEXIST)
-            {
-                string s("Thumbnailer(): Could not create base dir.");
-                throw runtime_error(s);
-            }
-        }
-        else
-        {
-            chmod(xdg_base.c_str(), 0700);
-        }
-
-        cache_dir = xdg_base + "/unity-thumbnailer";
-        if (mkdir(cache_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR) == -1)
-        {
-            if (errno != EEXIST)
-            {
-                string s("Thumbnailer(): Could not create cache dir.");
-                throw runtime_error(s);
-            }
-        }
-        else
-        {
-            chmod(cache_dir.c_str(), 0700);
-        }
-
-        try
-        {
-            // TODO: No good to hard-wire the cache size.
-            full_size_cache_ = core::PersistentStringCache::open(cache_dir + "/images",
-                                                                 50 * 1024 * 1024,
-                                                                 core::CacheDiscardPolicy::lru_ttl);
-            thumbnail_cache_ = core::PersistentStringCache::open(cache_dir + "/thumbnails",
-                                                                 100 * 1024 * 1024,
-                                                                 core::CacheDiscardPolicy::lru_ttl);
-        }
-        catch (std::exception const& e)
-        {
-            string s("Thumbnailer(): Cannot instantiate cache: ");
-            s += e.what();
-            throw runtime_error(s);
-        }
-    };
-
-    string extract_image(string const& abspath, int desired_size, ThumbnailPolicy policy);
-    string create_random_filename();
-    string extract_exif_thumbnail(std::string const& abspath);
+    string extract_image(string const& filename);
     string fetch_thumbnail(string const& key1,
                            string const& key2,
                            int desired_size,
-                           ThumbnailPolicy policy,
                            function<string(string const&, string const&)> fetch);
 };
 
-string ThumbnailerPrivate::create_random_filename()
+namespace
 {
-    char* dirbase = getenv("TMPDIR");  // Set when in a confined application.
-    string fname = dirbase ? dirbase : "/tmp";
-    fname += "/thumbnailer.";
-    fname += to_string(rnd());
-    fname += ".tmp";
-    return fname;
+
+auto do_unlink = [](string const& filename)
+{
+    ::unlink(filename.c_str());
+};
+typedef unity::util::ResourcePtr<string, decltype(do_unlink)> UnlinkPtr;
+
+auto do_close = [](int fd)
+{
+    if (fd >= 0)
+    {
+        ::close(fd);
+    }
+};
+typedef unity::util::ResourcePtr<int, decltype(do_close)> FdPtr;
+
+}  // namespace
+
+
+ThumbnailerPrivate::ThumbnailerPrivate()
+{
+    char const* artservice = getenv("THUMBNAILER_ART_PROVIDER");
+    if (artservice && strcmp(artservice, "lastfm") == 0)
+    {
+        downloader_.reset(new LastFMDownloader());
+    }
+    else
+    {
+        downloader_.reset(new UbuntuServerDownloader());
+    }
+
+    string xdg_base = g_get_user_cache_dir();
+    if (xdg_base == "")
+    {
+        string s("Thumbnailer(): Could not determine cache dir.");
+        throw runtime_error(s);
+    }
+
+    string cache_dir = xdg_base + "/unity-thumbnailer";
+    make_directories(cache_dir, 0700);
+
+    try
+    {
+        // TODO: No good to hard-wire the cache size.
+        full_size_cache_ = core::PersistentStringCache::open(cache_dir + "/images",
+                                                             50 * 1024 * 1024,
+                                                             core::CacheDiscardPolicy::lru_ttl);
+        thumbnail_cache_ = core::PersistentStringCache::open(cache_dir + "/thumbnails",
+                                                             100 * 1024 * 1024,
+                                                             core::CacheDiscardPolicy::lru_ttl);
+    }
+    catch (std::exception const& e)
+    {
+        string s("Thumbnailer(): Cannot instantiate cache: ");
+        s += e.what();
+        throw runtime_error(s);
+    }
 }
 
-string ThumbnailerPrivate::extract_exif_thumbnail(std::string const& abspath)
+string ThumbnailerPrivate::create_tmp_filename()
+{
+    static string dir = []
+    {
+        char const* dirp = getenv("TMPDIR");
+        string dir = dirp ? dirp : "/tmp";
+        return dir;
+    }();
+    static auto gen = boost::uuids::random_generator();
+
+    string uuid = boost::lexical_cast<string>(gen());
+    return dir + "/thumbnailer." + uuid + ".tmp";;
+}
+
+string ThumbnailerPrivate::read_file(string const& filename)
+{
+    FdPtr fd_ptr(::open(filename.c_str(), O_RDONLY), do_close);
+    if (fd_ptr.get() == -1)
+    {
+        throw runtime_error("Thumbnailer: cannot open \"" + filename + "\": " + strerror(errno));
+    }
+
+    struct stat st;
+    if (fstat(fd_ptr.get(), &st) == -1)
+    {
+        throw runtime_error("Thumbnailer: cannot fstat \"" + filename + "\": " + strerror(errno)); // LCOV_EXCL_LINE
+    }
+
+    string contents;
+    contents.reserve(st.st_size);
+    contents.resize(st.st_size);
+    int rc = read(fd_ptr.get(), &contents[0], st.st_size);
+    if (rc == -1)
+    {
+        throw runtime_error("Thumbnailer: cannot read from \"" + filename + "\": " + strerror(errno)); // LCOV_EXCL_LINE
+    }
+    if (rc != st.st_size)
+    {
+        throw runtime_error("Thumbnailer: short read for \"" + filename + "\""); // LCOV_EXCL_LINE
+    }
+
+    return contents;
+}
+
+string ThumbnailerPrivate::extract_exif_image(std::string const& filename)
 {
     std::unique_ptr<ExifLoader, void (*)(ExifLoader*)> el(exif_loader_new(), exif_loader_unref);
-    if (el)
+    if (!el)
     {
-        exif_loader_write_file(el.get(), abspath.c_str());
-        std::unique_ptr<ExifData, void (*)(ExifData* e)> ed(exif_loader_get_data(el.get()), exif_data_unref);
-        if (ed && ed->data && ed->size)
-        {
-            auto outfile = create_random_filename();
-            FILE* thumb = fopen(outfile.c_str(), "wb");
-            if (thumb)
-            {
-                fwrite(ed->data, 1, ed->size, thumb);
-                fclose(thumb);
-                return outfile;
-            }
-        }
+        throw runtime_error("Thumbnailer::extract_exif_image(): cannot allocate ExifLoader");
+    }
+
+    exif_loader_write_file(el.get(), filename.c_str());
+
+    std::unique_ptr<ExifData, void (*)(ExifData* e)> ed(exif_loader_get_data(el.get()), exif_data_unref);
+    if (!ed || !ed->data || ed->size == 0)
+    {
+        return "";  // Image wasn't extracted for a reason that libexif won't tell us about.
+    }
+
+    return string(reinterpret_cast<char*>(ed->data), ed->size);
+}
+
+string ThumbnailerPrivate::extract_image_from_audio(string const& filename)
+{
+    UnlinkPtr tmpname(create_tmp_filename(), do_unlink);
+
+    if (audio_.extract(filename, tmpname.get()))
+    {
+        return read_file(tmpname.get());
     }
     return "";
 }
 
-string ThumbnailerPrivate::create_audio_thumbnail(string const& abspath,
-                                                  int desired_size,
-                                                  ThumbnailPolicy /*policy*/)
+string ThumbnailerPrivate::extract_image_from_video(string const& filename)
 {
-    string tnfile = cache.get_cache_file_name(abspath, desired_size);
-    string tmpname = create_random_filename();
-    bool extracted = false;
-    try
+    UnlinkPtr tmpname(create_tmp_filename(), do_unlink);
+
+    if (video_.extract(filename, tmpname.get()))
     {
-        if (audio_.extract(abspath, tmpname))
-        {
-            extracted = true;
-        }
-    }
-    catch (runtime_error& e)
-    {
-    }
-    if (extracted)
-    {
-        scaler_.scale(tmpname, tnfile, desired_size, abspath);  // If this throws, let it propagate.
-        unlink(tmpname.c_str());
-        return tnfile;
-    }
-    return "";
-}
-string ThumbnailerPrivate::create_generic_thumbnail(string const& abspath, int desired_size)
-{
-    int tmpw, tmph;
-    string tnfile = cache.get_cache_file_name(abspath, desired_size);
-    // Special case: full size image files are their own preview.
-    if (desired_size == 0 && gdk_pixbuf_get_file_info(abspath.c_str(), &tmpw, &tmph))
-    {
-        return abspath;
-    }
-    try
-    {
-        if (scaler_.scale(abspath, tnfile, desired_size, abspath))
-        {
-            return tnfile;
-        }
-    }
-    catch (runtime_error const& e)
-    {
-        fprintf(stderr, "Scaling thumbnail failed: %s\n", e.what());
+        return read_file(tmpname.get());
     }
     return "";
 }
 
-string ThumbnailerPrivate::create_video_thumbnail(string const& abspath, int desired_size)
+string ThumbnailerPrivate::extract_image_from_other(string const& filename)
 {
-    string tnfile = cache.get_cache_file_name(abspath, desired_size);
-    string tmpname = create_random_filename();
-    if (video_.extract(abspath, tmpname))
+    string exif_image = extract_exif_image(filename);
+    if (!exif_image.empty())
     {
-        scaler_.scale(tmpname, tnfile, desired_size, abspath);
-        unlink(tmpname.c_str());
-        return tnfile;
+        return exif_image;
     }
-    throw runtime_error("Video extraction failed.");
+    return read_file(filename);
 }
 
-string ThumbnailerPrivate::extract_image(string const& abspath, int desired_size, ThumbnailPolicy policy)
+string ThumbnailerPrivate::extract_image(string const& filename)
 {
-    unique_gobj<GFile> file(g_file_new_for_path(abspath.c_str()));
+    // Work out content type.
+
+    unique_gobj<GFile> file(g_file_new_for_path(filename.c_str()));
     if (!file)
     {
         return "";
@@ -263,42 +251,17 @@ string ThumbnailerPrivate::extract_image(string const& abspath, int desired_size
         return "";
     }
 
+    // Call the appropriate image extractor and return the image data as JPEG (not scaled).
+
     if (content_type.find("audio/") == 0)
     {
-        return create_audio_thumbnail(abspath, desired_size, policy);
+        return extract_image_from_audio(filename);
     }
-
     if (content_type.find("video/") == 0)
     {
-        return create_video_thumbnail(abspath, desired_size);
+        return extract_image_from_video(filename);
     }
-    if (desired_size != 0)
-    {
-        try
-        {
-            auto embedded_image = extract_exif_thumbnail(abspath);
-            // Note that we always use the embedded thumbnail if it exists.
-            // Depending on usage, it may be too low res for our purposes.
-            // If this becomes an issue, add a check here once we know the
-            // real resolution requirements and fall back to scaling the
-            // full image if the thumbnail is too small.
-            if (!embedded_image.empty())
-            {
-                string tnfile = cache.get_cache_file_name(abspath, desired_size);
-                auto succeeded = scaler_.scale(embedded_image, tnfile, desired_size, abspath, abspath);
-                unlink(embedded_image.c_str());
-                if (succeeded)
-                {
-                    return tnfile;
-                }
-            }
-        }
-        catch (exception const& e)
-        {
-        }
-    }
-
-    return create_generic_thumbnail(abspath, desired_size);
+    return extract_image_from_other(filename);
 }
 
 Thumbnailer::Thumbnailer() : p_(new ThumbnailerPrivate())
@@ -306,56 +269,6 @@ Thumbnailer::Thumbnailer() : p_(new ThumbnailerPrivate())
 }
 
 Thumbnailer::~Thumbnailer() = default;
-
-#if 0
-std::string Thumbnailer::get_thumbnail(std::string const& filename, int desired_size, ThumbnailPolicy policy)
-{
-    assert(desired_size >= 0);
-
-    string abspath;
-    if (filename.empty())
-    {
-        return "";
-    }
-    if (filename[0] != '/')
-    {
-        auto cwd = getcwd(nullptr, 0);
-        abspath += cwd;
-        free(cwd);
-        abspath += "/" + filename;
-    }
-    else
-    {
-        abspath = filename;
-    }
-    std::string estimate = p_->cache.get_if_exists(abspath, desired_size);
-    if (!estimate.empty())
-    {
-        return estimate;
-    }
-
-    if (p_->cache.has_failure(abspath))
-    {
-        throw runtime_error("Thumbnail generation failed previously, not trying again.");
-    }
-
-    try
-    {
-        string generated = p_->create_thumbnail(abspath, desired_size, policy);
-        if (generated == abspath)
-        {
-            return abspath;
-        }
-    }
-    catch (std::runtime_error const& e)
-    {
-        p_->cache.mark_failure(abspath);
-        throw;
-    }
-
-    return p_->cache.get_if_exists(abspath, desired_size);
-}
-#endif
 
 // Main look-up logic for thumbnails.
 // key1 and key2 are set by the caller. They are artist and album or, for files,
@@ -371,7 +284,6 @@ std::string Thumbnailer::get_thumbnail(std::string const& filename, int desired_
 string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
                                            string const& key2,
                                            int desired_size,
-                                           ThumbnailPolicy policy,
                                            function<string(string const&, string const&)> fetch)
 {
     string key = key1 + "\0" + key2;
@@ -392,16 +304,12 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
     {
         if (desired_size != 0)
         {
-            image = image;  // TODO: scale here
+            Image scaled_image(*image);
+            scaled_image.scale_to(desired_size);
+            image = scaled_image.get_jpeg();
         }
         thumbnail_cache_->put(sized_key, *image);
         return *image;
-    }
-
-    if (policy == TN_LOCAL)
-    {
-        // We don't have either original or scaled version around and can't download it.
-        return "";
     }
 
     // Try and download or read the artwork.
@@ -420,39 +328,27 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
     // larger thumbnail (for a preview). If so, we don't download the artwork a second time.
     full_size_cache_->put(key, *image);
 
-    image = image;  // TODO: scale here
+    if (desired_size != 0)
+    {
+        Image scaled_image(*image);
+        scaled_image.scale_to(desired_size);
+        image = scaled_image.get_jpeg();
+    }
     thumbnail_cache_->put(sized_key, *image);
     return *image;
 }
 
-namespace
-{
-
-typedef unity::util::ResourcePtr<int, decltype(&::close)> FdPtr;
-
-}
-
-std::string Thumbnailer::get_thumbnail(std::string const& filename, int desired_size, ThumbnailPolicy policy)
+std::string Thumbnailer::get_thumbnail(std::string const& filename, int desired_size)
 {
     assert(!filename.empty());
     assert(desired_size >= 0);
 
-    using namespace boost::filesystem;
+    auto path = boost::filesystem::canonical(filename);
 
-    auto path = canonical(filename);
-
-    // Open and stat the file, and get device, inode, and modification time.
-    int fd = open(path.native().c_str(), O_RDONLY);
-    if (fd == -1)
-    {
-        throw runtime_error("get_thumbnail(): cannot open " + path.native() + ", errno = " + to_string(errno));
-    }
-    FdPtr fd_ptr(fd, ::close);
     struct stat st;
-    if (fstat(fd_ptr.get(), &st) == -1)
+    if (stat(path.native().c_str(), &st) == -1)
     {
-        throw runtime_error("get_thumbnail(): cannot fstat " + path.native() + ", fd = " + to_string(fd) +
-                            ", errno = " + to_string(errno));
+        throw runtime_error("get_thumbnail(): cannot stat " + path.native() + ", errno = " + to_string(errno));
     }
     auto dev = st.st_dev;
     auto ino = st.st_ino;
@@ -466,18 +362,14 @@ std::string Thumbnailer::get_thumbnail(std::string const& filename, int desired_
     string key1 = path.native();
     string key2 = to_string(dev) + "\0" + to_string(ino) + "\0" + to_string(mtim.tv_sec) + "." + to_string(mtim.tv_nsec);
 
-    auto fetch = [this, fd](string const& key1, string const& key2)
+    auto fetch = [this](string const& key1, string const& /* key2 */)
     {
-        // TODO open file, extract thumbnail
-        return string("");  // TODO
+        return p_->extract_image(key1);
     };
-    return p_->fetch_thumbnail(key1, key2, desired_size, policy, fetch);
+    return p_->fetch_thumbnail(key1, key2, desired_size, fetch);
 }
 
-std::string Thumbnailer::get_album_art(std::string const& artist,
-                                       std::string const& album,
-                                       int desired_size,
-                                       ThumbnailPolicy policy)
+std::string Thumbnailer::get_album_art(std::string const& artist, std::string const& album, int desired_size)
 {
     assert(artist.empty() || !album.empty());
     assert(album.empty() || !artist.empty());
@@ -488,13 +380,10 @@ std::string Thumbnailer::get_album_art(std::string const& artist,
         return p_->downloader_->download(artist, album);
     };
     // Append "\0album" to key2, so we don't mix up album art and artist art.
-    return p_->fetch_thumbnail(artist, album + "\0album", desired_size, policy, fetch);
+    return p_->fetch_thumbnail(artist, album + "\0album", desired_size, fetch);
 }
 
-std::string Thumbnailer::get_artist_art(std::string const& artist,
-                                        std::string const& album,
-                                        int desired_size,
-                                        ThumbnailPolicy policy)
+std::string Thumbnailer::get_artist_art(std::string const& artist, std::string const& album, int desired_size)
 {
     assert(artist.empty() || !album.empty());
     assert(album.empty() || !artist.empty());
@@ -505,5 +394,5 @@ std::string Thumbnailer::get_artist_art(std::string const& artist,
         return p_->downloader_->download_artist(artist, album);
     };
     // Append "\0artist" to key2, so we don't mix up album art and artist art.
-    return p_->fetch_thumbnail(artist, album + "\0artist", desired_size, policy, fetch);
+    return p_->fetch_thumbnail(artist, album + "\0artist", desired_size, fetch);
 }

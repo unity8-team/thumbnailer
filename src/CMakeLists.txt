@@ -2,10 +2,11 @@ add_subdirectory(core)
 
 add_library(thumbnailer STATIC
 audioimageextractor.cpp
+image.cpp
 imagescaler.cpp
 lastfmdownloader.cpp
+make_directories.cpp
 soupdownloader.cpp
-thumbnailcache.cpp
 thumbnailer.cpp
 ubuntuserverdownloader.cpp
 videoscreenshotter.cpp
