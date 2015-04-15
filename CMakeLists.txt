@@ -29,6 +29,7 @@ set(LIBDIR ${CMAKE_INSTALL_LIBDIR})
 set(SHARE_PRIV_DIR ${CMAKE_INSTALL_LIBDIR}/thumbnailer)
 set(SHARE_PRIV_ABS ${CMAKE_INSTALL_PREFIX}/${SHARE_PRIV_DIR})
 
+find_package(Boost COMPONENTS filesystem system REQUIRED)
 find_package(Threads REQUIRED)
 find_package(Qt5Core REQUIRED)
 find_package(Qt5DBus REQUIRED)
@@ -37,6 +38,7 @@ pkg_check_modules(GST_DEPS REQUIRED gstreamer-1.0 gstreamer-plugins-base-1.0 gst
 pkg_check_modules(GIO_DEPS REQUIRED gio-2.0 gio-unix-2.0)
 pkg_check_modules(IMG_DEPS REQUIRED gdk-pixbuf-2.0 libexif)
 pkg_check_modules(SOUP_DEPS REQUIRED libsoup-2.4)
+pkg_check_modules(UNITY_API_DEPS REQUIRED libunity-api)
 pkg_check_modules(XML_DEPS REQUIRED libxml-2.0)
 
 include_directories(${GST_DEPS_INCLUDE_DIRS})
