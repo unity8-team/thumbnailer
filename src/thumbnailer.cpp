@@ -48,6 +48,7 @@ using namespace unity::thumbnailer::internal;
 
 void store_to_file(QByteArray const& content, QString const& file_path)
 {
+    // This method is probably not needed here after we modify the whole class
     QFile file(file_path);
     file.open(QIODevice::WriteOnly);
     file.write(content);
@@ -71,12 +72,29 @@ public:
         DownloadType type;
     };
 
-    random_device rnd;
+    ThumbnailerPrivate(QObject *parent=nullptr);
+
+    std::string get_album_art(std::string const& artist,
+                              std::string const& album,
+                              ThumbnailSize desiredSize,
+                              ThumbnailPolicy policy);
+
+    std::string get_artist_art(std::string const& artist,
+                               std::string const& album,
+                               ThumbnailSize desiredSize,
+                               ThumbnailPolicy policy);
 
     string create_audio_thumbnail(string const& abspath, ThumbnailSize desired_size, ThumbnailPolicy policy);
     string create_video_thumbnail(string const& abspath, ThumbnailSize desired_size);
     string create_generic_thumbnail(string const& abspath, ThumbnailSize desired_size);
 
+    string create_thumbnail(string const& abspath, ThumbnailSize desired_size, ThumbnailPolicy policy);
+    string create_random_filename();
+    string extract_exif_thumbnail(std::string const& abspath);
+
+    void download_art(DownloadType type, QString const& artist, QString const &album);
+
+    random_device rnd;
     ThumbnailCache cache;
     AudioImageExtractor audio;
     VideoScreenshotter video;
@@ -85,31 +103,110 @@ public:
     std::unique_ptr<QArtDownloader> downloader;
     QMap<QString, ActiveDownloadInfo> map_download_type;
 
-    ThumbnailerPrivate(QObject *parent=nullptr) : QObject(parent)
-    {
-        char* artservice = getenv("THUMBNAILER_ART_PROVIDER");
-        if (artservice != nullptr && strcmp(artservice, "lastfm") == 0)
-        {
-            // Disable LastFM by now
-            // downloader.reset(new LastFMDownloader());
-        }
-        else
-        {
-            downloader.reset(new UbuntuServerDownloader());
-        }
-
-        connect(downloader.get(), &QArtDownloader::file_downloaded, this, &ThumbnailerPrivate::download_finished);
-    };
-
-    string create_thumbnail(string const& abspath, ThumbnailSize desired_size, ThumbnailPolicy policy);
-    string create_random_filename();
-    string extract_exif_thumbnail(std::string const& abspath);
-
-    void download_art(DownloadType type, QString const& artist, QString const &album);
-
 public slots:
     void download_finished(QString, QByteArray const &data);
 };
+
+ThumbnailerPrivate::ThumbnailerPrivate(QObject *parent) : QObject(parent)
+{
+    char* artservice = getenv("THUMBNAILER_ART_PROVIDER");
+    if (artservice != nullptr && strcmp(artservice, "lastfm") == 0)
+    {
+        // Disable LastFM by now
+        // downloader.reset(new LastFMDownloader());
+    }
+    else
+    {
+        downloader.reset(new UbuntuServerDownloader());
+    }
+
+    connect(downloader.get(), &QArtDownloader::file_downloaded, this, &ThumbnailerPrivate::download_finished);
+};
+
+std::string ThumbnailerPrivate::get_album_art(std::string const& artist,
+                                       std::string const& album,
+                                       ThumbnailSize desired_size,
+                                       ThumbnailPolicy policy)
+{
+    if (!macache.has_album_art(artist, album))
+    {
+//        std::string tmpname = tmpnam(filebuf);
+        auto url = downloader->download(QString::fromStdString(artist), QString::fromStdString(album));
+
+        return "";
+////        std::string image = p_->downloader->download(artist, album);
+//        if (!image.empty())
+//        {
+//            store_to_file(image, tmpname);
+//        }
+//        else
+//        {
+//            return image;
+//        }
+//        QFile qfile(QString::fromStdString(tmpname));
+//        if (!qfile.open(QFile::ReadOnly))
+//        {
+//            // TODO throw exception
+//        }
+//        p_->macache.add_album_art(artist, album, qfile.readAll().constData(), qfile.size());
+    }
+    return "";
+//    // At this point we know we have the image in our art cache (unless
+//    // someone just deleted it concurrently, in which case we can't
+//    // really do anything.
+//    std::string original = p_->macache.get_album_art_file(artist, album);
+//    if (desired_size == TN_SIZE_ORIGINAL)
+//    {
+//        return original;
+//    }
+//    return get_thumbnail(original, desired_size, policy);
+}
+
+std::string ThumbnailerPrivate::get_artist_art(std::string const& artist,
+                                        std::string const& album,
+                                        ThumbnailSize desired_size,
+                                        ThumbnailPolicy policy)
+{
+    if (!macache.has_artist_art(artist, album))
+    {
+        if (policy == TN_LOCAL)
+        {
+            // We don't have it cached and can't access the net
+            // -> nothing to be done.
+            return "";
+        }
+        char filebuf[] = "/tmp/some/long/text/here/so/path/will/fit";
+        std::string tmpname = tmpnam(filebuf);
+        downloader->download_artist(QString::fromStdString(artist), QString::fromStdString(album));
+        return "";
+//
+//        if (!image.empty())
+//        {
+//            store_to_file(image, tmpname);
+//        }
+//        else
+//        {
+//            return image;
+//        }
+//        QFile qfile(QString::fromStdString(tmpname));
+//        if (!qfile.open(QFile::ReadOnly))
+//        {
+//            // TODO throw exception
+//        }
+//        p_->macache.add_artist_art(artist, album, qfile.readAll().constData(), qfile.size());
+    }
+//    // At this point we know we have the image in our art cache (unless
+//    // someone just deleted it concurrently, in which case we can't
+//    // really do anything.
+//    std::string original = p_->macache.get_artist_art_file(artist, album);
+//    if (desired_size == TN_SIZE_ORIGINAL)
+//    {
+//        return original;
+//    }
+//    return get_thumbnail(original, desired_size, policy);
+
+    return "";
+}
 
 string ThumbnailerPrivate::create_random_filename()
 {
@@ -359,45 +456,7 @@ std::string Thumbnailer::get_album_art(std::string const& artist,
                                        ThumbnailSize desired_size,
                                        ThumbnailPolicy policy)
 {
-    if (!p_->macache.has_album_art(artist, album))
-    {
-        if (policy == TN_LOCAL)
-        {
-            // We don't have it cached and can't access the net
-            // -> nothing to be done.
-            return "";
-        }
-        char filebuf[] = "/tmp/some/long/text/here/so/path/will/fit";
-//        std::string tmpname = tmpnam(filebuf);
-        p_->downloader->download(QString::fromStdString(artist), QString::fromStdString(album));
-
-        return "";
-////        std::string image = p_->downloader->download(artist, album);
-//        if (!image.empty())
-//        {
-//            store_to_file(image, tmpname);
-//        }
-//        else
-//        {
-//            return image;
-//        }
-//        QFile qfile(QString::fromStdString(tmpname));
-//        if (!qfile.open(QFile::ReadOnly))
-//        {
-//            // TODO throw exception
-//        }
-//        p_->macache.add_album_art(artist, album, qfile.readAll().constData(), qfile.size());
-    }
-    return "";
-//    // At this point we know we have the image in our art cache (unless
-//    // someone just deleted it concurrently, in which case we can't
-//    // really do anything.
-//    std::string original = p_->macache.get_album_art_file(artist, album);
-//    if (desired_size == TN_SIZE_ORIGINAL)
-//    {
-//        return original;
-//    }
-//    return get_thumbnail(original, desired_size, policy);
+    return p_->get_album_art(artist, album, desired_size, policy);
 }
 
 std::string Thumbnailer::get_artist_art(std::string const& artist,
@@ -405,45 +464,7 @@ std::string Thumbnailer::get_artist_art(std::string const& artist,
                                         ThumbnailSize desired_size,
                                         ThumbnailPolicy policy)
 {
-    if (!p_->macache.has_artist_art(artist, album))
-    {
-        if (policy == TN_LOCAL)
-        {
-            // We don't have it cached and can't access the net
-            // -> nothing to be done.
-            return "";
-        }
-        char filebuf[] = "/tmp/some/long/text/here/so/path/will/fit";
-        std::string tmpname = tmpnam(filebuf);
-        p_->downloader->download_artist(QString::fromStdString(artist), QString::fromStdString(album));
-        return "";
-//
-//        if (!image.empty())
-//        {
-//            store_to_file(image, tmpname);
-//        }
-//        else
-//        {
-//            return image;
-//        }
-//        QFile qfile(QString::fromStdString(tmpname));
-//        if (!qfile.open(QFile::ReadOnly))
-//        {
-//            // TODO throw exception
-//        }
-//        p_->macache.add_artist_art(artist, album, qfile.readAll().constData(), qfile.size());
-    }
-//    // At this point we know we have the image in our art cache (unless
-//    // someone just deleted it concurrently, in which case we can't
-//    // really do anything.
-//    std::string original = p_->macache.get_artist_art_file(artist, album);
-//    if (desired_size == TN_SIZE_ORIGINAL)
-//    {
-//        return original;
-//    }
-//    return get_thumbnail(original, desired_size, policy);
-
-    return "";
+    return p_->get_artist_art(artist, album, desired_size, policy);
 }
 
 #include "thumbnailer.moc"

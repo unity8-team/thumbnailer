@@ -21,9 +21,8 @@
 #include <QtTest/QSignalSpy>
 #include <QVector>
 
+#include <internal/qurldownloader.h>
 #include <internal/ubuntuserverdownloader.h>
-
-#include "TestUrlDownloader.h"
 
 #include <core/posix/exec.h>
 
@@ -230,12 +229,12 @@ TEST_F(TestDownloaderServer, test_threads)
 
 TEST_F(TestDownloaderServer, test_not_found_url)
 {
-    test::TestUrlDownloader downloader;
+    QUrlDownloader downloader;
 
     QSignalSpy spy(&downloader, SIGNAL(download_source_not_found(QString const&, QNetworkReply::NetworkError, QString const&)));
     QSignalSpy spy_ok(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
 
-    auto url = downloader.download_url(QUrl(apiroot_ + "/images_not_found/sia_fear_not_found.png"));
+    auto url = downloader.download(QUrl(apiroot_ + "/images_not_found/sia_fear_not_found.png"));
     ASSERT_EQ(url, apiroot_ + "/images_not_found/sia_fear_not_found.png");
 
     // we set a timeout of 5 seconds waiting for the signal to be emitted,
@@ -259,12 +258,12 @@ TEST_F(TestDownloaderServer, test_not_found_url)
 
 TEST_F(TestDownloaderServer, test_host_not_found_url)
 {
-    test::TestUrlDownloader downloader;
+    QUrlDownloader downloader;
 
     QSignalSpy spy(&downloader, SIGNAL(download_source_not_found(QString const&, QNetworkReply::NetworkError, QString const&)));
     QSignalSpy spy_ok(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
 
-    auto url = downloader.download_url(QUrl("http://www.thishostshouldnotexist.com/file.png"));
+    auto url = downloader.download(QUrl("http://www.thishostshouldnotexist.com/file.png"));
     ASSERT_EQ(url, "http://www.thishostshouldnotexist.com/file.png");
 
     // we set a timeout of 5 seconds waiting for the signal to be emitted,
@@ -285,11 +284,11 @@ TEST_F(TestDownloaderServer, test_host_not_found_url)
 
 TEST_F(TestDownloaderServer, test_good_url)
 {
-    test::TestUrlDownloader downloader;
+    QUrlDownloader downloader;
 
     QSignalSpy spy(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
 
-    auto url = downloader.download_url(QUrl(apiroot_ + "/images/sia_fear.png"));
+    auto url = downloader.download(QUrl(apiroot_ + "/images/sia_fear.png"));
     ASSERT_EQ(url.endsWith("/images/sia_fear.png"), true);
 
     // we set a timeout of 5 seconds waiting for the signal to be emitted,
@@ -308,11 +307,11 @@ TEST_F(TestDownloaderServer, test_good_url)
 
 TEST_F(TestDownloaderServer, test_url_parsing_error)
 {
-    test::TestUrlDownloader downloader;
+    QUrlDownloader downloader;
 
     QSignalSpy spy(&downloader, SIGNAL(bad_url_error(QString const&)));
 
-    auto url = downloader.download_url(QUrl("http://http://www.thishostshouldnotexist.com/file.png"));
+    auto url = downloader.download(QUrl("http://http://www.thishostshouldnotexist.com/file.png"));
 
     // check that we've got exactly one signal
     // this signal is emitted in the download_url call. that's why we don't wait

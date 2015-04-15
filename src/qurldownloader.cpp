@@ -16,32 +16,32 @@
  * Authored by: Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
-#include <internal/qartdownloader.h>
+#include <internal/qurldownloader.h>
 
 #include <QNetworkRequest>
 
 using namespace unity::thumbnailer::internal;
 
-QArtDownloader::QArtDownloader(QObject* parent)
+QUrlDownloader::QUrlDownloader(QObject* parent)
     : QObject(parent)
 {
 }
 
-QNetworkReply* QArtDownloader::start_download(QUrl const& url)
+QString QUrlDownloader::download(QUrl const& url)
 {
     // first of all check that the URL is valid
     if (!url.isValid())
     {
         Q_EMIT bad_url_error(url.errorString());
-        return nullptr;
+        return "";
     }
     // start downloading a file using the QNetworkAccessManager
     QNetworkReply* reply = network_manager_.get(QNetworkRequest(url));
-    connect(&network_manager_, &QNetworkAccessManager::finished, this, &QArtDownloader::reply_finished);
-    return reply;
+    connect(&network_manager_, &QNetworkAccessManager::finished, this, &QUrlDownloader::reply_finished);
+    return reply->url().toString();
 }
 
-void QArtDownloader::reply_finished(QNetworkReply* reply)
+void QUrlDownloader::reply_finished(QNetworkReply* reply)
 {
     if (!reply->error())
     {
@@ -64,7 +64,7 @@ void QArtDownloader::reply_finished(QNetworkReply* reply)
     reply->deleteLater();
 }
 
-bool QArtDownloader::is_server_or_connection_error(QNetworkReply::NetworkError error) const
+bool QUrlDownloader::is_server_or_connection_error(QNetworkReply::NetworkError error) const
 {
     switch (error)
     {

@@ -19,6 +19,7 @@
 #include <gio/gio.h>
 
 #include <internal/ubuntuserverdownloader.h>
+
 #include <memory>
 #include <iostream>
 
@@ -108,23 +109,10 @@ void UbuntuServerDownloader::set_api_key()
 
 QString UbuntuServerDownloader::download(QString const& artist, QString const& album)
 {
-    return download_url(QUrl(get_album_art_url(artist, album, api_key)));
+    return QUrlDownloader::download(QUrl(get_album_art_url(artist, album, api_key)));
 }
 
 QString UbuntuServerDownloader::download_artist(QString const& artist, QString const& album)
 {
-    return download_url(QUrl(get_artist_art_url(artist, album, api_key)));
-}
-
-QString UbuntuServerDownloader::download_url(QUrl const& url)
-{
-    QNetworkReply *reply = start_download(url);
-    if (reply)
-    {
-        return reply->url().toString();
-    }
-    else
-    {
-        return "";
-    }
+    return QUrlDownloader::download(QUrl(get_artist_art_url(artist, album, api_key)));
 }

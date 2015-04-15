@@ -22,8 +22,9 @@ thumbnailcache.cpp
 thumbnailer.cpp
 ubuntuserverdownloader.cpp
 videoscreenshotter.cpp
-qartdownloader.cpp
+qurldownloader.cpp
 ${CMAKE_SOURCE_DIR}/include/internal/qartdownloader.h
+${CMAKE_SOURCE_DIR}/include/internal/qurldownloader.h
 ${CMAKE_SOURCE_DIR}/include/internal/ubuntuserverdownloader.h
 ${CMAKE_SOURCE_DIR}/include/thumbnailer.h
 )

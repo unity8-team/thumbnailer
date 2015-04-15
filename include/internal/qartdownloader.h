@@ -18,10 +18,7 @@
 
 #pragma once
 
-#include <QObject>
-
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
+#include <internal/qurldownloader.h>
 
 namespace unity
 {
@@ -37,11 +34,11 @@ namespace internal
 
 This class uses internally QNetworkAccessManager to retrieve remote urls.
 */
-class QArtDownloader : public QObject
+class QArtDownloader : public QUrlDownloader
 {
     Q_OBJECT
 public:
-    QArtDownloader(QObject* parent = nullptr);
+    QArtDownloader(QObject* parent = nullptr) : QUrlDownloader(parent){};
     virtual ~QArtDownloader() = default;
 
     QArtDownloader(QArtDownloader const&) = delete;
@@ -74,29 +71,6 @@ public:
              valid
     */
     virtual QString download_artist(QString const& artist, QString const& album) = 0;
-
-protected:
-    /**
-     \brief Starts the download of the given url
-     \return a pointer to the QNetworkReply returned by QNetworkAccessManager
-      so the user can connect to its signals or get any information, or a nullptr
-      if the given url is not valid
-    */
-    QNetworkReply* start_download(QUrl const& url);
-
-protected Q_SLOTS:
-    void reply_finished(QNetworkReply* reply);
-
-Q_SIGNALS:
-    void file_downloaded(QString const& url, QByteArray const& data);
-    void download_error(QString const& url, QNetworkReply::NetworkError error, QString const& error_message);
-    void download_source_not_found(QString const& url, QNetworkReply::NetworkError error, QString const& error_message);
-    void bad_url_error(QString const& error_message);
-
-private:
-    // Returns if the error is considered a connection or server error.
-    bool is_server_or_connection_error(QNetworkReply::NetworkError error) const;
-    QNetworkAccessManager network_manager_;
 };
 
 }  // namespace internal

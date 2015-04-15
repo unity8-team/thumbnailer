@@ -35,8 +35,9 @@ add_executable(ubuntuservertest
     ubuntuservertest.cpp
     ../src/ubuntuserverdownloader.cpp
     ../src/soupdownloader.cpp
-    ../src/qartdownloader.cpp
+    ../src/qurldownloader.cpp
     ${CMAKE_SOURCE_DIR}/include/internal/qartdownloader.h
+    ${CMAKE_SOURCE_DIR}/include/internal/qurldownloader.h
     ${CMAKE_SOURCE_DIR}/include/internal/ubuntuserverdownloader.h
     )
 target_link_libraries(ubuntuservertest ${SOUP_DEPS_LDFLAGS})
