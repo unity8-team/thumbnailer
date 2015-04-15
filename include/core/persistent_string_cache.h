@@ -79,8 +79,10 @@ Access and expiry times are recorded with millisecond granularity.
 To indicate infinite expiry time, use the defaulted parameter value or
 `chrono::steady_clock::time_point()`.
 
+### Error reporting
+
 Methods throw `std::runtime_error` if the underlying database
-(leveldb) fails. If leveldb detects database corruption, the code
+(leveldb) reports an error. If leveldb detects database corruption, the code
 throws `std::system_error` with with a 666 error code. To recover
 from this error, remove all files in the cache directory.
 Other errors are indicated by throwing `std::logic_error` or
@@ -111,7 +113,6 @@ inserts a new record into the cache.
 Setting     | Value
 ----------  | ------
 Cache size  | 100 MB
-Headroom    |   5 MB
 # Records   | ~5120
 Record size | 20 kB, normal distribution, stddev = 7000
 
@@ -254,7 +255,8 @@ public:
     \param key The key for the entry.
     \return A null value if the entry could not be retrieved; the metadata of the entry, otherwise.
     \throws invalid_argument `key` is the empty string.
-    \note This operation does not update the access time of the entry.
+    \note This operation does _not_ update the access time of the entry.
+    \see touch()
     */
     Optional<std::string> get_metadata(std::string const& key) const;
 
@@ -263,7 +265,8 @@ public:
     \param key The key for the entry.
     \return `true` if the entry is in the cache; `false` otherwise.
     \throws invalid_argument `key` is the empty string.
-    \note This operation does not update the access time of the entry.
+    \note This operation does _not_ update the access time of the entry.
+    \see touch()
     */
     bool contains_key(std::string const& key) const;
 
@@ -276,8 +279,8 @@ public:
 
     /**
     \brief Returns the number of bytes consumed by entries in the cache.
-    \return The total number of entries in the cache.
-    \note The returned count includes possibly expired entries.
+    \return The total number of bytes in the cache.
+    \note The returned size includes possibly expired entries.
     */
     int64_t size_in_bytes() const noexcept;
 
@@ -295,26 +298,6 @@ public:
     if there are updates to the cache that have not yet been written to disk.
     */
     int64_t disk_size_in_bytes() const;
-
-    /**
-    \brief Returns the headroom in bytes.
-
-    By default, the cache has a headroom of `0`, meaning that, if there
-    is insufficient free space to add or update an entry, the cache
-    discards the smallest possible number of non-expired old entries
-    in order to make room for the new entry.
-
-    If the headroom is non-zero, when discarding entries to create free
-    space, the cache always frees at least headroom() bytes (more
-    if the new entry requires more space than headroom()).
-
-    \note Setting a headroom of 5% can yield a 20% performance
-    improvement in some cases. However, this assumes zero-latency
-    to produce a new record to insert. You need to test cache
-    performance to find the correct balance between efficient insertion
-    and the cost of producing a new record to add after a cache miss.
-    */
-    int64_t headroom() const noexcept;
 
     /**
     \brief Returns the discard policy of the cache.
@@ -500,7 +483,7 @@ public:
     \throws invalid_argument `key` is the empty string.
     \throws logic_error The new size of the entry would exceed the maximum cache size.
 
-    \note This operation does not update the access time of the entry.
+    \note This operation does _not_ update the access time of the entry.
     \see touch()
     */
     bool put_metadata(std::string const& key, std::string const& metadata);
@@ -526,7 +509,7 @@ public:
     \throws invalid_argument `size` is negative.
     \throws logic_error The new size of the entry would exceed the maximum cache size.
 
-    \note This operation does not update the access time of the entry.
+    \note This operation does _not_ update the access time of the entry.
     \see touch()
     */
     bool put_metadata(std::string const& key, char const* metadata, int64_t size);
@@ -638,14 +621,8 @@ public:
     the size falls to (or below) `size_in_bytes` and sets the cache size to the new value.
 
     \throws invalid_argument `size_in_bytes` is &lt; 1
-    \throws logic_error headroom() is &gt; 50% of `size_in_bytes`.
-
-    \note If a cache uses non-zero headroom, you probably need to also adjust the headroom to make
-    sense for the new size.
 
     \note This operation compacts the database to use the smallest possible amount of disk space.
-
-    \see set_headroom()
     */
     void resize(int64_t size_in_bytes);
 
@@ -663,17 +640,6 @@ public:
     smallest possible amount of disk space.
     */
     void trim_to(int64_t used_size_in_bytes);
-
-    /**
-    \brief Changes the amount of headroom.
-
-    \throws invalid_argument `headroom is &lt; 0`.
-    \throws logic_error `headroom` is &gt; 50% of max_size_in_bytes().
-
-    \note This operation compacts the database to use the smallest possible amount of disk space.
-    \see resize()
-    */
-    void set_headroom(int64_t headroom);
 
     //@}
 
@@ -712,9 +678,23 @@ public:
     \brief Installs a handler for one or more events.
 
     \param events A bitwise OR of the event types for which to install the handler. To install
-    a handler for all events, you can use PersistentStringCache::AllEvents.
+    a handler for all events, you can use core::AllCacheEvents.
 
     \param cb The handler to install. To cancel an existing handler, pass `nullptr`.
+
+    For example, to install a handler for `get` and `put` events, you could use:
+
+    \code{.cpp}
+    auto cache = PersistentStringCache::open("my_cache");
+
+    auto handler = [](string const& key, CacheEvent event, PersistentCacheStats const& stats)
+    {
+        // ...
+    };
+    cache->set_handler(CacheEvent::get | CacheEvent::put, handler);
+    \endcode
+
+    \see CacheEvent
     */
     void set_handler(CacheEvent events, EventCallback cb);
 

@@ -241,11 +241,6 @@ public:
     int64_t disk_size_in_bytes() const;
 
     /**
-    \brief Returns the headroom in bytes.
-    */
-    int64_t headroom() const noexcept;
-
-    /**
     \brief Returns the discard policy of the cache.
     */
     CacheDiscardPolicy discard_policy() const noexcept;
@@ -357,11 +352,6 @@ public:
     \brief Expires entries.
     */
     void trim_to(int64_t used_size_in_bytes);
-
-    /**
-    \brief Changes the amount of headroom.
-    */
-    void set_headroom(int64_t headroom);
 
     //@}
 
@@ -476,12 +466,6 @@ template <typename K, typename V, typename M>
 int64_t PersistentCache<K, V, M>::disk_size_in_bytes() const
 {
     return p_->disk_size_in_bytes();
-}
-
-template <typename K, typename V, typename M>
-int64_t PersistentCache<K, V, M>::headroom() const noexcept
-{
-    return p_->headroom();
 }
 
 template <typename K, typename V, typename M>
@@ -629,12 +613,6 @@ void PersistentCache<K, V, M>::trim_to(int64_t used_size_in_bytes)
 }
 
 template <typename K, typename V, typename M>
-void PersistentCache<K, V, M>::set_headroom(int64_t headroom)
-{
-    p_->set_headroom(headroom);
-}
-
-template <typename K, typename V, typename M>
 void PersistentCache<K, V, M>::set_handler(CacheEvent events, EventCallback cb)
 {
     auto scb = [cb](std::string const& key, CacheEvent ev, PersistentCacheStats const& c)
@@ -692,7 +670,6 @@ public:
     int64_t size_in_bytes() const noexcept;
     int64_t max_size_in_bytes() const noexcept;
     int64_t disk_size_in_bytes() const;
-    int64_t headroom() const noexcept;
     CacheDiscardPolicy discard_policy() const noexcept;
     PersistentCacheStats stats() const;
 
@@ -724,7 +701,6 @@ public:
     void clear_stats();
     void resize(int64_t size_in_bytes);
     void trim_to(int64_t used_size_in_bytes);
-    void set_headroom(int64_t headroom);
 
     typedef std::function<void(std::string const& key, CacheEvent ev, PersistentCacheStats const& stats)> EventCallback;
 
@@ -822,12 +798,6 @@ template <typename V, typename M>
 int64_t PersistentCache<std::string, V, M>::disk_size_in_bytes() const
 {
     return p_->disk_size_in_bytes();
-}
-
-template <typename V, typename M>
-int64_t PersistentCache<std::string, V, M>::headroom() const noexcept
-{
-    return p_->headroom();
 }
 
 template <typename V, typename M>
@@ -975,12 +945,6 @@ void PersistentCache<std::string, V, M>::trim_to(int64_t used_size_in_bytes)
 }
 
 template <typename V, typename M>
-void PersistentCache<std::string, V, M>::set_headroom(int64_t headroom)
-{
-    p_->set_headroom(headroom);
-}
-
-template <typename V, typename M>
 void PersistentCache<std::string, V, M>::set_handler(CacheEvent events, EventCallback cb)
 {
     p_->set_handler(events, cb);
@@ -1024,7 +988,6 @@ public:
     int64_t size_in_bytes() const noexcept;
     int64_t max_size_in_bytes() const noexcept;
     int64_t disk_size_in_bytes() const;
-    int64_t headroom() const noexcept;
     CacheDiscardPolicy discard_policy() const noexcept;
     PersistentCacheStats stats() const;
 
@@ -1065,7 +1028,6 @@ public:
     void clear_stats();
     void resize(int64_t size_in_bytes);
     void trim_to(int64_t used_size_in_bytes);
-    void set_headroom(int64_t headroom);
 
     typedef std::function<void(K const& key, CacheEvent ev, PersistentCacheStats const& stats)> EventCallback;
 
@@ -1162,12 +1124,6 @@ template <typename K, typename M>
 int64_t PersistentCache<K, std::string, M>::disk_size_in_bytes() const
 {
     return p_->disk_size_in_bytes();
-}
-
-template <typename K, typename M>
-int64_t PersistentCache<K, std::string, M>::headroom() const noexcept
-{
-    return p_->headroom();
 }
 
 template <typename K, typename M>
@@ -1336,12 +1292,6 @@ void PersistentCache<K, std::string, M>::trim_to(int64_t used_size_in_bytes)
 }
 
 template <typename K, typename M>
-void PersistentCache<K, std::string, M>::set_headroom(int64_t headroom)
-{
-    p_->set_headroom(headroom);
-}
-
-template <typename K, typename M>
 void PersistentCache<K, std::string, M>::set_handler(CacheEvent events, EventCallback cb)
 {
     auto scb = [cb](std::string const& key, CacheEvent ev, PersistentCacheStats const& c)
@@ -1389,7 +1339,6 @@ public:
     int64_t size_in_bytes() const noexcept;
     int64_t max_size_in_bytes() const noexcept;
     int64_t disk_size_in_bytes() const;
-    int64_t headroom() const noexcept;
     CacheDiscardPolicy discard_policy() const noexcept;
     PersistentCacheStats stats() const;
 
@@ -1427,7 +1376,6 @@ public:
     void clear_stats();
     void resize(int64_t size_in_bytes);
     void trim_to(int64_t used_size_in_bytes);
-    void set_headroom(int64_t headroom);
 
     typedef std::function<void(K const& key, CacheEvent ev, PersistentCacheStats const& stats)> EventCallback;
 
@@ -1524,12 +1472,6 @@ template <typename K, typename V>
 int64_t PersistentCache<K, V, std::string>::disk_size_in_bytes() const
 {
     return p_->disk_size_in_bytes();
-}
-
-template <typename K, typename V>
-int64_t PersistentCache<K, V, std::string>::headroom() const noexcept
-{
-    return p_->headroom();
 }
 
 template <typename K, typename V>
@@ -1696,12 +1638,6 @@ void PersistentCache<K, V, std::string>::trim_to(int64_t used_size_in_bytes)
 }
 
 template <typename K, typename V>
-void PersistentCache<K, V, std::string>::set_headroom(int64_t headroom)
-{
-    p_->set_headroom(headroom);
-}
-
-template <typename K, typename V>
 void PersistentCache<K, V, std::string>::set_handler(CacheEvent events, EventCallback cb)
 {
     auto scb = [cb](std::string const& key, CacheEvent ev, PersistentCacheStats const& c)
@@ -1749,7 +1685,6 @@ public:
     int64_t size_in_bytes() const noexcept;
     int64_t max_size_in_bytes() const noexcept;
     int64_t disk_size_in_bytes() const;
-    int64_t headroom() const noexcept;
     CacheDiscardPolicy discard_policy() const noexcept;
     PersistentCacheStats stats() const;
 
@@ -1790,7 +1725,6 @@ public:
     void clear_stats();
     void resize(int64_t size_in_bytes);
     void trim_to(int64_t used_size_in_bytes);
-    void set_headroom(int64_t headroom);
 
     typedef std::function<void(std::string const& key, CacheEvent ev, PersistentCacheStats const& stats)> EventCallback;
 
@@ -1889,12 +1823,6 @@ template <typename M>
 int64_t PersistentCache<std::string, std::string, M>::disk_size_in_bytes() const
 {
     return p_->disk_size_in_bytes();
-}
-
-template <typename M>
-int64_t PersistentCache<std::string, std::string, M>::headroom() const noexcept
-{
-    return p_->headroom();
 }
 
 template <typename M>
@@ -2064,12 +1992,6 @@ void PersistentCache<std::string, std::string, M>::trim_to(int64_t used_size_in_
 }
 
 template <typename M>
-void PersistentCache<std::string, std::string, M>::set_headroom(int64_t headroom)
-{
-    p_->set_headroom(headroom);
-}
-
-template <typename M>
 void PersistentCache<std::string, std::string, M>::set_handler(CacheEvent events, EventCallback cb)
 {
     p_->set_handler(events, cb);
@@ -2113,7 +2035,6 @@ public:
     int64_t size_in_bytes() const noexcept;
     int64_t max_size_in_bytes() const noexcept;
     int64_t disk_size_in_bytes() const;
-    int64_t headroom() const noexcept;
     CacheDiscardPolicy discard_policy() const noexcept;
     PersistentCacheStats stats() const;
 
@@ -2151,7 +2072,6 @@ public:
     void clear_stats();
     void resize(int64_t size_in_bytes);
     void trim_to(int64_t used_size_in_bytes);
-    void set_headroom(int64_t headroom);
 
     typedef std::function<void(std::string const& key, CacheEvent ev, PersistentCacheStats const& stats)> EventCallback;
 
@@ -2250,12 +2170,6 @@ template <typename V>
 int64_t PersistentCache<std::string, V, std::string>::disk_size_in_bytes() const
 {
     return p_->disk_size_in_bytes();
-}
-
-template <typename V>
-int64_t PersistentCache<std::string, V, std::string>::headroom() const noexcept
-{
-    return p_->headroom();
 }
 
 template <typename V>
@@ -2425,12 +2339,6 @@ void PersistentCache<std::string, V, std::string>::trim_to(int64_t used_size_in_
 }
 
 template <typename V>
-void PersistentCache<std::string, V, std::string>::set_headroom(int64_t headroom)
-{
-    p_->set_headroom(headroom);
-}
-
-template <typename V>
 void PersistentCache<std::string, V, std::string>::set_handler(CacheEvent events, EventCallback cb)
 {
     p_->set_handler(events, cb);
@@ -2474,7 +2382,6 @@ public:
     int64_t size_in_bytes() const noexcept;
     int64_t max_size_in_bytes() const noexcept;
     int64_t disk_size_in_bytes() const;
-    int64_t headroom() const noexcept;
     CacheDiscardPolicy discard_policy() const noexcept;
     PersistentCacheStats stats() const;
 
@@ -2517,7 +2424,6 @@ public:
     void clear_stats();
     void resize(int64_t size_in_bytes);
     void trim_to(int64_t used_size_in_bytes);
-    void set_headroom(int64_t headroom);
 
     typedef std::function<void(K const& key, CacheEvent ev, PersistentCacheStats const& stats)> EventCallback;
 
@@ -2616,12 +2522,6 @@ template <typename K>
 int64_t PersistentCache<K, std::string, std::string>::disk_size_in_bytes() const
 {
     return p_->disk_size_in_bytes();
-}
-
-template <typename K>
-int64_t PersistentCache<K, std::string, std::string>::headroom() const noexcept
-{
-    return p_->headroom();
 }
 
 template <typename K>
@@ -2799,12 +2699,6 @@ void PersistentCache<K, std::string, std::string>::trim_to(int64_t used_size_in_
 }
 
 template <typename K>
-void PersistentCache<K, std::string, std::string>::set_headroom(int64_t headroom)
-{
-    p_->set_headroom(headroom);
-}
-
-template <typename K>
 void PersistentCache<K, std::string, std::string>::set_handler(CacheEvent events, EventCallback cb)
 {
     auto scb = [cb](std::string const& key, CacheEvent ev, PersistentCacheStats const& c)
@@ -2852,7 +2746,6 @@ public:
     int64_t size_in_bytes() const noexcept;
     int64_t max_size_in_bytes() const noexcept;
     int64_t disk_size_in_bytes() const;
-    int64_t headroom() const noexcept;
     CacheDiscardPolicy discard_policy() const noexcept;
     PersistentCacheStats stats() const;
 
@@ -2896,7 +2789,6 @@ public:
     void clear_stats();
     void resize(int64_t size_in_bytes);
     void trim_to(int64_t used_size_in_bytes);
-    void set_headroom(int64_t headroom);
 
     typedef std::function<void(std::string const& key, CacheEvent ev, PersistentCacheStats const& stats)> EventCallback;
 
@@ -2985,11 +2877,6 @@ int64_t PersistentCache<std::string, std::string, std::string>::max_size_in_byte
 int64_t PersistentCache<std::string, std::string, std::string>::disk_size_in_bytes() const
 {
     return p_->disk_size_in_bytes();
-}
-
-int64_t PersistentCache<std::string, std::string, std::string>::headroom() const noexcept
-{
-    return p_->headroom();
 }
 
 CacheDiscardPolicy PersistentCache<std::string, std::string, std::string>::discard_policy() const noexcept
@@ -3146,11 +3033,6 @@ void PersistentCache<std::string, std::string, std::string>::resize(int64_t size
 void PersistentCache<std::string, std::string, std::string>::trim_to(int64_t used_size_in_bytes)
 {
     p_->trim_to(used_size_in_bytes);
-}
-
-void PersistentCache<std::string, std::string, std::string>::set_headroom(int64_t headroom)
-{
-    p_->set_headroom(headroom);
 }
 
 void PersistentCache<std::string, std::string, std::string>::set_handler(CacheEvent events, EventCallback cb)

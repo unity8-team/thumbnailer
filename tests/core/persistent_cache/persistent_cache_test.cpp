@@ -173,7 +173,6 @@ TEST(PersistentCache, IDCCache)
         EXPECT_EQ(0, c->size_in_bytes());
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
-        EXPECT_EQ(0, c->headroom());
         EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
 
         val = c->take(42);
@@ -235,13 +234,11 @@ TEST(PersistentCache, IDCCache)
         c->clear_stats();
         c->resize(2048);
         c->trim_to(0);
-        c->set_headroom(200);
 
         auto stats = c->stats();
         EXPECT_EQ(0, stats.size());
         EXPECT_EQ(0, stats.size_in_bytes());
         EXPECT_EQ(2048, stats.max_size_in_bytes());
-        EXPECT_EQ(200, stats.headroom());
 
         // Handlers
 
@@ -341,7 +338,6 @@ TEST(PersistentCache, SDCCache)
         EXPECT_EQ(0, c->size_in_bytes());
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
-        EXPECT_EQ(0, c->headroom());
         EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
 
         val = c->take("42");
@@ -403,13 +399,11 @@ TEST(PersistentCache, SDCCache)
         c->clear_stats();
         c->resize(2048);
         c->trim_to(0);
-        c->set_headroom(200);
 
         auto stats = c->stats();
         EXPECT_EQ(0, stats.size());
         EXPECT_EQ(0, stats.size_in_bytes());
         EXPECT_EQ(2048, stats.max_size_in_bytes());
-        EXPECT_EQ(200, stats.headroom());
 
         bool handler_called;
         auto handler = [&](string const&, CacheEvent, PersistentCacheStats const&)
@@ -489,7 +483,6 @@ TEST(PersistentCache, ISCCache)
         EXPECT_EQ(0, c->size_in_bytes());
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
-        EXPECT_EQ(0, c->headroom());
         EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
 
         val = c->take(42);
@@ -551,13 +544,11 @@ TEST(PersistentCache, ISCCache)
         c->clear_stats();
         c->resize(2048);
         c->trim_to(0);
-        c->set_headroom(200);
 
         auto stats = c->stats();
         EXPECT_EQ(0, stats.size());
         EXPECT_EQ(0, stats.size_in_bytes());
         EXPECT_EQ(2048, stats.max_size_in_bytes());
-        EXPECT_EQ(200, stats.headroom());
 
         bool handler_called;
         auto handler = [&](int const&, CacheEvent, PersistentCacheStats const&)
@@ -650,7 +641,6 @@ TEST(PersistentCache, IDSCache)
         EXPECT_EQ(0, c->size_in_bytes());
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
-        EXPECT_EQ(0, c->headroom());
         EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
 
         val = c->take(42);
@@ -712,13 +702,11 @@ TEST(PersistentCache, IDSCache)
         c->clear_stats();
         c->resize(2048);
         c->trim_to(0);
-        c->set_headroom(200);
 
         auto stats = c->stats();
         EXPECT_EQ(0, stats.size());
         EXPECT_EQ(0, stats.size_in_bytes());
         EXPECT_EQ(2048, stats.max_size_in_bytes());
-        EXPECT_EQ(200, stats.headroom());
 
         bool handler_called;
         auto handler = [&](int const&, CacheEvent, PersistentCacheStats const&)
@@ -811,7 +799,6 @@ TEST(PersistentCache, SSCCache)
         EXPECT_EQ(0, c->size_in_bytes());
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
-        EXPECT_EQ(0, c->headroom());
         EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
 
         val = c->take("42");
@@ -873,13 +860,11 @@ TEST(PersistentCache, SSCCache)
         c->clear_stats();
         c->resize(2048);
         c->trim_to(0);
-        c->set_headroom(200);
 
         auto stats = c->stats();
         EXPECT_EQ(0, stats.size());
         EXPECT_EQ(0, stats.size_in_bytes());
         EXPECT_EQ(2048, stats.max_size_in_bytes());
-        EXPECT_EQ(200, stats.headroom());
 
         bool handler_called;
         auto handler = [&](string const&, CacheEvent, PersistentCacheStats const&)
@@ -972,7 +957,6 @@ TEST(PersistentCache, SDSCache)
         EXPECT_EQ(0, c->size_in_bytes());
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
-        EXPECT_EQ(0, c->headroom());
         EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
 
         val = c->take("42");
@@ -1034,13 +1018,11 @@ TEST(PersistentCache, SDSCache)
         c->clear_stats();
         c->resize(2048);
         c->trim_to(0);
-        c->set_headroom(200);
 
         auto stats = c->stats();
         EXPECT_EQ(0, stats.size());
         EXPECT_EQ(0, stats.size_in_bytes());
         EXPECT_EQ(2048, stats.max_size_in_bytes());
-        EXPECT_EQ(200, stats.headroom());
 
         bool handler_called;
         auto handler = [&](string const&, CacheEvent, PersistentCacheStats const&)
@@ -1133,7 +1115,6 @@ TEST(PersistentCache, ISSCache)
         EXPECT_EQ(0, c->size_in_bytes());
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
-        EXPECT_EQ(0, c->headroom());
         EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
 
         val = c->take(42);
@@ -1195,13 +1176,11 @@ TEST(PersistentCache, ISSCache)
         c->clear_stats();
         c->resize(2048);
         c->trim_to(0);
-        c->set_headroom(200);
 
         auto stats = c->stats();
         EXPECT_EQ(0, stats.size());
         EXPECT_EQ(0, stats.size_in_bytes());
         EXPECT_EQ(2048, stats.max_size_in_bytes());
-        EXPECT_EQ(200, stats.headroom());
 
         bool handler_called;
         auto handler = [&](int const&, CacheEvent, PersistentCacheStats const&)
@@ -1301,7 +1280,6 @@ TEST(PersistentCache, SSSCache)
         EXPECT_EQ(0, c->size_in_bytes());
         EXPECT_EQ(1024, c->max_size_in_bytes());
         EXPECT_NE(0, c->disk_size_in_bytes());
-        EXPECT_EQ(0, c->headroom());
         EXPECT_EQ(CacheDiscardPolicy::lru_only, c->discard_policy());
 
         val = c->take("42");
@@ -1363,13 +1341,11 @@ TEST(PersistentCache, SSSCache)
         c->clear_stats();
         c->resize(2048);
         c->trim_to(0);
-        c->set_headroom(200);
 
         auto stats = c->stats();
         EXPECT_EQ(0, stats.size());
         EXPECT_EQ(0, stats.size_in_bytes());
         EXPECT_EQ(2048, stats.max_size_in_bytes());
-        EXPECT_EQ(200, stats.headroom());
 
         bool handler_called;
         auto handler = [&](string const&, CacheEvent, PersistentCacheStats const&)

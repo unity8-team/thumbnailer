@@ -127,11 +127,6 @@ int64_t PersistentCacheStats::max_size_in_bytes() const noexcept
     return p_->max_cache_size_;
 }
 
-int64_t PersistentCacheStats::headroom() const noexcept
-{
-    return p_->headroom_;
-}
-
 int64_t PersistentCacheStats::hits() const noexcept
 {
     return p_->hits_;

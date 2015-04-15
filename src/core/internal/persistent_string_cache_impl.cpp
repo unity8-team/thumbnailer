@@ -193,7 +193,6 @@ static string const ALL_END = SETTINGS_BEGIN;  // Must be highest prefix for all
 
 static string const SETTINGS_MAX_SIZE = SETTINGS_BEGIN + "MAX_SIZE";
 static string const SETTINGS_POLICY = SETTINGS_BEGIN + "POLICY";
-static string const SETTINGS_HEADROOM = SETTINGS_BEGIN + "HEADROOM";
 static string const SETTINGS_SCHEMA_VERSION = SETTINGS_BEGIN + "SCHEMA_VERSION";
 
 // Simple struct to serialize/deserialize a time-key tuple.
@@ -538,13 +537,6 @@ int64_t PersistentStringCacheImpl::disk_size_in_bytes() const
     array<uint64_t, 1> sizes = {{0}};
     db_->GetApproximateSizes(&everything, 1, sizes.data());
     return sizes[0];
-}
-
-int64_t PersistentStringCacheImpl::headroom() const noexcept
-{
-    lock_guard<decltype(mutex_)> lock(mutex_);
-
-    return stats_->headroom_;
 }
 
 CacheDiscardPolicy PersistentStringCacheImpl::discard_policy() const noexcept
@@ -1002,7 +994,7 @@ void PersistentStringCacheImpl::invalidate()
         int64_t const batch_size = 1000;
 
         PersistentStringCache::EventCallback cb =
-            handlers_[static_cast<unsigned>(CacheEventIndex::invalidate)];
+            handlers_[static_cast<underlying_type<CacheEventIndex>::type>(CacheEventIndex::invalidate)];
 
         IteratorUPtr it(db_->NewIterator(read_options));
         it->Seek(ALL_BEGIN);
@@ -1115,11 +1107,6 @@ void PersistentStringCacheImpl::resize(int64_t size_in_bytes)
     {
         throw_invalid_argument("resize(): invalid size_in_bytes (" + to_string(size_in_bytes) + "): value must be > 0");
     }
-    if (stats_->headroom_ > size_in_bytes / 2)
-    {
-        throw_logic_error(string("resize(): cannot reduce cache size: headroom() (") + to_string(stats_->headroom_) +
-                          ") is > 50% of size_in_bytes (" + to_string(size_in_bytes) + ")");
-    }
 
     lock_guard<decltype(mutex_)> lock(mutex_);
 
@@ -1155,29 +1142,6 @@ void PersistentStringCacheImpl::trim_to(int64_t used_size_in_bytes)
         delete_at_least(stats_->cache_size_ - used_size_in_bytes);
     }
     assert(stats_->num_entries_ == hist_sum(stats_->hist_));
-}
-
-void PersistentStringCacheImpl::set_headroom(int64_t headroom)
-{
-    if (headroom < 0)
-    {
-        throw_invalid_argument("set_headroom(): invalid headroom (" + to_string(headroom) + "): value must be >= 0");
-    }
-    if (headroom > stats_->max_cache_size_ / 2)
-    {
-        throw_logic_error(string("set_headroom(): invalid headroom (") + to_string(headroom) +
-                          "): value must be <= max_size_in_bytes() / 2 (" + to_string(stats_->max_cache_size_ / 2) +
-                          ")");
-    }
-
-    lock_guard<decltype(mutex_)> lock(mutex_);
-
-    // No need to trim here. Once there is no room for new entry, delete_at_least()
-    // creates at least stats_->headroom_ free space.
-
-    auto s = db_->Put(write_options, SETTINGS_HEADROOM, to_string(headroom));
-    throw_if_error(s, "set_headroom(): cannot write headroom");
-    stats_->headroom_ = headroom;
 }
 
 void PersistentStringCacheImpl::set_handler(CacheEvent events, PersistentStringCache::EventCallback cb)
@@ -1298,10 +1262,6 @@ void PersistentStringCacheImpl::read_settings()
     s = db_->Get(read_options, SETTINGS_POLICY, &val);
     throw_if_error(s, "read_settings(): cannot read policy");
     stats_->policy_ = static_cast<CacheDiscardPolicy>(stoi(val));
-
-    s = db_->Get(read_options, SETTINGS_HEADROOM, &val);
-    throw_if_error(s, "read_settings(): cannot read headroom");
-    stats_->headroom_ = stoll(val);
 }
 
 void PersistentStringCacheImpl::write_settings()
@@ -1310,7 +1270,6 @@ void PersistentStringCacheImpl::write_settings()
 
     batch.Put(SETTINGS_MAX_SIZE, to_string(stats_->max_cache_size_));
     batch.Put(SETTINGS_POLICY, to_string(static_cast<int>(stats_->policy_)));
-    batch.Put(SETTINGS_HEADROOM, to_string(stats_->headroom_));
 
     auto s = db_->Write(write_options, &batch);
     throw_if_error(s, "write_settings()");
@@ -1418,12 +1377,6 @@ void PersistentStringCacheImpl::delete_at_least(int64_t bytes_needed, string con
 
     assert(bytes_needed > 0);
     assert(bytes_needed <= stats_->cache_size_);
-
-    // Make sure we always end up with at least head_room_ available bytes.
-    if (stats_->headroom_ != 0 && stats_->max_cache_size_ - stats_->cache_size_ < stats_->headroom_)
-    {
-        bytes_needed = max(bytes_needed, stats_->headroom_);
-    }
 
     int64_t deleted_bytes = 0;
     int64_t deleted_entries = 0;
@@ -1546,12 +1499,13 @@ void PersistentStringCacheImpl::call_handler(string const& key, CacheEventIndex 
 {
     // mutex_ must be locked here!
 
-    auto handler = handlers_[static_cast<unsigned>(event_index)];
+    typedef underlying_type<CacheEventIndex>::type IndexType;
+    auto handler = handlers_[static_cast<IndexType>(event_index)];
     if (handler)
     {
         try
         {
-            unsigned index = static_cast<unsigned>(event_index);
+            IndexType index = static_cast<IndexType>(event_index);
             handler(key, static_cast<CacheEvent>(1 << index), stats_);
         }
         catch (...)

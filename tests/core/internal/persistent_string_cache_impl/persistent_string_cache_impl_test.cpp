@@ -56,7 +56,6 @@ TEST(PersistentStringCacheImpl, basic)
     PersistentStringCacheImpl c(TEST_DB, 1024 * 1024, CacheDiscardPolicy::lru_ttl);
     EXPECT_EQ(0, c.size());
     EXPECT_EQ(0, c.size_in_bytes());
-    EXPECT_EQ(0, c.headroom());
     EXPECT_FALSE(c.contains_key("hello"));
 
     string val;
@@ -849,6 +848,20 @@ TEST(PersistentStringCacheImpl, exceptions)
             e.what());
     }
 
+    // Open non-existent cache
+    try
+    {
+        PersistentStringCacheImpl c("no_such_cache");
+        FAIL();
+    }
+    catch (runtime_error const& e)
+    {
+        EXPECT_STREQ(
+            "PersistentStringCache: cannot open or create cache: Invalid argument: no_such_cache: "
+            "does not exist (create_if_missing is false) (cache_path: no_such_cache)",
+            e.what());
+    }
+
     // Invalid size argument
     try
     {
@@ -952,53 +965,6 @@ TEST(PersistentStringCacheImpl, exceptions)
                 TEST_DB + ")",
                 e.what());
         }
-
-        // resize() with invalid headroom
-        c.set_headroom(512);
-        c.resize(1024);  // OK, headroom == 50%
-        try
-        {
-            c.resize(1023);  // Not OK, headroom < 50%
-            FAIL();
-        }
-        catch (logic_error const& e)
-        {
-            EXPECT_EQ(
-                "PersistentStringCache: resize(): cannot reduce cache size: headroom() (512) is > 50% "
-                "of size_in_bytes (1023) (cache_path: " +
-                TEST_DB + ")",
-                e.what());
-        }
-        c.set_headroom(0);
-        c.resize(1024);
-
-        // set_headroom() with invalid size
-        try
-        {
-            c.set_headroom(-1);
-            FAIL();
-        }
-        catch (invalid_argument const& e)
-        {
-            EXPECT_EQ("PersistentStringCache: set_headroom(): invalid headroom (-1): value must be >= 0 (cache_path: " +
-                      TEST_DB + ")",
-                      e.what());
-        }
-        try
-        {
-            c.set_headroom(512);  // OK, == 50%
-            c.set_headroom(513);  // Not OK, > 50%
-            FAIL();
-        }
-        catch (logic_error const& e)
-        {
-            EXPECT_EQ(
-                "PersistentStringCache: set_headroom(): invalid headroom (513): value must "
-                "be <= max_size_in_bytes() / 2 (512) (cache_path: " +
-                TEST_DB + ")",
-                e.what());
-        }
-        c.set_headroom(0);
 
         // Open non-existent DB
         try
@@ -1376,7 +1342,6 @@ TEST(PersistentStringCacheImpl, trim_small)
 {
     // No unlink here, we trim the result of the previous test
     PersistentStringCacheImpl c(TEST_DB, 1024 * 1024 * 1024, CacheDiscardPolicy::lru_ttl);
-    EXPECT_EQ(0, c.headroom());
     c.trim_to(11 * 1024);
     EXPECT_LE(c.size(), 1);  // trim_to() may remove more than asked for.
     if (c.size() == 1)
@@ -1503,93 +1468,6 @@ TEST(PersistentStringCacheImpl, invalidate)
     EXPECT_LT(c.disk_size_in_bytes(), 1000);
 }
 
-TEST(PersistentStringCacheImpl, headroom)
-{
-    unlink_db(TEST_DB);
-
-    // Cache with max size 128
-    PersistentStringCacheImpl c(TEST_DB, 128, CacheDiscardPolicy::lru_only);
-    EXPECT_EQ(128, c.max_size_in_bytes());
-    EXPECT_EQ(0, c.headroom());
-    c.set_headroom(1);
-    EXPECT_EQ(1, c.headroom());
-
-    // Insert 128 records, each with 1-byte size.
-    string b = "";
-    for (int i = 0; i < 128; ++i)
-    {
-        string key(1, static_cast<unsigned char>(i));
-        c.put(key, b);
-        this_thread::sleep_for(chrono::milliseconds(5));  // Make sure we have different timestamps.
-        ASSERT_EQ(i + 1, c.size_in_bytes());
-        ASSERT_EQ(i + 1, c.size());
-    }
-
-    // Insert one more record. That must leave 128 records because
-    // we don't ask for more new bytes than the headroom. Record 0
-    // was the oldest, so must have been deleted.
-
-    string key(1, static_cast<unsigned char>(128));
-    EXPECT_TRUE(c.put(key, b));
-    EXPECT_EQ(128, c.size());
-    EXPECT_EQ(128, c.size_in_bytes());
-    EXPECT_FALSE(c.contains_key(string(1, static_cast<unsigned char>(0))));
-
-    // Trimming to the current size does nothing.
-    c.trim_to(128);
-    EXPECT_EQ(128, c.size());
-    EXPECT_EQ(128, c.size_in_bytes());
-
-    // Trimming to the current size - 1 trims to just that.
-    c.trim_to(127);
-    EXPECT_EQ(127, c.size());
-    EXPECT_EQ(127, c.size_in_bytes());
-
-    // Previous trim must have deleted record 1.
-    key = string(1, static_cast<unsigned char>(1));
-    EXPECT_FALSE(c.contains_key(key));
-
-    // Add the missing record back.
-    key = string(1, static_cast<unsigned char>(1));
-    EXPECT_TRUE(c.put(key, b));
-
-    // Cache must be full again.
-    EXPECT_EQ(128, c.size());
-    EXPECT_EQ(128, c.size_in_bytes());
-    EXPECT_TRUE(c.contains_key(key));
-
-    // Increase headroom to 3.
-    c.set_headroom(3);
-    EXPECT_EQ(3, c.headroom());
-
-    // Change must not affect contents.
-    EXPECT_EQ(128, c.size());
-    EXPECT_EQ(128, c.size_in_bytes());
-
-    // Trimming to 127 now must leave 125 records.
-    c.trim_to(127);
-    EXPECT_EQ(125, c.size());
-    EXPECT_EQ(125, c.size_in_bytes());
-
-    // Newest key must still be there.
-    EXPECT_TRUE(c.contains_key(string(1, static_cast<unsigned char>(1))));
-
-    // Keys 0, 2, 3, and 4 must have been deleted because they were the oldest.
-    EXPECT_FALSE(c.contains_key(string(1, static_cast<unsigned char>(0))));
-    EXPECT_FALSE(c.contains_key(string(1, static_cast<unsigned char>(2))));
-    EXPECT_FALSE(c.contains_key(string(1, static_cast<unsigned char>(3))));
-    EXPECT_FALSE(c.contains_key(string(1, static_cast<unsigned char>(4))));
-
-    // All the other records must still be there.
-    for (int i = 5; i < 129; ++i)
-    {
-        string key(1, static_cast<unsigned char>(i));
-        EXPECT_TRUE(c.contains_key(key)) << "key " << to_string(i) << " missing";
-    }
-    EXPECT_EQ(125, c.size());
-    EXPECT_EQ(125, c.size_in_bytes());
-}
-
 TEST(PersistentStringCacheImpl, stats)
 {
     {
@@ -1604,7 +1482,6 @@ TEST(PersistentStringCacheImpl, stats)
         }
 
         c.put("x", "y");
-        c.set_headroom(15);
 
         string val;
         EXPECT_TRUE(c.get("x", val));
@@ -1614,7 +1491,6 @@ TEST(PersistentStringCacheImpl, stats)
         EXPECT_EQ(1, s.size());
         EXPECT_EQ(2, s.size_in_bytes());
         EXPECT_EQ(128, s.max_size_in_bytes());
-        EXPECT_EQ(15, s.headroom());
         EXPECT_EQ(1, s.hits());
 
         c.clear_stats();
@@ -1623,7 +1499,6 @@ TEST(PersistentStringCacheImpl, stats)
         EXPECT_EQ(1, s.size());
         EXPECT_EQ(2, s.size_in_bytes());
         EXPECT_EQ(128, s.max_size_in_bytes());
-        EXPECT_EQ(15, s.headroom());
         EXPECT_EQ(0, s.hits());
         EXPECT_EQ(1, s.histogram()[0]);
 
