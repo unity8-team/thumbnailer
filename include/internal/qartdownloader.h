@@ -32,6 +32,11 @@ namespace thumbnailer
 namespace internal
 {
 
+/**
+\brief Base class to download remote files.
+
+This class uses internally QNetworkAccessManager to retrieve remote urls.
+*/
 class QArtDownloader : public QObject
 {
     Q_OBJECT
@@ -39,29 +44,44 @@ public:
     QArtDownloader(QObject* parent = nullptr);
     virtual ~QArtDownloader() = default;
 
-    // Returns the url of the image to download for the given artist and album
-    // After this call expect file_downloaded or download_error signals to be emitted
-
-    // Note the url is also returned in the file_downloaded and download_error signals
-    // so you can identify the url being downloaded or giving an error in case
-    // you run from multiple threads or download multiple files.
-    virtual QString download(QString const& artist, QString const& album) = 0;
-
-    // Returns the url of the image to download for the given artist and album
-    // After this call expect file_downloaded or download_error signals to be emitted
-
-    // Note the url is also returned in the file_downloaded and download_error signals
-    // so you can identify the url being downloaded or giving an error in case
-    // you run from multiple threads or download multiple files.
-    virtual QString download_artist(QString const& artist, QString const& album) = 0;
-
     QArtDownloader(QArtDownloader const&) = delete;
     QArtDownloader& operator=(QArtDownloader const&) = delete;
 
+    /**
+    \brief Downloads the image for the given artist and album.
+     After this call expect file_downloaded,  download_error, download_source_not_found
+     or bad_url_error signals to be emitted
+
+     \note the url is also returned in the file_downloaded and download_error signals
+     so you can identify the url being downloaded or giving an error in case
+     you run from multiple threads or download multiple files.
+
+     \return the url being downloaded or an empty QString if the constructed is not
+             valid
+    */
+    virtual QString download(QString const& artist, QString const& album) = 0;
+
+    /**
+    \brief Downloads the image of the artist for the given artist and album.
+     After this call expect file_downloaded,  download_error, download_source_not_found
+     or bad_url_error signals to be emitted
+
+     \note the url is also returned in the file_downloaded and download_error signals
+     so you can identify the url being downloaded or giving an error in case
+     you run from multiple threads or download multiple files.
+
+     \return the url being downloaded or an empty QString if the constructed is not
+             valid
+    */
+    virtual QString download_artist(QString const& artist, QString const& album) = 0;
+
 protected:
-    // Starts the download of the given url
-    // Returns a pointer to the QNetworkReply returned by QNetworkAccessManager
-    // so the user can connect to its signals or get any information
+    /**
+     \brief Starts the download of the given url
+     \return a pointer to the QNetworkReply returned by QNetworkAccessManager
+      so the user can connect to its signals or get any information, or a nullptr
+      if the given url is not valid
+    */
     QNetworkReply* start_download(QUrl const& url);
 
 protected Q_SLOTS:
