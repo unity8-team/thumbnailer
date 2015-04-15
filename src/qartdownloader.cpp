@@ -29,6 +29,12 @@ QArtDownloader::QArtDownloader(QObject* parent)
 
 QNetworkReply* QArtDownloader::start_download(QUrl const& url)
 {
+    // first of all check that the URL is valid
+    if (!url.isValid())
+    {
+        Q_EMIT bad_url_error(url.errorString());
+        return nullptr;
+    }
     // start downloading a file using the QNetworkAccessManager
     QNetworkReply* reply = network_manager_.get(QNetworkRequest(url));
     connect(&network_manager_, &QNetworkAccessManager::finished, this, &QArtDownloader::reply_finished);
@@ -44,7 +50,34 @@ void QArtDownloader::reply_finished(QNetworkReply* reply)
     }
     else
     {
-        Q_EMIT download_error(reply->url().toString(), reply->error(), reply->errorString());
+        // we return the url in the original request as the url in
+        // the reply may change
+        if (is_server_or_connection_error(reply->error()))
+        {
+            Q_EMIT download_error(reply->request().url().toString(), reply->error(), reply->errorString());
+        }
+        else
+        {
+            Q_EMIT download_source_not_found(reply->request().url().toString(), reply->error(), reply->errorString());
+        }
     }
     reply->deleteLater();
+}
+
+bool QArtDownloader::is_server_or_connection_error(QNetworkReply::NetworkError error) const
+{
+    switch (error)
+    {
+    // add here all the cases that you consider as source not found
+    case QNetworkReply::HostNotFoundError:
+    case QNetworkReply::ContentAccessDenied:
+    case QNetworkReply::ContentOperationNotPermittedError:
+    case QNetworkReply::ContentNotFoundError:
+    case QNetworkReply::ContentGoneError:
+        return false;
+        break;
+    default:
+        return true;
+        break;
+    }
 }

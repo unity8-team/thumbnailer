@@ -44,6 +44,7 @@ public:
     UbuntuServerDownloader& operator=(UbuntuServerDownloader const&) = delete;
 
 private:
+    QString download_url(QUrl const& url);
     void set_api_key();
 
     QString api_key;

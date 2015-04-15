@@ -41,5 +41,13 @@ QString TestUrlDownloader::download_artist(QString const&, QString const&)
 QString TestUrlDownloader::download_url(QUrl const& url)
 {
     // starts the download
-    return start_download(url)->url().toString();
+    QNetworkReply *reply = start_download(url);
+    if (reply)
+    {
+        return reply->url().toString();
+    }
+    else
+    {
+        return "";
+    }
 }

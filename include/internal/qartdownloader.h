@@ -70,8 +70,12 @@ protected Q_SLOTS:
 Q_SIGNALS:
     void file_downloaded(QString const& url, QByteArray const& data);
     void download_error(QString const& url, QNetworkReply::NetworkError error, QString const& error_message);
+    void download_source_not_found(QString const& url, QNetworkReply::NetworkError error, QString const& error_message);
+    void bad_url_error(QString const& error_message);
 
 private:
+    // Returns if the error is considered a connection or server error.
+    bool is_server_or_connection_error(QNetworkReply::NetworkError error) const;
     QNetworkAccessManager network_manager_;
 };
 
