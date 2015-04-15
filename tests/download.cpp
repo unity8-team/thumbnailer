@@ -232,7 +232,7 @@ TEST_F(TestDownloaderServer, test_not_found_url)
 {
     test::TestUrlDownloader downloader;
 
-    QSignalSpy spy(&downloader, SIGNAL(download_error(QString const&, QNetworkReply::NetworkError, QString const&)));
+    QSignalSpy spy(&downloader, SIGNAL(download_source_not_found(QString const&, QNetworkReply::NetworkError, QString const&)));
     QSignalSpy spy_ok(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
 
     auto url = downloader.download_url(QUrl(apiroot_ + "/images_not_found/sia_fear_not_found.png"));
@@ -257,6 +257,32 @@ TEST_F(TestDownloaderServer, test_not_found_url)
              true);
 }
 
+TEST_F(TestDownloaderServer, test_host_not_found_url)
+{
+    test::TestUrlDownloader downloader;
+
+    QSignalSpy spy(&downloader, SIGNAL(download_source_not_found(QString const&, QNetworkReply::NetworkError, QString const&)));
+    QSignalSpy spy_ok(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
+
+    auto url = downloader.download_url(QUrl("http://www.thishostshouldnotexist.com/file.png"));
+    ASSERT_EQ(url, "http://www.thishostshouldnotexist.com/file.png");
+
+    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+    // which should never be reached
+    spy.wait(5000);
+
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+    // and that the signal for file downloaded successfully is not emitted
+    ASSERT_EQ(spy_ok.count(), 0);
+
+    // check the arguments of the signal.
+    QList<QVariant> arguments = spy.takeFirst();
+    ASSERT_EQ(arguments.at(0).toString(), "http://www.thishostshouldnotexist.com/file.png");
+    ASSERT_EQ(arguments.at(1).toInt(), static_cast<int>(QNetworkReply::HostNotFoundError));
+    ASSERT_EQ(arguments.at(2).toString(), "Host www.thishostshouldnotexist.com not found");
+}
+
 TEST_F(TestDownloaderServer, test_good_url)
 {
     test::TestUrlDownloader downloader;
@@ -274,12 +300,27 @@ TEST_F(TestDownloaderServer, test_good_url)
     ASSERT_EQ(spy.count(), 1);
 
     // check the arguments of the signal.
-    // With this we check that the api_key is OK and that the url are build as
-    // expected.
     QList<QVariant> arguments = spy.takeFirst();
     ASSERT_EQ(arguments.at(0).toString().endsWith("/images/sia_fear.png"), true);
     // Finally check the content of the file downloaded
     ASSERT_EQ(arguments.at(1).toString(), QString("SIA_FEAR_TEST_STRING_IMAGE"));
+}
+
+TEST_F(TestDownloaderServer, test_url_parsing_error)
+{
+    test::TestUrlDownloader downloader;
+
+    QSignalSpy spy(&downloader, SIGNAL(bad_url_error(QString const&)));
+
+    auto url = downloader.download_url(QUrl("http://http://www.thishostshouldnotexist.com/file.png"));
+
+    // check that we've got exactly one signal
+    // this signal is emitted in the download_url call. that's why we don't wait
+    // for it.
+    ASSERT_EQ(spy.count(), 1);
+
+    QList<QVariant> arguments = spy.takeFirst();
+    ASSERT_EQ(arguments.at(0).toString(), QString("Port field was empty; source was \"http://http://www.thishostshouldnotexist.com/file.png\"; scheme = \"http\", host = \"http\", path = \"//www.thishostshouldnotexist.com/file.png\""));
 }
 
 int main(int argc, char** argv)
