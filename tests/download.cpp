@@ -15,6 +15,7 @@
  *
  * Authored by: Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
+#include <gtest/gtest.h>
 
 #include <QtTest/QtTest>
 #include <QtTest/QSignalSpy>
@@ -25,6 +26,9 @@
 #include "TestUrlDownloader.h"
 
 #include <core/posix/exec.h>
+
+#include <chrono>
+#include <thread>
 
 using namespace unity::thumbnailer::internal;
 namespace posix = core::posix;
@@ -56,83 +60,62 @@ private:
             QString(
                 "/musicproxy/v1/album-art?artist=test_threads&album=%1&size=350&key=0f450aa882a6125ebcbfb3d7f7aa25bc")
                 .arg(download_id_);
-        QVERIFY(url.endsWith(url_to_check) == true);
+        ASSERT_TRUE(url.endsWith(url_to_check) == true);
 
         // we set a timeout of 5 seconds waiting for the signal to be emitted,
         // which should never be reached
         spy.wait(5000);
 
         // check that we've got exactly one signal
-        QVERIFY(spy.count() == 1);
+        ASSERT_EQ(spy.count(), 1);
 
         QList<QVariant> arguments = spy.takeFirst();
-        QCOMPARE(arguments.at(0).toString().endsWith(url_to_check), true);
+        ASSERT_EQ(arguments.at(0).toString().endsWith(url_to_check), true);
         // Finally check the content of the file downloaded
-        QCOMPARE(arguments.at(1).toString(), QString("TEST_THREADS_TEST_%1").arg(download_id_));
+        ASSERT_EQ(arguments.at(1).toString(), QString("TEST_THREADS_TEST_%1").arg(download_id_));
     }
 
 private:
     QString download_id_;
 };
 
-class TestDownloader : public QObject
+class TestDownloaderServer : public ::testing::Test
 {
-    Q_OBJECT
-public:
-    TestDownloader();
-    ~TestDownloader();
-    posix::ChildProcess fake_downloader_server_;
+protected:
+    void SetUp() override
+    {
+        fake_downloader_server_ = posix::exec(FAKE_DOWNLOADER_SERVER, { }, { },
+                posix::StandardStream::stdout);
+
+        ASSERT_GT(fake_downloader_server_.pid(), 0);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        std::string port;
+        fake_downloader_server_.cout() >> port;
+
+        apiroot_ = "http://127.0.0.1:" + QString::fromStdString(port);
+        setenv("THUMBNAILER_LASTFM_APIROOT", apiroot_.toStdString().c_str(), true);
+        setenv("THUMBNAILER_UBUNTU_APIROOT", apiroot_.toStdString().c_str(), true);
+    }
+
+    void TearDown() override
+    {
+        unsetenv("THUMBNAILER_LASTFM_APIROOT");
+        unsetenv("THUMBNAILER_UBUNTU_APIROOT");
+    }
+
+    posix::ChildProcess fake_downloader_server_ = posix::ChildProcess::invalid();
     QString apiroot_;
-private slots:
-    void initTestCase();
-    void cleanupTestCase();
-
-    void test_ok_artist();
-    void test_ok_album();
-    void test_not_found();
-    void test_threads();
-
-    void test_good_url();
-    void test_not_found_url();
 };
 
-TestDownloader::TestDownloader()
-    : fake_downloader_server_(posix::ChildProcess::invalid())
-{
-}
-
-TestDownloader::~TestDownloader()
-{
-}
-
-void TestDownloader::initTestCase()
-{
-    fake_downloader_server_ = posix::exec(FAKE_DOWNLOADER_SERVER, {}, {}, posix::StandardStream::stdout);
-
-    QVERIFY(fake_downloader_server_.pid() > 0);
-    std::string port;
-    fake_downloader_server_.cout() >> port;
-
-    apiroot_ = "http://127.0.0.1:" + QString::fromStdString(port);
-    setenv("THUMBNAILER_LASTFM_APIROOT", apiroot_.toStdString().c_str(), true);
-    setenv("THUMBNAILER_UBUNTU_APIROOT", apiroot_.toStdString().c_str(), true);
-}
-
-void TestDownloader::cleanupTestCase()
-{
-    unsetenv("THUMBNAILER_LASTFM_APIROOT");
-    unsetenv("THUMBNAILER_UBUNTU_APIROOT");
-}
-
-void TestDownloader::test_ok_album()
+TEST_F(TestDownloaderServer, test_ok_album)
 {
     UbuntuServerDownloader downloader;
 
     QSignalSpy spy(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
 
     auto url = downloader.download("sia", "fear");
-    QVERIFY(
-        url.endsWith("/musicproxy/v1/album-art?artist=sia&album=fear&size=350&key=0f450aa882a6125ebcbfb3d7f7aa25bc") ==
+    ASSERT_EQ(
+        url.endsWith("/musicproxy/v1/album-art?artist=sia&album=fear&size=350&key=0f450aa882a6125ebcbfb3d7f7aa25bc"),
         true);
 
     // we set a timeout of 5 seconds waiting for the signal to be emitted,
@@ -140,20 +123,20 @@ void TestDownloader::test_ok_album()
     spy.wait(5000);
 
     // check that we've got exactly one signal
-    QVERIFY(spy.count() == 1);
+    ASSERT_EQ(spy.count(), 1);
 
     // check the arguments of the signal.
     // With this we check that the api_key is OK and that the url are build as
     // expected.
     QList<QVariant> arguments = spy.takeFirst();
-    QCOMPARE(arguments.at(0).toString().endsWith(
+    ASSERT_EQ(arguments.at(0).toString().endsWith(
                  "/musicproxy/v1/album-art?artist=sia&album=fear&size=350&key=0f450aa882a6125ebcbfb3d7f7aa25bc"),
              true);
     // Finally check the content of the file downloaded
-    QCOMPARE(arguments.at(1).toString(), QString("SIA_FEAR_TEST_STRING_IMAGE"));
+    ASSERT_EQ(arguments.at(1).toString(), QString("SIA_FEAR_TEST_STRING_IMAGE"));
 }
 
-void TestDownloader::test_ok_artist()
+TEST_F(TestDownloaderServer, test_ok_artist)
 {
     UbuntuServerDownloader downloader;
 
@@ -182,7 +165,8 @@ void TestDownloader::test_ok_artist()
     QCOMPARE(arguments.at(1).toString(), QString("SIA_FEAR_TEST_STRING_IMAGE"));
 }
 
-void TestDownloader::test_not_found()
+
+TEST_F(TestDownloaderServer, test_not_found)
 {
     UbuntuServerDownloader downloader;
 
@@ -190,8 +174,8 @@ void TestDownloader::test_not_found()
     QSignalSpy spy_ok(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
 
     auto url = downloader.download("test", "test");
-    QVERIFY(
-        url.endsWith("/musicproxy/v1/album-art?artist=test&album=test&size=350&key=0f450aa882a6125ebcbfb3d7f7aa25bc") ==
+    ASSERT_EQ(
+        url.endsWith("/musicproxy/v1/album-art?artist=test&album=test&size=350&key=0f450aa882a6125ebcbfb3d7f7aa25bc"),
         true);
 
     // we set a timeout of 5 seconds waiting for the signal to be emitted,
@@ -199,25 +183,25 @@ void TestDownloader::test_not_found()
     spy.wait(5000);
 
     // check that we've got exactly one signal
-    QVERIFY(spy.count() == 1);
+    ASSERT_EQ(spy.count(), 1);
     // and that the signal for file downloaded successfully is not emitted
-    QVERIFY(spy_ok.count() == 0);
+    ASSERT_EQ(spy_ok.count(), 0);
 
     // check the arguments of the signal.
     // With this we check that the api_key is OK and that the url are build as
     // expected.
     QList<QVariant> arguments = spy.takeFirst();
-    QCOMPARE(arguments.at(0).toString().endsWith(
+    ASSERT_EQ(arguments.at(0).toString().endsWith(
                  "/musicproxy/v1/album-art?artist=test&album=test&size=350&key=0f450aa882a6125ebcbfb3d7f7aa25bc"),
              true);
-    QCOMPARE(arguments.at(1).toInt(), static_cast<int>(QNetworkReply::InternalServerError));
-    QCOMPARE(arguments.at(2).toString().endsWith(
+    ASSERT_EQ(arguments.at(1).toInt(), static_cast<int>(QNetworkReply::InternalServerError));
+    ASSERT_EQ(arguments.at(2).toString().endsWith(
                  "/musicproxy/v1/album-art?artist=test&album=test&size=350&key=0f450aa882a6125ebcbfb3d7f7aa25bc - "
                  "server replied: Internal Server Error"),
              true);
 }
 
-void TestDownloader::test_threads()
+TEST_F(TestDownloaderServer, test_threads)
 {
     QVector<WorkerThread*> threads;
 
@@ -225,7 +209,7 @@ void TestDownloader::test_threads()
     for (auto i = 0; i < NUM_THREADS; ++i)
     {
         QString download_id = QString("TEST_%1").arg(i);
-        threads.push_back(new WorkerThread(download_id, this));
+        threads.push_back(new WorkerThread(download_id));
     }
 
     for (auto i = 0; i < NUM_THREADS; ++i)
@@ -244,32 +228,7 @@ void TestDownloader::test_threads()
     }
 }
 
-void TestDownloader::test_good_url()
-{
-    test::TestUrlDownloader downloader;
-
-    QSignalSpy spy(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
-
-    auto url = downloader.download_url(QUrl(apiroot_ + "/images/sia_fear.png"));
-    QVERIFY(url.endsWith("/images/sia_fear.png") == true);
-
-    // we set a timeout of 5 seconds waiting for the signal to be emitted,
-    // which should never be reached
-    spy.wait(5000);
-
-    // check that we've got exactly one signal
-    QVERIFY(spy.count() == 1);
-
-    // check the arguments of the signal.
-    // With this we check that the api_key is OK and that the url are build as
-    // expected.
-    QList<QVariant> arguments = spy.takeFirst();
-    QCOMPARE(arguments.at(0).toString().endsWith("/images/sia_fear.png"), true);
-    // Finally check the content of the file downloaded
-    QCOMPARE(arguments.at(1).toString(), QString("SIA_FEAR_TEST_STRING_IMAGE"));
-}
-
-void TestDownloader::test_not_found_url()
+TEST_F(TestDownloaderServer, test_not_found_url)
 {
     test::TestUrlDownloader downloader;
 
@@ -277,26 +236,58 @@ void TestDownloader::test_not_found_url()
     QSignalSpy spy_ok(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
 
     auto url = downloader.download_url(QUrl(apiroot_ + "/images_not_found/sia_fear_not_found.png"));
-    QCOMPARE(url, apiroot_ + "/images_not_found/sia_fear_not_found.png");
+    ASSERT_EQ(url, apiroot_ + "/images_not_found/sia_fear_not_found.png");
 
     // we set a timeout of 5 seconds waiting for the signal to be emitted,
     // which should never be reached
     spy.wait(5000);
 
     // check that we've got exactly one signal
-    QVERIFY(spy.count() == 1);
+    ASSERT_EQ(spy.count(), 1);
     // and that the signal for file downloaded successfully is not emitted
-    QVERIFY(spy_ok.count() == 0);
+    ASSERT_EQ(spy_ok.count(), 0);
 
     // check the arguments of the signal.
     // With this we check that the api_key is OK and that the url are build as
     // expected.
     QList<QVariant> arguments = spy.takeFirst();
-    QCOMPARE(arguments.at(0).toString(), apiroot_ + "/images_not_found/sia_fear_not_found.png");
-    QCOMPARE(arguments.at(1).toInt(), static_cast<int>(QNetworkReply::ContentNotFoundError));
-    QCOMPARE(arguments.at(2).toString().endsWith("images_not_found/sia_fear_not_found.png - server replied: Not Found"),
+    ASSERT_EQ(arguments.at(0).toString(), apiroot_ + "/images_not_found/sia_fear_not_found.png");
+    ASSERT_EQ(arguments.at(1).toInt(), static_cast<int>(QNetworkReply::ContentNotFoundError));
+    ASSERT_EQ(arguments.at(2).toString().endsWith("images_not_found/sia_fear_not_found.png - server replied: Not Found"),
              true);
 }
 
-QTEST_MAIN(TestDownloader)
+TEST_F(TestDownloaderServer, test_good_url)
+{
+    test::TestUrlDownloader downloader;
+
+    QSignalSpy spy(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
+
+    auto url = downloader.download_url(QUrl(apiroot_ + "/images/sia_fear.png"));
+    ASSERT_EQ(url.endsWith("/images/sia_fear.png"), true);
+
+    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+    // which should never be reached
+    spy.wait(5000);
+
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+
+    // check the arguments of the signal.
+    // With this we check that the api_key is OK and that the url are build as
+    // expected.
+    QList<QVariant> arguments = spy.takeFirst();
+    ASSERT_EQ(arguments.at(0).toString().endsWith("/images/sia_fear.png"), true);
+    // Finally check the content of the file downloaded
+    ASSERT_EQ(arguments.at(1).toString(), QString("SIA_FEAR_TEST_STRING_IMAGE"));
+}
+
+int main(int argc, char** argv)
+{
+    QCoreApplication qt_app(argc, argv);
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}
+
+//QTEST_MAIN(TestDownloader)
 #include "download.moc"
