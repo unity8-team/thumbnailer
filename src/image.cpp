@@ -18,16 +18,33 @@
 
 #include <internal/image.h>
 
+#include <unity/util/ResourcePtr.h>
+
 #include <cassert>
 #include <cmath>
 
 using namespace std;
 
+namespace
+{
+
+auto do_loader_close = [](GdkPixbufLoader* loader)
+{
+    if (loader)
+    {
+        gdk_pixbuf_loader_close(loader, NULL);
+        g_object_unref(loader);
+    }
+};
+typedef unity::util::ResourcePtr<GdkPixbufLoader*, decltype(do_loader_close)> LoaderPtr;
+
+}  // namespace
+
 Image::Image() = default;
 
 Image::Image(string const& data)
 {
-    unique_gobj<GdkPixbufLoader> loader(gdk_pixbuf_loader_new());
+    LoaderPtr loader(gdk_pixbuf_loader_new(), do_loader_close);
     if (!loader)
     {
         throw runtime_error("Image(): cannot allocate GdkPixbufLoader");

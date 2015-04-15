@@ -240,30 +240,29 @@ QDBusUnixFileDescriptor DBusInterface::GetThumbnail(const QString &filename, con
     auto bus = connection();
     auto msg = message();
     p->pool.start(new Task([=]() {
-        std::string art;
+        std::string art_image;
         try {
-            art = thumbnailer->get_thumbnail(filename.toStdString(), size);
+            art_image = thumbnailer->get_thumbnail(filename.toStdString(), size);
         } catch (const std::exception &e) {
             bus.send(msg.createErrorReply(ART_ERROR, e.what()));
             return;
         }
 
-        if (art.empty()) {
+        if (art_image.empty()) {
             bus.send(msg.createErrorReply(ART_ERROR, "Could not get thumbnail"));
             return;
         }
 
-        // FIXME: check that the thumbnail was produced for fd_stat
-        int fd = open(art.c_str(), O_RDONLY);
-        if (fd < 0) {
-            bus.send(msg.createErrorReply(ART_ERROR, strerror(errno)));
-            return;
+        try
+        {
+            auto unix_fd = write_to_tmpfile(art_image);
+            bus.send(msg.createReply(QVariant::fromValue(unix_fd)));
         }
-
-        QDBusUnixFileDescriptor unix_fd(fd);
-        close(fd);
-
-        bus.send(msg.createReply(QVariant::fromValue(unix_fd)));
+        catch (runtime_error const& e)
+        {
+            string err = string("GetThumbnail(): ") + e.what();
+            bus.send(msg.createErrorReply(ART_ERROR, err.c_str()));
+        }
     }));
 
     return QDBusUnixFileDescriptor();

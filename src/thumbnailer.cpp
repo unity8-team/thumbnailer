@@ -255,12 +255,15 @@ string ThumbnailerPrivate::extract_image(string const& filename)
 
     if (content_type.find("audio/") == 0)
     {
+        cout << "EX: audio " << filename << endl;
         return extract_image_from_audio(filename);
     }
     if (content_type.find("video/") == 0)
     {
+        cout << "EX: video " << filename << endl;
         return extract_image_from_video(filename);
     }
+    cout << "EX: other " << filename << endl;
     return extract_image_from_other(filename);
 }
 
@@ -302,6 +305,7 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
     auto image = full_size_cache_->get(key);
     if (image)
     {
+        cout << "found full size image with bytes: " << image->size() << endl;
         if (desired_size != 0)
         {
             Image scaled_image(*image);
@@ -313,6 +317,7 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
     }
 
     // Try and download or read the artwork.
+    cout << "cache miss, fetching" << endl;
     image = fetch(key1, key2);  // TODO: how to make async?
     if (image->empty())
     {
@@ -330,6 +335,7 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
 
     if (desired_size != 0)
     {
+        cout << "after cache miss, scaling" << endl;
         Image scaled_image(*image);
         scaled_image.scale_to(desired_size);
         image = scaled_image.get_jpeg();
@@ -366,6 +372,7 @@ std::string Thumbnailer::get_thumbnail(std::string const& filename, int desired_
     {
         return p_->extract_image(key1);
     };
+    cout << "calling fetch for " << key1 << endl;
     return p_->fetch_thumbnail(key1, key2, desired_size, fetch);
 }
 
