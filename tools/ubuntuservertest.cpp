@@ -24,7 +24,7 @@ using namespace unity::thumbnailer::internal;
 int main(int, char **)
 {
     UbuntuServerDownloader dl;
-    dl.download("Radiohead", "Amnesiac");
+    dl.download_album("Radiohead", "Amnesiac");
     dl.download_artist("Radiohead", "Amnesiac");
     return 0;
 }

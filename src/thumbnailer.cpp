@@ -131,7 +131,7 @@ std::string ThumbnailerPrivate::get_album_art(std::string const& artist,
     if (!macache.has_album_art(artist, album))
     {
 //        std::string tmpname = tmpnam(filebuf);
-        auto url = downloader->download(QString::fromStdString(artist), QString::fromStdString(album));
+        auto url = downloader->download_album(QString::fromStdString(artist), QString::fromStdString(album));
 
         return "";
 ////        std::string image = p_->downloader->download(artist, album);
@@ -366,7 +366,7 @@ string ThumbnailerPrivate::create_thumbnail(string const& abspath, ThumbnailSize
 
 void ThumbnailerPrivate::download_art(ThumbnailerPrivate::DownloadType type, QString const& artist, QString const &album)
 {
-    auto url = downloader->download(artist, album);
+    auto url = downloader->download_album(artist, album);
 
     ActiveDownloadInfo download_info;
     download_info.artist = artist;

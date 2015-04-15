@@ -37,7 +37,7 @@ public:
     UbuntuServerDownloader(QObject* parent = nullptr);
     ~UbuntuServerDownloader() = default;
 
-    QString download(QString const& artist, QString const& album) override;
+    QString download_album(QString const& artist, QString const& album) override;
     QString download_artist(QString const& artist, QString const& album) override;
 
     UbuntuServerDownloader(UbuntuServerDownloader const&) = delete;

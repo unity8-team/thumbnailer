@@ -56,7 +56,7 @@ public:
      \return the url being downloaded or an empty QString if the constructed is not
              valid
     */
-    virtual QString download(QString const& artist, QString const& album) = 0;
+    virtual QString download_album(QString const& artist, QString const& album) = 0;
 
     /**
     \brief Downloads the image of the artist for the given artist and album.

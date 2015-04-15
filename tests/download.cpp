@@ -51,7 +51,7 @@ private:
     void run() Q_DECL_OVERRIDE
     {
         UbuntuServerDownloader downloader;
-        QString url = downloader.download("test_threads", download_id_);
+        QString url = downloader.download_album("test_threads", download_id_);
         QSignalSpy spy(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
 
         // check the returned url
@@ -112,7 +112,7 @@ TEST_F(TestDownloaderServer, test_ok_album)
 
     QSignalSpy spy(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
 
-    auto url = downloader.download("sia", "fear");
+    auto url = downloader.download_album("sia", "fear");
     ASSERT_EQ(
         url.endsWith("/musicproxy/v1/album-art?artist=sia&album=fear&size=350&key=0f450aa882a6125ebcbfb3d7f7aa25bc"),
         true);
@@ -172,7 +172,7 @@ TEST_F(TestDownloaderServer, test_not_found)
     QSignalSpy spy(&downloader, SIGNAL(download_error(QString const&, QNetworkReply::NetworkError, QString const&)));
     QSignalSpy spy_ok(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
 
-    auto url = downloader.download("test", "test");
+    auto url = downloader.download_album("test", "test");
     ASSERT_EQ(
         url.endsWith("/musicproxy/v1/album-art?artist=test&album=test&size=350&key=0f450aa882a6125ebcbfb3d7f7aa25bc"),
         true);

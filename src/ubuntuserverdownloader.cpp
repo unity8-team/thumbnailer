@@ -107,12 +107,12 @@ void UbuntuServerDownloader::set_api_key()
     }
 }
 
-QString UbuntuServerDownloader::download(QString const& artist, QString const& album)
+QString UbuntuServerDownloader::download_album(QString const& artist, QString const& album)
 {
-    return QUrlDownloader::download(QUrl(get_album_art_url(artist, album, api_key)));
+    return download(QUrl(get_album_art_url(artist, album, api_key)));
 }
 
 QString UbuntuServerDownloader::download_artist(QString const& artist, QString const& album)
 {
-    return QUrlDownloader::download(QUrl(get_artist_art_url(artist, album, api_key)));
+    return download(QUrl(get_artist_art_url(artist, album, api_key)));
 }
