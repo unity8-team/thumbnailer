@@ -18,8 +18,7 @@
 
 #pragma once
 
-#include <internal/artdownloader.h>
-#include <internal/httpdownloader.h>
+#include <internal/qartdownloader.h>
 
 #include <memory>
 #include <string>
@@ -33,21 +32,35 @@ namespace thumbnailer
 namespace internal
 {
 
-class LastFMDownloader final : public ArtDownloader
+class LastFMDownloader final : public QArtDownloader
 {
+    Q_OBJECT
 public:
-    LastFMDownloader();
-    LastFMDownloader(HttpDownloader* o);  // Takes ownership.
+    LastFMDownloader(QObject* parent = nullptr);
     ~LastFMDownloader() = default;
     LastFMDownloader(LastFMDownloader const& o) = delete;
     LastFMDownloader& operator=(LastFMDownloader const& o) = delete;
 
-    std::string download(std::string const& artist, std::string const& album) override;
-    std::string download_artist(std::string const& artist, std::string const& album) override;
+    QString download_album(QString const& artist, QString const& album) override;
+    QString download_artist(QString const& artist, QString const& album) override;
+
+Q_SIGNALS:
+    void xml_parsing_error(QString const& url, QString const& error_message);
+
+private Q_SLOTS:
+    void xml_downloaded(QString const& url, QByteArray const& data);
+    void xml_download_error(QString const& url, QNetworkReply::NetworkError error, QString const& error_message);
 
 private:
-    std::string parse_xml(std::string const& xml);
-    std::unique_ptr<HttpDownloader> dl;
+    QString parse_xml(QString const& source_url, QByteArray const& data);
+
+    // we use this downloader to get only the xml file that defines
+    // where to get images.
+    QScopedPointer<QUrlDownloader> xml_downloader_;
+
+    // we use this map to store the number of retries we allow when
+    // downloading an xml.
+    QMap<QString, int> retries_map_;
 };
 
 }  // namespace internal

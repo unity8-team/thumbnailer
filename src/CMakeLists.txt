@@ -13,6 +13,7 @@ qurldownloader.cpp
 ${CMAKE_SOURCE_DIR}/include/internal/qartdownloader.h
 ${CMAKE_SOURCE_DIR}/include/internal/qurldownloader.h
 ${CMAKE_SOURCE_DIR}/include/internal/ubuntuserverdownloader.h
+${CMAKE_SOURCE_DIR}/include/internal/lastfmdownloader.h
 ${CMAKE_SOURCE_DIR}/include/thumbnailer.h
 )
 
