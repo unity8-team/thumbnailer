@@ -1,15 +1,3 @@
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
-
-add_definitions(
-  -fno-permissive
-  -std=c++11
-  -pedantic
-  -Wall
-  -Wextra
-  -fPIC
-)
-
 add_subdirectory(core)
 
 add_library(thumbnailer STATIC
@@ -28,21 +16,7 @@ ${CMAKE_SOURCE_DIR}/include/internal/ubuntuserverdownloader.h
 ${CMAKE_SOURCE_DIR}/include/thumbnailer.h
 )
 
-find_package(Qt5Core REQUIRED)
-find_package(Qt5Network REQUIRED)
-find_package(Qt5Gui REQUIRED)
-
-include_directories(${Qt5Core_INCLUDE_DIRS})
-include_directories(${Qt5Network_INCLUDE_DIRS})
-include_directories(${Qt5Gui_INCLUDE_DIRS})
-
-qt5_use_modules(
-    thumbnailer
-
-    Core
-    Network
-    Gui
-)
+qt5_use_modules(thumbnailer Core Network Gui)
 
 target_link_libraries(thumbnailer
  core
