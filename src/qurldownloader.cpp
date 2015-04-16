@@ -27,7 +27,7 @@ QUrlDownloader::QUrlDownloader(QObject* parent)
 {
 }
 
-QString QUrlDownloader::download(QUrl const& url)
+QString QUrlDownloader::download(QUrl const& url, QString const &download_id)
 {
     // first of all check that the URL is valid
     if (!url.isValid())
@@ -38,15 +38,34 @@ QString QUrlDownloader::download(QUrl const& url)
     // start downloading a file using the QNetworkAccessManager
     QNetworkReply* reply = network_manager_.get(QNetworkRequest(url));
     connect(&network_manager_, &QNetworkAccessManager::finished, this, &QUrlDownloader::reply_finished);
+
+    // check if we want an specific id for this download
+    // the id will be used when emitting any signal
+    if (!download_id.isEmpty())
+    {
+        download_ids_[reply->url().toString()] = download_id;
+        return download_id;
+    }
+
     return reply->url().toString();
 }
 
 void QUrlDownloader::reply_finished(QNetworkReply* reply)
 {
+    QString download_id = reply->url().toString();
+
+    // check if we set an specific download_id for the url
+    QMap<QString, QString>::iterator iter_ids = download_ids_.find(reply->url().toString());
+    if (iter_ids != download_ids_.end())
+    {
+        // we have an specific ID for this download
+        download_id = (*iter_ids);
+        download_ids_.erase(iter_ids);
+    }
     if (!reply->error())
     {
         QByteArray data = reply->readAll();
-        Q_EMIT file_downloaded(reply->url().toString(), data);
+        Q_EMIT file_downloaded(download_id, data);
     }
     else
     {
@@ -54,11 +73,11 @@ void QUrlDownloader::reply_finished(QNetworkReply* reply)
         // the reply may change
         if (is_server_or_connection_error(reply->error()))
         {
-            Q_EMIT download_error(reply->request().url().toString(), reply->error(), reply->errorString());
+            Q_EMIT download_error(download_id, reply->error(), reply->errorString());
         }
         else
         {
-            Q_EMIT download_source_not_found(reply->request().url().toString(), reply->error(), reply->errorString());
+            Q_EMIT download_source_not_found(download_id, reply->error(), reply->errorString());
         }
     }
     reply->deleteLater();

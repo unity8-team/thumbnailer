@@ -32,6 +32,11 @@ namespace thumbnailer
 namespace internal
 {
 
+/**
+\brief Base class to download remote files.
+
+This class uses internally QNetworkAccessManager to retrieve remote urls.
+*/
 class QUrlDownloader : public QObject
 {
     Q_OBJECT
@@ -46,7 +51,7 @@ public:
      \brief Starts the download of the given url
      \return the url being downloaded, or an empty QString if the given url is not valid
     */
-    QString download(QUrl const& url);
+    QString download(QUrl const& url, QString const &download_id = "");
 
 protected Q_SLOTS:
     void reply_finished(QNetworkReply* reply);
@@ -61,6 +66,8 @@ private:
     // Returns if the error is considered a connection or server error.
     bool is_server_or_connection_error(QNetworkReply::NetworkError error) const;
     QNetworkAccessManager network_manager_;
+
+    QMap<QString, QString> download_ids_;
 };
 
 }  // namespace internal

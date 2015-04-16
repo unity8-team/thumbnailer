@@ -327,6 +327,56 @@ TEST_F(TestDownloaderServer, test_url_parsing_error)
                   "= \"http\", host = \"http\", path = \"//www.thishostshouldnotexist.com/file.png\""));
 }
 
+TEST_F(TestDownloaderServer, test_download_specific_id)
+{
+    QUrlDownloader downloader;
+
+    QSignalSpy spy(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
+
+    auto url = downloader.download(QUrl(apiroot_ + "/images/sia_fear.png"), "this_is_the_id_i_want");
+    ASSERT_EQ(url, "this_is_the_id_i_want");
+
+    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+    // which should never be reached
+    spy.wait(5000);
+
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+
+    // check the arguments of the signal.
+    QList<QVariant> arguments = spy.takeFirst();
+    ASSERT_EQ(arguments.at(0).toString(), "this_is_the_id_i_want");
+    // Finally check the content of the file downloaded
+    ASSERT_EQ(arguments.at(1).toString(), QString("SIA_FEAR_TEST_STRING_IMAGE"));
+}
+
+TEST_F(TestDownloaderServer, test_host_not_found_url_specific_id)
+{
+    QUrlDownloader downloader;
+
+    QSignalSpy spy(&downloader,
+                   SIGNAL(download_source_not_found(QString const&, QNetworkReply::NetworkError, QString const&)));
+    QSignalSpy spy_ok(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
+
+    auto url = downloader.download(QUrl("http://www.thishostshouldnotexist.com/file.png"), "this_is_the_id_i_want");
+    ASSERT_EQ(url, "this_is_the_id_i_want");
+
+    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+    // which should never be reached
+    spy.wait(5000);
+
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+    // and that the signal for file downloaded successfully is not emitted
+    ASSERT_EQ(spy_ok.count(), 0);
+
+    // check the arguments of the signal.
+    QList<QVariant> arguments = spy.takeFirst();
+    ASSERT_EQ(arguments.at(0).toString(), "this_is_the_id_i_want");
+    ASSERT_EQ(arguments.at(1).toInt(), static_cast<int>(QNetworkReply::HostNotFoundError));
+    ASSERT_EQ(arguments.at(2).toString(), "Host www.thishostshouldnotexist.com not found");
+}
+
 int main(int argc, char** argv)
 {
     QCoreApplication qt_app(argc, argv);
