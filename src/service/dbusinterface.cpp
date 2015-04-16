@@ -21,6 +21,8 @@
 
 #include <thumbnailer.h>
 
+#include <internal/safe_strerror.h>
+
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <QDebug>
@@ -33,6 +35,7 @@
 #include <unistd.h>
 
 using namespace std;
+using namespace unity::thumbnailer::internal;
 
 static const char ART_ERROR[] = "com.canonical.MediaScanner2.Error.Failed";
 
@@ -95,14 +98,14 @@ QDBusUnixFileDescriptor write_to_tmpfile(string const& image)
 
     int fd = open(dir.c_str(), O_TMPFILE | O_RDWR);
     if (fd < 0) {
-        string err = "cannot create tmpfile in " + dir + ": " + strerror(errno);
+        string err = "cannot create tmpfile in " + dir + ": " + safe_strerror(errno);
         throw runtime_error(err);
     }
     FdPtr fd_ptr(fd, ::close);
     auto rc = write(fd_ptr.get(), &image[0], image.size());
     if (rc == -1)
     {
-        string err = "cannot write image data in " + dir + ": " + strerror(errno);
+        string err = "cannot write image data in " + dir + ": " + safe_strerror(errno);
         throw runtime_error(err);
     }
     else if (string::size_type(rc) != image.size())
@@ -257,7 +260,7 @@ QDBusUnixFileDescriptor DBusInterface::GetThumbnail(const QString &filename, con
         // FIXME: check that the thumbnail was produced for fd_stat
         int fd = open(art.c_str(), O_RDONLY);
         if (fd < 0) {
-            bus.send(msg.createErrorReply(ART_ERROR, strerror(errno)));
+            bus.send(msg.createErrorReply(ART_ERROR, safe_strerror(errno).c_str()));
             return;
         }
 
