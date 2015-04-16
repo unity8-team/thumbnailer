@@ -18,6 +18,7 @@
 
 #include <internal/qurldownloader.h>
 #include <internal/ubuntuserverdownloader.h>
+#include <internal/lastfmdownloader.h>
 
 #include <gtest/gtest.h>
 
@@ -38,11 +39,11 @@ namespace posix = core::posix;
 
 // The content coming from the fake server is: TEST_THREADS_TEST_ + the give download_id.
 // Example: download_id = "TEST_1" --> content is: "TEST_THREADS_TEST_TEST_1"
-class WorkerThread : public QThread
+class UbuntuServerWorkerThread : public QThread
 {
     Q_OBJECT
 public:
-    WorkerThread(QString download_id, QObject* parent = nullptr)
+    UbuntuServerWorkerThread(QString download_id, QObject* parent = nullptr)
         : QThread(parent)
         , download_id_(download_id)
     {
@@ -73,6 +74,49 @@ private:
         ASSERT_EQ(arguments.at(0).toString().endsWith(url_to_check), true);
         // Finally check the content of the file downloaded
         ASSERT_EQ(arguments.at(1).toString(), QString("TEST_THREADS_TEST_%1").arg(download_id_));
+    }
+
+private:
+    QString download_id_;
+};
+
+// Thread to download a file and check its content
+// The fake server generates specific file content when the given artist is "test"
+
+// The content coming from the fake server is: TEST_THREADS_TEST_ + "test_thread" + the give download_id.
+// Example: download_id = "TEST_1" --> content is: "TEST_THREADS_TEST_test_thread_TEST_1"
+class LastFMWorkerThread : public QThread
+{
+    Q_OBJECT
+public:
+    LastFMWorkerThread(QString download_id, QObject* parent = nullptr)
+        : QThread(parent)
+        , download_id_(download_id)
+    {
+    }
+
+private:
+    void run() Q_DECL_OVERRIDE
+    {
+        LastFMDownloader downloader;
+        QString url = downloader.download_album("test", QString("thread_%1").arg(download_id_));
+        QSignalSpy spy(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
+
+        QString url_to_check = QString("/1.0/album/test/thread_%1/info.xml").arg(download_id_);
+        // check the returned url
+        ASSERT_EQ(url.endsWith(url_to_check), true);
+
+        // we set a timeout of 5 seconds waiting for the signal to be emitted,
+        // which should never be reached
+        spy.wait(5000);
+
+        // check that we've got exactly one signal
+        ASSERT_EQ(spy.count(), 1);
+
+        QList<QVariant> arguments = spy.takeFirst();
+        ASSERT_EQ(arguments.at(0).toString().endsWith(url_to_check), true);
+        // Finally check the content of the file downloaded
+        ASSERT_EQ(arguments.at(1).toString(), QString("TEST_THREADS_TEST_test_thread_%1").arg(download_id_));
     }
 
 private:
@@ -201,13 +245,13 @@ TEST_F(TestDownloaderServer, test_not_found)
 
 TEST_F(TestDownloaderServer, test_threads)
 {
-    QVector<WorkerThread*> threads;
+    QVector<UbuntuServerWorkerThread*> threads;
 
     int NUM_THREADS = 100;
     for (auto i = 0; i < NUM_THREADS; ++i)
     {
         QString download_id = QString("TEST_%1").arg(i);
-        threads.push_back(new WorkerThread(download_id));
+        threads.push_back(new UbuntuServerWorkerThread(download_id));
     }
 
     for (auto i = 0; i < NUM_THREADS; ++i)
@@ -375,6 +419,107 @@ TEST_F(TestDownloaderServer, test_host_not_found_url_specific_id)
     ASSERT_EQ(arguments.at(0).toString(), "this_is_the_id_i_want");
     ASSERT_EQ(arguments.at(1).toInt(), static_cast<int>(QNetworkReply::HostNotFoundError));
     ASSERT_EQ(arguments.at(2).toString(), "Host www.thishostshouldnotexist.com not found");
+}
+
+TEST_F(TestDownloaderServer, lastfm_download_ok)
+{
+    LastFMDownloader downloader;
+
+    QSignalSpy spy(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
+
+    auto url = downloader.download_album("sia", "fear");
+    ASSERT_EQ(url, apiroot_ + "/1.0/album/sia/fear/info.xml");
+
+    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+    // which should never be reached
+    spy.wait(5000);
+
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+
+    // check the arguments of the signal.
+    QList<QVariant> arguments = spy.takeFirst();
+    ASSERT_EQ(arguments.at(0).toString(), apiroot_ + "/1.0/album/sia/fear/info.xml");
+    // Finally check the content of the file downloaded
+    ASSERT_EQ(arguments.at(1).toString(), QString("SIA_FEAR_TEST_STRING_IMAGE"));
+}
+
+TEST_F(TestDownloaderServer, lastfm_xml_parsing_errors)
+{
+    LastFMDownloader downloader;
+
+    QSignalSpy spy(&downloader, SIGNAL(xml_parsing_error(QString const&, QString const&)));
+
+    auto url = downloader.download_album("xml", "errors");
+    ASSERT_EQ(url, apiroot_ + "/1.0/album/xml/errors/info.xml");
+
+    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+    // which should never be reached
+    spy.wait(5000);
+
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+
+    // check the arguments of the signal.
+    QList<QVariant> arguments = spy.takeFirst();
+    ASSERT_EQ(arguments.at(0).toString(), apiroot_ + "/1.0/album/xml/errors/info.xml");
+    // Finally check the content of the error message
+    qDebug() << arguments.at(1).toString();
+    ASSERT_EQ(arguments.at(1).toString(),
+              QString("LastFMDownloader::parse_xml() XML ERROR: Expected '?', '!', or '[a-zA-Z]', but got '/'."));
+}
+
+TEST_F(TestDownloaderServer, lastfm_xml_image_not_found)
+{
+    LastFMDownloader downloader;
+
+    QSignalSpy spy(&downloader, SIGNAL(xml_parsing_error(QString const&, QString const&)));
+
+    auto url = downloader.download_album("no", "cover");
+    ASSERT_EQ(url, apiroot_ + "/1.0/album/no/cover/info.xml");
+
+    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+    // which should never be reached
+    spy.wait(5000);
+
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+
+    // check the arguments of the signal.
+    QList<QVariant> arguments = spy.takeFirst();
+    ASSERT_EQ(arguments.at(0).toString(), apiroot_ + "/1.0/album/no/cover/info.xml");
+    // Finally check the content of the error message
+    qDebug() << arguments.at(1).toString();
+    ASSERT_EQ(arguments.at(1).toString(), QString("LastFMDownloader::parse_xml() Image url not found"));
+}
+
+TEST_F(TestDownloaderServer, lastfm_test_threads)
+{
+    QVector<LastFMWorkerThread*> threads;
+
+    int NUM_THREADS = 100;
+    for (auto i = 0; i <= NUM_THREADS; ++i)
+    {
+        // we set the id to modulus 5 + 1 as the query xml that
+        // we have in the fake server are valid only from 1 to 5
+        QString download_id = QString("%1").arg((i % 5) + 1);
+        threads.push_back(new LastFMWorkerThread(download_id));
+    }
+
+    for (auto i = 0; i < NUM_THREADS; ++i)
+    {
+        threads[i]->start();
+    }
+
+    for (auto i = 0; i < NUM_THREADS; ++i)
+    {
+        threads[i]->wait();
+    }
+
+    for (auto th : threads)
+    {
+        delete th;
+    }
 }
 
 int main(int argc, char** argv)

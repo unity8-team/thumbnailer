@@ -73,8 +73,11 @@ class LastFMArtistAlbumInfo(ErrorHandler):
 
 class LastFMImagesProvider(ErrorHandler):
     def get(self, image):
-        file = 'images/%s.png' % image
-        self.write(read_file(file))
+        if(image.startswith("test_thread")):
+            self.write("TEST_THREADS_TEST_%s" % image)
+        else:
+            file = 'images/%s.png' % image
+            self.write(read_file(file))
         self.finish()
 
 def validate_argument(self, name, expected):
@@ -89,7 +92,7 @@ def validate_header(self, name, expected):
 
 def new_app():
     application = tornado.web.Application([
-        (r"/1.0/album/([a-z]+)/([a-z]+)/info.xml", LastFMArtistAlbumInfo),
+        (r"/1.0/album/(\w+)/(\w+)/info.xml", LastFMArtistAlbumInfo),
         (r"/images/(\w+).png", LastFMImagesProvider),
         (r"/musicproxy/v1/album-art", UbuntuAlbumImagesProvider),
         (r"/musicproxy/v1/artist-art", UbuntuArtistImagesProvider)
