@@ -18,11 +18,8 @@
 
 #pragma once
 
-#include <internal/artdownloader.h>
-#include <internal/httpdownloader.h>
-
 #include <memory>
-#include <string>
+#include "qartdownloader.h"
 
 namespace unity
 {
@@ -33,22 +30,23 @@ namespace thumbnailer
 namespace internal
 {
 
-class UbuntuServerDownloader final : public ArtDownloader
+class UbuntuServerDownloader final : public QArtDownloader
 {
+    Q_OBJECT
 public:
-    UbuntuServerDownloader();
-    UbuntuServerDownloader(HttpDownloader* o);  // Takes ownership.
+    UbuntuServerDownloader(QObject* parent = nullptr);
     ~UbuntuServerDownloader() = default;
 
-    std::string download(std::string const& artist, std::string const& album) override;
-    std::string download_artist(std::string const& artist, std::string const& album) override;
+    QString download_album(QString const& artist, QString const& album) override;
+    QString download_artist(QString const& artist, QString const& album) override;
+
+    UbuntuServerDownloader(UbuntuServerDownloader const&) = delete;
+    UbuntuServerDownloader& operator=(UbuntuServerDownloader const&) = delete;
 
 private:
-    std::string download(std::string const& url);
     void set_api_key();
 
-    std::unique_ptr<HttpDownloader> dl;
-    std::string api_key;
+    QString api_key;
 };
 
 }  // namespace internal

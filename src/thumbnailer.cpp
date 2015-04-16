@@ -16,6 +16,12 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
+#include <gst/gst.h>
+
+#include <gio/gio.h>
+
+#include <glib.h>
+
 #include <thumbnailer.h>
 
 #include <internal/audioimageextractor.h>
@@ -29,12 +35,6 @@
 #include <gdk-pixbuf/gdk-pixbuf.h>
 
 #include <libexif/exif-loader.h>
-
-#include <gst/gst.h>
-
-#include <gio/gio.h>
-
-#include <glib.h>
 
 #include <sys/stat.h>
 
@@ -71,14 +71,15 @@ public:
     VideoScreenshotter video;
     ImageScaler scaler;
     core::PersistentStringCache::UPtr macache;
-    std::unique_ptr<ArtDownloader> downloader;
+    std::unique_ptr<QArtDownloader> downloader;
 
     ThumbnailerPrivate()
     {
         char* artservice = getenv("THUMBNAILER_ART_PROVIDER");
         if (artservice != nullptr && strcmp(artservice, "lastfm") == 0)
         {
-            downloader.reset(new LastFMDownloader());
+            // Disable LastFM by now
+            // downloader.reset(new LastFMDownloader());
         }
         else
         {
@@ -356,13 +357,13 @@ std::string Thumbnailer::get_album_art(std::string const& artist,
         // -> nothing to be done.
         return "";
     }
-    std::string image = p_->downloader->download(artist, album);
-    if (image.empty())
+    QString image = p_->downloader->download_album(QString::fromStdString(artist), QString::fromStdString(album));
+    if (image.isEmpty())
     {
         return "";
     }
-    p_->macache->put(key, image);
-    return image;
+    p_->macache->put(key, image.toStdString());
+    return image.toStdString();
 }
 
 std::string Thumbnailer::get_artist_art(std::string const& artist,
@@ -382,11 +383,11 @@ std::string Thumbnailer::get_artist_art(std::string const& artist,
         // -> nothing to be done.
         return "";
     }
-    std::string image = p_->downloader->download_artist(artist, album);
-    if (image.empty())
+    QString image = p_->downloader->download_artist(QString::fromStdString(artist), QString::fromStdString(album));
+    if (image.isEmpty())
     {
         return "";
     }
-    p_->macache->put(key, image);
-    return image;
+    p_->macache->put(key, image.toStdString());
+    return image.toStdString();
 }
