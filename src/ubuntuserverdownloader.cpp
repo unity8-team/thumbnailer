@@ -26,13 +26,18 @@
 using namespace std;
 using namespace unity::thumbnailer::internal;
 
-QString const THUMBNAILER_SCHEMA = "com.canonical.Unity.Thumbnailer";
-QString const THUMBNAILER_API_KEY = "dash-ubuntu-com-key";
-QString const UBUNTU_SERVER_BASE_URL = "https://dash.ubuntu.com";
-QString const REQUESTED_ALBUM_IMAGE_SIZE = "350";
-QString const REQUESTED_ARTIST_IMAGE_SIZE = "300";
-QString const ALBUM_ART_BASE_URL = "musicproxy/v1/album-art";
-QString const ARTIST_ART_BASE_URL = "musicproxy/v1/artist-art";
+
+// const strings
+namespace
+{
+    static constexpr const char* THUMBNAILER_SCHEMA = "com.canonical.Unity.Thumbnailer";
+    static constexpr const char* THUMBNAILER_API_KEY = "dash-ubuntu-com-key";
+    static constexpr const char* UBUNTU_SERVER_BASE_URL = "https://dash.ubuntu.com";
+    static constexpr const char* REQUESTED_ALBUM_IMAGE_SIZE = "350";
+    static constexpr const char* REQUESTED_ARTIST_IMAGE_SIZE = "300";
+    static constexpr const char* ALBUM_ART_BASE_URL = "musicproxy/v1/album-art";
+    static constexpr const char* ARTIST_ART_BASE_URL = "musicproxy/v1/artist-art";
+}
 
 // helper methods to retrieve image urls
 QString get_parameter(QString const& parameter, QString const& value)
@@ -73,20 +78,17 @@ UbuntuServerDownloader::UbuntuServerDownloader(QObject* parent)
 void UbuntuServerDownloader::set_api_key()
 {
     // the API key is not expected to change, so don't monitor it
-
-    // NOTE TO REVIEWER:
-    // THIS METHOD WILL PROBABLY BE MODIFIED TO USE GSETTINGS-QT
     GSettingsSchemaSource* src = g_settings_schema_source_get_default();
-    GSettingsSchema* schema = g_settings_schema_source_lookup(src, THUMBNAILER_SCHEMA.toStdString().c_str(), true);
+    GSettingsSchema* schema = g_settings_schema_source_lookup(src, THUMBNAILER_SCHEMA, true);
 
     if (schema)
     {
         bool status = false;
         g_settings_schema_unref(schema);
-        GSettings* settings = g_settings_new(THUMBNAILER_SCHEMA.toStdString().c_str());
+        GSettings* settings = g_settings_new(THUMBNAILER_SCHEMA);
         if (settings)
         {
-            gchar* akey = g_settings_get_string(settings, THUMBNAILER_API_KEY.toStdString().c_str());
+            gchar* akey = g_settings_get_string(settings, THUMBNAILER_API_KEY);
             if (akey)
             {
                 api_key = QString(akey);
@@ -97,11 +99,13 @@ void UbuntuServerDownloader::set_api_key()
         }
         if (!status)
         {
+            // TODO throw exception or emit error
             qCritical() << "Failed to get API key";
         }
     }
     else
     {
+        // TODO throw exception or emit error
         qCritical() << "The schema " << THUMBNAILER_SCHEMA << " is missing";
     }
 }
