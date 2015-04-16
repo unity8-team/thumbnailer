@@ -1,0 +1,34 @@
+{"events":
+    {"event":[
+        {"id":"3937661",
+        "title":"Gilby Clarke (ex Guns\u00b4d Roses) en Madrid",
+        "artists":{"artist":["Gilby Clarke","Estrella"],
+        "headliner":"Gilby Clarke"},
+        "venue":{"id":"10288005","name":"We Rock",
+        "location":{"geo:point":{"geo:lat":"40.419647","geo:long":"-3.708111"},
+        "city":"Madrid",
+        "country":"Spain","street":"Costanilla de los \u00c1ngeles, 20","postalcode":"28013"},
+        "url":"http:\/\/www.last.fm\/venue\/10288005+We+Rock","website":"http:\/\/www.werock.es\/","phonenumber":"915 428 193",
+        "image":[
+            {"#text":"http:\/\/userserve-ak.last.fm\/serve\/34\/85295059.jpg","size":"small"},
+            {"#text":"http:\/\/userserve-ak.last.fm\/serve\/64\/85295059.jpg","size":"medium"},
+            {"#text":"http:\/\/userserve-ak.last.fm\/serve\/126\/85295059.jpg","size":"large"},
+            {"#text":"http:\/\/userserve-ak.last.fm\/serve\/252\/85295059.jpg","size":"extralarge"},
+            {"#text":"http:\/\/userserve-ak.last.fm\/serve\/_\/85295059\/We+Rock+werock.jpg","size":"mega"}]},
+        "startDate":"Wed, 12 Nov 2014 09:26:01",
+        "description":"<div class=\"bbcode\">Gilby Clarke, el que fuese guitarrista de Guns NGuns N' Roses, de gira por Espa\u00f1a del 12 al 15 de Noviembre<br \/><br \/>\u2022 Nov.12nd \u2013 Madrid \u2013 Sala We Rock<br \/>\u2022Nov.13rd \u2013 Zaragoza- La Casa del Loco<br \/>\u2022 Nov. 14th \u2013 Ourense \u2013 Sala Berlin<br \/>\u2022 Nov.15th \u2013Villafranca \u2013 Polideportivo<br \/><br \/>Gilby Clarke reemplaz\u00f3 como guitarrita en Guns N\u00b4Roses a Izzy Stradlin. Entro en la formaci\u00f3n angelina justo para salir en la gira mundial que termin\u00f3 de catapultar a la banda a los altares del Rock. Aquel Use Your Ilusion Tour y que dio lugar luego de la edici\u00f3n del doble \u00e1lbum en directo de los Guns N\u00b4Roses.<br \/><br \/>Fueron solo unos pocos a\u00f1os (1991-1994) los que Gilby Clarke estuvo en Guns N\u00b4Roses, pero las canciones y los videos de esa \u00e9poca fueron tan exitosos que Gilby Clarke sigue asociado a esa \u00e9poca. De hecho, Gilby Clarke aparece en este clip, que arras\u00f3 en su momento, al lado de Alx Rose y su piano, November Rain.<br \/><br \/>Gilby Clarke ha sigo guitarrista acompa\u00f1ante tambi\u00e9n de afamadas figuras del Hard Rock estadounidense como Slash, Tommy Lee, M\u00f6ntley Cr\u00fce, Joe Elliot entre otros.<br \/><span title=\"Unknown track\" class=\"bbcode_unknown\">November Rain<\/span><\/div>",
+        "image":[
+            {"#text":"http:\/\/userserve-ak.last.fm\/serve\/34\/20856751.jpg","size":"small"},
+            {"#text":"http:\/\/userserve-ak.last.fm\/serve\/64\/20856751.jpg","size":"medium"},
+            {"#text":"http:\/\/userserve-ak.last.fm\/serve\/126\/20856751.jpg","size":"large"},
+            {"#text":"http:\/\/userserve-ak.last.fm\/serve\/252\/20856751.jpg","size":"extralarge"}],
+        "attendance":"2",
+        "reviews":"0",
+        "tag":"lastfm:event=3937661",
+        "url":"http:\/\/www.last.fm\/event\/3937661+Gilby+Clarke+(ex+Guns%C2%B4d+Roses)+en+Madrid",
+        "website":"https:\/\/www.facebook.com\/events\/833825586636491\/",
+        "tickets":"\n  ",
+        "cancelled":"1",
+        "tags":{"tag":["spanish","jazz","female vocalists","rock","hard rock","blues rock","flamenco"]}},
+
+        {"id":"3960277","title":"Concierto de Kitai","artists":{"artist":"Kitai","headliner":"Kitai"},"venue":{"id":"8784027","name":"El Sol","location":{"geo:point":{"geo:lat":"40.418961","geo:long":"-3.701874"},"city":"Madrid","country":"Spain","street":"Calle de los Jardines, 3","postalcode":"28013"},"url":"http:\/\/www.last.fm\/venue\/8784027+El+Sol","website":"http:\/\/www.elsolmad.com","phonenumber":"+34-915 326 490","image":[{"#text":"http:\/\/userserve-ak.last.fm\/serve\/34\/2131769.jpg","size":"small"},{"#text":"http:\/\/userserve-ak.last.fm\/serve\/64\/2131769.jpg","size":"medium"},{"#text":"http:\/\/userserve-ak.last.fm\/serve\/126\/2131769.jpg","size":"large"},{"#text":"http:\/\/userserve-ak.last.fm\/serve\/252\/2131769.jpg","size":"extralarge"},{"#text":"http:\/\/userserve-ak.last.fm\/serve\/500\/2131769\/El+Sol.jpg","size":"mega"}]},"startDate":"Wed, 12 Nov 2014 12:17:01","description":"","image":[{"#text":"http:\/\/userserve-ak.last.fm\/serve\/34\/98021195.jpg","size":"small"},{"#text":"http:\/\/userserve-ak.last.fm\/serve\/64\/98021195.jpg","size":"medium"},{"#text":"http:\/\/userserve-ak.last.fm\/serve\/126\/98021195.jpg","size":"large"},{"#text":"http:\/\/userserve-ak.last.fm\/serve\/252\/98021195.jpg","size":"extralarge"}],"attendance":"3","reviews":"0","tag":"lastfm:event=3960277","url":"http:\/\/www.last.fm\/event\/3960277+Concierto+de+Kitai","website":"","tickets":"\n  ","cancelled":"0"}],"@attr":{"location":"Madrid, Spain","page":"1","perPage":"2","totalPages":"96","total":"192","festivalsonly":"0","tag":""}}}
