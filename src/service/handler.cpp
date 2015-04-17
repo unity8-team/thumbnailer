@@ -27,6 +27,7 @@
 #include <QtConcurrent>
 #include <QFuture>
 #include <QFutureWatcher>
+#include <QDebug>
 #include <unity/util/ResourcePtr.h>
 
 namespace {
@@ -41,6 +42,7 @@ struct HandlerPrivate {
     QDBusConnection bus;
     const QDBusMessage message;
 
+    bool cancelled = false;
     QFutureWatcher<QDBusUnixFileDescriptor> checkWatcher;
     QFutureWatcher<QDBusUnixFileDescriptor> createWatcher;
 
@@ -58,6 +60,11 @@ Handler::Handler(const QDBusConnection &bus, const QDBusMessage &message)
 }
 
 Handler::~Handler() {
+    p->cancelled = true;
+    // ensure that jobs occurring in the thread pool complete.
+    p->checkWatcher.waitForFinished();
+    p->createWatcher.waitForFinished();
+    qDebug() << "Handler" << this << "destroyed";
 }
 
 void Handler::begin() {
@@ -65,6 +72,9 @@ void Handler::begin() {
 }
 
 void Handler::checkFinished() {
+    if (p->cancelled)
+        return;
+
     QDBusUnixFileDescriptor unix_fd;
     try {
         unix_fd = p->checkWatcher.result();
@@ -82,10 +92,16 @@ void Handler::checkFinished() {
 }
 
 void Handler::downloadFinished() {
+    if (p->cancelled)
+        return;
+
     p->createWatcher.setFuture(QtConcurrent::run(this, &Handler::create));
 }
 
 void Handler::createFinished() {
+    if (p->cancelled)
+        return;
+
     QDBusUnixFileDescriptor unix_fd;
     try {
         unix_fd = p->createWatcher.result();

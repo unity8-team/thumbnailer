@@ -23,12 +23,11 @@
 #include "artistarthandler.h"
 #include <thumbnailer.h>
 
-#include <set>
+#include <map>
 
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <QDebug>
-#include <unity/util/ResourcePtr.h>
 
 using namespace std;
 
@@ -60,7 +59,7 @@ namespace service {
 
 struct DBusInterfacePrivate {
     std::shared_ptr<Thumbnailer> thumbnailer = std::make_shared<Thumbnailer>();
-    std::set<Handler*> requests;
+    std::map<Handler*,std::unique_ptr<Handler>> requests;
 };
 
 DBusInterface::DBusInterface(QObject *parent)
@@ -103,7 +102,7 @@ QDBusUnixFileDescriptor DBusInterface::GetArtistArt(const QString &artist, const
 }
 
 QDBusUnixFileDescriptor DBusInterface::GetThumbnail(const QString &filename, const QDBusUnixFileDescriptor &filename_fd, const QString &desiredSize) {
-    qDebug() << "Look thumbnail for" << filename << "at size" << desiredSize;
+    qDebug() << "Create thumbnail for" << filename << "at size" << desiredSize;
 
     ThumbnailSize size;
     try {
@@ -119,16 +118,21 @@ QDBusUnixFileDescriptor DBusInterface::GetThumbnail(const QString &filename, con
 }
 
 void DBusInterface::queueRequest(Handler *handler) {
+    p->requests.emplace(handler, std::unique_ptr<Handler>(handler));
     connect(handler, &Handler::finished, this, &DBusInterface::requestFinished);
-    p->requests.insert(handler);
     setDelayedReply(true);
     handler->begin();
 }
 
 void DBusInterface::requestFinished() {
     Handler *handler = static_cast<Handler*>(sender());
-    qDebug() << "Completing request" << handler;
-    p->requests.erase(handler);
+    try {
+        auto &h = p->requests.at(handler);
+        h.release();
+        p->requests.erase(handler);
+    } catch (const std::out_of_range &e) {
+        qWarning() << "finished() called on unknown handler" << handler;
+    }
     // Queue deletion of handler when we re-enter the event loop.
     handler->deleteLater();
 }
