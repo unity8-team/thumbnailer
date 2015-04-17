@@ -26,6 +26,10 @@
 
 #include <unity/util/ResourcePtr.h>
 
+namespace unity {
+namespace thumbnailer {
+namespace service {
+
 struct ThumbnailHandlerPrivate {
     const std::shared_ptr<Thumbnailer> thumbnailer;
     const QString filename;
@@ -89,4 +93,8 @@ QDBusUnixFileDescriptor ThumbnailHandler::create() {
         throw std::runtime_error(strerror(errno));
     }
     return QDBusUnixFileDescriptor(fd.get());
+}
+
+}
+}
 }

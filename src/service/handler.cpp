@@ -18,11 +18,24 @@
  */
 
 #include "handler.h"
+
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 #include <QtConcurrent>
 #include <QFuture>
 #include <QFutureWatcher>
+#include <unity/util/ResourcePtr.h>
 
-static const char ART_ERROR[] = "com.canonical.MediaScanner2.Error.Failed";
+namespace {
+const char ART_ERROR[] = "com.canonical.MediaScanner2.Error.Failed";
+}
+
+namespace unity {
+namespace thumbnailer {
+namespace service {
 
 struct HandlerPrivate {
     QDBusConnection bus;
@@ -97,4 +110,44 @@ void Handler::sendThumbnail(const QDBusUnixFileDescriptor &unix_fd) {
 void Handler::sendError(const QString &error) {
     p->bus.send(p->message.createErrorReply(ART_ERROR, error));
     Q_EMIT finished();
+}
+
+QDBusUnixFileDescriptor write_to_tmpfile(std::string const& image)
+{
+
+    typedef unity::util::ResourcePtr<int, decltype(&::close)> FdPtr;
+
+    static auto find_tmpdir = []
+    {
+        char const* dirp = getenv("TMPDIR");
+        std::string dir = dirp ? dirp : "/tmp";
+        return dir;
+    };
+    static std::string dir = find_tmpdir();
+
+    int fd = open(dir.c_str(), O_TMPFILE | O_RDWR);
+    if (fd < 0) {
+        std::string err = "cannot create tmpfile in " + dir + ": " + strerror(errno);
+        throw std::runtime_error(err);
+    }
+    FdPtr fd_ptr(fd, ::close);
+    auto rc = write(fd_ptr.get(), &image[0], image.size());
+    if (rc == -1)
+    {
+        std::string err = "cannot write image data in " + dir + ": " + strerror(errno);
+        throw std::runtime_error(err);
+    }
+    else if (std::string::size_type(rc) != image.size())
+    {
+        std::string err = "short write for image data in " + dir +
+            "(requested = " + std::to_string(image.size()) + ", actual = " + std::to_string(rc) + ")";
+        throw std::runtime_error(err);
+    }
+    lseek(fd, SEEK_SET, 0);  // No error check needed, can't fail.
+
+    return QDBusUnixFileDescriptor(fd_ptr.get());
+}
+
+}
+}
 }

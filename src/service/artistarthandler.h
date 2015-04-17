@@ -33,17 +33,17 @@ namespace unity {
 namespace thumbnailer {
 namespace service {
 
-struct ThumbnailHandlerPrivate;
+struct ArtistArtHandlerPrivate;
 
-class ThumbnailHandler : public Handler {
+class ArtistArtHandler : public Handler {
     Q_OBJECT
 public:
-    ThumbnailHandler(const QDBusConnection &bus, const QDBusMessage &message,
-                     const std::shared_ptr<Thumbnailer> &thumbnailer,
-                     const QString &filename,
-                     const QDBusUnixFileDescriptor &filename_fd,
-                     ThumbnailSize size);
-    ~ThumbnailHandler();
+    ArtistArtHandler(const QDBusConnection &bus, const QDBusMessage &message,
+                    const std::shared_ptr<Thumbnailer> &thumbnailer,
+                    const QString &artist,
+                    const QString &album,
+                    ThumbnailSize size);
+    ~ArtistArtHandler();
 
 protected:
     virtual QDBusUnixFileDescriptor check() override;
@@ -51,7 +51,7 @@ protected:
     virtual QDBusUnixFileDescriptor create() override;
 
 private:
-    std::unique_ptr<ThumbnailHandlerPrivate> p;
+    std::unique_ptr<ArtistArtHandlerPrivate> p;
 };
 
 }

@@ -8,6 +8,8 @@ add_executable(thumbnailer-service
   dbusinterface.cpp
   handler.cpp
   thumbnailhandler.cpp
+  albumarthandler.cpp
+  artistarthandler.cpp
   ${adaptor_files}
   )
 

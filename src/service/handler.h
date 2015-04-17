@@ -27,6 +27,10 @@
 #include <QDBusMessage>
 #include <QDBusUnixFileDescriptor>
 
+namespace unity {
+namespace thumbnailer {
+namespace service {
+
 struct HandlerPrivate;
 
 class Handler : public QObject {
@@ -76,3 +80,10 @@ Q_SIGNALS:
 private:
     std::unique_ptr<HandlerPrivate> p;
 };
+
+// Helper routine for creating an unnamed tmpfile from image data
+QDBusUnixFileDescriptor write_to_tmpfile(std::string const& image);
+
+}
+}
+}
