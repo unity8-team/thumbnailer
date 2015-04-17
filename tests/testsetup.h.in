@@ -3,4 +3,6 @@
 
 #define TESTDATADIR "@TESTDATADIR@"
 
+#define TESTBINDIR "@CMAKE_CURRENT_BINARY_DIR@"
+
 #endif
