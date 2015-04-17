@@ -6,10 +6,11 @@ qt5_add_dbus_adaptor(adaptor_files dbusinterface.xml dbusinterface.h DBusInterfa
 add_executable(thumbnailer-service
   main.cpp
   dbusinterface.cpp
+  handler.cpp
   ${adaptor_files}
   )
 
-qt5_use_modules(thumbnailer-service DBus)
+qt5_use_modules(thumbnailer-service DBus Concurrent)
 target_link_libraries(thumbnailer-service thumbnailer ${CMAKE_THREAD_LIBS_INIT})
 set_target_properties(thumbnailer-service PROPERTIES AUTOMOC TRUE)
 
