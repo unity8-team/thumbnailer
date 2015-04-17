@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include "handler.h"
+
 #include <memory>
 
 #include <QDBusContext>
@@ -45,6 +47,12 @@ public Q_SLOTS:
     QDBusUnixFileDescriptor GetAlbumArt(const QString &artist, const QString &album, const QString &desiredSize);
     QDBusUnixFileDescriptor GetArtistArt(const QString &artist, const QString &album, const QString &desiredSize);
     QDBusUnixFileDescriptor GetThumbnail(const QString &filename, const QDBusUnixFileDescriptor &filename_fd, const QString &desiredSize);
+
+private:
+    void queueRequest(Handler* handler);
+
+private Q_SLOTS:
+    void requestFinished();
 
 private:
     std::unique_ptr<DBusInterfacePrivate> p;

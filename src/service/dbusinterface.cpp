@@ -21,17 +21,14 @@
 #include "thumbnailhandler.h"
 #include "albumarthandler.h"
 #include "artistarthandler.h"
-
 #include <thumbnailer.h>
+
+#include <set>
 
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <QDebug>
 #include <unity/util/ResourcePtr.h>
-
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <unistd.h>
 
 using namespace std;
 
@@ -63,6 +60,7 @@ namespace service {
 
 struct DBusInterfacePrivate {
     std::shared_ptr<Thumbnailer> thumbnailer = std::make_shared<Thumbnailer>();
+    std::set<Handler*> requests;
 };
 
 DBusInterface::DBusInterface(QObject *parent)
@@ -83,10 +81,8 @@ QDBusUnixFileDescriptor DBusInterface::GetAlbumArt(const QString &artist, const 
         return QDBusUnixFileDescriptor();
     }
 
-    auto handler = new AlbumArtHandler(
-        connection(), message(), p->thumbnailer, artist, album, size);
-    setDelayedReply(true);
-    handler->begin();
+    queueRequest(new AlbumArtHandler(connection(), message(), p->thumbnailer,
+                                     artist, album, size));
     return QDBusUnixFileDescriptor();
 }
 
@@ -101,10 +97,8 @@ QDBusUnixFileDescriptor DBusInterface::GetArtistArt(const QString &artist, const
         return QDBusUnixFileDescriptor();
     }
 
-    auto handler = new ArtistArtHandler(
-        connection(), message(), p->thumbnailer, artist, album, size);
-    setDelayedReply(true);
-    handler->begin();
+    queueRequest(new ArtistArtHandler(connection(), message(), p->thumbnailer,
+                                      artist, album, size));
     return QDBusUnixFileDescriptor();
 }
 
@@ -119,11 +113,24 @@ QDBusUnixFileDescriptor DBusInterface::GetThumbnail(const QString &filename, con
         return QDBusUnixFileDescriptor();
     }
 
-    auto handler = new ThumbnailHandler(
-        connection(), message(), p->thumbnailer, filename, filename_fd, size);
+    queueRequest(new ThumbnailHandler(connection(), message(), p->thumbnailer,
+                                      filename, filename_fd, size));
+    return QDBusUnixFileDescriptor();
+}
+
+void DBusInterface::queueRequest(Handler *handler) {
+    connect(handler, &Handler::finished, this, &DBusInterface::requestFinished);
+    p->requests.insert(handler);
     setDelayedReply(true);
     handler->begin();
-    return QDBusUnixFileDescriptor();
+}
+
+void DBusInterface::requestFinished() {
+    Handler *handler = static_cast<Handler*>(sender());
+    qDebug() << "Completing request" << handler;
+    p->requests.erase(handler);
+    // Queue deletion of handler when we re-enter the event loop.
+    handler->deleteLater();
 }
 
 }
