@@ -34,15 +34,10 @@
 #include <unistd.h>
 
 using namespace std;
-using namespace unity::thumbnailer::service;
-
-static const char ART_ERROR[] = "com.canonical.MediaScanner2.Error.Failed";
-
-struct DBusInterfacePrivate {
-    std::shared_ptr<Thumbnailer> thumbnailer = std::make_shared<Thumbnailer>();
-};
 
 namespace {
+
+const char ART_ERROR[] = "com.canonical.Thubnailer.Error.Failed";
 
 ThumbnailSize desiredSizeFromString(const QString &size)
 {
@@ -61,6 +56,14 @@ ThumbnailSize desiredSizeFromString(const QString &size)
 }
 
 }
+
+namespace unity {
+namespace thumbnailer {
+namespace service {
+
+struct DBusInterfacePrivate {
+    std::shared_ptr<Thumbnailer> thumbnailer = std::make_shared<Thumbnailer>();
+};
 
 DBusInterface::DBusInterface(QObject *parent)
     : QObject(parent), p(new DBusInterfacePrivate) {
@@ -121,4 +124,8 @@ QDBusUnixFileDescriptor DBusInterface::GetThumbnail(const QString &filename, con
     setDelayedReply(true);
     handler->begin();
     return QDBusUnixFileDescriptor();
+}
+
+}
+}
 }

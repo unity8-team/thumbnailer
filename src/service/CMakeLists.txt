@@ -1,7 +1,7 @@
 add_definitions(${THUMBNAILER_CFLAGS})
 include_directories(. ${CMAKE_CURRENT_BINARY_DIR})
 
-qt5_add_dbus_adaptor(adaptor_files dbusinterface.xml dbusinterface.h DBusInterface)
+qt5_add_dbus_adaptor(adaptor_files dbusinterface.xml dbusinterface.h unity::thumbnailer::service::DBusInterface)
 
 add_executable(thumbnailer-service
   main.cpp

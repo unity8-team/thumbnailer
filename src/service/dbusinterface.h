@@ -17,8 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DBUSINTERFACE_H
-#define DBUSINTERFACE_H
+#pragma once
 
 #include <memory>
 
@@ -26,6 +25,10 @@
 #include <QDBusUnixFileDescriptor>
 #include <QObject>
 #include <QString>
+
+namespace unity {
+namespace thumbnailer {
+namespace service {
 
 struct DBusInterfacePrivate;
 
@@ -47,4 +50,6 @@ private:
     std::unique_ptr<DBusInterfacePrivate> p;
 };
 
-#endif
+}
+}
+}

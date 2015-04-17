@@ -30,7 +30,7 @@
 #include <unity/util/ResourcePtr.h>
 
 namespace {
-const char ART_ERROR[] = "com.canonical.MediaScanner2.Error.Failed";
+const char ART_ERROR[] = "com.canonical.Thumbnailer.Error.Failed";
 }
 
 namespace unity {
