@@ -32,6 +32,11 @@
 
 namespace {
 const char ART_ERROR[] = "com.canonical.Thumbnailer.Error.Failed";
+
+struct FdOrError {
+    QDBusUnixFileDescriptor fd;
+    QString error;
+};
 }
 
 namespace unity {
@@ -43,8 +48,8 @@ struct HandlerPrivate {
     const QDBusMessage message;
 
     bool cancelled = false;
-    QFutureWatcher<QDBusUnixFileDescriptor> checkWatcher;
-    QFutureWatcher<QDBusUnixFileDescriptor> createWatcher;
+    QFutureWatcher<FdOrError> checkWatcher;
+    QFutureWatcher<FdOrError> createWatcher;
 
     HandlerPrivate(const QDBusConnection &bus, const QDBusMessage &message)
         : bus(bus), message(message) {
@@ -53,9 +58,9 @@ struct HandlerPrivate {
 
 Handler::Handler(const QDBusConnection &bus, const QDBusMessage &message)
     : p(new HandlerPrivate(bus, message)) {
-    connect(&p->checkWatcher, &QFutureWatcher<QDBusUnixFileDescriptor>::finished,
+    connect(&p->checkWatcher, &QFutureWatcher<FdOrError>::finished,
             this, &Handler::checkFinished);
-    connect(&p->createWatcher, &QFutureWatcher<QDBusUnixFileDescriptor>::finished,
+    connect(&p->createWatcher, &QFutureWatcher<FdOrError>::finished,
             this, &Handler::createFinished);
 }
 
@@ -68,23 +73,34 @@ Handler::~Handler() {
 }
 
 void Handler::begin() {
-    p->checkWatcher.setFuture(QtConcurrent::run(this, &Handler::check));
+    auto do_check = [this]() -> FdOrError {
+        try {
+            return FdOrError{check(), nullptr};
+        } catch (const std::exception &e) {
+            return FdOrError{QDBusUnixFileDescriptor(), e.what()};
+        }
+    };
+    p->checkWatcher.setFuture(QtConcurrent::run(do_check));
 }
 
 void Handler::checkFinished() {
     if (p->cancelled)
         return;
 
-    QDBusUnixFileDescriptor unix_fd;
+    FdOrError fd_error;
     try {
-        unix_fd = p->checkWatcher.result();
+        fd_error = p->checkWatcher.result();
     } catch (const std::exception &e) {
         sendError(e.what());
         return;
     }
+    if (!fd_error.error.isNull()) {
+        sendError(fd_error.error);
+        return;
+    }
     // Did we find a valid thumbnail in the cache?
-    if (unix_fd.isValid()) {
-        sendThumbnail(unix_fd);
+    if (fd_error.fd.isValid()) {
+        sendThumbnail(fd_error.fd);
     } else {
         // otherwise move on to the download phase.
         download();
@@ -95,23 +111,34 @@ void Handler::downloadFinished() {
     if (p->cancelled)
         return;
 
-    p->createWatcher.setFuture(QtConcurrent::run(this, &Handler::create));
+    auto do_create = [this]() -> FdOrError {
+        try {
+            return FdOrError{create(), nullptr};
+        } catch (const std::exception &e) {
+            return FdOrError{QDBusUnixFileDescriptor(), e.what()};
+        }
+    };
+    p->createWatcher.setFuture(QtConcurrent::run(do_create));
 }
 
 void Handler::createFinished() {
     if (p->cancelled)
         return;
 
-    QDBusUnixFileDescriptor unix_fd;
+    FdOrError fd_error;
     try {
-        unix_fd = p->createWatcher.result();
+        fd_error = p->createWatcher.result();
     } catch (const std::exception &e) {
         sendError(e.what());
         return;
     }
+    if (!fd_error.error.isEmpty()) {
+        sendError(fd_error.error);
+        return;
+    }
     // Did we find a valid thumbnail in the cache?
-    if (unix_fd.isValid()) {
-        sendThumbnail(unix_fd);
+    if (fd_error.fd.isValid()) {
+        sendThumbnail(fd_error.fd);
     } else {
         // otherwise move on to the download phase.
         download();
