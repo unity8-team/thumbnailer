@@ -35,8 +35,14 @@ void assert_no_error(const QDBusReply<T> &reply) {
 }
 
 PixbufPtr read_image(const QDBusUnixFileDescriptor &unix_fd) {
-    std::unique_ptr<GdkPixbufLoader, decltype(&g_object_unref)> loader(
-        gdk_pixbuf_loader_new(), g_object_unref);
+    auto close_loader = [](GdkPixbufLoader *loader) {
+        if (loader) {
+            gdk_pixbuf_loader_close(loader, nullptr);
+            g_object_unref(loader);
+        }
+    };
+    std::unique_ptr<GdkPixbufLoader, decltype(close_loader)> loader(
+        gdk_pixbuf_loader_new(), close_loader);
     if (!loader) {
         throw std::runtime_error("read_image: could not create pixbuf loader");
     }
@@ -151,6 +157,8 @@ TEST_F(DBusTest, thumbnail_no_such_file) {
     QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
         "GetThumbnail", no_such_file, QVariant::fromValue(QDBusUnixFileDescriptor(fd.get())), "large");
     EXPECT_FALSE(reply.isValid());
+    auto message = reply.error().message().toStdString();
+    EXPECT_EQ(message, "Could not stat file");
 }
 
 TEST_F(DBusTest, thumbnail_wrong_fd_fails) {
@@ -163,6 +171,8 @@ TEST_F(DBusTest, thumbnail_wrong_fd_fails) {
     QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
         "GetThumbnail", filename1, QVariant::fromValue(QDBusUnixFileDescriptor(fd.get())), "large");
     EXPECT_FALSE(reply.isValid());
+    auto message = reply.error().message().toStdString();
+    EXPECT_EQ(message, "filename refers to a different file to the file descriptor");
 }
 
 int main(int argc, char **argv) {
