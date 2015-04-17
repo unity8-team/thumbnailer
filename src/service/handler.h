@@ -17,9 +17,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
+
 #include <memory>
 #include <string>
 
+#include <QObject>
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <QDBusUnixFileDescriptor>
@@ -29,7 +32,7 @@ struct HandlerPrivate;
 class Handler : public QObject {
     Q_OBJECT
 public:
-    Handler(QDBusConnection &bus, const QDBusMessage &message);
+    Handler(const QDBusConnection &bus, const QDBusMessage &message);
     ~Handler();
 
     Handler(const Handler&) = delete;

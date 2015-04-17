@@ -18,6 +18,7 @@
  */
 
 #include "dbusinterface.h"
+#include "thumbnailhandler.h"
 
 #include <thumbnailer.h>
 
@@ -220,52 +221,9 @@ QDBusUnixFileDescriptor DBusInterface::GetThumbnail(const QString &filename, con
         return QDBusUnixFileDescriptor();
     }
 
-    struct stat filename_stat, fd_stat;
-    if (stat(filename.toUtf8(), &filename_stat) < 0) {
-        sendErrorReply(ART_ERROR, "Could not stat file");
-        return QDBusUnixFileDescriptor();
-    }
-    if (fstat(filename_fd.fileDescriptor(), &fd_stat) < 0) {
-        sendErrorReply(ART_ERROR, "Could not stat file descriptor");
-        return QDBusUnixFileDescriptor();
-    }
-    if (filename_stat.st_dev != fd_stat.st_dev ||
-        filename_stat.st_ino != fd_stat.st_ino) {
-        sendErrorReply(ART_ERROR, "filename refers to a different file to the file descriptor");
-        return QDBusUnixFileDescriptor();
-    }
-
+    auto handler = new ThumbnailHandler(
+        connection(), message(), p->thumbnailer, filename, filename_fd, size);
     setDelayedReply(true);
-    auto thumbnailer = p->thumbnailer;
-    auto bus = connection();
-    auto msg = message();
-    p->pool.start(new Task([=]() {
-        std::string art;
-        try {
-            art = thumbnailer->get_thumbnail(
-                filename.toStdString(), size, TN_REMOTE);
-        } catch (const std::exception &e) {
-            bus.send(msg.createErrorReply(ART_ERROR, e.what()));
-            return;
-        }
-
-        if (art.empty()) {
-            bus.send(msg.createErrorReply(ART_ERROR, "Could not get thumbnail"));
-            return;
-        }
-
-        // FIXME: check that the thumbnail was produced for fd_stat
-        int fd = open(art.c_str(), O_RDONLY);
-        if (fd < 0) {
-            bus.send(msg.createErrorReply(ART_ERROR, strerror(errno)));
-            return;
-        }
-
-        QDBusUnixFileDescriptor unix_fd(fd);
-        close(fd);
-
-        bus.send(msg.createReply(QVariant::fromValue(unix_fd)));
-    }));
-
+    handler.begin();
     return QDBusUnixFileDescriptor();
 }

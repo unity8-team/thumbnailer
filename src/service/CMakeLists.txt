@@ -7,6 +7,7 @@ add_executable(thumbnailer-service
   main.cpp
   dbusinterface.cpp
   handler.cpp
+  thumbnailhandler.cpp
   ${adaptor_files}
   )
 

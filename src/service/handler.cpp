@@ -31,12 +31,12 @@ struct HandlerPrivate {
     QFutureWatcher<QDBusUnixFileDescriptor> checkWatcher;
     QFutureWatcher<QDBusUnixFileDescriptor> createWatcher;
 
-    HandlerPrivate(QDBusConnection &bus, const QDBusMessage &message)
+    HandlerPrivate(const QDBusConnection &bus, const QDBusMessage &message)
         : bus(bus), message(message) {
     }
 };
 
-Handler::Handler(QDBusConnection &bus, const QDBusMessage &message)
+Handler::Handler(const QDBusConnection &bus, const QDBusMessage &message)
     : p(new HandlerPrivate(bus, message)) {
     connect(&p->checkWatcher, &QFutureWatcher<QDBusUnixFileDescriptor>::finished,
             this, &Handler::checkFinished);
@@ -67,6 +67,7 @@ void Handler::checkFinished() {
         download();
     }
 }
+
 void Handler::downloadFinished() {
     p->createWatcher.setFuture(QtConcurrent::run(this, &Handler::create));
 }
