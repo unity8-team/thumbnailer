@@ -18,8 +18,9 @@
 
 #pragma once
 
+#include <internal/artdownloader.h>
+
 #include <memory>
-#include "qartdownloader.h"
 
 namespace unity
 {
@@ -30,7 +31,7 @@ namespace thumbnailer
 namespace internal
 {
 
-class UbuntuServerDownloader final : public QArtDownloader
+class UbuntuServerDownloader final : public ArtDownloader
 {
     Q_OBJECT
 public:

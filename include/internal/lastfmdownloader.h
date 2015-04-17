@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <internal/qartdownloader.h>
+#include <internal/artdownloader.h>
 
 #include <memory>
 #include <string>
@@ -32,7 +32,7 @@ namespace thumbnailer
 namespace internal
 {
 
-class LastFMDownloader final : public QArtDownloader
+class LastFMDownloader final : public ArtDownloader
 {
     Q_OBJECT
 public:
@@ -56,7 +56,7 @@ private:
 
     // we use this downloader to get only the xml file that defines
     // where to get images.
-    QScopedPointer<QUrlDownloader> xml_downloader_;
+    QScopedPointer<UrlDownloader> xml_downloader_;
 
     // we use this map to store the number of retries we allow when
     // downloading an xml.

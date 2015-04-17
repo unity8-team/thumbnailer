@@ -71,7 +71,7 @@ public:
     VideoScreenshotter video;
     ImageScaler scaler;
     core::PersistentStringCache::UPtr macache;
-    std::unique_ptr<QArtDownloader> downloader;
+    std::unique_ptr<ArtDownloader> downloader;
 
     ThumbnailerPrivate()
     {

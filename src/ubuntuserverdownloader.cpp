@@ -70,7 +70,7 @@ QString get_artist_art_url(QString const& artist, QString const& album, QString 
 }
 
 UbuntuServerDownloader::UbuntuServerDownloader(QObject* parent)
-    : QArtDownloader(parent)
+    : ArtDownloader(parent)
 {
     set_api_key();
 }

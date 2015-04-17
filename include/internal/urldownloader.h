@@ -37,15 +37,15 @@ namespace internal
 
 This class uses internally QNetworkAccessManager to retrieve remote urls.
 */
-class QUrlDownloader : public QObject
+class UrlDownloader : public QObject
 {
     Q_OBJECT
 public:
-    QUrlDownloader(QObject* parent = nullptr);
-    virtual ~QUrlDownloader() = default;
+    UrlDownloader(QObject* parent = nullptr);
+    virtual ~UrlDownloader() = default;
 
-    QUrlDownloader(QUrlDownloader const&) = delete;
-    QUrlDownloader& operator=(QUrlDownloader const&) = delete;
+    UrlDownloader(UrlDownloader const&) = delete;
+    UrlDownloader& operator=(UrlDownloader const&) = delete;
 
     /**
      \brief Starts the download of the given url

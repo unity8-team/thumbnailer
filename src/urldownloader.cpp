@@ -16,18 +16,18 @@
  * Authored by: Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
-#include <internal/qurldownloader.h>
+#include <internal/urldownloader.h>
 
 #include <QNetworkRequest>
 
 using namespace unity::thumbnailer::internal;
 
-QUrlDownloader::QUrlDownloader(QObject* parent)
+UrlDownloader::UrlDownloader(QObject* parent)
     : QObject(parent)
 {
 }
 
-QString QUrlDownloader::download(QUrl const& url, QString const &download_id)
+QString UrlDownloader::download(QUrl const& url, QString const &download_id)
 {
     // first of all check that the URL is valid
     if (!url.isValid())
@@ -37,7 +37,7 @@ QString QUrlDownloader::download(QUrl const& url, QString const &download_id)
     }
     // start downloading a file using the QNetworkAccessManager
     QNetworkReply* reply = network_manager_.get(QNetworkRequest(url));
-    connect(&network_manager_, &QNetworkAccessManager::finished, this, &QUrlDownloader::reply_finished);
+    connect(&network_manager_, &QNetworkAccessManager::finished, this, &UrlDownloader::reply_finished);
 
     // check if we want an specific id for this download
     // the id will be used when emitting any signal
@@ -50,7 +50,7 @@ QString QUrlDownloader::download(QUrl const& url, QString const &download_id)
     return reply->url().toString();
 }
 
-void QUrlDownloader::reply_finished(QNetworkReply* reply)
+void UrlDownloader::reply_finished(QNetworkReply* reply)
 {
     QString download_id = reply->url().toString();
 
@@ -83,7 +83,7 @@ void QUrlDownloader::reply_finished(QNetworkReply* reply)
     reply->deleteLater();
 }
 
-bool QUrlDownloader::is_server_or_connection_error(QNetworkReply::NetworkError error) const
+bool UrlDownloader::is_server_or_connection_error(QNetworkReply::NetworkError error) const
 {
     switch (error)
     {

@@ -35,12 +35,12 @@ using namespace std;
 using namespace unity::thumbnailer::internal;
 
 LastFMDownloader::LastFMDownloader(QObject* parent)
-    : QArtDownloader(parent)
-    , xml_downloader_(new QUrlDownloader(this))
+    : ArtDownloader(parent)
+    , xml_downloader_(new UrlDownloader(this))
 {
-    connect(xml_downloader_.data(), &QUrlDownloader::file_downloaded, this, &LastFMDownloader::xml_downloaded);
+    connect(xml_downloader_.data(), &UrlDownloader::file_downloaded, this, &LastFMDownloader::xml_downloaded);
     // for the case of network errors we will retry
-    connect(xml_downloader_.data(), &QUrlDownloader::download_error, this, &LastFMDownloader::xml_download_error);
+    connect(xml_downloader_.data(), &UrlDownloader::download_error, this, &LastFMDownloader::xml_download_error);
 
     // connect any error with the main base class
     connect(xml_downloader_.data(),
@@ -122,7 +122,7 @@ QString LastFMDownloader::download_album(QString const& artist, QString const& a
     QString xml_url = prefix_api_root + QString(LASTFM_TEMPLATE_SUFFIX).arg(artist).arg(album);
 
     retries_map_[xml_url] = MAX_XML_DOWNLOAD_RETRIES;
-    // we download the xml in the dedicated QUrlDownloader so the process is
+    // we download the xml in the dedicated UrlDownloader so the process is
     // transparent to the user
     xml_downloader_->download(xml_url);
 

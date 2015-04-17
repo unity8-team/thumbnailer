@@ -9,9 +9,9 @@ thumbnailcache.cpp
 thumbnailer.cpp
 ubuntuserverdownloader.cpp
 videoscreenshotter.cpp
-qurldownloader.cpp
-${CMAKE_SOURCE_DIR}/include/internal/qartdownloader.h
-${CMAKE_SOURCE_DIR}/include/internal/qurldownloader.h
+urldownloader.cpp
+${CMAKE_SOURCE_DIR}/include/internal/artdownloader.h
+${CMAKE_SOURCE_DIR}/include/internal/urldownloader.h
 ${CMAKE_SOURCE_DIR}/include/internal/ubuntuserverdownloader.h
 ${CMAKE_SOURCE_DIR}/include/internal/lastfmdownloader.h
 ${CMAKE_SOURCE_DIR}/include/thumbnailer.h

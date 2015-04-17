@@ -16,7 +16,7 @@
  * Authored by: Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
-#include <internal/qurldownloader.h>
+#include <internal/urldownloader.h>
 #include <internal/ubuntuserverdownloader.h>
 #include <internal/lastfmdownloader.h>
 
@@ -272,7 +272,7 @@ TEST_F(TestDownloaderServer, test_threads)
 
 TEST_F(TestDownloaderServer, test_not_found_url)
 {
-    QUrlDownloader downloader;
+    UrlDownloader downloader;
 
     QSignalSpy spy(&downloader,
                    SIGNAL(download_source_not_found(QString const&, QNetworkReply::NetworkError, QString const&)));
@@ -303,7 +303,7 @@ TEST_F(TestDownloaderServer, test_not_found_url)
 
 TEST_F(TestDownloaderServer, test_host_not_found_url)
 {
-    QUrlDownloader downloader;
+    UrlDownloader downloader;
 
     QSignalSpy spy(&downloader,
                    SIGNAL(download_source_not_found(QString const&, QNetworkReply::NetworkError, QString const&)));
@@ -330,7 +330,7 @@ TEST_F(TestDownloaderServer, test_host_not_found_url)
 
 TEST_F(TestDownloaderServer, test_good_url)
 {
-    QUrlDownloader downloader;
+    UrlDownloader downloader;
 
     QSignalSpy spy(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
 
@@ -353,7 +353,7 @@ TEST_F(TestDownloaderServer, test_good_url)
 
 TEST_F(TestDownloaderServer, test_url_parsing_error)
 {
-    QUrlDownloader downloader;
+    UrlDownloader downloader;
 
     QSignalSpy spy(&downloader, SIGNAL(bad_url_error(QString const&)));
 
@@ -373,7 +373,7 @@ TEST_F(TestDownloaderServer, test_url_parsing_error)
 
 TEST_F(TestDownloaderServer, test_download_specific_id)
 {
-    QUrlDownloader downloader;
+    UrlDownloader downloader;
 
     QSignalSpy spy(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
 
@@ -396,7 +396,7 @@ TEST_F(TestDownloaderServer, test_download_specific_id)
 
 TEST_F(TestDownloaderServer, test_host_not_found_url_specific_id)
 {
-    QUrlDownloader downloader;
+    UrlDownloader downloader;
 
     QSignalSpy spy(&downloader,
                    SIGNAL(download_source_not_found(QString const&, QNetworkReply::NetworkError, QString const&)));
