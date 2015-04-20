@@ -38,10 +38,11 @@ const char ART_ERROR[] = "com.canonical.Thubnailer.Error.Failed";
 
 ThumbnailSize thumbnailSizeFromQSize(const QSize &size)
 {
-    if (size.width() <= 0 || size.height() <= 0) {
-        std::ostringstream os;
-        os << "Invalid size: (" << size.width() << ", " << size.height() << ")";
-        throw std::logic_error(os.str());
+    if (!size.isValid()) {
+        // If an invalid size is passed to the QQuickImageProvider,
+        // then we don't know what size is expected.  In this case,
+        // return the unscaled original.
+        return TN_SIZE_ORIGINAL;
     }
 
     int maxsize = size.width() > size.height() ? size.width() : size.height();
