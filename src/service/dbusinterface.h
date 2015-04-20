@@ -17,8 +17,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DBUSINTERFACE_H
-#define DBUSINTERFACE_H
+#pragma once
+
+#include "handler.h"
 
 #include <memory>
 
@@ -26,6 +27,10 @@
 #include <QDBusUnixFileDescriptor>
 #include <QObject>
 #include <QString>
+
+namespace unity {
+namespace thumbnailer {
+namespace service {
 
 struct DBusInterfacePrivate;
 
@@ -44,7 +49,15 @@ public Q_SLOTS:
     QDBusUnixFileDescriptor GetThumbnail(const QString &filename, const QDBusUnixFileDescriptor &filename_fd, const QString &desiredSize);
 
 private:
+    void queueRequest(Handler* handler);
+
+private Q_SLOTS:
+    void requestFinished();
+
+private:
     std::unique_ptr<DBusInterfacePrivate> p;
 };
 
-#endif
+}
+}
+}
