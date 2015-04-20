@@ -20,9 +20,9 @@
 #include <thumbnailer.h>
 
 #include <internal/audioimageextractor.h>
+#include <internal/file_io.h>
 #include <internal/gobj_memory.h>
 #include <internal/image.h>
-#include <internal/imagescaler.h>
 #include <internal/lastfmdownloader.h>
 #include <internal/make_directories.h>
 #include <internal/ubuntuserverdownloader.h>
@@ -50,12 +50,10 @@ private:
     string extract_image_from_video(string const& filename);
     string extract_image_from_other(string const& filename);
     string create_tmp_filename();
-    string read_file(string const& filename);
 
 public:
     AudioImageExtractor audio_;
     VideoScreenshotter video_;
-    ImageScaler scaler_;
     core::PersistentStringCache::UPtr full_size_cache_;  // Small cache of full (original) size images.
     core::PersistentStringCache::UPtr thumbnail_cache_;  // Large cache of scaled images.
     std::unique_ptr<ArtDownloader> downloader_;
@@ -77,15 +75,6 @@ auto do_unlink = [](string const& filename)
     ::unlink(filename.c_str());
 };
 typedef unity::util::ResourcePtr<string, decltype(do_unlink)> UnlinkPtr;
-
-auto do_close = [](int fd)
-{
-    if (fd >= 0)
-    {
-        ::close(fd);
-    }
-};
-typedef unity::util::ResourcePtr<int, decltype(do_close)> FdPtr;
 
 }  // namespace
 
@@ -145,36 +134,6 @@ string ThumbnailerPrivate::create_tmp_filename()
     return dir + "/thumbnailer." + uuid + ".tmp";;
 }
 
-string ThumbnailerPrivate::read_file(string const& filename)
-{
-    FdPtr fd_ptr(::open(filename.c_str(), O_RDONLY), do_close);
-    if (fd_ptr.get() == -1)
-    {
-        throw runtime_error("Thumbnailer: cannot open \"" + filename + "\": " + strerror(errno));
-    }
-
-    struct stat st;
-    if (fstat(fd_ptr.get(), &st) == -1)
-    {
-        throw runtime_error("Thumbnailer: cannot fstat \"" + filename + "\": " + strerror(errno)); // LCOV_EXCL_LINE
-    }
-
-    string contents;
-    contents.reserve(st.st_size);
-    contents.resize(st.st_size);
-    int rc = read(fd_ptr.get(), &contents[0], st.st_size);
-    if (rc == -1)
-    {
-        throw runtime_error("Thumbnailer: cannot read from \"" + filename + "\": " + strerror(errno)); // LCOV_EXCL_LINE
-    }
-    if (rc != st.st_size)
-    {
-        throw runtime_error("Thumbnailer: short read for \"" + filename + "\""); // LCOV_EXCL_LINE
-    }
-
-    return contents;
-}
-
 string ThumbnailerPrivate::extract_exif_image(std::string const& filename)
 {
     std::unique_ptr<ExifLoader, void (*)(ExifLoader*)> el(exif_loader_new(), exif_loader_unref);
@@ -224,7 +183,6 @@ string ThumbnailerPrivate::extract_image_from_other(string const& filename)
         cout << "returning exif" << endl;
         return exif_image;
     }
-    cout << "calling read_file" << endl;
     return read_file(filename);
 }
 
@@ -258,15 +216,12 @@ string ThumbnailerPrivate::extract_image(string const& filename)
 
     if (content_type.find("audio/") == 0)
     {
-        cout << "EX: audio " << filename << endl;
         return extract_image_from_audio(filename);
     }
     if (content_type.find("video/") == 0)
     {
-        cout << "EX: video " << filename << endl;
         return extract_image_from_video(filename);
     }
-    cout << "EX: other " << filename << endl;
     return extract_image_from_other(filename);
 }
 

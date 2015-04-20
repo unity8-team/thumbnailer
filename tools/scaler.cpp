@@ -16,12 +16,15 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
+#if 0
 #include<internal/imagescaler.h>
 #include<cstdio>
 #include<gst/gst.h>
 #include<stdexcept>
+#endif
 
 int main(int argc, char **argv) {
+#if 0
     ImageScaler sc;
     if(argc != 3) {
         fprintf(stderr, "%s <inputfile> <outputfile>\n", argv[0]);
@@ -34,5 +37,6 @@ int main(int argc, char **argv) {
         printf("Failed: %s\n", e.what());
         return 1;
     }
+#endif
     return 0;
 }

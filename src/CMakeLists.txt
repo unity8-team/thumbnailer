@@ -2,8 +2,8 @@ add_subdirectory(core)
 
 add_library(thumbnailer STATIC
 audioimageextractor.cpp
+file_io.cpp
 image.cpp
-imagescaler.cpp
 lastfmdownloader.cpp
 make_directories.cpp
 soupdownloader.cpp
