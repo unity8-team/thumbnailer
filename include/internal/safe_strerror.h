@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Canonical Ltd.
+ * Copyright (C) 2014 Canonical Ltd
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License version 3 as
@@ -13,15 +13,26 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: MichiHenning <michi@canonical.com>
+ * Authored by: Michi Henning <michi.henning@canonical.com>
  */
 
 #pragma once
 
 #include <string>
 
-// Read entire file and return contents as a string.
-std::string read_file(std::string const& filename);
+namespace unity
+{
 
-// Write contents to filename.
-void write_file(std::string const& filename, std::string const& contents);
+namespace thumbnailer
+{
+
+namespace internal
+{
+
+std::string safe_strerror(int errnum);
+
+} // namespace internal
+
+} // namespace thumbnailer
+
+} // namespace unity

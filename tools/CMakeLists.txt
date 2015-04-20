@@ -1,6 +1,8 @@
+# TODO: Re-enable  once ported.
 #add_executable(imdump imdump.cpp)
 #target_link_libraries(imdump thumbnailer ${GST_DEPS_LDFLAGS})
 
+# TODO: Re-enable  once ported.
 #add_executable(scaler scaler.cpp ../src/imagescaler.cpp)
 #target_link_libraries(scaler ${IMG_DEPS_LDFLAGS})
 

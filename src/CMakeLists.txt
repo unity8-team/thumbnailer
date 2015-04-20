@@ -6,6 +6,7 @@ file_io.cpp
 image.cpp
 lastfmdownloader.cpp
 make_directories.cpp
+safe_strerror.cpp
 soupdownloader.cpp
 thumbnailer.cpp
 ubuntuserverdownloader.cpp

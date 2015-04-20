@@ -296,7 +296,9 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
     {
         cout << "after cache miss, scaling" << endl;
         Image scaled_image(*image);
+        cout << "calling scale_to" << endl;
         scaled_image.scale_to(desired_size);
+        cout << "done calling scale_to" << endl;
         image = scaled_image.get_jpeg();
     }
     thumbnail_cache_->put(sized_key, *image);

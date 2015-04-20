@@ -48,3 +48,18 @@ target_link_libraries(test_vsthumb
   ${GIO_DEPS_LDFLAGS}
   gtest)
 add_test(test_vsthumb test_vsthumb)
+
+# Tests for the D-Bus service
+pkg_check_modules(QTDBUSTEST_DEPS REQUIRED libqtdbustest-1)
+add_definitions(${QTDBUSTEST_DEPS_CFLAGS})
+
+add_executable(test_dbus
+  test_dbus.cpp)
+qt5_use_modules(test_dbus DBus)
+target_link_libraries(test_dbus
+  thumbnailer
+  ${QTDBUSTEST_DEPS_LDFLAGS}
+  ${IMG_DEPS_LDFLAGS}
+  gtest)
+add_test(test_dbus test_dbus)
+add_dependencies(test_dbus thumbnailer-service)

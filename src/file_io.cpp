@@ -18,6 +18,8 @@
 
 #include <internal/file_io.h>
 
+#include <internal/safe_strerror.h>
+
 #include <unity/util/ResourcePtr.h>
 
 #include <cstring>
@@ -26,6 +28,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+using namespace unity::thumbnailer::internal;
 using namespace std;
 
 namespace
@@ -42,18 +45,20 @@ typedef unity::util::ResourcePtr<int, decltype(do_close)> FdPtr;
 
 }  // namespace
 
+// Read entire file and return contents as a string.
+
 string read_file(string const& filename)
 {
     FdPtr fd_ptr(::open(filename.c_str(), O_RDONLY), do_close);
     if (fd_ptr.get() == -1)
     {
-        throw runtime_error("read_file(): cannot open \"" + filename + "\": " + strerror(errno));
+        throw runtime_error("read_file(): cannot open \"" + filename + "\": " + safe_strerror(errno));
     }
 
     struct stat st;
     if (fstat(fd_ptr.get(), &st) == -1)
     {
-        throw runtime_error("read_file(): cannot fstat \"" + filename + "\": " + strerror(errno)); // LCOV_EXCL_LINE
+        throw runtime_error("read_file(): cannot fstat \"" + filename + "\": " + safe_strerror(errno)); // LCOV_EXCL_LINE
     }
 
     string contents;
@@ -62,7 +67,7 @@ string read_file(string const& filename)
     int rc = read(fd_ptr.get(), &contents[0], st.st_size);
     if (rc == -1)
     {
-        throw runtime_error("read_file(): cannot read from \"" + filename + "\": " + strerror(errno)); // LCOV_EXCL_LINE
+        throw runtime_error("read_file(): cannot read from \"" + filename + "\": " + safe_strerror(errno)); // LCOV_EXCL_LINE
     }
     if (rc != st.st_size)
     {
@@ -72,18 +77,19 @@ string read_file(string const& filename)
     return contents;
 }
 
+// Write contents to filename.
+
 void write_file(string const& filename, string const& contents)
 {
     FdPtr fd_ptr(::open(filename.c_str(), O_CREAT | O_TRUNC | O_WRONLY, 0700), do_close);
     if (fd_ptr.get() == -1)
     {
-        throw runtime_error("write_file(): cannot open \"" + filename + "\": " + strerror(errno));
+        throw runtime_error("write_file(): cannot open \"" + filename + "\": " + safe_strerror(errno));
     }
-
     int rc = write(fd_ptr.get(), &contents[0], contents.size());
     if (rc == -1)
     {
-        throw runtime_error("write_file(): cannot write to \"" + filename + "\": " + strerror(errno)); // LCOV_EXCL_LINE
+        throw runtime_error("write_file(): cannot write to \"" + filename + "\": " + safe_strerror(errno)); // LCOV_EXCL_LINE
     }
     if (string::size_type(rc) != contents.size())
     {

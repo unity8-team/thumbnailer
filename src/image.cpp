@@ -104,18 +104,17 @@ void Image::scale_to(int desired_size)
 
     int const w = width();
     int const h = height();
-    double const aspect_ratio = w / h;
 
     int new_w;
     int new_h;
     if (w > h)
     {
         new_w = desired_size;
-        new_h = round(desired_size / aspect_ratio);
+        new_h = round(desired_size * (double(h) / w));
     }
     else
     {
-        new_w = round(desired_size * aspect_ratio);
+        new_w = round(desired_size * (double(w) / h));
         new_h = desired_size;
     }
     // Make sure we retain at least 1 pixel in each dimension.

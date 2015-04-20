@@ -21,6 +21,8 @@
 
 #include <thumbnailer.h>
 
+#include <internal/safe_strerror.h>
+
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <QDebug>
@@ -33,6 +35,7 @@
 #include <unistd.h>
 
 using namespace std;
+using namespace unity::thumbnailer::internal;
 
 static const char ART_ERROR[] = "com.canonical.MediaScanner2.Error.Failed";
 
@@ -95,14 +98,14 @@ QDBusUnixFileDescriptor write_to_tmpfile(string const& image)
 
     int fd = open(dir.c_str(), O_TMPFILE | O_RDWR);
     if (fd < 0) {
-        string err = "cannot create tmpfile in " + dir + ": " + strerror(errno);
+        string err = "cannot create tmpfile in " + dir + ": " + safe_strerror(errno);
         throw runtime_error(err);
     }
     FdPtr fd_ptr(fd, ::close);
     auto rc = write(fd_ptr.get(), &image[0], image.size());
     if (rc == -1)
     {
-        string err = "cannot write image data in " + dir + ": " + strerror(errno);
+        string err = "cannot write image data in " + dir + ": " + safe_strerror(errno);
         throw runtime_error(err);
     }
     else if (string::size_type(rc) != image.size())
@@ -210,7 +213,7 @@ QDBusUnixFileDescriptor DBusInterface::GetArtistArt(const QString &artist, const
 }
 
 QDBusUnixFileDescriptor DBusInterface::GetThumbnail(const QString &filename, const QDBusUnixFileDescriptor &filename_fd, const QString &desiredSize) {
-    qDebug() << "Look thumbnail for" << filename << "at size" << desiredSize;
+    qDebug() << "Look for thumbnail for" << filename << "at size" << desiredSize;
 
     int size;
     try {
@@ -231,7 +234,7 @@ QDBusUnixFileDescriptor DBusInterface::GetThumbnail(const QString &filename, con
     }
     if (filename_stat.st_dev != fd_stat.st_dev ||
         filename_stat.st_ino != fd_stat.st_ino) {
-        sendErrorReply(ART_ERROR, "filename refers to a different file to the file descriptor");
+        sendErrorReply(ART_ERROR, "filename refers to a different file than the file descriptor");
         return QDBusUnixFileDescriptor();
     }
 
