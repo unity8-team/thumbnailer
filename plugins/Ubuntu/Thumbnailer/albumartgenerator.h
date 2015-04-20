@@ -20,8 +20,8 @@
 #ifndef ALBUMART_GENERATOR_H
 #define ALBUMART_GENERATOR_H
 
-#include <QDBusInterface>
 #include <QQuickImageProvider>
+#include <thumbnailerinterface.h>
 
 #include <memory>
 
@@ -29,7 +29,7 @@ class AlbumArtGenerator: public QQuickImageProvider
 {
 private:
     std::unique_ptr<QDBusConnection> connection;
-    std::unique_ptr<QDBusInterface> iface;
+    std::unique_ptr<ThumbnailerInterface> iface;
 
 public:
     AlbumArtGenerator();

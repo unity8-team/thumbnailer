@@ -36,8 +36,6 @@ static const char *DEFAULT_ALBUM_ART = "/usr/share/thumbnailer/icons/album_missi
 
 static const char BUS_NAME[] = "com.canonical.Thumbnailer";
 static const char BUS_PATH[] = "/com/canonical/Thumbnailer";
-static const char THUMBNAILER_IFACE[] = "com.canonical.Thumbnailer";
-static const char GET_THUMBNAIL[] = "GetThumbnail";
 
 ThumbnailGenerator::ThumbnailGenerator() : QQuickImageProvider(QQuickImageProvider::Image,
         QQmlImageProviderBase::ForceAsynchronousImageLoading) {
@@ -63,17 +61,15 @@ QImage ThumbnailGenerator::requestImage(const QString &id, QSize *realSize,
     }
     QDBusUnixFileDescriptor unix_fd(fd);
     close(fd);
-    QString desiredSize = sizeToDesiredSizeString(requestedSize);
 
     if (!connection) {
         // Create them here and not them on the constrcutor so they belong to the proper thread
         connection.reset(new QDBusConnection(QDBusConnection::connectToBus(QDBusConnection::SessionBus, "thumbnail_generator_dbus_connection")));
-        iface.reset(new QDBusInterface(BUS_NAME, BUS_PATH, THUMBNAILER_IFACE, *connection));
+        iface.reset(new ThumbnailerInterface(BUS_NAME, BUS_PATH, *connection));
     }
 
-    QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
-        GET_THUMBNAIL, src_path, QVariant::fromValue(unix_fd), desiredSize);
-
+    auto reply = iface->GetThumbnail(src_path, unix_fd, requestedSize);
+    reply.waitForFinished();
     if (!reply.isValid()) {
         qWarning() << "D-Bus error: " << reply.error().message();
         return getFallbackImage(id, realSize, requestedSize);

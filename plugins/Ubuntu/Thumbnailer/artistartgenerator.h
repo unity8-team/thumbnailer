@@ -19,8 +19,8 @@
 #ifndef ARTISTART_GENERATOR_H
 #define ARTISTART_GENERATOR_H
 
-#include <QDBusInterface>
 #include <QQuickImageProvider>
+#include <thumbnailerinterface.h>
 
 #include <memory>
 
@@ -28,7 +28,7 @@ class ArtistArtGenerator: public QQuickImageProvider
 {
 private:
     std::unique_ptr<QDBusConnection> connection;
-    std::unique_ptr<QDBusInterface> iface;
+    std::unique_ptr<ThumbnailerInterface> iface;
 
 public:
     ArtistArtGenerator();

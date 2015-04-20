@@ -22,7 +22,6 @@
 #include <QString>
 #include <QImage>
 
-QString sizeToDesiredSizeString(const QSize& requestedSize);
 QImage imageFromFd(int fd, QSize *realSize);
 
 #endif

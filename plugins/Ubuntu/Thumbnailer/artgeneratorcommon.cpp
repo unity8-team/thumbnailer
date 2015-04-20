@@ -21,20 +21,6 @@
 #include "artgeneratorcommon.h"
 #include <QFile>
 
-QString sizeToDesiredSizeString(const QSize& requestedSize)
-{
-    QString desiredSize = "original";
-    int size = requestedSize.width() > requestedSize.height() ? requestedSize.width() : requestedSize.height();
-    if (size < 128) {
-        desiredSize = "small";
-    } else if (size < 256) {
-        desiredSize = "large";
-    } else if (size < 512) {
-        desiredSize = "xlarge";
-    }
-    return desiredSize;
-}
-
 QImage imageFromFd(int fd, QSize *realSize)
 {
     QFile file;

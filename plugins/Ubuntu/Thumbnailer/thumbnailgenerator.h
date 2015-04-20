@@ -21,14 +21,14 @@
 
 #include <memory>
 
-#include <QDBusInterface>
 #include <QQuickImageProvider>
+#include <thumbnailerinterface.h>
 
 class ThumbnailGenerator: public QQuickImageProvider
 {
 private:
     std::unique_ptr<QDBusConnection> connection;
-    std::unique_ptr<QDBusInterface> iface;
+    std::unique_ptr<ThumbnailerInterface> iface;
 
 public:
     ThumbnailGenerator();
