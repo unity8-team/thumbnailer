@@ -122,13 +122,13 @@ protected:
 /*
 TEST_F(DBusTest, get_album_art) {
     QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
-        "GetAlbumArt", "Radiohead", "OK Computer", "large");
+        "GetAlbumArt", "Radiohead", "OK Computer", QSize(256, 256));
     assert_no_error(reply);
 }
 
 TEST_F(DBusTest, get_album_art) {
     QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
-        "GetArtistArt", "Radiohead", "OK Computer", "large");
+        "GetArtistArt", "Radiohead", "OK Computer", QSize(256, 256));
     assert_no_error(reply);
 }
 */
@@ -139,7 +139,9 @@ TEST_F(DBusTest, thumbnail_image) {
     ASSERT_GE(fd.get(), 0);
 
     QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
-        "GetThumbnail", filename, QVariant::fromValue(QDBusUnixFileDescriptor(fd.get())), "large");
+        "GetThumbnail", filename,
+        QVariant::fromValue(QDBusUnixFileDescriptor(fd.get())),
+        QSize(256, 256));
     assert_no_error(reply);
 
     auto pixbuf = read_image(reply.value());
@@ -155,7 +157,9 @@ TEST_F(DBusTest, thumbnail_no_such_file) {
     ASSERT_GE(fd.get(), 0);
 
     QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
-        "GetThumbnail", no_such_file, QVariant::fromValue(QDBusUnixFileDescriptor(fd.get())), "large");
+        "GetThumbnail", no_such_file,
+        QVariant::fromValue(QDBusUnixFileDescriptor(fd.get())),
+        QSize(256, 256));
     EXPECT_FALSE(reply.isValid());
     auto message = reply.error().message().toStdString();
     EXPECT_EQ(message, "Could not stat file");
@@ -169,7 +173,9 @@ TEST_F(DBusTest, thumbnail_wrong_fd_fails) {
     ASSERT_GE(fd.get(), 0);
 
     QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
-        "GetThumbnail", filename1, QVariant::fromValue(QDBusUnixFileDescriptor(fd.get())), "large");
+        "GetThumbnail", filename1,
+        QVariant::fromValue(QDBusUnixFileDescriptor(fd.get())),
+        QSize(256, 256));
     EXPECT_FALSE(reply.isValid());
     auto message = reply.error().message().toStdString();
     EXPECT_EQ(message, "filename refers to a different file to the file descriptor");

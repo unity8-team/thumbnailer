@@ -24,6 +24,7 @@
 #include <thumbnailer.h>
 
 #include <map>
+#include <sstream>
 
 #include <QDBusConnection>
 #include <QDBusMessage>
@@ -35,20 +36,23 @@ namespace {
 
 const char ART_ERROR[] = "com.canonical.Thubnailer.Error.Failed";
 
-ThumbnailSize desiredSizeFromString(const QString &size)
+ThumbnailSize thumbnailSizeFromQSize(const QSize &size)
 {
-    if (size == "small") {
-        return TN_SIZE_SMALL;
-    } else if (size == "large") {
-        return TN_SIZE_LARGE;
-    } else if (size == "xlarge") {
-        return TN_SIZE_XLARGE;
-    } else if (size == "original") {
-        return TN_SIZE_ORIGINAL;
+    if (size.width() <= 0 || size.height() <= 0) {
+        std::ostringstream os;
+        os << "Invalid size: (" << size.width() << ", " << size.height() << ")";
+        throw std::logic_error(os.str());
     }
-    std::string error("Unknown size: ");
-    error += size.toStdString();
-    throw std::logic_error(error);
+
+    int maxsize = size.width() > size.height() ? size.width() : size.height();
+    if (maxsize <= 128) {
+        return TN_SIZE_SMALL;
+    } else if (maxsize <= 256) {
+        return TN_SIZE_LARGE;
+    } else if (maxsize <= 512) {
+        return TN_SIZE_XLARGE;
+    }
+    return TN_SIZE_ORIGINAL;
 }
 
 }
@@ -69,12 +73,12 @@ DBusInterface::DBusInterface(QObject *parent)
 DBusInterface::~DBusInterface() {
 }
 
-QDBusUnixFileDescriptor DBusInterface::GetAlbumArt(const QString &artist, const QString &album, const QString &desiredSize) {
+QDBusUnixFileDescriptor DBusInterface::GetAlbumArt(const QString &artist, const QString &album, const QSize &desiredSize) {
     qDebug() << "Look up cover art for" << artist << "/" << album << "at size" << desiredSize;
 
     ThumbnailSize size;
     try {
-        size = desiredSizeFromString(desiredSize);
+        size = thumbnailSizeFromQSize(desiredSize);
     } catch (const std::logic_error& e) {
         sendErrorReply(ART_ERROR, e.what());
         return QDBusUnixFileDescriptor();
@@ -85,12 +89,12 @@ QDBusUnixFileDescriptor DBusInterface::GetAlbumArt(const QString &artist, const 
     return QDBusUnixFileDescriptor();
 }
 
-QDBusUnixFileDescriptor DBusInterface::GetArtistArt(const QString &artist, const QString &album, const QString &desiredSize) {
+QDBusUnixFileDescriptor DBusInterface::GetArtistArt(const QString &artist, const QString &album, const QSize &desiredSize) {
     qDebug() << "Look up artist art for" << artist << "/" << album << "at size" << desiredSize;
 
     ThumbnailSize size;
     try {
-        size = desiredSizeFromString(desiredSize);
+        size = thumbnailSizeFromQSize(desiredSize);
     } catch (const std::logic_error& e) {
         sendErrorReply(ART_ERROR, e.what());
         return QDBusUnixFileDescriptor();
@@ -101,12 +105,12 @@ QDBusUnixFileDescriptor DBusInterface::GetArtistArt(const QString &artist, const
     return QDBusUnixFileDescriptor();
 }
 
-QDBusUnixFileDescriptor DBusInterface::GetThumbnail(const QString &filename, const QDBusUnixFileDescriptor &filename_fd, const QString &desiredSize) {
+QDBusUnixFileDescriptor DBusInterface::GetThumbnail(const QString &filename, const QDBusUnixFileDescriptor &filename_fd, const QSize &desiredSize) {
     qDebug() << "Create thumbnail for" << filename << "at size" << desiredSize;
 
     ThumbnailSize size;
     try {
-        size = desiredSizeFromString(desiredSize);
+        size = thumbnailSizeFromQSize(desiredSize);
     } catch (const std::logic_error& e) {
         sendErrorReply(ART_ERROR, e.what());
         return QDBusUnixFileDescriptor();
