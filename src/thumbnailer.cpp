@@ -78,7 +78,6 @@ typedef unity::util::ResourcePtr<string, decltype(do_unlink)> UnlinkPtr;
 
 }  // namespace
 
-
 ThumbnailerPrivate::ThumbnailerPrivate()
 {
     char const* artservice = getenv("THUMBNAILER_ART_PROVIDER");
@@ -105,11 +104,9 @@ ThumbnailerPrivate::ThumbnailerPrivate()
     {
         cout << "creating cache for " << cache_dir + "/images" << endl;
         // TODO: No good to hard-wire the cache size.
-        full_size_cache_ = core::PersistentStringCache::open(cache_dir + "/images",
-                                                             50 * 1024 * 1024,
+        full_size_cache_ = core::PersistentStringCache::open(cache_dir + "/images", 50 * 1024 * 1024,
                                                              core::CacheDiscardPolicy::lru_ttl);
-        thumbnail_cache_ = core::PersistentStringCache::open(cache_dir + "/thumbnails",
-                                                             100 * 1024 * 1024,
+        thumbnail_cache_ = core::PersistentStringCache::open(cache_dir + "/thumbnails", 100 * 1024 * 1024,
                                                              core::CacheDiscardPolicy::lru_ttl);
     }
     catch (std::exception const& e)
@@ -131,7 +128,8 @@ string ThumbnailerPrivate::create_tmp_filename()
     static auto gen = boost::uuids::random_generator();
 
     string uuid = boost::lexical_cast<string>(gen());
-    return dir + "/thumbnailer." + uuid + ".tmp";;
+    return dir + "/thumbnailer." + uuid + ".tmp";
+    ;
 }
 
 string ThumbnailerPrivate::extract_exif_image(std::string const& filename)
@@ -159,7 +157,7 @@ string ThumbnailerPrivate::extract_image_from_audio(string const& filename)
 
     if (audio_.extract(filename, tmpname.get()))
     {
-        return read_file(tmpname.get());
+        return read_file(tmpname.get());  // TODO: use a pipe instead of a temp file.
     }
     return "";
 }
@@ -170,7 +168,7 @@ string ThumbnailerPrivate::extract_image_from_video(string const& filename)
 
     if (video_.extract(filename, tmpname.get()))
     {
-        return read_file(tmpname.get());
+        return read_file(tmpname.get());  // TODO: use a pipe instead of a temp file.
     }
     return "";
 }
@@ -181,6 +179,7 @@ string ThumbnailerPrivate::extract_image_from_other(string const& filename)
     if (!exif_image.empty())
     {
         cout << "returning exif" << endl;
+        // TODO: need to deal with not caching exif image as the full-size image
         return exif_image;
     }
     return read_file(filename);
@@ -196,8 +195,7 @@ string ThumbnailerPrivate::extract_image(string const& filename)
         return "";
     }
 
-    unique_gobj<GFileInfo> info(g_file_query_info(file.get(),
-                                                  G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
+    unique_gobj<GFileInfo> info(g_file_query_info(file.get(), G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
                                                   G_FILE_QUERY_INFO_NONE,
                                                   /* cancellable */ NULL,
                                                   /* error */ NULL));
@@ -225,7 +223,8 @@ string ThumbnailerPrivate::extract_image(string const& filename)
     return extract_image_from_other(filename);
 }
 
-Thumbnailer::Thumbnailer() : p_(new ThumbnailerPrivate())
+Thumbnailer::Thumbnailer()
+    : p_(new ThumbnailerPrivate())
 {
 }
 
@@ -269,7 +268,7 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
         {
             Image scaled_image(*image);
             scaled_image.scale_to(desired_size);
-            image = scaled_image.get_jpeg();
+            image = scaled_image.to_jpeg();
         }
         thumbnail_cache_->put(sized_key, *image);
         return *image;
@@ -299,7 +298,7 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
         cout << "calling scale_to" << endl;
         scaled_image.scale_to(desired_size);
         cout << "done calling scale_to" << endl;
-        image = scaled_image.get_jpeg();
+        image = scaled_image.to_jpeg();
     }
     thumbnail_cache_->put(sized_key, *image);
     return *image;
@@ -327,7 +326,8 @@ std::string Thumbnailer::get_thumbnail(std::string const& filename, int desired_
     // from the cache. Instead, we just let the normal eviction mechanism take care of them (because stale
     // thumbnails due to file removal or file update are rare).
     string key1 = path.native();
-    string key2 = to_string(dev) + "\0" + to_string(ino) + "\0" + to_string(mtim.tv_sec) + "." + to_string(mtim.tv_nsec);
+    string key2 =
+        to_string(dev) + "\0" + to_string(ino) + "\0" + to_string(mtim.tv_sec) + "." + to_string(mtim.tv_nsec);
 
     auto fetch = [this](string const& key1, string const& /* key2 */)
     {

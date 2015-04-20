@@ -28,7 +28,7 @@ class Image
 {
 public:
     // Default constructor does nothing. Must be followed by load() before calling any other member function.
-    Image();
+    Image() = default;
 
     // Loads internal pixbuf with provided image data.
     Image(std::string const& data);
@@ -49,7 +49,7 @@ public:
     void scale_to(int desired_size);
 
     // Returns image as JPEG data.
-    std::string get_jpeg() const;
+    std::string to_jpeg() const;
 
 private:
     unique_gobj<GdkPixbuf> pixbuf_;

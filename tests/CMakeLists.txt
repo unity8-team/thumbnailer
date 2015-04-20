@@ -19,6 +19,10 @@ set(TESTDATADIR ${CMAKE_CURRENT_SOURCE_DIR}/media)
 configure_file(testsetup.h.in testsetup.h @ONLY)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
+add_executable(image image.cpp)
+target_link_libraries(image thumbnailer core gtest)
+add_test(image image)
+
 add_executable(basic basic.cpp)
 target_link_libraries(basic thumbnailer core gtest)
 add_test(basic basic)

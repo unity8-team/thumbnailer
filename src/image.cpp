@@ -40,8 +40,6 @@ typedef unity::util::ResourcePtr<GdkPixbufLoader*, decltype(do_loader_close)> Lo
 
 }  // namespace
 
-Image::Image() = default;
-
 Image::Image(string const& data)
 {
     load(data);
@@ -52,14 +50,16 @@ void Image::load(string const& data)
     LoaderPtr loader(gdk_pixbuf_loader_new(), do_loader_close);
     if (!loader)
     {
-        throw runtime_error("Image::load(): cannot allocate GdkPixbufLoader");
+        throw runtime_error("Image::load(): cannot allocate GdkPixbufLoader");  // LCOV_EXCL_LINE
     }
-    GError *err = nullptr;
+    GError* err = nullptr;
     if (!gdk_pixbuf_loader_write(loader.get(), reinterpret_cast<guchar const*>(&data[0]), data.size(), &err))
     {
+        // LCOV_EXCL_START
         string msg = string("Image::load): cannot write to pixbuf loader: ") + err->message;
         g_error_free(err);
         throw runtime_error(msg);
+        // LCOV_EXCL_STOP
     }
     pixbuf_.reset(gdk_pixbuf_loader_get_pixbuf(loader.get()));
     if (!pixbuf_)
@@ -76,7 +76,7 @@ int Image::width() const
     auto w = gdk_pixbuf_get_width(pixbuf_.get());
     if (w < 1)
     {
-        throw runtime_error("Image::width(): invalid image width: " + to_string(w));
+        throw runtime_error("Image::width(): invalid image width: " + to_string(w));  // LCOV_EXCL_LINE
     }
     return w;
 }
@@ -88,7 +88,7 @@ int Image::height() const
     auto h = gdk_pixbuf_get_height(pixbuf_.get());
     if (h < 1)
     {
-        throw runtime_error("Image::height(): invalid image height: " + to_string(h));
+        throw runtime_error("Image::height(): invalid image height: " + to_string(h));  // LCOV_EXCL_LINE
     }
     return h;
 }
@@ -100,6 +100,7 @@ int Image::max_size() const
 
 void Image::scale_to(int desired_size)
 {
+    assert(pixbuf_);
     assert(desired_size > 0);
 
     int const w = width();
@@ -124,23 +125,29 @@ void Image::scale_to(int desired_size)
     auto p = gdk_pixbuf_scale_simple(pixbuf_.get(), new_w, new_h, GDK_INTERP_BILINEAR);
     if (!p)
     {
+        // LCOV_EXCL_START
         throw runtime_error("Image::scale(): cannot scale to " + to_string(new_w) + "x" + to_string(new_h));
+        // LCOV_EXCL_STOP
     }
     pixbuf_.reset(p);
 }
 
-string Image::get_jpeg() const
+string Image::to_jpeg() const
 {
     assert(pixbuf_);
 
-    gchar* buf = nullptr;
+    gchar* buf;
     gsize size;
-    GError *err = nullptr;
+    GError* err = nullptr;
     if (!gdk_pixbuf_save_to_buffer(pixbuf_.get(), &buf, &size, "jpeg", &err, "quality", "100", NULL))
     {
+        // LCOV_EXCL_START
         string msg = string("Image::get_data(): cannot convert to jpeg: ") + err->message;
         g_error_free(err);
         throw runtime_error(msg);
+        // LCOV_EXCL_STOP
     }
-    return string(buf, size);
+    string s(buf, size);
+    g_free(buf);
+    return s;
 }
