@@ -16,11 +16,11 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#include<thumbnailer.h>
-#include<testsetup.h>
-#include<gtest/gtest.h>
-#include<unistd.h>
-#include<gdk-pixbuf/gdk-pixbuf.h>
+#include <thumbnailer.h>
+#include <testsetup.h>
+#include <gtest/gtest.h>
+#include <unistd.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
 
 #define TESTIMAGE TESTDATADIR "/testimage.jpg"
 #define TESTIMAGE_NOEXIF TESTDATADIR "/testimage_noexif.png"
@@ -30,16 +30,19 @@
 
 using namespace std;
 
-bool file_exists(const string &s) {
-    FILE *f = fopen(s.c_str(), "r");
-    if(f) {
+bool file_exists(const string& s)
+{
+    FILE* f = fopen(s.c_str(), "r");
+    if (f)
+    {
         fclose(f);
         return true;
     }
     return false;
 }
 
-void copy_file(const string &src, const string &dst) {
+void copy_file(const string& src, const string& dst)
+{
     FILE* f = fopen(src.c_str(), "r");
     ASSERT_TRUE(f);
     fseek(f, 0, SEEK_END);
@@ -58,11 +61,13 @@ void copy_file(const string &src, const string &dst) {
     delete[] buf;
 }
 
-TEST(Thumbnailer, trivial) {
+TEST(Thumbnailer, trivial)
+{
     Thumbnailer tn;
 }
 
-static void file_test(Thumbnailer &tn, string &ifile) {
+static void file_test(Thumbnailer& tn, string& ifile)
+{
     int w, h;
     ASSERT_TRUE(file_exists(ifile));
     cout << "calling get" << endl;
@@ -78,25 +83,29 @@ static void file_test(Thumbnailer &tn, string &ifile) {
     ASSERT_LE(h, 128);
 }
 
-TEST(Thumbnailer, image) {
+TEST(Thumbnailer, image)
+{
     Thumbnailer tn;
     string imfile(TESTIMAGE);
     file_test(tn, imfile);
 }
 
-TEST(Thumbnailer, noexif_image) {
+TEST(Thumbnailer, noexif_image)
+{
     Thumbnailer tn;
     string imfile(TESTIMAGE_NOEXIF);
     file_test(tn, imfile);
 }
 
-TEST(Thumbnailer, video) {
+TEST(Thumbnailer, video)
+{
     Thumbnailer tn;
     string videofile(TESTVIDEO);
     file_test(tn, videofile);
 }
 
-TEST(Thumbnailer, rotate) {
+TEST(Thumbnailer, rotate)
+{
     Thumbnailer tn;
     string imfile(ROTTESTIMAGE);
     int w, h;
@@ -108,13 +117,13 @@ TEST(Thumbnailer, rotate) {
     ASSERT_EQ(thumbfile, thumbfile2);
     ASSERT_TRUE(file_exists(thumbfile));
     ASSERT_TRUE(gdk_pixbuf_get_file_info(imfile.c_str(), &w, &h));
-    ASSERT_GT(w, h); // gdk_pixbuf does not reorient images automatically.
+    ASSERT_GT(w, h);  // gdk_pixbuf does not reorient images automatically.
     ASSERT_TRUE(gdk_pixbuf_get_file_info(thumbfile.c_str(), &w, &h));
-    ASSERT_GT(h, w); // Has the orientation been straightened during scaling?
+    ASSERT_GT(h, w);  // Has the orientation been straightened during scaling?
 }
 
-
-TEST(Thumbnailer, video_original) {
+TEST(Thumbnailer, video_original)
+{
     Thumbnailer tn;
     int w, h;
     string videofile(TESTVIDEO);
@@ -125,8 +134,8 @@ TEST(Thumbnailer, video_original) {
     ASSERT_EQ(h, 1080);
 }
 
-
-TEST(Thumbnailer, size) {
+TEST(Thumbnailer, size)
+{
     Thumbnailer tn;
     int w, h;
     string imfile(TESTIMAGE);
@@ -150,7 +159,8 @@ TEST(Thumbnailer, size) {
     ASSERT_LE(h, 512);
 }
 
-TEST(Thumbnailer, deletetest) {
+TEST(Thumbnailer, deletetest)
+{
     Thumbnailer tn;
     string srcimg(TESTIMAGE);
     string workimage("working_image.jpg");
@@ -170,14 +180,16 @@ TEST(Thumbnailer, deletetest) {
     ASSERT_FALSE(file_exists(thumbfile3));
 }
 
-TEST(Thumbnailer, no_image_cache) {
+TEST(Thumbnailer, no_image_cache)
+{
     Thumbnailer tn;
     string srcimg(TESTIMAGE);
     string dstimg = tn.get_thumbnail(srcimg, 0);
     ASSERT_EQ(srcimg, dstimg);
 }
 
-TEST(Thumbnailer, album_and_artist_art) {
+TEST(Thumbnailer, album_and_artist_art)
+{
     // During test suite run we may not have access to the net.
     // So just test calling to ensure symbol visibility etc work.
     Thumbnailer tn;
@@ -187,28 +199,26 @@ TEST(Thumbnailer, album_and_artist_art) {
     tn.get_artist_art(artist, album, 0);
 }
 
-TEST(Thumbnailer, chinese_text) {
+TEST(Thumbnailer, chinese_text)
+{
     Thumbnailer tn;
-    DIR *dir;
-    struct dirent *ent;
+    DIR* dir;
+    struct dirent* ent;
     char path[PATH_MAX];
     struct stat buffer;
     int status;
 
     dir = opendir(CHINESETEXTDIR);
-    while ((ent = readdir(dir)) != NULL) {
+    while ((ent = readdir(dir)) != NULL)
+    {
         sprintf(path, "%s/%s", CHINESETEXTDIR, ent->d_name);
         status = lstat(path, &buffer);
         ASSERT_EQ(status, 0);
-        if(!S_ISDIR(buffer.st_mode)) {
+        if (!S_ISDIR(buffer.st_mode))
+        {
             string srcimg(path);
             string thumbfile = tn.get_thumbnail(srcimg, 128);
             ASSERT_TRUE(file_exists(thumbfile));
         }
     }
-}
-
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
 }
