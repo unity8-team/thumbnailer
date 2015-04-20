@@ -17,13 +17,16 @@
  *          James Henstridge <james.henstridge@canonical.com>
 */
 
-#ifndef ALBUMART_GENERATOR_H
-#define ALBUMART_GENERATOR_H
+#pragma once
 
 #include <QQuickImageProvider>
 #include <thumbnailerinterface.h>
 
 #include <memory>
+
+namespace unity {
+namespace thumbnailer {
+namespace qml {
 
 class AlbumArtGenerator: public QQuickImageProvider
 {
@@ -36,4 +39,6 @@ public:
     QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize);
 };
 
-#endif
+}
+}
+}

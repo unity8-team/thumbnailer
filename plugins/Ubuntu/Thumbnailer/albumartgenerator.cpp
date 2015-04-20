@@ -26,21 +26,27 @@
 #include <QDBusUnixFileDescriptor>
 #include <QDBusReply>
 
-static const char DEFAULT_ALBUM_ART[] = "/usr/share/thumbnailer/icons/album_missing.png";
+namespace {
+const char DEFAULT_ALBUM_ART[] = "/usr/share/thumbnailer/icons/album_missing.png";
 
-static const char BUS_NAME[] = "com.canonical.Thumbnailer";
-static const char BUS_PATH[] = "/com/canonical/Thumbnailer";
+const char BUS_NAME[] = "com.canonical.Thumbnailer";
+const char BUS_PATH[] = "/com/canonical/Thumbnailer";
 
-AlbumArtGenerator::AlbumArtGenerator()
-    : QQuickImageProvider(QQuickImageProvider::Image, QQmlImageProviderBase::ForceAsynchronousImageLoading)
-{
-}
-
-static QImage fallbackImage(QSize *realSize) {
+QImage fallbackImage(QSize *realSize) {
     QImage fallback;
     fallback.load(DEFAULT_ALBUM_ART);
     *realSize = fallback.size();
     return fallback;
+}
+}
+
+namespace unity {
+namespace thumbnailer {
+namespace qml {
+
+AlbumArtGenerator::AlbumArtGenerator()
+    : QQuickImageProvider(QQuickImageProvider::Image, QQmlImageProviderBase::ForceAsynchronousImageLoading)
+{
 }
 
 QImage AlbumArtGenerator::requestImage(const QString &id, QSize *realSize,
@@ -77,4 +83,8 @@ QImage AlbumArtGenerator::requestImage(const QString &id, QSize *realSize,
     }
 
     return fallbackImage(realSize);
+}
+
+}
+}
 }

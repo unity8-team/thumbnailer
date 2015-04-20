@@ -31,11 +31,17 @@
 #include <QDBusUnixFileDescriptor>
 #include <QDBusReply>
 
-static const char *DEFAULT_VIDEO_ART = "/usr/share/thumbnailer/icons/video_missing.png";
-static const char *DEFAULT_ALBUM_ART = "/usr/share/thumbnailer/icons/album_missing.png";
+namespace {
+const char *DEFAULT_VIDEO_ART = "/usr/share/thumbnailer/icons/video_missing.png";
+const char *DEFAULT_ALBUM_ART = "/usr/share/thumbnailer/icons/album_missing.png";
 
-static const char BUS_NAME[] = "com.canonical.Thumbnailer";
-static const char BUS_PATH[] = "/com/canonical/Thumbnailer";
+const char BUS_NAME[] = "com.canonical.Thumbnailer";
+const char BUS_PATH[] = "/com/canonical/Thumbnailer";
+}
+
+namespace unity {
+namespace thumbnailer {
+namespace qml {
 
 ThumbnailGenerator::ThumbnailGenerator() : QQuickImageProvider(QQuickImageProvider::Image,
         QQmlImageProviderBase::ForceAsynchronousImageLoading) {
@@ -99,4 +105,8 @@ QImage ThumbnailGenerator::getFallbackImage(const QString &id, QSize *size,
     }
     *size = result.size();
     return result;
+}
+
+}
+}
 }

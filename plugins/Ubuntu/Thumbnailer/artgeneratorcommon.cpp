@@ -21,6 +21,10 @@
 #include "artgeneratorcommon.h"
 #include <QFile>
 
+namespace unity {
+namespace thumbnailer {
+namespace qml {
+
 QImage imageFromFd(int fd, QSize *realSize)
 {
     QFile file;
@@ -29,4 +33,8 @@ QImage imageFromFd(int fd, QSize *realSize)
     image.load(&file, NULL);
     *realSize = image.size();
     return image;
+}
+
+}
+}
 }
