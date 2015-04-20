@@ -16,20 +16,23 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#include<internal/config.h>
-#include<internal/videoscreenshotter.h>
+#include <internal/config.h>
+#include <internal/videoscreenshotter.h>
+#include <internal/safe_strerror.h>
 
-#include<cerrno>
-#include<cstdlib>
-#include<unistd.h>
-#include<sys/wait.h>
-#include<stdexcept>
-#include<cstring>
-#include<sys/time.h>
-#include<signal.h>
-#include<time.h>
+#include <cerrno>
+#include <cstdlib>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <stdexcept>
+#include <cstring>
+#include <sys/time.h>
+#include <signal.h>
+#include <time.h>
 
 using namespace std;
+using namespace unity::thumbnailer::internal;
+
 static double timestamp() {
     struct timeval now;
     gettimeofday(&now, NULL);
@@ -50,7 +53,7 @@ static bool wait_for_helper(pid_t child) {
         if(now - start >= max_wait_time) {
             if(kill(child, SIGKILL) < 0) {
                 string msg("Could not kill child process: ");
-                msg += strerror(errno);
+                msg += safe_strerror(errno);
                 throw runtime_error(msg);
             }
             waitpid(child, &status, 0);
@@ -95,7 +98,7 @@ bool VideoScreenshotter::extract(const std::string &ifname, const std::string &o
     }
     if(child == 0) {
         execl(cmd.c_str(), cmd.c_str(), ifname.c_str(), ofname.c_str(), (char*) NULL);
-        fprintf(stderr, "Could not execute worker process: %s", strerror(errno));
+        fprintf(stderr, "Could not execute worker process: %s", safe_strerror(errno).c_str());
         _exit(100);
     } else {
         try {

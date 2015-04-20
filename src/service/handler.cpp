@@ -18,6 +18,7 @@
  */
 
 #include "handler.h"
+#include <internal/safe_strerror.h>
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -29,6 +30,8 @@
 #include <QFutureWatcher>
 #include <QDebug>
 #include <unity/util/ResourcePtr.h>
+
+using namespace unity::thumbnailer::internal;
 
 namespace {
 const char ART_ERROR[] = "com.canonical.Thumbnailer.Error.Failed";
@@ -170,14 +173,14 @@ QDBusUnixFileDescriptor write_to_tmpfile(std::string const& image)
 
     int fd = open(dir.c_str(), O_TMPFILE | O_RDWR);
     if (fd < 0) {
-        std::string err = "cannot create tmpfile in " + dir + ": " + strerror(errno);
+        std::string err = "cannot create tmpfile in " + dir + ": " + safe_strerror(errno);
         throw std::runtime_error(err);
     }
     FdPtr fd_ptr(fd, ::close);
     auto rc = write(fd_ptr.get(), &image[0], image.size());
     if (rc == -1)
     {
-        std::string err = "cannot write image data in " + dir + ": " + strerror(errno);
+        std::string err = "cannot write image data in " + dir + ": " + safe_strerror(errno);
         throw std::runtime_error(err);
     }
     else if (std::string::size_type(rc) != image.size())

@@ -9,6 +9,7 @@ thumbnailcache.cpp
 thumbnailer.cpp
 ubuntuserverdownloader.cpp
 videoscreenshotter.cpp
+safe_strerror.cpp
 )
 
 target_link_libraries(thumbnailer

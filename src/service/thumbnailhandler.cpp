@@ -18,6 +18,7 @@
  */
 
 #include "thumbnailhandler.h"
+#include <internal/safe_strerror.h>
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -25,6 +26,8 @@
 #include <unistd.h>
 
 #include <unity/util/ResourcePtr.h>
+
+using namespace unity::thumbnailer::internal;
 
 namespace unity {
 namespace thumbnailer {
@@ -90,7 +93,7 @@ QDBusUnixFileDescriptor ThumbnailHandler::create() {
         // FIXME: check that the thumbnail was produced for fd_stat
     FdPtr fd(open(art.c_str(), O_RDONLY), ::close);
     if (fd.get() < 0) {
-        throw std::runtime_error(strerror(errno));
+        throw std::runtime_error(safe_strerror(errno));
     }
     return QDBusUnixFileDescriptor(fd.get());
 }
