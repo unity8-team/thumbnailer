@@ -16,18 +16,23 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#include<internal/imagescaler.h>
-#include<internal/gobj_memory.h>
-#include<gdk-pixbuf/gdk-pixbuf.h>
-#include<libexif/exif-loader.h>
-#include<memory>
-#include<stdexcept>
-#include<sys/stat.h>
-#include<cassert>
-#include<random>
-#include<cstring>
+#include <internal/imagescaler.h>
+#include <internal/gobj_memory.h>
+#include <internal/safe_strerror.h>
+
+#include <gdk-pixbuf/gdk-pixbuf.h>
+
+#include <libexif/exif-loader.h>
+
+#include <memory>
+#include <stdexcept>
+#include <sys/stat.h>
+#include <cassert>
+#include <random>
+#include <cstring>
 
 using namespace std;
+using namespace unity::thumbnailer::internal;
 
 static void determine_new_size(const int w, const int h, int &neww, int &newh,
         const ThumbnailSize wanted) {
@@ -155,7 +160,7 @@ bool ImageScaler::scale(const std::string &ifilename, const std::string &ofilena
     }
     if(rename(ofilename_tmp.c_str(), ofilename.c_str()) <0) {
         string msg("Could not rename temp file to actual file: ");
-        msg += strerror(errno);
+        msg += safe_strerror(errno);
         unlink(ofilename_tmp.c_str()); // Nothing we can do if it fails.
         throw runtime_error(msg);
     }
