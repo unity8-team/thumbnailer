@@ -65,7 +65,9 @@ TEST(Thumbnailer, trivial) {
 static void file_test(Thumbnailer &tn, string &ifile) {
     int w, h;
     ASSERT_TRUE(file_exists(ifile));
+    cout << "calling get" << endl;
     string thumbfile = tn.get_thumbnail(ifile, 128);
+    cout << "done get" << endl;
     unlink(thumbfile.c_str());
     ASSERT_FALSE(file_exists(thumbfile));
     string thumbfile2 = tn.get_thumbnail(ifile, 128);

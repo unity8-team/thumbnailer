@@ -22,23 +22,33 @@
 
 #include <gdk-pixbuf/gdk-pixbuf.h>
 
-#include<string>
+#include <string>
 
 class Image
 {
 public:
+    // Default constructor does nothing. Must be followed by load() before calling any other member function.
     Image();
+
+    // Loads internal pixbuf with provided image data.
     Image(std::string const& data);
 
     Image(Image const&) = delete;
     Image& operator=(Image const&) = delete;
-    Image(Image&&) = delete;
-    Image& operator=(Image &&) = delete;
+    Image(Image&&) = default;
+    Image& operator=(Image &&) = default;
+
+    // Replaces internal pixbuf with provided image data.
+    void load(std::string const& data);
 
     int width() const;
     int height() const;
     int max_size() const;
+
+    // Replaces internal pixbuf with new pixbuf scaled to size in larger dimension.
     void scale_to(int desired_size);
+
+    // Returns image as JPEG data.
     std::string get_jpeg() const;
 
 private:

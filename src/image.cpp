@@ -44,27 +44,35 @@ Image::Image() = default;
 
 Image::Image(string const& data)
 {
+    load(data);
+}
+
+void Image::load(string const& data)
+{
     LoaderPtr loader(gdk_pixbuf_loader_new(), do_loader_close);
     if (!loader)
     {
-        throw runtime_error("Image(): cannot allocate GdkPixbufLoader");
+        throw runtime_error("Image::load(): cannot allocate GdkPixbufLoader");
     }
     GError *err = nullptr;
-    if (!gdk_pixbuf_loader_write(loader.get(), reinterpret_cast<guchar const*>(data.data()), data.size(), &err))
+    if (!gdk_pixbuf_loader_write(loader.get(), reinterpret_cast<guchar const*>(&data[0]), data.size(), &err))
     {
-        string msg = string("Image(): cannot write to pixbuf loader: ") + err->message;
+        string msg = string("Image::load): cannot write to pixbuf loader: ") + err->message;
         g_error_free(err);
         throw runtime_error(msg);
     }
     pixbuf_.reset(gdk_pixbuf_loader_get_pixbuf(loader.get()));
     if (!pixbuf_)
     {
-        throw runtime_error("Image(): cannot create pixbuf");
+        throw runtime_error("Image::load(): cannot create pixbuf");
     }
+    g_object_ref(pixbuf_.get());  // Closing the loader calls unref on the pixbuf, so we need to increment here.
 }
 
 int Image::width() const
 {
+    assert(pixbuf_);
+
     auto w = gdk_pixbuf_get_width(pixbuf_.get());
     if (w < 1)
     {
@@ -75,6 +83,8 @@ int Image::width() const
 
 int Image::height() const
 {
+    assert(pixbuf_);
+
     auto h = gdk_pixbuf_get_height(pixbuf_.get());
     if (h < 1)
     {
@@ -122,10 +132,12 @@ void Image::scale_to(int desired_size)
 
 string Image::get_jpeg() const
 {
-    gchar* buf;
+    assert(pixbuf_);
+
+    gchar* buf = nullptr;
     gsize size;
-    GError *err;
-    if (!gdk_pixbuf_save_to_buffer(pixbuf_.get(), &buf, &size, "jpeg", &err, "quality", 100, NULL))
+    GError *err = nullptr;
+    if (!gdk_pixbuf_save_to_buffer(pixbuf_.get(), &buf, &size, "jpeg", &err, "quality", "100", NULL))
     {
         string msg = string("Image::get_data(): cannot convert to jpeg: ") + err->message;
         g_error_free(err);

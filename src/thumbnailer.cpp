@@ -114,6 +114,7 @@ ThumbnailerPrivate::ThumbnailerPrivate()
 
     try
     {
+        cout << "creating cache for " << cache_dir + "/images" << endl;
         // TODO: No good to hard-wire the cache size.
         full_size_cache_ = core::PersistentStringCache::open(cache_dir + "/images",
                                                              50 * 1024 * 1024,
@@ -220,8 +221,10 @@ string ThumbnailerPrivate::extract_image_from_other(string const& filename)
     string exif_image = extract_exif_image(filename);
     if (!exif_image.empty())
     {
+        cout << "returning exif" << endl;
         return exif_image;
     }
+    cout << "calling read_file" << endl;
     return read_file(filename);
 }
 
@@ -294,7 +297,7 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
     // desired_size is 0 if the caller wants original size.
     string sized_key = key + "\0" + to_string(desired_size);
 
-    // Check if we have the image in the cache already.
+    // Check if we have the thumbnail in the cache already.
     auto thumbnail = thumbnail_cache_->get(sized_key);
     if (thumbnail)
     {
@@ -305,6 +308,7 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
     auto image = full_size_cache_->get(key);
     if (image)
     {
+        // We still have the original image, scale from that.
         cout << "found full size image with bytes: " << image->size() << endl;
         if (desired_size != 0)
         {
