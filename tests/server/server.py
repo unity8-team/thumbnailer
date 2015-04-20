@@ -26,11 +26,16 @@ import tornado.netutil
 import tornado.web
 import sys
 import tornado.options
+from httplib2 import RETRIES
 
 tornado.options.parse_command_line()
 
 global PORT
 PORT = ""
+
+global RETRIES_BEFORE_OK
+RETRIES_BEFORE_OK = 0
+
 
 def read_file(path):
     file = os.path.join(os.path.dirname(__file__), path)
@@ -67,6 +72,17 @@ class UbuntuAlbumImagesProvider(ErrorHandler):
 
 class LastFMArtistAlbumInfo(ErrorHandler):
     def get(self, artist, album):
+        global RETRIES_BEFORE_OK
+        print sys.argv
+        if len(sys.argv) > 2 and sys.argv[1] == "errors":
+            max_retries = int(sys.argv[2])
+            RETRIES_BEFORE_OK = RETRIES_BEFORE_OK + 1
+            if (RETRIES_BEFORE_OK < max_retries):
+                self.clear()
+                self.set_status(500)
+                self.finish("<html><body>500 ERROR</body></html>")
+                return
+        RETRIES_BEFORE_OK = 0
         file = 'queries/%s_%s.xml' % (artist, album)
         self.write(read_file(file))
         self.finish()
@@ -91,6 +107,7 @@ def validate_header(self, name, expected):
         raise Exception("Header '%s' == '%s' != '%s'" % (name, actual, expected))
 
 def new_app():
+
     application = tornado.web.Application([
         (r"/1.0/album/(\w+)/(\w+)/info.xml", LastFMArtistAlbumInfo),
         (r"/images/(\w+).png", LastFMImagesProvider),

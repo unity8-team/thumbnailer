@@ -184,6 +184,7 @@ void LastFMDownloader::xml_download_error(QString const& url,
         }
         else
         {
+            retries_map_.erase(iter_retries);
             Q_EMIT download_error(url, error, error_message);
         }
     }
