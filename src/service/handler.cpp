@@ -173,6 +173,7 @@ QDBusUnixFileDescriptor write_to_tmpfile(std::string const& image)
 
     int fd = open(dir.c_str(), O_TMPFILE | O_RDWR);
     if (fd < 0)
+    {
         // We are running on an old kernel without O_TMPFILE support:
         // the flag has been ignored, and treated as an attempt to
         // open /tmp.
