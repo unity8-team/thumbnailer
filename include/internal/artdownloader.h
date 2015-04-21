@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Canonical Ltd.
+ * Copyright (C) 2015 Canonical Ltd
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License version 3 as
@@ -13,12 +13,12 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Pawel Stolowski <pawel.stolowski@canonical.com>
+ * Authored by: Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
 #pragma once
 
-#include <string>
+#include <internal/urldownloader.h>
 
 namespace unity
 {
@@ -29,21 +29,49 @@ namespace thumbnailer
 namespace internal
 {
 
-class ArtDownloader
+/**
+\brief Interface class to download remote media files.
+
+This class uses internally QNetworkAccessManager to retrieve remote urls.
+*/
+class ArtDownloader : public UrlDownloader
 {
+    Q_OBJECT
 public:
-    ArtDownloader() = default;
+    ArtDownloader(QObject* parent = nullptr)
+        : UrlDownloader(parent){};
     virtual ~ArtDownloader() = default;
 
-    // Returns the downloaded image as a std::string for the given artist and album
-    // If no image was found it returns an empty std::string
-    virtual std::string download(std::string const& artist, std::string const& album) = 0;
-
-    // Returns the downloaded image as a std::string for the given artist and album
-    // If no image was found it returns an empty std::string
-    virtual std::string download_artist(std::string const& artist, std::string const& album) = 0;
     ArtDownloader(ArtDownloader const&) = delete;
     ArtDownloader& operator=(ArtDownloader const&) = delete;
+
+    /**
+    \brief Downloads the image for the given artist and album.
+     After this call expect file_downloaded,  download_error, download_source_not_found
+     or bad_url_error signals to be emitted
+
+     \note the url is also returned in the file_downloaded and download_error signals
+     so you can identify the url being downloaded or giving an error in case
+     you run from multiple threads or download multiple files.
+
+     \return the url being downloaded or an empty QString if the constructed is not
+             valid
+    */
+    virtual QString download_album(QString const& artist, QString const& album) = 0;
+
+    /**
+    \brief Downloads the image of the artist for the given artist and album.
+     After this call expect file_downloaded,  download_error, download_source_not_found
+     or bad_url_error signals to be emitted
+
+     \note the url is also returned in the file_downloaded and download_error signals
+     so you can identify the url being downloaded or giving an error in case
+     you run from multiple threads or download multiple files.
+
+     \return the url being downloaded or an empty QString if the constructed is not
+             valid
+    */
+    virtual QString download_artist(QString const& artist, QString const& album) = 0;
 };
 
 }  // namespace internal

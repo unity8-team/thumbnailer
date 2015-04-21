@@ -28,6 +28,6 @@ using namespace unity::thumbnailer::internal;
 int main(int, char **)
 {
     LastFMDownloader dl;
-    dl.download("The Prodigy", "Music for the Jilted Generation");
+    dl.download_album("The Prodigy", "Music for the Jilted Generation");
     return 0;
 }
