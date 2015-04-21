@@ -45,11 +45,9 @@ using namespace unity::thumbnailer::internal;
 class ThumbnailerPrivate
 {
 private:
-    string extract_exif_image(std::string const& filename);
     string extract_image_from_audio(string const& filename);
     string extract_image_from_video(string const& filename);
     string extract_image_from_other(string const& filename);
-    string create_tmp_filename();
 
 public:
     AudioImageExtractor audio_;
@@ -75,6 +73,40 @@ auto do_unlink = [](string const& filename)
     ::unlink(filename.c_str());
 };
 typedef unity::util::ResourcePtr<string, decltype(do_unlink)> UnlinkPtr;
+
+string create_tmp_filename()
+{
+    static string dir = []
+    {
+        char const* dirp = getenv("TMPDIR");
+        string dir = dirp ? dirp : "/tmp";
+        return dir;
+    }();
+    static auto gen = boost::uuids::random_generator();
+
+    string uuid = boost::lexical_cast<string>(gen());
+    return dir + "/thumbnailer." + uuid + ".tmp";
+    ;
+}
+
+string extract_exif_image(std::string const& filename)
+{
+    std::unique_ptr<ExifLoader, void (*)(ExifLoader*)> el(exif_loader_new(), exif_loader_unref);
+    if (!el)
+    {
+        throw runtime_error("extract_exif_image(): cannot allocate ExifLoader");
+    }
+
+    exif_loader_write_file(el.get(), filename.c_str());
+
+    std::unique_ptr<ExifData, void (*)(ExifData* e)> ed(exif_loader_get_data(el.get()), exif_data_unref);
+    if (!ed || !ed->data || ed->size == 0)
+    {
+        return "";  // Image wasn't extracted for a reason that libexif won't tell us about.
+    }
+
+    return string(reinterpret_cast<char*>(ed->data), ed->size);
+}
 
 }  // namespace
 
@@ -102,7 +134,6 @@ ThumbnailerPrivate::ThumbnailerPrivate()
 
     try
     {
-        cout << "creating cache for " << cache_dir + "/images" << endl;
         // TODO: No good to hard-wire the cache size.
         full_size_cache_ = core::PersistentStringCache::open(cache_dir + "/images", 50 * 1024 * 1024,
                                                              core::CacheDiscardPolicy::lru_ttl);
@@ -115,40 +146,6 @@ ThumbnailerPrivate::ThumbnailerPrivate()
         s += e.what();
         throw runtime_error(s);
     }
-}
-
-string ThumbnailerPrivate::create_tmp_filename()
-{
-    static string dir = []
-    {
-        char const* dirp = getenv("TMPDIR");
-        string dir = dirp ? dirp : "/tmp";
-        return dir;
-    }();
-    static auto gen = boost::uuids::random_generator();
-
-    string uuid = boost::lexical_cast<string>(gen());
-    return dir + "/thumbnailer." + uuid + ".tmp";
-    ;
-}
-
-string ThumbnailerPrivate::extract_exif_image(std::string const& filename)
-{
-    std::unique_ptr<ExifLoader, void (*)(ExifLoader*)> el(exif_loader_new(), exif_loader_unref);
-    if (!el)
-    {
-        throw runtime_error("Thumbnailer::extract_exif_image(): cannot allocate ExifLoader");
-    }
-
-    exif_loader_write_file(el.get(), filename.c_str());
-
-    std::unique_ptr<ExifData, void (*)(ExifData* e)> ed(exif_loader_get_data(el.get()), exif_data_unref);
-    if (!ed || !ed->data || ed->size == 0)
-    {
-        return "";  // Image wasn't extracted for a reason that libexif won't tell us about.
-    }
-
-    return string(reinterpret_cast<char*>(ed->data), ed->size);
 }
 
 string ThumbnailerPrivate::extract_image_from_audio(string const& filename)
@@ -178,7 +175,6 @@ string ThumbnailerPrivate::extract_image_from_other(string const& filename)
     string exif_image = extract_exif_image(filename);
     if (!exif_image.empty())
     {
-        cout << "returning exif" << endl;
         // TODO: need to deal with not caching exif image as the full-size image
         return exif_image;
     }
@@ -263,7 +259,6 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
     if (image)
     {
         // We still have the original image, scale from that.
-        cout << "found full size image with bytes: " << image->size() << endl;
         if (desired_size != 0)
         {
             Image scaled_image(*image);
@@ -275,8 +270,7 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
     }
 
     // Try and download or read the artwork.
-    cout << "cache miss, fetching" << endl;
-    image = fetch(key1, key2);  // TODO: how to make async?
+    image = fetch(key1, key2);
     if (image->empty())
     {
         // TODO: If download failed, need to disable re-try for some time.
@@ -293,11 +287,8 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
 
     if (desired_size != 0)
     {
-        cout << "after cache miss, scaling" << endl;
         Image scaled_image(*image);
-        cout << "calling scale_to" << endl;
         scaled_image.scale_to(desired_size);
-        cout << "done calling scale_to" << endl;
         image = scaled_image.to_jpeg();
     }
     thumbnail_cache_->put(sized_key, *image);
@@ -333,7 +324,6 @@ std::string Thumbnailer::get_thumbnail(std::string const& filename, int desired_
     {
         return p_->extract_image(key1);
     };
-    cout << "calling fetch for " << key1 << endl;
     return p_->fetch_thumbnail(key1, key2, desired_size, fetch);
 }
 
