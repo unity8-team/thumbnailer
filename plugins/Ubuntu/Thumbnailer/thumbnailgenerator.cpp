@@ -82,11 +82,12 @@ QImage ThumbnailGenerator::requestImage(const QString &id, QSize *realSize,
     }
 
     try {
-        return imageFromFd(reply.value().fileDescriptor(), realSize);
+        return imageFromFd(reply.value().fileDescriptor(),
+                           realSize, requestedSize);
     } catch (const std::exception &e) {
-        qDebug() << "Album art loader failed: " << e.what();
+        qWarning() << "Album art loader failed: " << e.what();
     } catch (...) {
-        qDebug() << "Unknown error when generating image.";
+        qWarning() << "Unknown error when generating image.";
     }
 
     return getFallbackImage(id, realSize, requestedSize);

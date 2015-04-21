@@ -46,17 +46,19 @@ public:
     /**
      * Gets a thumbnail of the given input file in the requested size.
      *
-     * Return value is a string pointing to the thumbnail file. If
-     * the thumbnail could not be generated and empty string is returned.
-     *
-     * Applications should treat the returned file as read only. They should _not_
-     * delete it.
-     *
-     * In case of unexpected problems, the function throws a
-     * std::runtime_error.
+     * Return value is the thumbnail image as a string.
+     * If the thumbnail could not be generated, an empty string is returned.
      */
     std::string get_thumbnail(std::string const& filename, int desired_size);
+
+    /**
+     * Gets album art for the given artist an album.
+     */
     std::string get_album_art(std::string const& artist, std::string const& album, int desiredSize);
+
+    /**
+     * Gets artist art for the given artist and album.
+     */
     std::string get_artist_art(std::string const& artist, std::string const& album, int desiredSize);
 
 private:

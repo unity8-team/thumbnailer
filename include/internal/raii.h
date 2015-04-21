@@ -26,6 +26,15 @@
 
 #include <unistd.h>
 
+namespace unity
+{
+
+namespace thumbnailer
+{
+
+namespace internal
+{
+
 auto do_close = [](int fd)
 {
     if (fd >= 0)
@@ -68,3 +77,9 @@ auto do_exif_data_unref = [](ExifData* data)
     }
 };
 typedef unity::util::ResourcePtr<ExifData*, decltype(do_exif_data_unref)> ExifDataPtr;
+
+}  // namespace internal
+
+}  // namespace thumbnailer
+
+}  // namespace unity

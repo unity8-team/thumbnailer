@@ -17,7 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "thumbnailhandler.h"
+#include <internal/raii.h>
+#include "thumbnailhandler.h"  // TODO: If thumbnailhandler.h is included before raii.h, we get compile errors
 #include <internal/safe_strerror.h>
 
 #include <fcntl.h>
@@ -37,14 +38,14 @@ struct ThumbnailHandlerPrivate {
     const std::shared_ptr<Thumbnailer> thumbnailer;
     const QString filename;
     const QDBusUnixFileDescriptor filename_fd;
-    const int size;
+    const QSize requestedSize;
 
     ThumbnailHandlerPrivate(const std::shared_ptr<Thumbnailer> &thumbnailer,
                             const QString &filename,
                             const QDBusUnixFileDescriptor &filename_fd,
-                            int size)
+                            const QSize &requestedSize)
         : thumbnailer(thumbnailer), filename(filename),
-          filename_fd(filename_fd), size(size) {
+          filename_fd(filename_fd), requestedSize(requestedSize) {
     }
 };
 
@@ -53,8 +54,8 @@ ThumbnailHandler::ThumbnailHandler(const QDBusConnection &bus,
                                    const std::shared_ptr<Thumbnailer> &thumbnailer,
                                    const QString &filename,
                                    const QDBusUnixFileDescriptor &filename_fd,
-                                   int size)
-    : Handler(bus, message), p(new ThumbnailHandlerPrivate(thumbnailer, filename, filename_fd, size)) {
+                                   const QSize &requestedSize)
+    : Handler(bus, message), p(new ThumbnailHandlerPrivate(thumbnailer, filename, filename_fd, requestedSize)) {
 }
 
 ThumbnailHandler::~ThumbnailHandler() {
@@ -84,7 +85,10 @@ QDBusUnixFileDescriptor ThumbnailHandler::create() {
                                  + " refers to a different file than the file descriptor");
     }
 
-    std::string art_image = p->thumbnailer->get_thumbnail(p->filename.toStdString(), p->size);
+    int size = thumbnail_size_from_qsize(p->requestedSize);
+    std::string art_image = p->thumbnailer->get_thumbnail(
+        p->filename.toStdString(), size);
+
     if (art_image.empty()) {
         throw std::runtime_error("ThumbnailHandler::create(): Could not get thumbnail for " + p->filename.toStdString());
     }

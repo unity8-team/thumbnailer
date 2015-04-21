@@ -23,6 +23,7 @@
 #include <cassert>
 #include <cmath>
 
+using namespace unity::thumbnailer::internal;
 using namespace std;
 
 Image::Image(string const& data, int orientation)
