@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <gtest/gtest.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <libqtdbustest/DBusTestRunner.h>
@@ -158,7 +159,7 @@ TEST_F(DBusTest, thumbnail_no_such_file) {
         "GetThumbnail", no_such_file, QVariant::fromValue(QDBusUnixFileDescriptor(fd.get())), "large");
     EXPECT_FALSE(reply.isValid());
     auto message = reply.error().message().toStdString();
-    EXPECT_EQ(message, "Could not stat file");
+    EXPECT_TRUE(boost::starts_with(message, "ThumbnailHandler::create(): Could not stat ")) << message;
 }
 
 TEST_F(DBusTest, thumbnail_wrong_fd_fails) {
@@ -172,7 +173,7 @@ TEST_F(DBusTest, thumbnail_wrong_fd_fails) {
         "GetThumbnail", filename1, QVariant::fromValue(QDBusUnixFileDescriptor(fd.get())), "large");
     EXPECT_FALSE(reply.isValid());
     auto message = reply.error().message().toStdString();
-    EXPECT_EQ(message, "filename refers to a different file than the file descriptor");
+    EXPECT_TRUE(boost::ends_with(message, " refers to a different file than the file descriptor"));
 }
 
 int main(int argc, char **argv) {
