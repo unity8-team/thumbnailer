@@ -26,6 +26,7 @@
 #define PORTRAITIMAGE TESTDATADIR "/michi.jpg"
 #define JPEGIMAGE TESTBINDIR "/saved_image.jpg"
 #define BADIMAGE TESTDATADIR "/bad_image.jpg"
+#define RGBIMAGE TESTDATADIR "/RGB.png"
 
 using namespace std;
 
@@ -98,6 +99,18 @@ TEST(Image, basic)
         // No test here. Because JPEG is lossy, there is no easy way to verify
         // that the image was saved correctly. Manual inspection of the file
         // is easier (see JPEGIMAGE in the test build dir).
+    }
+}
+
+TEST(Image, rotate)
+{
+    string data = read_file(RGBIMAGE);
+
+    for (int i = 0; i <= 9; ++i)
+    {
+        Image img(data, i);
+        // TODO: No test here yet, this is for coverage.
+        //       Need to add pixel sampling functionality to Image.
     }
 }
 
