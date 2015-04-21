@@ -21,19 +21,9 @@
 #include "artgeneratorcommon.h"
 #include <QFile>
 
-QString sizeToDesiredSizeString(const QSize& requestedSize)
-{
-    QString desiredSize = "original";
-    int size = requestedSize.width() > requestedSize.height() ? requestedSize.width() : requestedSize.height();
-    if (size < 128) {
-        desiredSize = "small";
-    } else if (size < 256) {
-        desiredSize = "large";
-    } else if (size < 512) {
-        desiredSize = "xlarge";
-    }
-    return desiredSize;
-}
+namespace unity {
+namespace thumbnailer {
+namespace qml {
 
 QImage imageFromFd(int fd, QSize *realSize)
 {
@@ -43,4 +33,8 @@ QImage imageFromFd(int fd, QSize *realSize)
     image.load(&file, NULL);
     *realSize = image.size();
     return image;
+}
+
+}
+}
 }

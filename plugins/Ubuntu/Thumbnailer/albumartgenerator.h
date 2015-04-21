@@ -17,23 +17,28 @@
  *          James Henstridge <james.henstridge@canonical.com>
 */
 
-#ifndef ALBUMART_GENERATOR_H
-#define ALBUMART_GENERATOR_H
+#pragma once
 
-#include <QDBusInterface>
 #include <QQuickImageProvider>
+#include <thumbnailerinterface.h>
 
 #include <memory>
+
+namespace unity {
+namespace thumbnailer {
+namespace qml {
 
 class AlbumArtGenerator: public QQuickImageProvider
 {
 private:
     std::unique_ptr<QDBusConnection> connection;
-    std::unique_ptr<QDBusInterface> iface;
+    std::unique_ptr<ThumbnailerInterface> iface;
 
 public:
     AlbumArtGenerator();
     QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize);
 };
 
-#endif
+}
+}
+}

@@ -26,6 +26,7 @@
 #include <QDBusContext>
 #include <QDBusUnixFileDescriptor>
 #include <QObject>
+#include <QSize>
 #include <QString>
 
 namespace unity {
@@ -44,9 +45,9 @@ public:
     DBusInterface& operator=(DBusInterface&) = delete;
 
 public Q_SLOTS:
-    QDBusUnixFileDescriptor GetAlbumArt(const QString &artist, const QString &album, const QString &desiredSize);
-    QDBusUnixFileDescriptor GetArtistArt(const QString &artist, const QString &album, const QString &desiredSize);
-    QDBusUnixFileDescriptor GetThumbnail(const QString &filename, const QDBusUnixFileDescriptor &filename_fd, const QString &desiredSize);
+    QDBusUnixFileDescriptor GetAlbumArt(const QString &artist, const QString &album, const QSize &desiredSize);
+    QDBusUnixFileDescriptor GetArtistArt(const QString &artist, const QString &album, const QSize &desiredSize);
+    QDBusUnixFileDescriptor GetThumbnail(const QString &filename, const QDBusUnixFileDescriptor &filename_fd, const QSize &desiredSize);
 
 private:
     void queueRequest(Handler* handler);
