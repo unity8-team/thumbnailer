@@ -42,7 +42,7 @@ public:
                     const std::shared_ptr<Thumbnailer> &thumbnailer,
                     const QString &artist,
                     const QString &album,
-                    ThumbnailSize size);
+                    const QSize &requestedSize);
     ~ArtistArtHandler();
 
 protected:

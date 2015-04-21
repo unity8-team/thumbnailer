@@ -158,6 +158,26 @@ void Handler::sendError(const QString &error) {
     Q_EMIT finished();
 }
 
+ThumbnailSize thumbnail_size_from_qsize(const QSize &size)
+{
+    if (!size.isValid()) {
+        // If an invalid size is passed to the QQuickImageProvider,
+        // then we don't know what size is expected.  In this case,
+        // return the unscaled original.
+        return TN_SIZE_ORIGINAL;
+    }
+
+    int maxsize = size.width() > size.height() ? size.width() : size.height();
+    if (maxsize <= 128) {
+        return TN_SIZE_SMALL;
+    } else if (maxsize <= 256) {
+        return TN_SIZE_LARGE;
+    } else if (maxsize <= 512) {
+        return TN_SIZE_XLARGE;
+    }
+    return TN_SIZE_ORIGINAL;
+}
+
 QDBusUnixFileDescriptor write_to_tmpfile(std::string const& image)
 {
 
