@@ -34,13 +34,14 @@ struct ArtistArtHandlerPrivate {
     const std::shared_ptr<Thumbnailer> thumbnailer;
     const QString artist;
     const QString album;
-    const ThumbnailSize size;
+    const QSize requestedSize;
 
     ArtistArtHandlerPrivate(const std::shared_ptr<Thumbnailer> &thumbnailer,
                             const QString &artist,
                             const QString &album,
-                            ThumbnailSize size)
-        : thumbnailer(thumbnailer), artist(artist), album(album), size(size) {
+                            const QSize &requestedSize)
+        : thumbnailer(thumbnailer), artist(artist), album(album),
+          requestedSize(requestedSize) {
     }
 };
 
@@ -49,8 +50,8 @@ ArtistArtHandler::ArtistArtHandler(const QDBusConnection &bus,
                                    const std::shared_ptr<Thumbnailer> &thumbnailer,
                                    const QString &artist,
                                    const QString &album,
-                                   ThumbnailSize size)
-    : Handler(bus, message), p(new ArtistArtHandlerPrivate(thumbnailer, artist, album, size)) {
+                                   const QSize &requestedSize)
+    : Handler(bus, message), p(new ArtistArtHandlerPrivate(thumbnailer, artist, album, requestedSize)) {
 }
 
 ArtistArtHandler::~ArtistArtHandler() {
@@ -65,8 +66,9 @@ void ArtistArtHandler::download() {
 }
 
 QDBusUnixFileDescriptor ArtistArtHandler::create() {
+    ThumbnailSize size = thumbnail_size_from_qsize(p->requestedSize);
     std::string art_image = p->thumbnailer->get_artist_art(
-        p->artist.toStdString(), p->album.toStdString(), p->size, TN_REMOTE);
+        p->artist.toStdString(), p->album.toStdString(), size, TN_REMOTE);
 
     if (art_image.empty()) {
         throw std::runtime_error("Could not get thumbnail");

@@ -37,14 +37,14 @@ struct ThumbnailHandlerPrivate {
     const std::shared_ptr<Thumbnailer> thumbnailer;
     const QString filename;
     const QDBusUnixFileDescriptor filename_fd;
-    const ThumbnailSize size;
+    const QSize requestedSize;
 
     ThumbnailHandlerPrivate(const std::shared_ptr<Thumbnailer> &thumbnailer,
                             const QString &filename,
                             const QDBusUnixFileDescriptor &filename_fd,
-                            ThumbnailSize size)
+                            const QSize &requestedSize)
         : thumbnailer(thumbnailer), filename(filename),
-          filename_fd(filename_fd), size(size) {
+          filename_fd(filename_fd), requestedSize(requestedSize) {
     }
 };
 
@@ -53,8 +53,8 @@ ThumbnailHandler::ThumbnailHandler(const QDBusConnection &bus,
                                    const std::shared_ptr<Thumbnailer> &thumbnailer,
                                    const QString &filename,
                                    const QDBusUnixFileDescriptor &filename_fd,
-                                   ThumbnailSize size)
-    : Handler(bus, message), p(new ThumbnailHandlerPrivate(thumbnailer, filename, filename_fd, size)) {
+                                   const QSize &requestedSize)
+    : Handler(bus, message), p(new ThumbnailHandlerPrivate(thumbnailer, filename, filename_fd, requestedSize)) {
 }
 
 ThumbnailHandler::~ThumbnailHandler() {
@@ -83,14 +83,15 @@ QDBusUnixFileDescriptor ThumbnailHandler::create() {
         throw std::runtime_error("filename refers to a different file to the file descriptor");
     }
 
+    ThumbnailSize size = thumbnail_size_from_qsize(p->requestedSize);
     std::string art = p->thumbnailer->get_thumbnail(
-        p->filename.toStdString(), p->size, TN_REMOTE);
+        p->filename.toStdString(), size, TN_REMOTE);
 
     if (art.empty()) {
         throw std::runtime_error("Could not get thumbnail");
     }
 
-        // FIXME: check that the thumbnail was produced for fd_stat
+    // FIXME: check that the thumbnail was produced for fd_stat
     FdPtr fd(open(art.c_str(), O_RDONLY), ::close);
     if (fd.get() < 0) {
         throw std::runtime_error(safe_strerror(errno));

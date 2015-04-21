@@ -15,7 +15,7 @@ proxy = Gio.DBusProxy.new_sync(bus, Gio.DBusProxyFlags.NONE, None,
                                "/com/canonical/Thumbnailer",
                                "com.canonical.Thumbnailer", None)
 
-args = GLib.Variant("(sss)", (sys.argv[1], sys.argv[2], "original"))
+args = GLib.Variant("(ss(ii))", (sys.argv[1], sys.argv[2], (-1, -1)))
 result, fd_list = proxy.call_with_unix_fd_list_sync(
     "GetAlbumArt", args, Gio.DBusCallFlags.NONE, 5000, None, None)
 

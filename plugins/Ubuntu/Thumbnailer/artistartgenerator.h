@@ -16,23 +16,28 @@
  * Authors: Pawel Stolowski <pawel.stolowski@canonical.com>
 */
 
-#ifndef ARTISTART_GENERATOR_H
-#define ARTISTART_GENERATOR_H
+#pragma once
 
-#include <QDBusInterface>
 #include <QQuickImageProvider>
+#include <thumbnailerinterface.h>
 
 #include <memory>
+
+namespace unity {
+namespace thumbnailer {
+namespace qml {
 
 class ArtistArtGenerator: public QQuickImageProvider
 {
 private:
     std::unique_ptr<QDBusConnection> connection;
-    std::unique_ptr<QDBusInterface> iface;
+    std::unique_ptr<ThumbnailerInterface> iface;
 
 public:
     ArtistArtGenerator();
     QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize);
 };
 
-#endif
+}
+}
+}

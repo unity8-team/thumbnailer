@@ -16,19 +16,22 @@
  * Authors: Jussi Pakkanen <jussi.pakkanen@canonical.com>
 */
 
-#ifndef THUMBNAIL_GENERATOR_H
-#define THUMBNAIL_GENERATOR_H
+#pragma once
 
 #include <memory>
 
-#include <QDBusInterface>
 #include <QQuickImageProvider>
+#include <thumbnailerinterface.h>
+
+namespace unity {
+namespace thumbnailer {
+namespace qml {
 
 class ThumbnailGenerator: public QQuickImageProvider
 {
 private:
     std::unique_ptr<QDBusConnection> connection;
-    std::unique_ptr<QDBusInterface> iface;
+    std::unique_ptr<ThumbnailerInterface> iface;
 
 public:
     ThumbnailGenerator();
@@ -41,4 +44,6 @@ public:
     QImage getFallbackImage(const QString &id, QSize *size, const QSize &requestedSize);
 };
 
-#endif
+}
+}
+}

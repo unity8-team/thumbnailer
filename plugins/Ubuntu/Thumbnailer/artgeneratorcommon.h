@@ -16,13 +16,17 @@
  * Authors: Pawel Stolowski <pawel.stolowski@canonical.com>
 */
 
-#ifndef ARTGENERATOR_COMMON_H
-#define ARTGENERATOR_COMMON_H
+#pragma once
 
 #include <QString>
 #include <QImage>
 
-QString sizeToDesiredSizeString(const QSize& requestedSize);
-QImage imageFromFd(int fd, QSize *realSize);
+namespace unity {
+namespace thumbnailer {
+namespace qml {
 
-#endif
+QImage imageFromFd(int fd, QSize *realSize, const QSize &requestedSize);
+
+}
+}
+}

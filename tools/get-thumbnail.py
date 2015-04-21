@@ -17,7 +17,7 @@ proxy = Gio.DBusProxy.new_sync(bus, Gio.DBusProxyFlags.NONE, None,
 
 filename = Gio.File.new_for_commandline_arg(sys.argv[1]).get_path()
 
-args = GLib.Variant("(shs)", (filename, 0, "original"))
+args = GLib.Variant("(sh(ii))", (filename, 0, (-1, -1)))
 args_fds = Gio.UnixFDList.new()
 args_fds.append(os.open(filename, os.O_RDONLY))
 

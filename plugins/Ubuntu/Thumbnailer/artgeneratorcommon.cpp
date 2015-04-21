@@ -20,27 +20,38 @@
 
 #include "artgeneratorcommon.h"
 #include <QFile>
+#include <QImageReader>
 
-QString sizeToDesiredSizeString(const QSize& requestedSize)
-{
-    QString desiredSize = "original";
-    int size = requestedSize.width() > requestedSize.height() ? requestedSize.width() : requestedSize.height();
-    if (size < 128) {
-        desiredSize = "small";
-    } else if (size < 256) {
-        desiredSize = "large";
-    } else if (size < 512) {
-        desiredSize = "xlarge";
-    }
-    return desiredSize;
-}
+namespace unity {
+namespace thumbnailer {
+namespace qml {
 
-QImage imageFromFd(int fd, QSize *realSize)
+QImage imageFromFd(int fd, QSize *realSize, const QSize &requestedSize)
 {
     QFile file;
     file.open(fd, QIODevice::ReadOnly);
-    QImage image;
-    image.load(&file, NULL);
+    QImageReader reader;
+    reader.setDevice(&file);
+    QSize imageSize = reader.size();
+    if (requestedSize.isValid()) {
+        QSize validRequestedSize = requestedSize;
+        if (validRequestedSize.width() == 0) {
+            validRequestedSize.setWidth(imageSize.width());
+        }
+        if (validRequestedSize.height() == 0) {
+            validRequestedSize.setHeight(imageSize.height());
+        }
+        if (imageSize.width() > validRequestedSize.width() ||
+            imageSize.height() > validRequestedSize.height()) {
+            imageSize.scale(validRequestedSize, Qt::KeepAspectRatio);
+            reader.setScaledSize(imageSize);
+        }
+    }
+    QImage image = reader.read();
     *realSize = image.size();
     return image;
+}
+
+}
+}
 }

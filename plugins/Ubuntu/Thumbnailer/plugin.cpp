@@ -21,6 +21,10 @@
 #include "artistartgenerator.h"
 #include "thumbnailgenerator.h"
 
+namespace unity {
+namespace thumbnailer {
+namespace qml {
+
 void ThumbnailerPlugin::registerTypes(const char *uri) {
     qmlRegisterTypeNotAvailable(
         uri, 0, 1, "__ThumbnailerIgnoreMe",
@@ -53,4 +57,8 @@ void ThumbnailerPlugin::initializeEngine(QQmlEngine *engine, const char *uri) {
     } catch (...) {
         qWarning() << "Failed to register thumbnailer image provider.";
     }
+}
+
+}
+}
 }

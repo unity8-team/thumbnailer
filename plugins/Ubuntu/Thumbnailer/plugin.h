@@ -16,10 +16,13 @@
  * Authors: James Henstridge <james.henstridge@canonical.com>
 */
 
-#ifndef THUMBNAILER_PLUGIN_H
-#define THUMBNAILER_PLUGIN_H
+#pragma once
 
 #include <QtQml>
+
+namespace unity {
+namespace thumbnailer {
+namespace qml {
 
 class ThumbnailerPlugin : public QQmlExtensionPlugin
 {
@@ -31,4 +34,6 @@ public:
     virtual void initializeEngine(QQmlEngine *engine, const char *uri) override;
 };
 
-#endif
+}
+}
+}

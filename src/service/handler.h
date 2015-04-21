@@ -26,6 +26,9 @@
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <QDBusUnixFileDescriptor>
+#include <QSize>
+
+#include <thumbnailer.h>
 
 namespace unity {
 namespace thumbnailer {
@@ -81,6 +84,8 @@ private:
     std::unique_ptr<HandlerPrivate> p;
 };
 
+// Convert requestedSize to a ThumbnailSize constant
+ThumbnailSize thumbnail_size_from_qsize(const QSize &size);
 // Helper routine for creating an unnamed tmpfile from image data
 QDBusUnixFileDescriptor write_to_tmpfile(std::string const& image);
 

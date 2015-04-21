@@ -42,7 +42,7 @@ public:
                      const std::shared_ptr<Thumbnailer> &thumbnailer,
                      const QString &filename,
                      const QDBusUnixFileDescriptor &filename_fd,
-                     ThumbnailSize size);
+                     const QSize &requestedSize);
     ~ThumbnailHandler();
 
 protected:

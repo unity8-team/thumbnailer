@@ -27,23 +27,27 @@
 #include <QDBusUnixFileDescriptor>
 #include <QDBusReply>
 
-static const char DEFAULT_ARTIST_ART[] = "/usr/share/thumbnailer/icons/album_missing.png";
+namespace {
+const char DEFAULT_ARTIST_ART[] = "/usr/share/thumbnailer/icons/album_missing.png";
 
-static const char BUS_NAME[] = "com.canonical.Thumbnailer";
-static const char BUS_PATH[] = "/com/canonical/Thumbnailer";
-static const char THUMBNAILER_IFACE[] = "com.canonical.Thumbnailer";
-static const char GET_ARTIST_ART[] = "GetArtistArt";
+const char BUS_NAME[] = "com.canonical.Thumbnailer";
+const char BUS_PATH[] = "/com/canonical/Thumbnailer";
 
-ArtistArtGenerator::ArtistArtGenerator()
-    : QQuickImageProvider(QQuickImageProvider::Image, QQmlImageProviderBase::ForceAsynchronousImageLoading)
-{
-}
-
-static QImage fallbackImage(QSize *realSize) {
+QImage fallbackImage(QSize *realSize) {
     QImage fallback;
     fallback.load(DEFAULT_ARTIST_ART);
     *realSize = fallback.size();
     return fallback;
+}
+}
+
+namespace unity {
+namespace thumbnailer {
+namespace qml {
+
+ArtistArtGenerator::ArtistArtGenerator()
+    : QQuickImageProvider(QQuickImageProvider::Image, QQmlImageProviderBase::ForceAsynchronousImageLoading)
+{
 }
 
 QImage ArtistArtGenerator::requestImage(const QString &id, QSize *realSize,
@@ -57,29 +61,32 @@ QImage ArtistArtGenerator::requestImage(const QString &id, QSize *realSize,
     if (!connection) {
         // Create them here and not them on the constrcutor so they belong to the proper thread
         connection.reset(new QDBusConnection(QDBusConnection::connectToBus(QDBusConnection::SessionBus, "artist_art_generator_dbus_connection")));
-        iface.reset(new QDBusInterface(BUS_NAME, BUS_PATH, THUMBNAILER_IFACE, *connection));
+        iface.reset(new ThumbnailerInterface(BUS_NAME, BUS_PATH, *connection));
     }
 
     const QString artist = query.queryItemValue("artist", QUrl::FullyDecoded);
     const QString album = query.queryItemValue("album", QUrl::FullyDecoded);
 
-    QString desiredSize = sizeToDesiredSizeString(requestedSize);
-
     // perform dbus call
-    QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
-        GET_ARTIST_ART, artist, album, desiredSize);
+    auto reply = iface->GetArtistArt(artist, album, requestedSize);
+    reply.waitForFinished();
     if (!reply.isValid()) {
         qWarning() << "D-Bus error: " << reply.error().message();
         return fallbackImage(realSize);
     }
 
     try {
-        return imageFromFd(reply.value().fileDescriptor(), realSize);
+        return imageFromFd(reply.value().fileDescriptor(),
+                           realSize, requestedSize);
     } catch (const std::exception &e) {
-        qDebug() << "Artist art loader failed: " << e.what();
+        qWarning() << "Artist art loader failed: " << e.what();
     } catch (...) {
-        qDebug() << "Unknown error when generating image.";
+        qWarning() << "Unknown error when generating image.";
     }
 
     return fallbackImage(realSize);
+}
+
+}
+}
 }
