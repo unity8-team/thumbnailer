@@ -33,11 +33,7 @@ QImage imageFromFd(int fd, QSize *realSize, const QSize &requestedSize)
     QImageReader reader;
     reader.setDevice(&file);
     QSize imageSize = reader.size();
-    if (requestedSize.isValid() && (
-            (requestedSize.width() > 0 &&
-             imageSize.width() > requestedSize.width()) ||
-            (requestedSize.height() > 0 &&
-             imageSize.height() > requestedSize.height()))) {
+    if (requestedSize.isValid()) {
         QSize validRequestedSize = requestedSize;
         if (validRequestedSize.width() == 0) {
             validRequestedSize.setWidth(imageSize.width());
@@ -45,8 +41,11 @@ QImage imageFromFd(int fd, QSize *realSize, const QSize &requestedSize)
         if (validRequestedSize.height() == 0) {
             validRequestedSize.setHeight(imageSize.height());
         }
-        imageSize.scale(validRequestedSize, Qt::KeepAspectRatio);
-        reader.setScaledSize(imageSize);
+        if (imageSize.width() > validRequestedSize.width() ||
+            imageSize.height() > validRequestedSize.height()) {
+            imageSize.scale(validRequestedSize, Qt::KeepAspectRatio);
+            reader.setScaledSize(imageSize);
+        }
     }
     QImage image = reader.read();
     *realSize = image.size();
