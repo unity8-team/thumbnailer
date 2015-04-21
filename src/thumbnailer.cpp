@@ -62,7 +62,8 @@ public:
     string fetch_thumbnail(string const& key1,
                            string const& key2,
                            int desired_size,
-                           function<string(string const&, string const&)> fetch);
+                           function<string(string const&, string const&)> fetch,
+                           bool use_exif = false);
 };
 
 namespace
@@ -94,7 +95,9 @@ string extract_exif_image(std::string const& filename)
     std::unique_ptr<ExifLoader, void (*)(ExifLoader*)> el(exif_loader_new(), exif_loader_unref);
     if (!el)
     {
-        throw runtime_error("extract_exif_image(): cannot allocate ExifLoader");
+        // We don't throw here because we can still extract a thumbnail from the full-size image
+        // and this error should never happen anyway.
+        return "";
     }
 
     exif_loader_write_file(el.get(), filename.c_str());
@@ -172,12 +175,6 @@ string ThumbnailerPrivate::extract_image_from_video(string const& filename)
 
 string ThumbnailerPrivate::extract_image_from_other(string const& filename)
 {
-    string exif_image = extract_exif_image(filename);
-    if (!exif_image.empty())
-    {
-        // TODO: need to deal with not caching exif image as the full-size image
-        return exif_image;
-    }
     return read_file(filename);
 }
 
@@ -231,16 +228,20 @@ Thumbnailer::~Thumbnailer() = default;
 // the pathname in key1 and the device, inode, and mtime in key2.
 //
 // We first look in the cache to see if we have a thumbnail already for the provided keys and size.
-// If not, we check whether full-size image was downloaded previously and is still hanging
+// If not, we check whether a full-size image was downloaded previously and is still hanging
 // around. If so, we scale the full-size image to what was asked for, add it to the thumbnail
-// cache, and returned the scaled image. Otherwise, we fetch the image (by downloading it
+// cache, and return the scaled image. Otherwise, we fetch the image (by downloading it
 // or extracting it from a file, add the full-size image to the full-size cache, scale
-// the image and add the scaled version to the thumbnail cache, and return teh caled image.
+// the image and add the scaled version to the thumbnail cache, and return the scaled image.
+//
+// If an image contains an EXIF thumbnail and the thumbnail is >= desired size, we generate
+// the thumbnail from the EXIF thumbnail.
 
 string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
                                            string const& key2,
                                            int desired_size,
-                                           function<string(string const&, string const&)> fetch)
+                                           function<string(string const&, string const&)> fetch,
+                                           bool use_exif)
 {
     string key = key1 + "\0" + key2;
 
@@ -252,6 +253,23 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
     if (thumbnail)
     {
         return *thumbnail;
+    }
+
+    // Check if there is an EXIF thumbnail we can use.
+    if (use_exif && desired_size != 0)
+    {
+        string exif_data = extract_exif_image(key1);
+        if (!exif_data.empty())
+        {
+            Image exif_image(exif_data);
+            if (exif_image.max_size() >= desired_size)
+            {
+                exif_image.scale_to(desired_size);
+                thumbnail = exif_image.to_jpeg();
+                thumbnail_cache_->put(sized_key, *thumbnail);
+                return *thumbnail;
+            }
+        }
     }
 
     // Don't have the thumbnail yet, see if we have the original image around.
@@ -324,7 +342,7 @@ std::string Thumbnailer::get_thumbnail(std::string const& filename, int desired_
     {
         return p_->extract_image(key1);
     };
-    return p_->fetch_thumbnail(key1, key2, desired_size, fetch);
+    return p_->fetch_thumbnail(key1, key2, desired_size, fetch, true);
 }
 
 std::string Thumbnailer::get_album_art(std::string const& artist, std::string const& album, int desired_size)
