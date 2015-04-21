@@ -33,11 +33,12 @@ using namespace std;
 
 string read_file(string const& filename)
 {
-    FdPtr fd_ptr(::open(filename.c_str(), O_RDONLY), do_close);
-    if (fd_ptr.get() == -1)
+    int fd = open(filename.c_str(), O_RDONLY);
+    if (fd == -1)
     {
         throw runtime_error("read_file(): cannot open \"" + filename + "\": " + safe_strerror(errno));
     }
+    FdPtr fd_ptr(fd, do_close);
 
     struct stat st;
     if (fstat(fd_ptr.get(), &st) == -1)
@@ -65,11 +66,13 @@ string read_file(string const& filename)
 
 void write_file(string const& filename, string const& contents)
 {
-    FdPtr fd_ptr(::open(filename.c_str(), O_CREAT | O_TRUNC | O_WRONLY, 0700), do_close);
-    if (fd_ptr.get() == -1)
+    int fd = open(filename.c_str(), O_CREAT | O_TRUNC | O_WRONLY, 0700);
+    if (fd == -1)
     {
         throw runtime_error("write_file(): cannot open \"" + filename + "\": " + safe_strerror(errno));
     }
+    FdPtr fd_ptr(fd, do_close);
+
     int rc = write(fd_ptr.get(), &contents[0], contents.size());
     if (rc == -1)
     {

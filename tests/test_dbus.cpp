@@ -1,4 +1,6 @@
 
+#include <internal/raii.h>
+
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -17,12 +19,12 @@
 
 #include <testsetup.h>
 
+using namespace unity::thumbnailer::internal;
+
 static const char BUS_NAME[] = "com.canonical.Thumbnailer";
 static const char BUS_PATH[] = "/com/canonical/Thumbnailer";
 static const char THUMBNAILER_IFACE[] = "com.canonical.Thumbnailer";
 
-
-typedef unity::util::ResourcePtr<int, decltype(&::close)> FdPtr;
 typedef std::unique_ptr<GdkPixbuf, decltype(&g_object_unref)> PixbufPtr;
 
 template <typename T>
@@ -136,7 +138,7 @@ TEST_F(DBusTest, get_album_art) {
 
 TEST_F(DBusTest, thumbnail_image) {
     const char *filename = TESTDATADIR "/testimage.jpg";
-    FdPtr fd(open(filename, O_RDONLY), close);
+    FdPtr fd(open(filename, O_RDONLY), do_close);
     ASSERT_GE(fd.get(), 0);
 
     QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
@@ -154,7 +156,7 @@ TEST_F(DBusTest, thumbnail_no_such_file) {
     const char *no_such_file = TESTDATADIR "/no-such-file.jpg";
     const char *filename2 = TESTDATADIR "/testrotate.jpg";
 
-    FdPtr fd(open(filename2, O_RDONLY), close);
+    FdPtr fd(open(filename2, O_RDONLY), do_close);
     ASSERT_GE(fd.get(), 0);
 
     QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
@@ -170,7 +172,7 @@ TEST_F(DBusTest, thumbnail_wrong_fd_fails) {
     const char *filename1 = TESTDATADIR "/testimage.jpg";
     const char *filename2 = TESTDATADIR "/testrotate.jpg";
 
-    FdPtr fd(open(filename2, O_RDONLY), close);
+    FdPtr fd(open(filename2, O_RDONLY), do_close);
     ASSERT_GE(fd.get(), 0);
 
     QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(

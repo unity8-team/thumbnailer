@@ -184,7 +184,8 @@ QDBusUnixFileDescriptor write_to_tmpfile(std::string const& image)
 
     int fd = open(dir.c_str(), O_TMPFILE | O_RDWR);
     // Different kernel verions return different errno if they don't recognize O_TMPFILE,
-    // so we check for any failure here. If it is a real failure, mkstemp will fail too.
+    // so we check for all failures here. If it is a real failure (rather than the flag not
+    // being recognized), mkstemp will fail too.
     if (fd < 0)
     {
         // We are running on an old kernel without O_TMPFILE support:
