@@ -172,6 +172,8 @@ QDBusUnixFileDescriptor write_to_tmpfile(std::string const& image)
     static std::string dir = find_tmpdir();
 
     int fd = open(dir.c_str(), O_TMPFILE | O_RDWR);
+    // Different kernel verions return different errno if they don't recognize O_TMPFILE,
+    // so we check for any failure here. If it is a real failure, mkstemp will fail too.
     if (fd < 0)
     {
         // We are running on an old kernel without O_TMPFILE support:
@@ -181,7 +183,8 @@ QDBusUnixFileDescriptor write_to_tmpfile(std::string const& image)
         // As a fallback, use mkstemp() and unlink the resulting file.
         std::string tmpfile = dir + "/thumbnail.XXXXXX";
         fd = mkstemp(const_cast<char*>(tmpfile.data()));
-        if (fd >= 0) {
+        if (fd >= 0)
+        {
             unlink(tmpfile.data());
         }
     }
