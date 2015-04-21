@@ -247,10 +247,14 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
                                            function<string(string const&, string const&)> fetch,
                                            bool use_exif)
 {
-    string key = key1 + "\0" + key2;
+    string key = key1;
+    key += '\0';
+    key += key2;
 
     // desired_size is 0 if the caller wants original size.
-    string sized_key = key + "\0" + to_string(desired_size);
+    string sized_key = key;
+    sized_key += '\0';
+    sized_key += to_string(desired_size);
 
     cerr << "desired: " << desired_size << endl;
     // Check if we have the thumbnail in the cache already.
@@ -341,8 +345,11 @@ string Thumbnailer::get_thumbnail(string const& filename, int desired_size)
     // from the cache. Instead, we just let the normal eviction mechanism take care of them (because stale
     // thumbnails due to file removal or file update are rare).
     string key1 = path.native();
-    string key2 =
-        to_string(dev) + "\0" + to_string(ino) + "\0" + to_string(mtim.tv_sec) + "." + to_string(mtim.tv_nsec);
+    string key2 = to_string(dev);
+    key2 += '\0';
+    key2 += to_string(ino);
+    key2 += '\0';
+    key2 += to_string(mtim.tv_sec) + "." + to_string(mtim.tv_nsec);
 
     auto fetch = [this](string const& key1, string const& /* key2 */)
     {
@@ -362,7 +369,10 @@ string Thumbnailer::get_album_art(string const& artist, string const& album, int
         return p_->downloader_->download(artist, album);
     };
     // Append "\0album" to key2, so we don't mix up album art and artist art.
-    return p_->fetch_thumbnail(artist, album + "\0album", desired_size, fetch);
+    string key2 = album;
+    key2 += '\0';
+    key2 += "album";
+    return p_->fetch_thumbnail(artist, key2, desired_size, fetch);
 }
 
 string Thumbnailer::get_artist_art(string const& artist, string const& album, int desired_size)
@@ -376,5 +386,8 @@ string Thumbnailer::get_artist_art(string const& artist, string const& album, in
         return p_->downloader_->download_artist(artist, album);
     };
     // Append "\0artist" to key2, so we don't mix up album art and artist art.
-    return p_->fetch_thumbnail(artist, album + "\0artist", desired_size, fetch);
+    string key2 = album;
+    key2 += '\0';
+    key2 += "artist";
+    return p_->fetch_thumbnail(artist, key2, desired_size, fetch);
 }

@@ -172,6 +172,18 @@ QDBusUnixFileDescriptor write_to_tmpfile(std::string const& image)
     static std::string dir = find_tmpdir();
 
     int fd = open(dir.c_str(), O_TMPFILE | O_RDWR);
+    if (fd < 0 && errno == EISDIR) {
+        // We are running on an old kernel without O_TMPFILE support:
+        // the flag has been ignored, and treated as an attempt to
+        // open /tmp.
+        //
+        // As a fallback, use mkstemp() and unlink the resulting file.
+        std::string tmpfile = dir + "/thumbnail.XXXXXX";
+        fd = mkstemp(const_cast<char*>(tmpfile.data()));
+        if (fd >= 0) {
+            unlink(tmpfile.data());
+        }
+    }
     if (fd < 0) {
         std::string err = "cannot create tmpfile in " + dir + ": " + safe_strerror(errno);
         throw std::runtime_error(err);
