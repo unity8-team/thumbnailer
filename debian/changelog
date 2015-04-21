@@ -1,3 +1,11 @@
+thumbnailer (1.4-0ubuntu0) UNRELEASED; urgency=medium
+
+  * Switch to new cache implementation
+  * Remove the libthumbnailer0 and libthumbnailer-dev packages, since 
+    that code is now statically linked into the D-Bus service.
+
+ -- James Henstridge <james.henstridge@canonical.com>  Tue, 21 Apr 2015 14:17:52 +0800
+
 thumbnailer (1.3+15.04.20150312-0ubuntu1) vivid; urgency=medium
 
   [ Albert Astals Cid ]
