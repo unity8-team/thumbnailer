@@ -18,27 +18,12 @@
 
 #include <internal/image.h>
 
-#include <unity/util/ResourcePtr.h>
+#include <internal/raii.h>
 
 #include <cassert>
 #include <cmath>
 
 using namespace std;
-
-namespace
-{
-
-auto do_loader_close = [](GdkPixbufLoader* loader)
-{
-    if (loader)
-    {
-        gdk_pixbuf_loader_close(loader, NULL);
-        g_object_unref(loader);
-    }
-};
-typedef unity::util::ResourcePtr<GdkPixbufLoader*, decltype(do_loader_close)> LoaderPtr;
-
-}  // namespace
 
 Image::Image(string const& data, int orientation)
 {
@@ -48,7 +33,7 @@ Image::Image(string const& data, int orientation)
 void Image::load(string const& data, int orientation)
 {
     LoaderPtr loader(gdk_pixbuf_loader_new(), do_loader_close);
-    if (!loader)
+    if (!loader.get())
     {
         throw runtime_error("Image::load(): cannot allocate GdkPixbufLoader");  // LCOV_EXCL_LINE
     }

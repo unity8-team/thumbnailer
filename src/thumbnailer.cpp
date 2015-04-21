@@ -25,6 +25,7 @@
 #include <internal/image.h>
 #include <internal/lastfmdownloader.h>
 #include <internal/make_directories.h>
+#include <internal/raii.h>
 #include <internal/ubuntuserverdownloader.h>
 #include <internal/videoscreenshotter.h>
 
@@ -33,7 +34,6 @@
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <core/persistent_string_cache.h>
-#include <libexif/exif-loader.h>
 #include <unity/util/ResourcePtr.h>
 
 #include <fcntl.h>
@@ -69,12 +69,6 @@ public:
 namespace
 {
 
-auto do_unlink = [](string const& filename)
-{
-    ::unlink(filename.c_str());
-};
-typedef unity::util::ResourcePtr<string, decltype(do_unlink)> UnlinkPtr;
-
 string create_tmp_filename()
 {
     static string dir = []
@@ -94,30 +88,31 @@ string extract_exif_image(string const& filename, int& orientation)
 {
     orientation = 1;  // Default, already in correct orientation.
 
-    unique_ptr<ExifLoader, void (*)(ExifLoader*)> el(exif_loader_new(), exif_loader_unref);
-    if (!el)
+    ExifLoaderPtr el(exif_loader_new(), do_exif_loader_close);
+    if (!el.get())
     {
         // We don't throw here because we can still extract a thumbnail from the full-size image
         // and this error should never happen anyway.
+        cerr << "exif loader is NULL!!!" << endl;
         return "";
     }
 
     exif_loader_write_file(el.get(), filename.c_str());
 
-    unique_ptr<ExifData, void (*)(ExifData*)> ed(exif_loader_get_data(el.get()), exif_data_unref);
-    if (!ed || !ed->data || ed->size == 0)
+    ExifDataPtr ed(exif_loader_get_data(el.get()), do_exif_data_unref);
+    if (!ed.get() || !ed.get()->data || ed.get()->size == 0)
     {
+        cerr << "no EXIF data for " << filename << endl;
         return "";  // Image wasn't extracted for a reason that libexif won't tell us about.
     }
 
-    unique_ptr<ExifEntry, void (*)(ExifEntry*)>
-        e(exif_data_get_entry(ed.get(), EXIF_TAG_ORIENTATION), exif_entry_unref);
+    ExifEntry* e(exif_data_get_entry(ed.get(), EXIF_TAG_ORIENTATION));
     if (e)
     {
         orientation = exif_get_short(e->data, exif_data_get_byte_order(ed.get()));
     }
 
-    return string(reinterpret_cast<char*>(ed->data), ed->size);
+    return string(reinterpret_cast<char*>(ed.get()->data), ed.get()->size);
 }
 
 }  // namespace
@@ -257,6 +252,7 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
     // desired_size is 0 if the caller wants original size.
     string sized_key = key + "\0" + to_string(desired_size);
 
+    cerr << "desired: " << desired_size << endl;
     // Check if we have the thumbnail in the cache already.
     auto thumbnail = thumbnail_cache_->get(sized_key);
     if (thumbnail)

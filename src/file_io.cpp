@@ -18,32 +18,16 @@
 
 #include <internal/file_io.h>
 
+#include <internal/raii.h>
 #include <internal/safe_strerror.h>
-
-#include <unity/util/ResourcePtr.h>
 
 #include <cstring>
 
 #include <fcntl.h>
 #include <sys/stat.h>
-#include <unistd.h>
 
 using namespace unity::thumbnailer::internal;
 using namespace std;
-
-namespace
-{
-
-auto do_close = [](int fd)
-{
-    if (fd >= 0)
-    {
-        ::close(fd);
-    }
-};
-typedef unity::util::ResourcePtr<int, decltype(do_close)> FdPtr;
-
-}  // namespace
 
 // Read entire file and return contents as a string.
 

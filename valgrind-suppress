@@ -8,7 +8,7 @@
 }
 
 {
-    Gdk1
+    glib1
     Memcheck:Leak
     match-leak-kinds: possible
     ...
@@ -16,20 +16,26 @@
 }
 
 {
-    Gdk2
+    glib2
+    Memcheck:Leak
+    match-leak-kinds: possible
+    ...
+    fun:g_type_class_ref
+}
+
+{
+    glib3
     Memcheck:Leak
     match-leak-kinds: possible
     ...
     obj:/usr/lib/x86_64-linux-gnu/libgobject-2.0.so.0.4400.0
     fun:g_type_add_interface_static
-    ...
-    fun:gdk_pixbuf_new_from_data
 }
 
 {
-    Gdk3
+    leveldb
     Memcheck:Leak
     match-leak-kinds: possible
     ...
-    fun:g_type_class_ref
+    fun:_ZN7leveldb6DBImpl12CompactRangeEPKNS_5SliceES3_
 }
