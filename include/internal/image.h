@@ -30,8 +30,9 @@ public:
     // Default constructor does nothing. Must be followed by load() before calling any other member function.
     Image() = default;
 
-    // Loads internal pixbuf with provided image data.
-    Image(std::string const& data);
+    // Loads internal pixbuf with provided image data. The orientation
+    // is as described by the EXIF specification. 1 means "already in correct orientation".
+    Image(std::string const& data, int orientation = 1);
 
     Image(Image const&) = delete;
     Image& operator=(Image const&) = delete;
@@ -39,7 +40,7 @@ public:
     Image& operator=(Image &&) = default;
 
     // Replaces internal pixbuf with provided image data.
-    void load(std::string const& data);
+    void load(std::string const& data, int orientation = 1);
 
     int width() const;
     int height() const;
@@ -52,5 +53,7 @@ public:
     std::string to_jpeg() const;
 
 private:
+    void fix_orientation(int orientation);
+
     unique_gobj<GdkPixbuf> pixbuf_;
 };

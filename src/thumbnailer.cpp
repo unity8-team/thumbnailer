@@ -54,7 +54,7 @@ public:
     VideoScreenshotter video_;
     core::PersistentStringCache::UPtr full_size_cache_;  // Small cache of full (original) size images.
     core::PersistentStringCache::UPtr thumbnail_cache_;  // Large cache of scaled images.
-    std::unique_ptr<ArtDownloader> downloader_;
+    unique_ptr<ArtDownloader> downloader_;
 
     ThumbnailerPrivate();
 
@@ -90,9 +90,11 @@ string create_tmp_filename()
     ;
 }
 
-string extract_exif_image(std::string const& filename)
+string extract_exif_image(string const& filename, int& orientation)
 {
-    std::unique_ptr<ExifLoader, void (*)(ExifLoader*)> el(exif_loader_new(), exif_loader_unref);
+    orientation = 1;  // Default, already in correct orientation.
+
+    unique_ptr<ExifLoader, void (*)(ExifLoader*)> el(exif_loader_new(), exif_loader_unref);
     if (!el)
     {
         // We don't throw here because we can still extract a thumbnail from the full-size image
@@ -102,10 +104,17 @@ string extract_exif_image(std::string const& filename)
 
     exif_loader_write_file(el.get(), filename.c_str());
 
-    std::unique_ptr<ExifData, void (*)(ExifData* e)> ed(exif_loader_get_data(el.get()), exif_data_unref);
+    unique_ptr<ExifData, void (*)(ExifData*)> ed(exif_loader_get_data(el.get()), exif_data_unref);
     if (!ed || !ed->data || ed->size == 0)
     {
         return "";  // Image wasn't extracted for a reason that libexif won't tell us about.
+    }
+
+    unique_ptr<ExifEntry, void (*)(ExifEntry*)>
+        e(exif_data_get_entry(ed.get(), EXIF_TAG_ORIENTATION), exif_entry_unref);
+    if (e)
+    {
+        orientation = exif_get_short(e->data, exif_data_get_byte_order(ed.get()));
     }
 
     return string(reinterpret_cast<char*>(ed->data), ed->size);
@@ -197,7 +206,7 @@ string ThumbnailerPrivate::extract_image(string const& filename)
         return "";
     }
 
-    std::string content_type(g_file_info_get_content_type(info.get()));
+    string content_type(g_file_info_get_content_type(info.get()));
     if (content_type.empty())
     {
         return "";
@@ -258,10 +267,11 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
     // Check if there is an EXIF thumbnail we can use.
     if (use_exif && desired_size != 0)
     {
-        string exif_data = extract_exif_image(key1);
+        int orientation;
+        string exif_data = extract_exif_image(key1, orientation);
         if (!exif_data.empty())
         {
-            Image exif_image(exif_data);
+            Image exif_image(exif_data, orientation);
             if (exif_image.max_size() >= desired_size)
             {
                 exif_image.scale_to(desired_size);
@@ -313,7 +323,7 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
     return *image;
 }
 
-std::string Thumbnailer::get_thumbnail(std::string const& filename, int desired_size)
+string Thumbnailer::get_thumbnail(string const& filename, int desired_size)
 {
     assert(!filename.empty());
     assert(desired_size >= 0);
@@ -345,7 +355,7 @@ std::string Thumbnailer::get_thumbnail(std::string const& filename, int desired_
     return p_->fetch_thumbnail(key1, key2, desired_size, fetch, true);
 }
 
-std::string Thumbnailer::get_album_art(std::string const& artist, std::string const& album, int desired_size)
+string Thumbnailer::get_album_art(string const& artist, string const& album, int desired_size)
 {
     assert(artist.empty() || !album.empty());
     assert(album.empty() || !artist.empty());
@@ -359,7 +369,7 @@ std::string Thumbnailer::get_album_art(std::string const& artist, std::string co
     return p_->fetch_thumbnail(artist, album + "\0album", desired_size, fetch);
 }
 
-std::string Thumbnailer::get_artist_art(std::string const& artist, std::string const& album, int desired_size)
+string Thumbnailer::get_artist_art(string const& artist, string const& album, int desired_size)
 {
     assert(artist.empty() || !album.empty());
     assert(album.empty() || !artist.empty());

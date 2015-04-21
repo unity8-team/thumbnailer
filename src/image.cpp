@@ -40,12 +40,12 @@ typedef unity::util::ResourcePtr<GdkPixbufLoader*, decltype(do_loader_close)> Lo
 
 }  // namespace
 
-Image::Image(string const& data)
+Image::Image(string const& data, int orientation)
 {
-    load(data);
+    load(data, orientation);
 }
 
-void Image::load(string const& data)
+void Image::load(string const& data, int orientation)
 {
     LoaderPtr loader(gdk_pixbuf_loader_new(), do_loader_close);
     if (!loader)
@@ -67,6 +67,8 @@ void Image::load(string const& data)
         throw runtime_error("Image::load(): cannot create pixbuf");
     }
     g_object_ref(pixbuf_.get());  // Closing the loader calls unref on the pixbuf, so we need to increment here.
+
+    fix_orientation(orientation);
 }
 
 int Image::width() const
@@ -150,4 +152,67 @@ string Image::to_jpeg() const
     string s(buf, size);
     g_free(buf);
     return s;
+}
+
+void Image::fix_orientation(int orientation)
+{
+    // Doing this manually instead of calling gdk_pixbuf_apply_embedded_orientation() because of
+    // https://bugzilla.gnome.org/show_bug.cgi?id=725582
+    switch (orientation)
+    {
+        case 1:
+        {
+            break;  // Already in correct orientation
+        }
+        case 2:
+        {
+            // Horizontal mirror image
+            pixbuf_.reset(gdk_pixbuf_flip(pixbuf_.get(), true));
+            break;
+        }
+        case 3:
+        {
+            // Rotate 180
+            pixbuf_.reset(gdk_pixbuf_rotate_simple(pixbuf_.get(), GDK_PIXBUF_ROTATE_UPSIDEDOWN));
+            break;
+        }
+        case 4:
+        {
+            // Vertical mirror image.
+            pixbuf_.reset(gdk_pixbuf_flip(pixbuf_.get(), false));
+            break;
+        }
+        case 5:
+        {
+            // Rotate 90 clockwise and horizontal mirror image
+            pixbuf_.reset(gdk_pixbuf_rotate_simple(pixbuf_.get(), GDK_PIXBUF_ROTATE_CLOCKWISE));
+            pixbuf_.reset(gdk_pixbuf_flip(pixbuf_.get(), true));
+            break;
+        }
+        case 6:
+        {
+            // Rotate 90 clockwise
+            pixbuf_.reset(gdk_pixbuf_rotate_simple(pixbuf_.get(), GDK_PIXBUF_ROTATE_CLOCKWISE));
+            break;
+        }
+        case 7:
+        {
+            // Rotate 90 anti-clockwise and horizontal mirror image
+            pixbuf_.reset(gdk_pixbuf_rotate_simple(pixbuf_.get(), GDK_PIXBUF_ROTATE_COUNTERCLOCKWISE));
+            pixbuf_.reset(gdk_pixbuf_flip(pixbuf_.get(), true));
+            break;
+        }
+        case 8:
+        {
+            // Rotate 90 anti-clockwise
+            pixbuf_.reset(gdk_pixbuf_rotate_simple(pixbuf_.get(), GDK_PIXBUF_ROTATE_COUNTERCLOCKWISE));
+            break;
+        }
+        default:
+        {
+            // Impossible, according the spec. Rather than throwing or some such,
+            // we do nothing and return the EXIF image without any adjustment.
+            break;
+        }
+    }
 }
