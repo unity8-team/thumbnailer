@@ -76,11 +76,12 @@ QImage ArtistArtGenerator::requestImage(const QString &id, QSize *realSize,
     }
 
     try {
-        return imageFromFd(reply.value().fileDescriptor(), realSize);
+        return imageFromFd(reply.value().fileDescriptor(),
+                           realSize, requestedSize);
     } catch (const std::exception &e) {
-        qDebug() << "Artist art loader failed: " << e.what();
+        qWarning() << "Artist art loader failed: " << e.what();
     } catch (...) {
-        qDebug() << "Unknown error when generating image.";
+        qWarning() << "Unknown error when generating image.";
     }
 
     return fallbackImage(realSize);
