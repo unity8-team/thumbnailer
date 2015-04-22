@@ -17,8 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "thumbnailhandler.h"
 #include <internal/raii.h>
-#include "thumbnailhandler.h"  // TODO: If thumbnailhandler.h is included before raii.h, we get compile errors
 #include <internal/safe_strerror.h>
 
 #include <fcntl.h>

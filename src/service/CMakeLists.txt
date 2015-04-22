@@ -12,6 +12,7 @@ add_executable(thumbnailer-service
   artistarthandler.cpp
   ${adaptor_files}
   )
+add_definitions(-DQT_NO_KEYWORDS)
 
 qt5_use_modules(thumbnailer-service DBus Concurrent)
 target_link_libraries(thumbnailer-service thumbnailer ${CMAKE_THREAD_LIBS_INIT})
