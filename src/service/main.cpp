@@ -4,6 +4,7 @@
 
 #include "dbusinterface.h"
 #include "dbusinterfaceadaptor.h"
+#include "inactivityhandler.h"
 
 using namespace unity::thumbnailer::service;
 
@@ -23,5 +24,6 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Could no acquire D-Bus name %s.\n", BUS_NAME);
         return 0;
     }
+    new InactivityHandler(server);
     return app.exec();
 }

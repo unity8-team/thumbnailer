@@ -14,6 +14,8 @@
 #include <libqtdbustest/QProcessDBusService.h>
 #include <unity/util/ResourcePtr.h>
 
+#include <QSignalSpy>
+
 #include <testsetup.h>
 
 static const char BUS_NAME[] = "com.canonical.Thumbnailer";
@@ -90,12 +92,12 @@ protected:
         setenv("XDG_CACHE_HOME", (tempdir + "/cache").c_str(), true);
 
         dbusTestRunner.reset(new QtDBusTest::DBusTestRunner());
-        dbusTestRunner->registerService(
-            QtDBusTest::DBusServicePtr(
-                new QtDBusTest::QProcessDBusService(
-                    BUS_NAME, QDBusConnection::SessionBus,
-                    TESTBINDIR "/../src/service/thumbnailer-service",
-                    QStringList())));
+
+        dbusService = new QtDBusTest::QProcessDBusService(
+                BUS_NAME, QDBusConnection::SessionBus,
+                TESTBINDIR "/../src/service/thumbnailer-service",
+                QStringList());
+        dbusTestRunner->registerService(QtDBusTest::DBusServicePtr(dbusService));
         dbusTestRunner->startServices();
 
         iface.reset(
@@ -116,6 +118,7 @@ protected:
     std::string tempdir;
     std::unique_ptr<QtDBusTest::DBusTestRunner> dbusTestRunner;
     std::unique_ptr<QDBusInterface> iface;
+    QtDBusTest::QProcessDBusService *dbusService;
 };
 
 /* Disabled until we have the fake art service hooked up */
@@ -179,6 +182,30 @@ TEST_F(DBusTest, thumbnail_wrong_fd_fails) {
     EXPECT_FALSE(reply.isValid());
     auto message = reply.error().message().toStdString();
     EXPECT_EQ(message, "filename refers to a different file to the file descriptor");
+}
+
+TEST_F(DBusTest, test_inactivity_exit) {
+    // basic setup to the query
+    const char *filename = TESTDATADIR "/testimage.jpg";
+    FdPtr fd(open(filename, O_RDONLY), close);
+    ASSERT_GE(fd.get(), 0);
+
+    QSignalSpy spy_exit(&dbusService->underlyingProcess(), SIGNAL(finished(int, QProcess::ExitStatus)));
+
+    // start a query
+    QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
+        "GetThumbnail", filename,
+        QVariant::fromValue(QDBusUnixFileDescriptor(fd.get())),
+        QSize(256, 256));
+    assert_no_error(reply);
+
+    // wait for 10 seconds...
+    // Maximum inactivity should be less than that.
+    spy_exit.wait(10000);
+    EXPECT_EQ(spy_exit.count(), 1);
+
+    QList<QVariant> arguments = spy_exit.takeFirst();
+    EXPECT_EQ(arguments.at(0).toInt(), 0);
 }
 
 int main(int argc, char **argv) {

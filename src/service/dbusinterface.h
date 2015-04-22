@@ -55,6 +55,10 @@ private:
 private Q_SLOTS:
     void requestFinished();
 
+Q_SIGNALS:
+    void endInactivity();
+    void startInactivity();
+
 private:
     std::unique_ptr<DBusInterfacePrivate> p;
 };

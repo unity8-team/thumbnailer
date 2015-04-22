@@ -71,6 +71,7 @@ QDBusUnixFileDescriptor DBusInterface::GetThumbnail(const QString &filename, con
 
 void DBusInterface::queueRequest(Handler *handler) {
     p->requests.emplace(handler, std::unique_ptr<Handler>(handler));
+    Q_EMIT endInactivity();
     connect(handler, &Handler::finished, this, &DBusInterface::requestFinished);
     setDelayedReply(true);
     handler->begin();
@@ -84,6 +85,9 @@ void DBusInterface::requestFinished() {
         p->requests.erase(handler);
     } catch (const std::out_of_range &e) {
         qWarning() << "finished() called on unknown handler" << handler;
+    }
+    if (!p->requests.size()) {
+        Q_EMIT startInactivity();
     }
     // Queue deletion of handler when we re-enter the event loop.
     handler->deleteLater();

@@ -10,6 +10,7 @@ add_executable(thumbnailer-service
   thumbnailhandler.cpp
   albumarthandler.cpp
   artistarthandler.cpp
+  inactivityhandler.cpp
   ${adaptor_files}
   )
 
