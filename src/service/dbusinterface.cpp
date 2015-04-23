@@ -86,7 +86,7 @@ void DBusInterface::requestFinished() {
     } catch (const std::out_of_range &e) {
         qWarning() << "finished() called on unknown handler" << handler;
     }
-    if (!p->requests.size()) {
+    if (p->requests.empty()) {
         Q_EMIT startInactivity();
     }
     // Queue deletion of handler when we re-enter the event loop.

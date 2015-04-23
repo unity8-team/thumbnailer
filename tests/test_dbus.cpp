@@ -15,6 +15,7 @@
 #include <unity/util/ResourcePtr.h>
 
 #include <QSignalSpy>
+#include <QProcess>
 
 #include <testsetup.h>
 
@@ -93,11 +94,14 @@ protected:
 
         dbusTestRunner.reset(new QtDBusTest::DBusTestRunner());
 
-        dbusService = new QtDBusTest::QProcessDBusService(
+        // set 3 seconds as max idle time
+        setenv("THUMBNAILER_MAX_IDLE", "1000", true);
+
+        dbusService.reset(new QtDBusTest::QProcessDBusService(
                 BUS_NAME, QDBusConnection::SessionBus,
                 TESTBINDIR "/../src/service/thumbnailer-service",
-                QStringList());
-        dbusTestRunner->registerService(QtDBusTest::DBusServicePtr(dbusService));
+                QStringList()));
+        dbusTestRunner->registerService(dbusService);
         dbusTestRunner->startServices();
 
         iface.reset(
@@ -109,6 +113,8 @@ protected:
         iface.reset();
         dbusTestRunner.reset();
 
+        unsetenv("THUMBNAILER_MAX_IDLE");
+        unsetenv("XDG_CACHE_HOME");
         if (!tempdir.empty()) {
             std::string cmd = "rm -rf \"" + tempdir + "\"";
             ASSERT_EQ(system(cmd.c_str()), 0);
@@ -118,7 +124,7 @@ protected:
     std::string tempdir;
     std::unique_ptr<QtDBusTest::DBusTestRunner> dbusTestRunner;
     std::unique_ptr<QDBusInterface> iface;
-    QtDBusTest::QProcessDBusService *dbusService;
+    QtDBusTest::DBusServicePtr dbusService;
 };
 
 /* Disabled until we have the fake art service hooked up */
@@ -190,7 +196,10 @@ TEST_F(DBusTest, test_inactivity_exit) {
     FdPtr fd(open(filename, O_RDONLY), close);
     ASSERT_GE(fd.get(), 0);
 
-    QSignalSpy spy_exit(&dbusService->underlyingProcess(), SIGNAL(finished(int, QProcess::ExitStatus)));
+    QtDBusTest::QProcessDBusService *p_dbusService = dynamic_cast<QtDBusTest::QProcessDBusService *>(dbusService.data());
+    assert(p_dbusService);
+
+    QSignalSpy spy_exit(&p_dbusService->underlyingProcess(), SIGNAL(finished(int, QProcess::ExitStatus)));
 
     // start a query
     QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
@@ -199,13 +208,71 @@ TEST_F(DBusTest, test_inactivity_exit) {
         QSize(256, 256));
     assert_no_error(reply);
 
-    // wait for 10 seconds...
+    // wait for 5 seconds... (default)
     // Maximum inactivity should be less than that.
-    spy_exit.wait(10000);
-    EXPECT_EQ(spy_exit.count(), 1);
+    spy_exit.wait();
+    ASSERT_EQ(spy_exit.count(), 1);
 
     QList<QVariant> arguments = spy_exit.takeFirst();
     EXPECT_EQ(arguments.at(0).toInt(), 0);
+}
+
+TEST(DBusTestBadIdle, env_variable_bad_value)
+{
+    std::string tempdir;
+    std::unique_ptr<QtDBusTest::DBusTestRunner> dbusTestRunner;
+    std::unique_ptr<QDBusInterface> iface;
+    QtDBusTest::DBusServicePtr dbusService;
+
+//    tempdir = TESTBINDIR "/dbus-test.XXXXXX";
+//    if (mkdtemp(const_cast<char*>(tempdir.data())) == nullptr) {
+//        tempdir = "";
+//        throw std::runtime_error("could not create temporary directory");
+//    }
+//    setenv("XDG_CACHE_HOME", (tempdir + "/cache").c_str(), true);
+//
+//    QString program = TESTBINDIR "/../src/service/thumbnailer-service";
+//
+//    setenv("THUMBNAILER_MAX_IDLE", "1000ss", true);
+//    QProcess dbusService;
+//    dbusService.start(program, QStringList());
+//
+//    dbusService.waitForFinished(); // sets current thread to sleep and waits for pingProcess end
+//    QString output(dbusService.readAllStandardError());
+//    qDebug() << output;
+//
+
+    tempdir = TESTBINDIR "/dbus-test.XXXXXX";
+    if (mkdtemp(const_cast<char*>(tempdir.data())) == nullptr) {
+        tempdir = "";
+        throw std::runtime_error("could not create temporary directory");
+    }
+    setenv("XDG_CACHE_HOME", (tempdir + "/cache").c_str(), true);
+
+    dbusTestRunner.reset(new QtDBusTest::DBusTestRunner());
+
+    // set 3 seconds as max idle time
+    setenv("THUMBNAILER_MAX_IDLE", "bad_value", true);
+
+    dbusService.reset(new QtDBusTest::QProcessDBusService(
+            BUS_NAME, QDBusConnection::SessionBus,
+            TESTBINDIR "/../src/service/thumbnailer-service",
+            QStringList()));
+
+    QtDBusTest::QProcessDBusService *p_dbusService = dynamic_cast<QtDBusTest::QProcessDBusService *>(dbusService.data());
+    assert(p_dbusService);
+
+    QSignalSpy spy_exit(&p_dbusService->underlyingProcess(), SIGNAL(error(QProcess::ProcessError)));
+    dbusTestRunner->registerService(dbusService);
+    dbusTestRunner->startServices();
+
+    spy_exit.wait();
+    ASSERT_EQ(spy_exit.count(), 1);
+
+    QList<QVariant> arguments = spy_exit.takeFirst();
+    EXPECT_EQ(arguments.at(0).toInt(), static_cast<int>(QProcess::FailedToStart));
+
+    unsetenv("THUMBNAILER_MAX_IDLE");
 }
 
 int main(int argc, char **argv) {
