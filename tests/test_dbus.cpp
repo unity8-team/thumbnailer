@@ -199,7 +199,7 @@ TEST_F(DBusTest, test_inactivity_exit) {
     QtDBusTest::QProcessDBusService *p_dbusService = dynamic_cast<QtDBusTest::QProcessDBusService *>(dbusService.data());
     assert(p_dbusService);
 
-    QSignalSpy spy_exit(&p_dbusService->underlyingProcess(), SIGNAL(finished(int, QProcess::ExitStatus)));
+    QSignalSpy spy_exit(&p_dbusService->underlyingProcess(), static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished));
 
     // start a query
     QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
@@ -224,24 +224,6 @@ TEST(DBusTestBadIdle, env_variable_bad_value)
     std::unique_ptr<QDBusInterface> iface;
     QtDBusTest::DBusServicePtr dbusService;
 
-//    tempdir = TESTBINDIR "/dbus-test.XXXXXX";
-//    if (mkdtemp(const_cast<char*>(tempdir.data())) == nullptr) {
-//        tempdir = "";
-//        throw std::runtime_error("could not create temporary directory");
-//    }
-//    setenv("XDG_CACHE_HOME", (tempdir + "/cache").c_str(), true);
-//
-//    QString program = TESTBINDIR "/../src/service/thumbnailer-service";
-//
-//    setenv("THUMBNAILER_MAX_IDLE", "1000ss", true);
-//    QProcess dbusService;
-//    dbusService.start(program, QStringList());
-//
-//    dbusService.waitForFinished(); // sets current thread to sleep and waits for pingProcess end
-//    QString output(dbusService.readAllStandardError());
-//    qDebug() << output;
-//
-
     tempdir = TESTBINDIR "/dbus-test.XXXXXX";
     if (mkdtemp(const_cast<char*>(tempdir.data())) == nullptr) {
         tempdir = "";
@@ -262,7 +244,7 @@ TEST(DBusTestBadIdle, env_variable_bad_value)
     QtDBusTest::QProcessDBusService *p_dbusService = dynamic_cast<QtDBusTest::QProcessDBusService *>(dbusService.data());
     assert(p_dbusService);
 
-    QSignalSpy spy_exit(&p_dbusService->underlyingProcess(), SIGNAL(error(QProcess::ProcessError)));
+    QSignalSpy spy_exit(&p_dbusService->underlyingProcess(), static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished));
     dbusTestRunner->registerService(dbusService);
     dbusTestRunner->startServices();
 
