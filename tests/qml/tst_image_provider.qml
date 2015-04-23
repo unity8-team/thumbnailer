@@ -3,6 +3,9 @@ import QtTest 1.0
 import Ubuntu.Thumbnailer 0.1
 
 Item {
+    width: 200
+    height: 200
+
     Image {
         id: image
         width: 200
