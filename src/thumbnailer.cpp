@@ -235,7 +235,7 @@ Thumbnailer::~Thumbnailer() = default;
 // If not, we check whether a full-size image was downloaded previously and is still hanging
 // around. If so, we scale the full-size image to what was asked for, add it to the thumbnail
 // cache, and return the scaled image. Otherwise, we fetch the image (by downloading it
-// or extracting it from a file, add the full-size image to the full-size cache, scale
+// or extracting it from a file), add the full-size image to the full-size cache, scale
 // the image and add the scaled version to the thumbnail cache, and return the scaled image.
 //
 // If an image contains an EXIF thumbnail and the thumbnail is >= desired size, we generate
@@ -283,23 +283,22 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
     }
 
     // Don't have the thumbnail yet, see if we have the original image around.
-    auto image = full_size_cache_->get(key);
-    if (image)
+    auto image_data = full_size_cache_->get(key);
+    if (image_data)
     {
-        // We still have the original image, scale from that.
+        Image scaled_image(*image_data);
         if (desired_size != 0)
         {
-            Image scaled_image(*image);
             scaled_image.scale_to(desired_size);
-            image = scaled_image.to_jpeg();
         }
-        thumbnail_cache_->put(sized_key, *image);
-        return *image;
+        string jpeg = scaled_image.to_jpeg();
+        thumbnail_cache_->put(sized_key, jpeg);
+        return jpeg;
     }
 
     // Try and download or read the artwork.
-    image = fetch(key1, key2);
-    if (image->empty())
+    image_data = fetch(key1, key2);
+    if (image_data->empty())
     {
         // TODO: If download failed, need to disable re-try for some time.
         //       Might need to do this in the calling code, because timeouts
@@ -311,16 +310,16 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
     // We keep the full-size version around for a while because it is likely that the caller
     // will ask for small thumbnail first (for initial search results), followed by a
     // larger thumbnail (for a preview). If so, we don't download the artwork a second time.
-    full_size_cache_->put(key, *image);
+    full_size_cache_->put(key, *image_data);
 
+    Image scaled_image(*image_data);
     if (desired_size != 0)
     {
-        Image scaled_image(*image);
         scaled_image.scale_to(desired_size);
-        image = scaled_image.to_jpeg();
     }
-    thumbnail_cache_->put(sized_key, *image);
-    return *image;
+    string jpeg = scaled_image.to_jpeg();
+    thumbnail_cache_->put(sized_key, jpeg);
+    return jpeg;
 }
 
 string Thumbnailer::get_thumbnail(string const& filename, int desired_size)

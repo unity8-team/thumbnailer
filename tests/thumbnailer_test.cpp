@@ -18,6 +18,9 @@
 
 #include <thumbnailer.h>
 
+#include <internal/file_io.h>
+#include <internal/image.h>
+
 #include <testsetup.h>
 #include <gtest/gtest.h>
 
@@ -33,9 +36,41 @@ using namespace std;
 TEST(Thumbnailer, basic)
 {
     Thumbnailer tn;
+    string thumb;
+    Image img;
 
-    string thumb = tn.get_thumbnail(TEST_IMAGE, 0);
-    thumb = tn.get_thumbnail(TEST_IMAGE, 120);
-    thumb = tn.get_thumbnail(EXIF_IMAGE, 1000);
-    thumb = tn.get_thumbnail(EXIF_IMAGE, 60);
+    thumb = tn.get_thumbnail(TEST_IMAGE, 0);
+    img.load(thumb);
+    EXPECT_EQ(640, img.width());
+    EXPECT_EQ(400, img.height());
+    
+    thumb = tn.get_thumbnail(TEST_IMAGE, 160);
+    img.load(thumb);
+    EXPECT_EQ(160, img.width());
+    EXPECT_EQ(100, img.height());
+
+    thumb = tn.get_thumbnail(EXIF_IMAGE, 1000);  // Will up-scale, but not from EXIF data
+    img.load(thumb);
+    EXPECT_EQ(1000, img.width());
+    EXPECT_EQ(669, img.height());
+
+    thumb = tn.get_thumbnail(EXIF_IMAGE, 65);  // From EXIF data, which indicates to rotate the image.
+    img.load(thumb);
+    EXPECT_EQ(49, img.width());
+    EXPECT_EQ(65, img.height());
+
+    thumb = tn.get_thumbnail(RGB_IMAGE, 48);
+    cout << "thumb size: " << thumb.size() << endl;
+    write_file("/tmp/x.jpg", thumb);
+    img.load(thumb);
+    EXPECT_EQ(48, img.width());
+    EXPECT_EQ(48, img.height());
+
+    string thumb2 = tn.get_thumbnail(RGB_IMAGE, 48);
+    cout << "thumb2 size: " << thumb2.size() << endl;
+    write_file("/tmp/y.jpg", thumb2);
+    EXPECT_EQ(thumb, thumb2);
+    img.load(thumb2);
+    EXPECT_EQ(48, img.width());
+    EXPECT_EQ(48, img.height());
 }

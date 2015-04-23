@@ -55,5 +55,6 @@ public:
 private:
     void fix_orientation(int orientation);
 
-    unique_gobj<GdkPixbuf> pixbuf_;
+    typedef unique_gobj<GdkPixbuf> PixbufPtr;
+    PixbufPtr pixbuf_;
 };

@@ -47,6 +47,15 @@ void Image::load(string const& data, int orientation)
         throw runtime_error(msg);
         // LCOV_EXCL_STOP
     }
+    if (!gdk_pixbuf_loader_close(loader.get(), &err))
+    {
+        // LCOV_EXCL_START
+        string msg = string("Image::load): cannot close pixbuf loader: ") + err->message;
+        g_error_free(err);
+        throw runtime_error(msg);
+        // LCOV_EXCL_STOP
+    }
+
     pixbuf_.reset(gdk_pixbuf_loader_get_pixbuf(loader.get()));
     if (!pixbuf_)
     {
