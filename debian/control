@@ -21,6 +21,8 @@ Build-Depends: cmake,
                qtbase5-dev,
                qtbase5-dev-tools,
                qtdeclarative5-dev,
+               qml-module-qtquick2,
+               qml-module-qttest,
                shared-mime-info,
                xvfb,
 Homepage: https://launchpad.net/thumbnailer
