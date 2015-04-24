@@ -12,21 +12,21 @@ Fixture {
     }
 
     function test_scaled() {
-        sourceSize = Qt.size(256, 256);
+        requestedSize = Qt.size(256, 256);
         loadThumbnail("testimage.jpg");
         compare(size.width, 256);
         compare(size.height, 160);
     }
 
     function test_scale_horizontal() {
-        sourceSize = Qt.size(320, 0);
+        requestedSize = Qt.size(320, 0);
         loadThumbnail("testimage.jpg");
         compare(size.width, 320);
         compare(size.height, 200);
     }
 
     function test_scale_vertical() {
-        sourceSize = Qt.size(0, 200);
+        requestedSize = Qt.size(0, 200);
         loadThumbnail("testimage.jpg");
         // FIXME: This is what we should scale to ...
         //compare(size.width, 320);
@@ -46,7 +46,7 @@ Fixture {
     */
 
     function test_rotation_scaled() {
-        sourceSize = Qt.size(256, 256);
+        requestedSize = Qt.size(256, 256);
         loadThumbnail("testrotate.jpg");
         compare(size.width, 192);
         compare(size.height, 256);

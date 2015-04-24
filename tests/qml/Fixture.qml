@@ -11,13 +11,13 @@ TestCase {
     height: canvas.height > 0 ? canvas.height : 100
 
     property size size: Qt.size(image.implicitWidth, image.implicitHeight)
-    property size sourceSize: Qt.size(-1, -1)
+    property size requestedSize: Qt.size(-1, -1)
 
     Image {
         id: image
         width: parent.width
         height: parent.height
-        sourceSize: root.sourceSize
+        sourceSize: root.requestedSize
 
         SignalSpy {
             id: spy
@@ -93,7 +93,7 @@ TestCase {
 
     function cleanup() {
         image.source = "";
-        root.sourceSize = Qt.size(-1, -1);
+        root.requestedSize = Qt.size(-1, -1);
         while (image.status !== Image.Null) {
             spy.wait();
         }
