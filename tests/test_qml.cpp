@@ -67,5 +67,6 @@ int main(int argc, char **argv)
     TestFixture fixture;
 
     qmlRegisterSingletonType("testconfig", 1, 0, "Config", make_test_config);
+    qmlProtectModule("testconfig", 1);
     return quick_test_main(argc, argv, "Thumbnailer", TESTSRCDIR "/qml");
 }
