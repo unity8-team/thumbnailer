@@ -66,6 +66,7 @@ int main(int argc, char **argv)
     QGuiApplication app(argc, argv);
     TestFixture fixture;
 
+    setenv("TN_UTILDIR", TESTBINDIR "/../src/vs-thumb", true);
     qmlRegisterSingletonType("testconfig", 1, 0, "Config", make_test_config);
     qmlProtectModule("testconfig", 1);
     return quick_test_main(argc, argv, "Thumbnailer", TESTSRCDIR "/qml");
