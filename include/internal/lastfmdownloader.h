@@ -14,14 +14,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
+ *              Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
 #pragma once
 
 #include <internal/artdownloader.h>
 
-#include <memory>
-#include <string>
+#include <QNetworkAccessManager>
+
 
 namespace unity
 {
@@ -36,31 +37,26 @@ class LastFMDownloader final : public ArtDownloader
 {
     Q_OBJECT
 public:
-    LastFMDownloader(QObject* parent = nullptr);
+    Q_DISABLE_COPY(LastFMDownloader)
+
+    explicit LastFMDownloader(QObject* parent = nullptr);
     ~LastFMDownloader() = default;
-    LastFMDownloader(LastFMDownloader const& o) = delete;
-    LastFMDownloader& operator=(LastFMDownloader const& o) = delete;
 
-    QString download_album(QString const& artist, QString const& album) override;
-    QString download_artist(QString const& artist, QString const& album) override;
+    ArtReply * download_album(QString const& artist, QString const& album) override;
+    ArtReply * download_artist(QString const& artist, QString const& album) override;
 
-Q_SIGNALS:
-    void xml_parsing_error(QString const& url, QString const& error_message);
-
-private Q_SLOTS:
-    void xml_downloaded(QString const& url, QByteArray const& data);
-    void xml_download_error(QString const& url, QNetworkReply::NetworkError error, QString const& error_message);
+protected Q_SLOTS:
+    void download_finished(QNetworkReply* reply);
 
 private:
-    QString parse_xml(QString const& source_url, QByteArray const& data);
+    typedef QMap<QNetworkReply *, ArtReply *>::iterator IterReply;
 
-    // we use this downloader to get only the xml file that defines
-    // where to get images.
-    QScopedPointer<UrlDownloader> xml_downloader_;
+    void download_xml_finished(QNetworkReply* reply, IterReply const& iter);
+    void download_image_finished(QNetworkReply* reply, IterReply const& iter);
 
-    // we use this map to store the number of retries we allow when
-    // downloading an xml.
-    QMap<QString, int> retries_map_;
+    QNetworkAccessManager network_manager_;
+    QMap<QNetworkReply *, ArtReply *> replies_xml_map_;
+    QMap<QNetworkReply *, ArtReply *> replies_image_map_;
 };
 
 }  // namespace internal

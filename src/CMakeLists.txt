@@ -10,11 +10,11 @@ thumbnailer.cpp
 ubuntuserverdownloader.cpp
 videoscreenshotter.cpp
 safe_strerror.cpp
-urldownloader.cpp
+artdownloader.cpp
 ${CMAKE_SOURCE_DIR}/include/internal/artdownloader.h
-${CMAKE_SOURCE_DIR}/include/internal/urldownloader.h
 ${CMAKE_SOURCE_DIR}/include/internal/ubuntuserverdownloader.h
 ${CMAKE_SOURCE_DIR}/include/internal/lastfmdownloader.h
+${CMAKE_SOURCE_DIR}/include/internal/artreply.h
 ${CMAKE_SOURCE_DIR}/include/thumbnailer.h
 )
 

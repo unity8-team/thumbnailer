@@ -357,7 +357,8 @@ std::string Thumbnailer::get_album_art(std::string const& artist,
         // -> nothing to be done.
         return "";
     }
-    QString image = p_->downloader->download_album(QString::fromStdString(artist), QString::fromStdString(album));
+    QString image;
+    p_->downloader->download_album(QString::fromStdString(artist), QString::fromStdString(album));
     if (image.isEmpty())
     {
         return "";
@@ -383,7 +384,8 @@ std::string Thumbnailer::get_artist_art(std::string const& artist,
         // -> nothing to be done.
         return "";
     }
-    QString image = p_->downloader->download_artist(QString::fromStdString(artist), QString::fromStdString(album));
+    QString image;
+    p_->downloader->download_artist(QString::fromStdString(artist), QString::fromStdString(album));
     if (image.isEmpty())
     {
         return "";

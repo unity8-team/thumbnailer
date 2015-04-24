@@ -16,9 +16,9 @@
  * Authored by: Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
-#include <internal/urldownloader.h>
 #include <internal/ubuntuserverdownloader.h>
 #include <internal/lastfmdownloader.h>
+#include <internal/artreply.h>
 
 #include <gtest/gtest.h>
 
@@ -53,15 +53,17 @@ private:
     void run() Q_DECL_OVERRIDE
     {
         UbuntuServerDownloader downloader;
-        QString url = downloader.download_album("test_threads", download_id_);
-        QSignalSpy spy(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
+        auto reply = downloader.download_album("test_threads", download_id_);
+        ASSERT_NE(reply, nullptr);
+
+        QSignalSpy spy(reply, SIGNAL(finished()));
 
         // check the returned url
         QString url_to_check =
             QString(
                 "/musicproxy/v1/album-art?artist=test_threads&album=%1&size=350&key=0f450aa882a6125ebcbfb3d7f7aa25bc")
                 .arg(download_id_);
-        ASSERT_TRUE(url.endsWith(url_to_check) == true);
+        ASSERT_TRUE(reply->url_string().endsWith(url_to_check) == true);
 
         // we set a timeout of 5 seconds waiting for the signal to be emitted,
         // which should never be reached
@@ -70,10 +72,12 @@ private:
         // check that we've got exactly one signal
         ASSERT_EQ(spy.count(), 1);
 
-        QList<QVariant> arguments = spy.takeFirst();
-        ASSERT_EQ(arguments.at(0).toString().endsWith(url_to_check), true);
         // Finally check the content of the file downloaded
-        ASSERT_EQ(arguments.at(1).toString(), QString("TEST_THREADS_TEST_%1").arg(download_id_));
+        EXPECT_EQ(QString(reply->data()), QString("TEST_THREADS_TEST_%1").arg(download_id_));
+        EXPECT_EQ(reply->succeded(), true);
+        EXPECT_EQ(reply->not_found_error(), false);
+        EXPECT_EQ(reply->is_running(), false);
+        reply->deleteLater();
     }
 
 private:
@@ -99,12 +103,14 @@ private:
     void run() Q_DECL_OVERRIDE
     {
         LastFMDownloader downloader;
-        QString url = downloader.download_album("test", QString("thread_%1").arg(download_id_));
-        QSignalSpy spy(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
+        auto reply = downloader.download_album("test", QString("thread_%1").arg(download_id_));
+        ASSERT_NE(reply, nullptr);
+
+        QSignalSpy spy(reply, SIGNAL(finished()));
 
         QString url_to_check = QString("/1.0/album/test/thread_%1/info.xml").arg(download_id_);
         // check the returned url
-        EXPECT_EQ(url.endsWith(url_to_check), true);
+        EXPECT_EQ(reply->url_string().endsWith(url_to_check), true);
 
         // we set a timeout of 5 seconds waiting for the signal to be emitted,
         // which should never be reached
@@ -113,10 +119,12 @@ private:
         // check that we've got exactly one signal
         ASSERT_EQ(spy.count(), 1);
 
-        QList<QVariant> arguments = spy.takeFirst();
-        EXPECT_EQ(arguments.at(0).toString().endsWith(url_to_check), true);
+        EXPECT_EQ(reply->succeded(), true);
+        EXPECT_EQ(reply->not_found_error(), false);
+        EXPECT_EQ(reply->is_running(), false);
         // Finally check the content of the file downloaded
-        EXPECT_EQ(arguments.at(1).toString(), QString("TEST_THREADS_TEST_test_thread_%1").arg(download_id_));
+        EXPECT_EQ(QString(reply->data()), QString("TEST_THREADS_TEST_test_thread_%1").arg(download_id_));
+        reply->deleteLater();
     }
 
 private:
@@ -156,44 +164,18 @@ protected:
 
 };
 
-class TestDownloaderServer500Error_2Errors : public TestDownloaderServer
-{
-protected:
-    void SetUp() override
-    {
-        // we'll return 2 times an error before returning an item
-        // successfully in the server.
-        // We use this to verify retry mechanism
-        number_of_errors_before_ok_= 2;
-        server_argv_ = "errors";
-        TestDownloaderServer::SetUp();
-    }
-};
-
-class TestDownloaderServer500Error_5Errors : public TestDownloaderServer
-{
-protected:
-    void SetUp() override
-    {
-        // we'll return 5 times an error before returning an item
-        // successfully in the server.
-        // We use this to verify retry mechanism
-        number_of_errors_before_ok_= 5;
-        server_argv_ = "errors";
-        TestDownloaderServer::SetUp();
-    }
-};
-
 TEST_F(TestDownloaderServer, test_ok_album)
 {
     UbuntuServerDownloader downloader;
 
-    QSignalSpy spy(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
+    auto reply = downloader.download_album("sia", "fear");
+    ASSERT_NE(reply, nullptr);
 
-    auto url = downloader.download_album("sia", "fear");
     EXPECT_EQ(
-        url.endsWith("/musicproxy/v1/album-art?artist=sia&album=fear&size=350&key=0f450aa882a6125ebcbfb3d7f7aa25bc"),
+        reply->url_string().endsWith("/musicproxy/v1/album-art?artist=sia&album=fear&size=350&key=0f450aa882a6125ebcbfb3d7f7aa25bc"),
         true);
+
+    QSignalSpy spy(reply, SIGNAL(finished()));
 
     // we set a timeout of 5 seconds waiting for the signal to be emitted,
     // which should never be reached
@@ -202,79 +184,69 @@ TEST_F(TestDownloaderServer, test_ok_album)
     // check that we've got exactly one signal
     ASSERT_EQ(spy.count(), 1);
 
-    // check the arguments of the signal.
-    // With this we check that the api_key is OK and that the url are build as
-    // expected.
-    QList<QVariant> arguments = spy.takeFirst();
-    EXPECT_EQ(arguments.at(0).toString().endsWith(
-                  "/musicproxy/v1/album-art?artist=sia&album=fear&size=350&key=0f450aa882a6125ebcbfb3d7f7aa25bc"),
-              true);
+    EXPECT_EQ(reply->succeded(), true);
+    EXPECT_EQ(reply->not_found_error(), false);
+    EXPECT_EQ(reply->is_running(), false);
     // Finally check the content of the file downloaded
-    EXPECT_EQ(arguments.at(1).toString(), QString("SIA_FEAR_TEST_STRING_IMAGE"));
+    EXPECT_EQ(QString(reply->data()), QString("SIA_FEAR_TEST_STRING_IMAGE"));
+
+    reply->deleteLater();
 }
 
 TEST_F(TestDownloaderServer, test_ok_artist)
 {
     UbuntuServerDownloader downloader;
 
-    QSignalSpy spy(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
+    auto reply = downloader.download_artist("sia", "fear");
+    ASSERT_NE(reply, nullptr);
 
-    auto url = downloader.download_artist("sia", "fear");
     EXPECT_EQ(
-        url.endsWith("/musicproxy/v1/artist-art?artist=sia&album=fear&size=300&key=0f450aa882a6125ebcbfb3d7f7aa25bc"),
+            reply->url_string().endsWith("/musicproxy/v1/artist-art?artist=sia&album=fear&size=300&key=0f450aa882a6125ebcbfb3d7f7aa25bc"),
         true);
 
+    QSignalSpy spy(reply, SIGNAL(finished()));
     // we set a timeout of 5 seconds waiting for the signal to be emitted,
     // which should never be reached
     spy.wait(5000);
 
     // check that we've got exactly one signal
     ASSERT_EQ(spy.count(), 1);
+    EXPECT_EQ(reply->succeded(), true);
+    EXPECT_EQ(reply->not_found_error(), false);
+    EXPECT_EQ(reply->is_running(), false);
+    EXPECT_EQ(QString(reply->data()), QString("SIA_FEAR_TEST_STRING_IMAGE"));
 
-    // check the arguments of the signal.
-    // With this we check that the api_key is OK and that the url are build as
-    // expected.
-    QList<QVariant> arguments = spy.takeFirst();
-    EXPECT_EQ(arguments.at(0).toString().endsWith(
-                 "/musicproxy/v1/artist-art?artist=sia&album=fear&size=300&key=0f450aa882a6125ebcbfb3d7f7aa25bc"),
-             true);
-    // Finally check the content of the file downloaded
-    EXPECT_EQ(arguments.at(1).toString(), QString("SIA_FEAR_TEST_STRING_IMAGE"));
+    reply->deleteLater();
 }
 
 TEST_F(TestDownloaderServer, test_not_found)
 {
     UbuntuServerDownloader downloader;
 
-    QSignalSpy spy(&downloader, SIGNAL(download_error(QString const&, QNetworkReply::NetworkError, QString const&)));
-    QSignalSpy spy_ok(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
+    auto reply = downloader.download_album("test", "test");
+    ASSERT_NE(reply, nullptr);
 
-    auto url = downloader.download_album("test", "test");
     EXPECT_EQ(
-        url.endsWith("/musicproxy/v1/album-art?artist=test&album=test&size=350&key=0f450aa882a6125ebcbfb3d7f7aa25bc"),
+        reply->url_string().endsWith("/musicproxy/v1/album-art?artist=test&album=test&size=350&key=0f450aa882a6125ebcbfb3d7f7aa25bc"),
         true);
 
+    QSignalSpy spy(reply, SIGNAL(finished()));
     // we set a timeout of 5 seconds waiting for the signal to be emitted,
     // which should never be reached
     spy.wait(5000);
 
     // check that we've got exactly one signal
     ASSERT_EQ(spy.count(), 1);
-    // and that the signal for file downloaded successfully is not emitted
-    EXPECT_EQ(spy_ok.count(), 0);
 
-    // check the arguments of the signal.
-    // With this we check that the api_key is OK and that the url are build as
-    // expected.
-    QList<QVariant> arguments = spy.takeFirst();
-    EXPECT_EQ(arguments.at(0).toString().endsWith(
-                  "/musicproxy/v1/album-art?artist=test&album=test&size=350&key=0f450aa882a6125ebcbfb3d7f7aa25bc"),
-              true);
-    EXPECT_EQ(arguments.at(1).toInt(), static_cast<int>(QNetworkReply::InternalServerError));
-    EXPECT_EQ(arguments.at(2).toString().endsWith(
+    EXPECT_EQ(reply->succeded(), false);
+    EXPECT_EQ(reply->not_found_error(), false);
+    EXPECT_EQ(reply->is_running(), false);
+    EXPECT_EQ(reply->error_string().endsWith(
                   "/musicproxy/v1/album-art?artist=test&album=test&size=350&key=0f450aa882a6125ebcbfb3d7f7aa25bc - "
                   "server replied: Internal Server Error"),
               true);
+
+    reply->deleteLater();
 }
 
 TEST_F(TestDownloaderServer, test_threads)
@@ -304,165 +276,16 @@ TEST_F(TestDownloaderServer, test_threads)
     }
 }
 
-TEST_F(TestDownloaderServer, test_not_found_url)
-{
-    UrlDownloader downloader;
-
-    QSignalSpy spy(&downloader,
-                   SIGNAL(download_source_not_found(QString const&, QNetworkReply::NetworkError, QString const&)));
-    QSignalSpy spy_ok(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
-
-    auto url = downloader.download(QUrl(apiroot_ + "/images_not_found/sia_fear_not_found.png"));
-    EXPECT_EQ(url, apiroot_ + "/images_not_found/sia_fear_not_found.png");
-
-    // we set a timeout of 5 seconds waiting for the signal to be emitted,
-    // which should never be reached
-    spy.wait(5000);
-
-    // check that we've got exactly one signal
-    ASSERT_EQ(spy.count(), 1);
-    // and that the signal for file downloaded successfully is not emitted
-    EXPECT_EQ(spy_ok.count(), 0);
-
-    // check the arguments of the signal.
-    // With this we check that the api_key is OK and that the url are build as
-    // expected.
-    QList<QVariant> arguments = spy.takeFirst();
-    EXPECT_EQ(arguments.at(0).toString(), apiroot_ + "/images_not_found/sia_fear_not_found.png");
-    EXPECT_EQ(arguments.at(1).toInt(), static_cast<int>(QNetworkReply::ContentNotFoundError));
-    EXPECT_EQ(
-        arguments.at(2).toString().endsWith("images_not_found/sia_fear_not_found.png - server replied: Not Found"),
-        true);
-}
-
-TEST_F(TestDownloaderServer, test_host_not_found_url)
-{
-    UrlDownloader downloader;
-
-    QSignalSpy spy(&downloader,
-                   SIGNAL(download_source_not_found(QString const&, QNetworkReply::NetworkError, QString const&)));
-    QSignalSpy spy_ok(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
-
-    auto url = downloader.download(QUrl("http://www.thishostshouldnotexist.com/file.png"));
-    EXPECT_EQ(url, "http://www.thishostshouldnotexist.com/file.png");
-
-    // we set a timeout of 5 seconds waiting for the signal to be emitted,
-    // which should never be reached
-    spy.wait(5000);
-
-    // check that we've got exactly one signal
-    ASSERT_EQ(spy.count(), 1);
-    // and that the signal for file downloaded successfully is not emitted
-    EXPECT_EQ(spy_ok.count(), 0);
-
-    // check the arguments of the signal.
-    QList<QVariant> arguments = spy.takeFirst();
-    EXPECT_EQ(arguments.at(0).toString(), "http://www.thishostshouldnotexist.com/file.png");
-    EXPECT_EQ(arguments.at(1).toInt(), static_cast<int>(QNetworkReply::HostNotFoundError));
-    EXPECT_EQ(arguments.at(2).toString(), "Host www.thishostshouldnotexist.com not found");
-}
-
-TEST_F(TestDownloaderServer, test_good_url)
-{
-    UrlDownloader downloader;
-
-    QSignalSpy spy(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
-
-    auto url = downloader.download(QUrl(apiroot_ + "/images/sia_fear.png"));
-    EXPECT_EQ(url.endsWith("/images/sia_fear.png"), true);
-
-    // we set a timeout of 5 seconds waiting for the signal to be emitted,
-    // which should never be reached
-    spy.wait(5000);
-
-    // check that we've got exactly one signal
-    ASSERT_EQ(spy.count(), 1);
-
-    // check the arguments of the signal.
-    QList<QVariant> arguments = spy.takeFirst();
-    EXPECT_EQ(arguments.at(0).toString().endsWith("/images/sia_fear.png"), true);
-    // Finally check the content of the file downloaded
-    EXPECT_EQ(arguments.at(1).toString(), QString("SIA_FEAR_TEST_STRING_IMAGE"));
-}
-
-TEST_F(TestDownloaderServer, test_url_parsing_error)
-{
-    UrlDownloader downloader;
-
-    QSignalSpy spy(&downloader, SIGNAL(bad_url_error(QString const&)));
-
-    auto url = downloader.download(QUrl("http://http://www.thishostshouldnotexist.com/file.png"));
-
-    // check that we've got exactly one signal
-    // this signal is emitted in the download_url call. that's why we don't wait
-    // for it.
-    ASSERT_EQ(spy.count(), 1);
-
-    QList<QVariant> arguments = spy.takeFirst();
-    EXPECT_EQ(arguments.at(0).toString(),
-              QString(
-                  "Port field was empty; source was \"http://http://www.thishostshouldnotexist.com/file.png\"; scheme "
-                  "= \"http\", host = \"http\", path = \"//www.thishostshouldnotexist.com/file.png\""));
-}
-
-TEST_F(TestDownloaderServer, test_download_specific_id)
-{
-    UrlDownloader downloader;
-
-    QSignalSpy spy(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
-
-    auto url = downloader.download(QUrl(apiroot_ + "/images/sia_fear.png"), "this_is_the_id_i_want");
-    EXPECT_EQ(url, "this_is_the_id_i_want");
-
-    // we set a timeout of 5 seconds waiting for the signal to be emitted,
-    // which should never be reached
-    spy.wait(5000);
-
-    // check that we've got exactly one signal
-    ASSERT_EQ(spy.count(), 1);
-
-    // check the arguments of the signal.
-    QList<QVariant> arguments = spy.takeFirst();
-    EXPECT_EQ(arguments.at(0).toString(), "this_is_the_id_i_want");
-    // Finally check the content of the file downloaded
-    EXPECT_EQ(arguments.at(1).toString(), QString("SIA_FEAR_TEST_STRING_IMAGE"));
-}
-
-TEST_F(TestDownloaderServer, test_host_not_found_url_specific_id)
-{
-    UrlDownloader downloader;
-
-    QSignalSpy spy(&downloader,
-                   SIGNAL(download_source_not_found(QString const&, QNetworkReply::NetworkError, QString const&)));
-    QSignalSpy spy_ok(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
-
-    auto url = downloader.download(QUrl("http://www.thishostshouldnotexist.com/file.png"), "this_is_the_id_i_want");
-    EXPECT_EQ(url, "this_is_the_id_i_want");
-
-    // we set a timeout of 5 seconds waiting for the signal to be emitted,
-    // which should never be reached
-    spy.wait(5000);
-
-    // check that we've got exactly one signal
-    ASSERT_EQ(spy.count(), 1);
-    // and that the signal for file downloaded successfully is not emitted
-    EXPECT_EQ(spy_ok.count(), 0);
-
-    // check the arguments of the signal.
-    QList<QVariant> arguments = spy.takeFirst();
-    EXPECT_EQ(arguments.at(0).toString(), "this_is_the_id_i_want");
-    EXPECT_EQ(arguments.at(1).toInt(), static_cast<int>(QNetworkReply::HostNotFoundError));
-    EXPECT_EQ(arguments.at(2).toString(), "Host www.thishostshouldnotexist.com not found");
-}
-
 TEST_F(TestDownloaderServer, lastfm_download_ok)
 {
     LastFMDownloader downloader;
 
-    QSignalSpy spy(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
+    auto reply = downloader.download_album("sia", "fear");
+    ASSERT_NE(reply, nullptr);
 
-    auto url = downloader.download_album("sia", "fear");
-    EXPECT_EQ(url, apiroot_ + "/1.0/album/sia/fear/info.xml");
+    QSignalSpy spy(reply, SIGNAL(finished()));
+
+    EXPECT_EQ(reply->url_string(), apiroot_ + "/1.0/album/sia/fear/info.xml");
 
     // we set a timeout of 5 seconds waiting for the signal to be emitted,
     // which should never be reached
@@ -471,21 +294,25 @@ TEST_F(TestDownloaderServer, lastfm_download_ok)
     // check that we've got exactly one signal
     ASSERT_EQ(spy.count(), 1);
 
-    // check the arguments of the signal.
-    QList<QVariant> arguments = spy.takeFirst();
-    EXPECT_EQ(arguments.at(0).toString(), apiroot_ + "/1.0/album/sia/fear/info.xml");
+    EXPECT_EQ(reply->succeded(), true);
+    EXPECT_EQ(reply->not_found_error(), false);
+    EXPECT_EQ(reply->is_running(), false);
     // Finally check the content of the file downloaded
-    EXPECT_EQ(arguments.at(1).toString(), QString("SIA_FEAR_TEST_STRING_IMAGE"));
+    EXPECT_EQ(QString(reply->data()), QString("SIA_FEAR_TEST_STRING_IMAGE"));
+
+    reply->deleteLater();
 }
 
 TEST_F(TestDownloaderServer, lastfm_xml_parsing_errors)
 {
     LastFMDownloader downloader;
 
-    QSignalSpy spy(&downloader, SIGNAL(xml_parsing_error(QString const&, QString const&)));
+    auto reply = downloader.download_album("xml", "errors");
+    ASSERT_NE(reply, nullptr);
 
-    auto url = downloader.download_album("xml", "errors");
-    EXPECT_EQ(url, apiroot_ + "/1.0/album/xml/errors/info.xml");
+    QSignalSpy spy(reply, SIGNAL(finished()));
+
+    EXPECT_EQ(reply->url_string(), apiroot_ + "/1.0/album/xml/errors/info.xml");
 
     // we set a timeout of 5 seconds waiting for the signal to be emitted,
     // which should never be reached
@@ -494,22 +321,26 @@ TEST_F(TestDownloaderServer, lastfm_xml_parsing_errors)
     // check that we've got exactly one signal
     ASSERT_EQ(spy.count(), 1);
 
-    // check the arguments of the signal.
-    QList<QVariant> arguments = spy.takeFirst();
-    EXPECT_EQ(arguments.at(0).toString(), apiroot_ + "/1.0/album/xml/errors/info.xml");
+    EXPECT_EQ(reply->succeded(), false);
+    EXPECT_EQ(reply->not_found_error(), false);
+    EXPECT_EQ(reply->is_running(), false);
     // Finally check the content of the error message
-    EXPECT_EQ(arguments.at(1).toString(),
+    EXPECT_EQ(reply->error_string(),
               QString("LastFMDownloader::parse_xml() XML ERROR: Expected '?', '!', or '[a-zA-Z]', but got '/'."));
+
+    reply->deleteLater();
 }
 
 TEST_F(TestDownloaderServer, lastfm_xml_image_not_found)
 {
     LastFMDownloader downloader;
 
-    QSignalSpy spy(&downloader, SIGNAL(xml_parsing_error(QString const&, QString const&)));
+    auto reply = downloader.download_album("no", "cover");
+    ASSERT_NE(reply, nullptr);
 
-    auto url = downloader.download_album("no", "cover");
-    EXPECT_EQ(url, apiroot_ + "/1.0/album/no/cover/info.xml");
+    QSignalSpy spy(reply, SIGNAL(finished()));
+
+    EXPECT_EQ(reply->url_string(), apiroot_ + "/1.0/album/no/cover/info.xml");
 
     // we set a timeout of 5 seconds waiting for the signal to be emitted,
     // which should never be reached
@@ -518,11 +349,13 @@ TEST_F(TestDownloaderServer, lastfm_xml_image_not_found)
     // check that we've got exactly one signal
     ASSERT_EQ(spy.count(), 1);
 
-    // check the arguments of the signal.
-    QList<QVariant> arguments = spy.takeFirst();
-    EXPECT_EQ(arguments.at(0).toString(), apiroot_ + "/1.0/album/no/cover/info.xml");
+    EXPECT_EQ(reply->succeded(), false);
+    EXPECT_EQ(reply->not_found_error(), false);
+    EXPECT_EQ(reply->is_running(), false);
     // Finally check the content of the error message
-    EXPECT_EQ(arguments.at(1).toString(), QString("LastFMDownloader::parse_xml() Image url not found"));
+    EXPECT_EQ(reply->error_string(), QString("LastFMDownloader::parse_xml() Image url not found"));
+
+    reply->deleteLater();
 }
 
 TEST_F(TestDownloaderServer, lastfm_test_threads)
@@ -552,53 +385,6 @@ TEST_F(TestDownloaderServer, lastfm_test_threads)
     {
         delete th;
     }
-}
-
-TEST_F(TestDownloaderServer500Error_2Errors, lastfm_download_retry_success)
-{
-    LastFMDownloader downloader;
-
-    QSignalSpy spy(&downloader, SIGNAL(file_downloaded(QString const&, QByteArray const&)));
-
-    auto url = downloader.download_album("sia", "fear");
-    EXPECT_EQ(url, apiroot_ + "/1.0/album/sia/fear/info.xml");
-
-    // we set a timeout of 5 seconds waiting for the signal to be emitted,
-    // which should never be reached
-    spy.wait(5000);
-
-    // check that we've got exactly one signal
-    ASSERT_EQ(spy.count(), 1);
-
-    // check the arguments of the signal.
-    QList<QVariant> arguments = spy.takeFirst();
-    EXPECT_EQ(arguments.at(0).toString(), apiroot_ + "/1.0/album/sia/fear/info.xml");
-    // Finally check the content of the file downloaded
-    EXPECT_EQ(arguments.at(1).toString(), QString("SIA_FEAR_TEST_STRING_IMAGE"));
-}
-
-TEST_F(TestDownloaderServer500Error_5Errors, lastfm_download_retry_error)
-{
-    LastFMDownloader downloader;
-
-    QSignalSpy spy(&downloader, SIGNAL(download_error(QString const&, QNetworkReply::NetworkError, QString const&)));
-
-    auto url = downloader.download_album("sia", "fear");
-    EXPECT_EQ(url, apiroot_ + "/1.0/album/sia/fear/info.xml");
-
-    // we set a timeout of 5 seconds waiting for the signal to be emitted,
-    // which should never be reached
-    spy.wait(5000);
-
-    // check that we've got exactly one signal
-    ASSERT_EQ(spy.count(), 1);
-
-    // check the arguments of the signal.
-    QList<QVariant> arguments = spy.takeFirst();
-    EXPECT_EQ(arguments.at(0).toString(), apiroot_ + "/1.0/album/sia/fear/info.xml");
-    EXPECT_EQ(arguments.at(1).toInt(), static_cast<int>(QNetworkReply::InternalServerError));
-    qDebug() << arguments.at(2).toString();
-    EXPECT_EQ(arguments.at(2).toString().endsWith("/1.0/album/sia/fear/info.xml - server replied: Internal Server Error"), true);
 }
 
 int main(int argc, char** argv)

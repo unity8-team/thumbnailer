@@ -18,34 +18,111 @@
 
 #include <gio/gio.h>
 
+#include <internal/artreply.h>
 #include <internal/ubuntuserverdownloader.h>
+
+#include <QNetworkReply>
+#include <QUrlQuery>
 
 #include <memory>
 #include <iostream>
+#include <cassert>
 
 using namespace std;
-using namespace unity::thumbnailer::internal;
-
 
 // const strings
 namespace
 {
-    static constexpr const char* THUMBNAILER_SCHEMA = "com.canonical.Unity.Thumbnailer";
-    static constexpr const char* THUMBNAILER_API_KEY = "dash-ubuntu-com-key";
-    static constexpr const char* UBUNTU_SERVER_BASE_URL = "https://dash.ubuntu.com";
-    static constexpr const char* REQUESTED_ALBUM_IMAGE_SIZE = "350";
-    static constexpr const char* REQUESTED_ARTIST_IMAGE_SIZE = "300";
-    static constexpr const char* ALBUM_ART_BASE_URL = "musicproxy/v1/album-art";
-    static constexpr const char* ARTIST_ART_BASE_URL = "musicproxy/v1/artist-art";
+    constexpr const char THUMBNAILER_SCHEMA[] = "com.canonical.Unity.Thumbnailer";
+    constexpr const char THUMBNAILER_API_KEY[] = "dash-ubuntu-com-key";
+    constexpr const char UBUNTU_SERVER_BASE_URL[] = "https://dash.ubuntu.com";
+    constexpr const char REQUESTED_ALBUM_IMAGE_SIZE[] = "350";
+    constexpr const char REQUESTED_ARTIST_IMAGE_SIZE[] = "300";
+    constexpr const char ALBUM_ART_BASE_URL[] = "musicproxy/v1/album-art";
+    constexpr const char ARTIST_ART_BASE_URL[] = "musicproxy/v1/artist-art";
 }
+
+namespace unity
+{
+
+namespace thumbnailer
+{
+
+namespace internal
+{
+
+class UbuntuServerArtReply : public ArtReply
+{
+    Q_OBJECT
+public:
+    Q_DISABLE_COPY(UbuntuServerArtReply)
+
+    UbuntuServerArtReply(QObject *parent = nullptr)
+        : ArtReply(parent),
+          is_running_(false),
+          error_(QNetworkReply::NoError)
+    {
+    }
+
+    virtual ~UbuntuServerArtReply() = default;
+
+    bool succeded() const override
+    {
+        return error_ == QNetworkReply::NoError;
+    };
+
+    bool is_running() const override
+    {
+        return is_running_;
+    };
+
+    QString error_string() const override
+    {
+        return error_string_;
+    }
+
+    bool not_found_error() const override
+    {
+        switch (error_)
+        {
+            // add here all the cases that you consider as source not found
+            case QNetworkReply::HostNotFoundError:
+            case QNetworkReply::ContentAccessDenied:
+            case QNetworkReply::ContentOperationNotPermittedError:
+            case QNetworkReply::ContentNotFoundError:
+            case QNetworkReply::ContentGoneError:
+                return true;
+                break;
+            default:
+                return false;
+                break;
+        }
+    }
+
+    QByteArray const& data() const override
+    {
+        return data_;
+    }
+
+    QString url_string() const override
+    {
+        return url_string_;
+    }
+
+    void finish()
+    {
+        Q_EMIT finished(this);
+    }
+
+    bool is_running_;
+    QString error_string_;
+    QNetworkReply::NetworkError error_;
+    QByteArray data_;
+    QString url_string_;
+};
 
 // helper methods to retrieve image urls
-QString get_parameter(QString const& parameter, QString const& value)
-{
-    return parameter + QString("=") + value;
-}
-
-QString get_art_url(
+QUrl get_art_url(
     QString const& base_url, QString const& size, QString const& artist, QString const& album, QString const& api_key)
 {
     QString prefix_api_root = UBUNTU_SERVER_BASE_URL;
@@ -55,16 +132,23 @@ QString get_art_url(
         prefix_api_root = apiroot_c;
     }
 
-    return prefix_api_root + "/" + base_url + "?" + get_parameter("artist", artist) + "&" +
-           get_parameter("album", album) + "&" + get_parameter("size", size) + "&" + get_parameter("key", api_key);
+    QUrlQuery q;
+    q.addQueryItem("artist", artist);
+    q.addQueryItem("album", album);
+    q.addQueryItem("size", size);
+    q.addQueryItem("key", api_key);
+
+    QUrl url(prefix_api_root + "/" + base_url);
+    url.setQuery(q);
+    return url;
 }
 
-QString get_album_art_url(QString const& artist, QString const& album, QString const& api_key)
+QUrl get_album_art_url(QString const& artist, QString const& album, QString const& api_key)
 {
     return get_art_url(ALBUM_ART_BASE_URL, REQUESTED_ALBUM_IMAGE_SIZE, artist, album, api_key);
 }
 
-QString get_artist_art_url(QString const& artist, QString const& album, QString const& api_key)
+QUrl get_artist_art_url(QString const& artist, QString const& album, QString const& api_key)
 {
     return get_art_url(ARTIST_ART_BASE_URL, REQUESTED_ARTIST_IMAGE_SIZE, artist, album, api_key);
 }
@@ -91,7 +175,7 @@ void UbuntuServerDownloader::set_api_key()
             gchar* akey = g_settings_get_string(settings, THUMBNAILER_API_KEY);
             if (akey)
             {
-                api_key = QString(akey);
+                api_key_ = QString(akey);
                 status = true;
                 g_free(akey);
             }
@@ -110,12 +194,56 @@ void UbuntuServerDownloader::set_api_key()
     }
 }
 
-QString UbuntuServerDownloader::download_album(QString const& artist, QString const& album)
+ArtReply *UbuntuServerDownloader::download_album(QString const& artist, QString const& album)
 {
-    return download(QUrl(get_album_art_url(artist, album, api_key)));
+    return download_url(get_album_art_url(artist, album, api_key_));
 }
 
-QString UbuntuServerDownloader::download_artist(QString const& artist, QString const& album)
+ArtReply *UbuntuServerDownloader::download_artist(QString const& artist, QString const& album)
 {
-    return download(QUrl(get_artist_art_url(artist, album, api_key)));
+    return download_url(get_artist_art_url(artist, album, api_key_));
 }
+
+void UbuntuServerDownloader::download_finished(QNetworkReply* reply)
+{
+    QMap<QNetworkReply *, ArtReply *>::iterator iter = replies_map_.find(reply);
+    if (iter != replies_map_.end())
+    {
+        UbuntuServerArtReply *ubuntu_reply = dynamic_cast<UbuntuServerArtReply *>((*iter));
+        assert(ubuntu_reply);
+        ubuntu_reply->is_running_ = false;
+        ubuntu_reply->error_ = reply->error();
+        if (!reply->error())
+        {
+            ubuntu_reply->data_ = reply->readAll();
+        }
+        else
+        {
+            ubuntu_reply->error_string_ = reply->errorString();
+        }
+        ubuntu_reply->finish();
+        replies_map_.erase(iter);
+    }
+    reply->deleteLater();
+}
+
+ArtReply * UbuntuServerDownloader::download_url(QUrl const& url)
+{
+    assert_valid_url(url);
+    UbuntuServerArtReply *art_reply = new UbuntuServerArtReply();
+    QNetworkReply* reply = network_manager_.get(QNetworkRequest(url));
+    connect(&network_manager_, &QNetworkAccessManager::finished, this, &UbuntuServerDownloader::download_finished);
+    art_reply->is_running_ = true;
+    art_reply->url_string_ = url.toString();
+    replies_map_[reply] = art_reply;
+
+    return art_reply;
+}
+
+}  // namespace internal
+
+}  // namespace thumbnailer
+
+}  // namespace unity
+
+#include "ubuntuserverdownloader.moc"

@@ -16,41 +16,103 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
+#include <internal/artreply.h>
 #include <internal/lastfmdownloader.h>
 
+#include <QNetworkReply>
 #include <QXmlStreamReader>
 
-#include <memory>
+#include <cassert>
 
 namespace
 {
-static constexpr char const* NOTFOUND_IMAGE =
-    "http://cdn.last.fm/flatness/catalogue/noimage/2/default_album_medium.png";
-static constexpr char const* LASTFM_APIROOT = "http://ws.audioscrobbler.com";
-static constexpr char const* LASTFM_TEMPLATE_SUFFIX = "/1.0/album/%1/%2/info.xml";
-static constexpr int MAX_XML_DOWNLOAD_RETRIES = 3;
+    constexpr char const NOTFOUND_IMAGE[] =
+        "http://cdn.last.fm/flatness/catalogue/noimage/2/default_album_medium.png";
+    constexpr char const LASTFM_APIROOT[] = "http://ws.audioscrobbler.com";
+    constexpr char const LASTFM_TEMPLATE_SUFFIX[] = "/1.0/album/%1/%2/info.xml";
+    constexpr int MAX_XML_DOWNLOAD_RETRIES = 3;
 }
 
 using namespace std;
-using namespace unity::thumbnailer::internal;
 
-LastFMDownloader::LastFMDownloader(QObject* parent)
-    : ArtDownloader(parent)
-    , xml_downloader_(new UrlDownloader(this))
+namespace unity
 {
-    connect(xml_downloader_.data(), &UrlDownloader::file_downloaded, this, &LastFMDownloader::xml_downloaded);
-    // for the case of network errors we will retry
-    connect(xml_downloader_.data(), &UrlDownloader::download_error, this, &LastFMDownloader::xml_download_error);
 
-    // connect any error with the main base class
-    connect(xml_downloader_.data(),
-            SIGNAL(download_source_not_found(QString const&, QNetworkReply::NetworkError, QString const&)),
-            this,
-            SIGNAL(download_source_not_found(QString const&, QNetworkReply::NetworkError, QString const&)));
-    connect(xml_downloader_.data(), SIGNAL(bad_url_error(QString const&)), this, SIGNAL(bad_url_error(QString const&)));
+namespace thumbnailer
+{
+
+namespace internal
+{
+
+class LastFMArtReply : public ArtReply
+{
+    Q_OBJECT
+public:
+    Q_DISABLE_COPY(LastFMArtReply)
+
+    LastFMArtReply(QObject *parent = nullptr)
+        : ArtReply(parent),
+          is_running_(false),
+          error_(false),
+          is_not_found_error_(false)
+    {
+    }
+
+    virtual ~LastFMArtReply() = default;
+
+    bool succeded() const override
+    {
+        return !error_;
+    };
+
+    bool is_running() const override
+    {
+        return is_running_;
+    };
+
+    QString error_string() const override
+    {
+        return error_string_;
+    }
+
+    bool not_found_error() const override
+    {
+        return is_not_found_error_;
+    }
+
+    QByteArray const& data() const override
+    {
+        return data_;
+    }
+
+    QString url_string() const override
+    {
+        return url_string_;
+    }
+
+    void finish()
+    {
+        Q_EMIT finished(this);
+    }
+
+    bool is_running_;
+    QString error_string_;
+    bool error_;
+    bool is_not_found_error_;
+    QByteArray data_;
+    QString url_string_;
+};
+
+void finish_lastfm_reply_with_error(LastFMArtReply *lastfm_reply, bool is_not_found_error, QString const& error_string)
+{
+    lastfm_reply->is_running_ = false;
+    lastfm_reply->error_ = true;
+    lastfm_reply->is_not_found_error_ = is_not_found_error;
+    lastfm_reply->error_string_ = error_string;
+    lastfm_reply->finish();
 }
 
-QString LastFMDownloader::parse_xml(QString const& source_url, QByteArray const& data)
+QString parse_xml(LastFMArtReply *lastfm_reply, QByteArray const& data)
 {
     const QString COVER_ART_ELEMENT = "coverart";
     const QString LARGE_IMAGE_ELEMENT = "large";
@@ -58,7 +120,7 @@ QString LastFMDownloader::parse_xml(QString const& source_url, QByteArray const&
     QXmlStreamReader xml(data);
     if (xml.hasError())
     {
-        Q_EMIT xml_parsing_error(source_url, "LastFMDownloader::parse_xml() XML ERROR: " + xml.errorString());
+        finish_lastfm_reply_with_error(lastfm_reply, false, "LastFMDownloader::parse_xml() XML ERROR: " + xml.errorString());
         return "";
     }
 
@@ -102,16 +164,39 @@ QString LastFMDownloader::parse_xml(QString const& source_url, QByteArray const&
 
     if (xml.hasError())
     {
-        Q_EMIT xml_parsing_error(source_url, "LastFMDownloader::parse_xml() XML ERROR: " + xml.errorString());
-        return "";
+        finish_lastfm_reply_with_error(lastfm_reply, false, "LastFMDownloader::parse_xml() XML ERROR: " + xml.errorString());
     }
-
-    // if we are here it means the image was not found
-    Q_EMIT xml_parsing_error(source_url, "LastFMDownloader::parse_xml() Image url not found");
+    else
+    {
+        finish_lastfm_reply_with_error(lastfm_reply, false, "LastFMDownloader::parse_xml() Image url not found");
+    }
     return "";
 }
 
-QString LastFMDownloader::download_album(QString const& artist, QString const& album)
+bool is_not_found_error(QNetworkReply::NetworkError error)
+{
+    switch (error)
+    {
+        // add here all the cases that you consider as source not found
+        case QNetworkReply::HostNotFoundError:
+        case QNetworkReply::ContentAccessDenied:
+        case QNetworkReply::ContentOperationNotPermittedError:
+        case QNetworkReply::ContentNotFoundError:
+        case QNetworkReply::ContentGoneError:
+            return true;
+            break;
+        default:
+            return false;
+            break;
+    }
+}
+
+LastFMDownloader::LastFMDownloader(QObject* parent)
+    : ArtDownloader(parent)
+{
+}
+
+ArtReply * LastFMDownloader::download_album(QString const& artist, QString const& album)
 {
     QString prefix_api_root = LASTFM_APIROOT;
     char const* apiroot_c = getenv("THUMBNAILER_LASTFM_APIROOT");
@@ -119,73 +204,112 @@ QString LastFMDownloader::download_album(QString const& artist, QString const& a
     {
         prefix_api_root = apiroot_c;
     }
-    QString xml_url = prefix_api_root + QString(LASTFM_TEMPLATE_SUFFIX).arg(artist).arg(album);
 
-    retries_map_[xml_url] = MAX_XML_DOWNLOAD_RETRIES;
-    // we download the xml in the dedicated UrlDownloader so the process is
-    // transparent to the user
-    xml_downloader_->download(xml_url);
+    QUrl url(prefix_api_root + QString(LASTFM_TEMPLATE_SUFFIX).arg(artist).arg(album));
 
-    return xml_url;
+    assert_valid_url(url);
+    LastFMArtReply *art_reply = new LastFMArtReply();
+    QNetworkReply* reply = network_manager_.get(QNetworkRequest(url));
+    connect(&network_manager_, &QNetworkAccessManager::finished, this, &LastFMDownloader::download_finished);
+    art_reply->is_running_ = true;
+    art_reply->url_string_ = url.toString();
+    replies_xml_map_[reply] = art_reply;
+
+    return art_reply;
 }
 
-QString LastFMDownloader::download_artist(QString const& /*artist*/, QString const& /*album*/)
+ArtReply * LastFMDownloader::download_artist(QString const& /*artist*/, QString const& /*album*/)
 {
     // not implemented
-    return "";
+    return nullptr;
 }
 
-// PRIVATE SLOTS FOR XML DOWNLOADING
+// SLOTS FOR XML DOWNLOADING
 
-void LastFMDownloader::xml_downloaded(QString const& url, QByteArray const& data)
+void LastFMDownloader::download_finished(QNetworkReply* reply)
 {
-    // we successfully got an xml.
-    // now parse it and ask for the final image download
-
-    // erase the entry from the retries_map
-    QMap<QString, int>::iterator iter_retries = retries_map_.find(url);
-    if (iter_retries != retries_map_.end())
+    // check which type of download we've got
+    IterReply iter = replies_xml_map_.find(reply);
+    if (iter != replies_xml_map_.end())
     {
-        retries_map_.erase(iter_retries);
+        download_xml_finished(reply, iter);
     }
-
-    auto xml_url = parse_xml(url, data);
-    if (!xml_url.isEmpty())
+    else
     {
-        if (xml_url == NOTFOUND_IMAGE)
+        iter = replies_image_map_.find(reply);
+        if (iter != replies_image_map_.end())
         {
-            Q_EMIT download_source_not_found(
-                url, QNetworkReply::ContentNotFoundError, QString("Image for %1 was not found").arg(xml_url));
-            return;
+            download_image_finished(reply, iter);
         }
-        // download the image with the method in the base class
-        // so any signal emitted can be caught by users
-
-        // Note that in this case we set the identifier of the download to
-        // the xml file url, as that was the one we returned initially and it's the
-        // one the user will be using.
-        download(QUrl(xml_url), url);
     }
 }
 
-void LastFMDownloader::xml_download_error(QString const& url,
-                                          QNetworkReply::NetworkError error,
-                                          QString const& error_message)
+void LastFMDownloader::download_xml_finished(QNetworkReply *reply, IterReply const& iter)
 {
-    // we got a network error
-    // we can retry
-    QMap<QString, int>::iterator iter_retries = retries_map_.find(url);
-    if (iter_retries != retries_map_.end())
+    // we got an xml.
+    LastFMArtReply *lastfm_reply = dynamic_cast<LastFMArtReply *>((*iter));
+    assert(lastfm_reply);
+    replies_xml_map_.erase(iter);
+
+    if (reply->error())
     {
-        if ((*iter_retries)--)
+        finish_lastfm_reply_with_error(lastfm_reply, is_not_found_error(reply->error()), "LastFMDownloader::download_xml_finished() " + reply->errorString());
+    }
+    else
+    {
+        // continue parsing the xml
+        auto xml_url = parse_xml(lastfm_reply, reply->readAll());
+        if (!xml_url.isEmpty())
         {
-            // retry
-            xml_downloader_->download(QUrl(url));
-        }
-        else
-        {
-            retries_map_.erase(iter_retries);
-            Q_EMIT download_error(url, error, error_message);
+            if (xml_url == NOTFOUND_IMAGE)
+            {
+                finish_lastfm_reply_with_error(lastfm_reply, true, QString("Image for %1 was not found").arg(xml_url));
+            }
+            else
+            {
+                QUrl url(xml_url);
+                if (url.isValid())
+                {
+                    QNetworkReply* image_reply = network_manager_.get(QNetworkRequest(url));
+                    connect(&network_manager_, &QNetworkAccessManager::finished, this, &LastFMDownloader::download_finished);
+                    replies_image_map_[image_reply] = lastfm_reply;
+                }
+                else
+                {
+                    finish_lastfm_reply_with_error(lastfm_reply, false,
+                            "LastFMDownloader::download_xml_finished() Bad url obtained from lastfm: " + xml_url);
+                }
+            }
         }
     }
+    reply->deleteLater();
 }
+
+void LastFMDownloader::download_image_finished(QNetworkReply *reply, IterReply const& iter)
+{
+    LastFMArtReply *lastfm_reply = dynamic_cast<LastFMArtReply *>((*iter));
+    assert(lastfm_reply);
+    replies_image_map_.erase(iter);
+
+    lastfm_reply->is_running_ = false;
+    if (!reply->error())
+    {
+        lastfm_reply->data_ = reply->readAll();
+        lastfm_reply->error_ = false;
+    }
+    else
+    {
+        lastfm_reply->error_string_ = reply->errorString();
+        lastfm_reply->error_ = true;
+    }
+    lastfm_reply->finish();
+    reply->deleteLater();
+}
+
+}  // namespace internal
+
+}  // namespace thumbnailer
+
+}  // namespace unity
+
+#include "lastfmdownloader.moc"

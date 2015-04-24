@@ -14,13 +14,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authored by: Pawel Stolowski <pawel.stolowski@canonical.com>
+ *              Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
 #pragma once
 
 #include <internal/artdownloader.h>
 
-#include <memory>
+#include <QNetworkAccessManager>
 
 namespace unity
 {
@@ -31,23 +32,30 @@ namespace thumbnailer
 namespace internal
 {
 
+class ArtReply;
+
 class UbuntuServerDownloader final : public ArtDownloader
 {
     Q_OBJECT
 public:
-    UbuntuServerDownloader(QObject* parent = nullptr);
+    Q_DISABLE_COPY(UbuntuServerDownloader)
+
+    explicit UbuntuServerDownloader(QObject* parent = nullptr);
     ~UbuntuServerDownloader() = default;
 
-    QString download_album(QString const& artist, QString const& album) override;
-    QString download_artist(QString const& artist, QString const& album) override;
+    ArtReply * download_album(QString const& artist, QString const& album) override;
+    ArtReply * download_artist(QString const& artist, QString const& album) override;
 
-    UbuntuServerDownloader(UbuntuServerDownloader const&) = delete;
-    UbuntuServerDownloader& operator=(UbuntuServerDownloader const&) = delete;
+protected Q_SLOTS:
+    void download_finished(QNetworkReply* reply);
 
 private:
     void set_api_key();
+    ArtReply * download_url(QUrl const& url);
 
-    QString api_key;
+    QString api_key_;
+    QNetworkAccessManager network_manager_;
+    QMap<QNetworkReply *, ArtReply *> replies_map_;
 };
 
 }  // namespace internal
