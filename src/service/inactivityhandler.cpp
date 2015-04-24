@@ -21,8 +21,8 @@
 #include <QCoreApplication>
 #include <QDebug>
 
+#include <iostream>
 #include <string>
-#include <sstream>
 
 const int MAX_INACTIVITY_TIME = 30000; // max inactivity time before exiting the app, in milliseconds
 
@@ -41,10 +41,9 @@ int get_env_inactivity_time(int default_value)
         }
         catch (std::exception & e)
         {
-            std::ostringstream s;
-            s << "InactivityHandler::InactivityHandler(): Value for env variable THUMBNAILER_MAX_IDLE \""
+            std::cerr << "InactivityHandler::InactivityHandler(): Value for env variable THUMBNAILER_MAX_IDLE \""
                     << str_idle_time << "\" is not correct. It must be an integer.";
-            throw std::invalid_argument(s.str());
+            exit(1);
         }
     }
     return default_value;
