@@ -1,4 +1,6 @@
 Fixture {
+    name: "EmbeddedArt"
+
     function test_embedded_art() {
         loadThumbnail("testsong.ogg");
         compare(size.width, 200);

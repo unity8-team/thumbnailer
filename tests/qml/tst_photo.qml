@@ -1,4 +1,6 @@
 Fixture {
+    name: "Photo"
+
     function test_photo() {
         loadThumbnail("testimage.jpg");
         compare(size.width, 640);

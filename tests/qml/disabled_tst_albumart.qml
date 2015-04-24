@@ -1,4 +1,6 @@
 Fixture {
+    name: "OnlineArt"
+
     function test_albumart() {
         loadAlbumArt("Gotye", "Making Mirrors")
         comparePixel(0, 0, "#F1E4D3");
