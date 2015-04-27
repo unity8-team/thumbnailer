@@ -15,13 +15,16 @@ Build-Depends: cmake,
                libleveldb-dev,
                libqtdbustest1-dev,
                libsoup2.4-dev,
+               libunity-api-dev,
                libxml2-dev,
+               qml-module-qtquick2,
+               qml-module-qttest,
                qt5-default,
                qtbase5-dev,
                qtbase5-dev-tools,
                qtdeclarative5-dev,
                shared-mime-info,
-               libunity-api-dev,
+               xvfb,
 Homepage: https://launchpad.net/thumbnailer
 # if you don't have have commit access to this branch but would like to upload
 # directly to Ubuntu, don't worry: your changes will be merged back into the
