@@ -58,28 +58,28 @@ public:
     {
         downloads_to_wait_++;
 
-        ArtReply *reply = nullptr;
+        std::shared_ptr<ArtReply> reply;
         switch(download_type)
         {
         case LastFMAlbum:
             reply = downloader_lastfm_.download_album("prince", "controversy");
             if (reply)
             {
-                map_active_downloads_[reply] = LastFMAlbum;
+                map_active_downloads_[reply.get()] = LastFMAlbum;
             }
             break;
         case UbuntuAlbum:
             reply = downloader_ubuntu_.download_album("u2", "joshua tree");
             if (reply)
             {
-                map_active_downloads_[reply] = UbuntuAlbum;
+                map_active_downloads_[reply.get()] = UbuntuAlbum;
             }
             break;
         case UbuntuArtist:
             reply = downloader_ubuntu_.download_artist("u2", "joshua tree");
             if (reply)
             {
-                map_active_downloads_[reply] = UbuntuArtist;
+                map_active_downloads_[reply.get()] = UbuntuArtist;
             }
             break;
         default:
@@ -87,22 +87,23 @@ public:
         }
         if (reply)
         {
-            connect(reply, &ArtReply::finished, this, &TestDownload::download_finished);
+            connect(reply.get(), &ArtReply::finished, this, &TestDownload::download_finished);
         }
     }
 
 public slots:
-    void download_finished(ArtReply *reply)
+    void download_finished()
     {
+        ArtReply * reply = static_cast<ArtReply*>(sender());
         if (reply->succeded())
         {
             qDebug() << "FINISH: " << reply->url_string();
-            QMap<ArtReply *, DownloadType>::iterator iter = map_active_downloads_.find(reply);
+            std::map<ArtReply*, DownloadType>::iterator iter = map_active_downloads_.find(reply);
             if (iter != map_active_downloads_.end())
             {
                 QString filename = QString("/tmp/test_thumnailer_%1%2")
-                                                .arg(getTypeName((*iter)))
-                                                .arg(getTypeExtension((*iter)));
+                                                .arg(getTypeName((*iter).second))
+                                                .arg(getTypeExtension((*iter).second));
                 QFile file(filename);
                 if (!file.open(QIODevice::WriteOnly))
                 {
@@ -169,7 +170,7 @@ private:
         return ret;
     }
 
-    QMap<ArtReply *, DownloadType> map_active_downloads_;
+    std::map<ArtReply *, DownloadType> map_active_downloads_;
     LastFMDownloader downloader_lastfm_;
     UbuntuServerDownloader downloader_ubuntu_;
     int downloads_to_wait_;

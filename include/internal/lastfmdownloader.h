@@ -23,6 +23,8 @@
 
 #include <QNetworkAccessManager>
 
+#include <memory>
+
 
 namespace unity
 {
@@ -33,6 +35,8 @@ namespace thumbnailer
 namespace internal
 {
 
+class LastFMArtReply;
+
 class LastFMDownloader final : public ArtDownloader
 {
     Q_OBJECT
@@ -42,21 +46,21 @@ public:
     explicit LastFMDownloader(QObject* parent = nullptr);
     ~LastFMDownloader() = default;
 
-    ArtReply * download_album(QString const& artist, QString const& album) override;
-    ArtReply * download_artist(QString const& artist, QString const& album) override;
+    std::shared_ptr<ArtReply> download_album(QString const& artist, QString const& album) override;
+    std::shared_ptr<ArtReply> download_artist(QString const& artist, QString const& album) override;
 
 protected Q_SLOTS:
     void download_finished(QNetworkReply* reply);
 
 private:
-    typedef QMap<QNetworkReply *, ArtReply *>::iterator IterReply;
+    typedef QMap<QNetworkReply *, std::shared_ptr<LastFMArtReply>>::iterator IterReply;
 
     void download_xml_finished(QNetworkReply* reply, IterReply const& iter);
     void download_image_finished(QNetworkReply* reply, IterReply const& iter);
 
     QNetworkAccessManager network_manager_;
-    QMap<QNetworkReply *, ArtReply *> replies_xml_map_;
-    QMap<QNetworkReply *, ArtReply *> replies_image_map_;
+    QMap<QNetworkReply *, std::shared_ptr<LastFMArtReply>> replies_xml_map_;
+    QMap<QNetworkReply *, std::shared_ptr<LastFMArtReply>> replies_image_map_;
 };
 
 }  // namespace internal

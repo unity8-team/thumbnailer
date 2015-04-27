@@ -23,6 +23,7 @@
 
 #include <QNetworkReply>
 #include <QUrlQuery>
+#include <QThread>
 
 #include <memory>
 #include <iostream>
@@ -111,7 +112,7 @@ public:
 
     void finish()
     {
-        Q_EMIT finished(this);
+        Q_EMIT finished();
     }
 
     bool is_running_;
@@ -183,54 +184,52 @@ void UbuntuServerDownloader::set_api_key()
         }
         if (!status)
         {
-            // TODO throw exception or emit error
+            // TODO do something with the error
             qCritical() << "Failed to get API key";
         }
     }
     else
     {
-        // TODO throw exception or emit error
+        // TODO do something with the error
         qCritical() << "The schema " << THUMBNAILER_SCHEMA << " is missing";
     }
 }
 
-ArtReply *UbuntuServerDownloader::download_album(QString const& artist, QString const& album)
+shared_ptr<ArtReply> UbuntuServerDownloader::download_album(QString const& artist, QString const& album)
 {
     return download_url(get_album_art_url(artist, album, api_key_));
 }
 
-ArtReply *UbuntuServerDownloader::download_artist(QString const& artist, QString const& album)
+shared_ptr<ArtReply> UbuntuServerDownloader::download_artist(QString const& artist, QString const& album)
 {
     return download_url(get_artist_art_url(artist, album, api_key_));
 }
 
 void UbuntuServerDownloader::download_finished(QNetworkReply* reply)
 {
-    QMap<QNetworkReply *, ArtReply *>::iterator iter = replies_map_.find(reply);
+    std::map<QNetworkReply *, shared_ptr<UbuntuServerArtReply>>::iterator iter = replies_map_.find(reply);
     if (iter != replies_map_.end())
     {
-        UbuntuServerArtReply *ubuntu_reply = dynamic_cast<UbuntuServerArtReply *>((*iter));
-        assert(ubuntu_reply);
-        ubuntu_reply->is_running_ = false;
-        ubuntu_reply->error_ = reply->error();
+        (*iter).second->is_running_ = false;
+        (*iter).second->error_ = reply->error();
         if (!reply->error())
         {
-            ubuntu_reply->data_ = reply->readAll();
+            (*iter).second->data_ = reply->readAll();
         }
         else
         {
-            ubuntu_reply->error_string_ = reply->errorString();
+            (*iter).second->error_string_ = reply->errorString();
         }
-        ubuntu_reply->finish();
+        (*iter).second->finish();
         replies_map_.erase(iter);
     }
     reply->deleteLater();
 }
 
-ArtReply * UbuntuServerDownloader::download_url(QUrl const& url)
+shared_ptr<ArtReply> UbuntuServerDownloader::download_url(QUrl const& url)
 {
     assert_valid_url(url);
-    UbuntuServerArtReply *art_reply = new UbuntuServerArtReply();
+    std::shared_ptr<UbuntuServerArtReply> art_reply(new UbuntuServerArtReply());
     QNetworkReply* reply = network_manager_.get(QNetworkRequest(url));
     connect(&network_manager_, &QNetworkAccessManager::finished, this, &UbuntuServerDownloader::download_finished);
     art_reply->is_running_ = true;

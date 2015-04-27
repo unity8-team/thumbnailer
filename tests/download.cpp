@@ -56,7 +56,7 @@ private:
         auto reply = downloader.download_album("test_threads", download_id_);
         ASSERT_NE(reply, nullptr);
 
-        QSignalSpy spy(reply, SIGNAL(finished()));
+        QSignalSpy spy(reply.get(), SIGNAL(finished()));
 
         // check the returned url
         QString url_to_check =
@@ -77,7 +77,6 @@ private:
         EXPECT_EQ(reply->succeded(), true);
         EXPECT_EQ(reply->not_found_error(), false);
         EXPECT_EQ(reply->is_running(), false);
-        reply->deleteLater();
     }
 
 private:
@@ -106,7 +105,7 @@ private:
         auto reply = downloader.download_album("test", QString("thread_%1").arg(download_id_));
         ASSERT_NE(reply, nullptr);
 
-        QSignalSpy spy(reply, SIGNAL(finished()));
+        QSignalSpy spy(reply.get(), SIGNAL(finished()));
 
         QString url_to_check = QString("/1.0/album/test/thread_%1/info.xml").arg(download_id_);
         // check the returned url
@@ -124,7 +123,6 @@ private:
         EXPECT_EQ(reply->is_running(), false);
         // Finally check the content of the file downloaded
         EXPECT_EQ(QString(reply->data()), QString("TEST_THREADS_TEST_test_thread_%1").arg(download_id_));
-        reply->deleteLater();
     }
 
 private:
@@ -175,7 +173,7 @@ TEST_F(TestDownloaderServer, test_ok_album)
         reply->url_string().endsWith("/musicproxy/v1/album-art?artist=sia&album=fear&size=350&key=0f450aa882a6125ebcbfb3d7f7aa25bc"),
         true);
 
-    QSignalSpy spy(reply, SIGNAL(finished()));
+    QSignalSpy spy(reply.get(), SIGNAL(finished()));
 
     // we set a timeout of 5 seconds waiting for the signal to be emitted,
     // which should never be reached
@@ -189,8 +187,6 @@ TEST_F(TestDownloaderServer, test_ok_album)
     EXPECT_EQ(reply->is_running(), false);
     // Finally check the content of the file downloaded
     EXPECT_EQ(QString(reply->data()), QString("SIA_FEAR_TEST_STRING_IMAGE"));
-
-    reply->deleteLater();
 }
 
 TEST_F(TestDownloaderServer, test_ok_artist)
@@ -204,7 +200,7 @@ TEST_F(TestDownloaderServer, test_ok_artist)
             reply->url_string().endsWith("/musicproxy/v1/artist-art?artist=sia&album=fear&size=300&key=0f450aa882a6125ebcbfb3d7f7aa25bc"),
         true);
 
-    QSignalSpy spy(reply, SIGNAL(finished()));
+    QSignalSpy spy(reply.get(), SIGNAL(finished()));
     // we set a timeout of 5 seconds waiting for the signal to be emitted,
     // which should never be reached
     spy.wait(5000);
@@ -215,8 +211,6 @@ TEST_F(TestDownloaderServer, test_ok_artist)
     EXPECT_EQ(reply->not_found_error(), false);
     EXPECT_EQ(reply->is_running(), false);
     EXPECT_EQ(QString(reply->data()), QString("SIA_FEAR_TEST_STRING_IMAGE"));
-
-    reply->deleteLater();
 }
 
 TEST_F(TestDownloaderServer, test_not_found)
@@ -230,7 +224,7 @@ TEST_F(TestDownloaderServer, test_not_found)
         reply->url_string().endsWith("/musicproxy/v1/album-art?artist=test&album=test&size=350&key=0f450aa882a6125ebcbfb3d7f7aa25bc"),
         true);
 
-    QSignalSpy spy(reply, SIGNAL(finished()));
+    QSignalSpy spy(reply.get(), SIGNAL(finished()));
     // we set a timeout of 5 seconds waiting for the signal to be emitted,
     // which should never be reached
     spy.wait(5000);
@@ -245,8 +239,6 @@ TEST_F(TestDownloaderServer, test_not_found)
                   "/musicproxy/v1/album-art?artist=test&album=test&size=350&key=0f450aa882a6125ebcbfb3d7f7aa25bc - "
                   "server replied: Internal Server Error"),
               true);
-
-    reply->deleteLater();
 }
 
 TEST_F(TestDownloaderServer, test_threads)
@@ -283,7 +275,7 @@ TEST_F(TestDownloaderServer, lastfm_download_ok)
     auto reply = downloader.download_album("sia", "fear");
     ASSERT_NE(reply, nullptr);
 
-    QSignalSpy spy(reply, SIGNAL(finished()));
+    QSignalSpy spy(reply.get(), SIGNAL(finished()));
 
     EXPECT_EQ(reply->url_string(), apiroot_ + "/1.0/album/sia/fear/info.xml");
 
@@ -299,8 +291,6 @@ TEST_F(TestDownloaderServer, lastfm_download_ok)
     EXPECT_EQ(reply->is_running(), false);
     // Finally check the content of the file downloaded
     EXPECT_EQ(QString(reply->data()), QString("SIA_FEAR_TEST_STRING_IMAGE"));
-
-    reply->deleteLater();
 }
 
 TEST_F(TestDownloaderServer, lastfm_xml_parsing_errors)
@@ -310,7 +300,7 @@ TEST_F(TestDownloaderServer, lastfm_xml_parsing_errors)
     auto reply = downloader.download_album("xml", "errors");
     ASSERT_NE(reply, nullptr);
 
-    QSignalSpy spy(reply, SIGNAL(finished()));
+    QSignalSpy spy(reply.get(), SIGNAL(finished()));
 
     EXPECT_EQ(reply->url_string(), apiroot_ + "/1.0/album/xml/errors/info.xml");
 
@@ -327,8 +317,6 @@ TEST_F(TestDownloaderServer, lastfm_xml_parsing_errors)
     // Finally check the content of the error message
     EXPECT_EQ(reply->error_string(),
               QString("LastFMDownloader::parse_xml() XML ERROR: Expected '?', '!', or '[a-zA-Z]', but got '/'."));
-
-    reply->deleteLater();
 }
 
 TEST_F(TestDownloaderServer, lastfm_xml_image_not_found)
@@ -338,7 +326,7 @@ TEST_F(TestDownloaderServer, lastfm_xml_image_not_found)
     auto reply = downloader.download_album("no", "cover");
     ASSERT_NE(reply, nullptr);
 
-    QSignalSpy spy(reply, SIGNAL(finished()));
+    QSignalSpy spy(reply.get(), SIGNAL(finished()));
 
     EXPECT_EQ(reply->url_string(), apiroot_ + "/1.0/album/no/cover/info.xml");
 
@@ -354,8 +342,6 @@ TEST_F(TestDownloaderServer, lastfm_xml_image_not_found)
     EXPECT_EQ(reply->is_running(), false);
     // Finally check the content of the error message
     EXPECT_EQ(reply->error_string(), QString("LastFMDownloader::parse_xml() Image url not found"));
-
-    reply->deleteLater();
 }
 
 TEST_F(TestDownloaderServer, lastfm_test_threads)

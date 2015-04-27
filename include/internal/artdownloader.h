@@ -21,6 +21,8 @@
 
 #include <QObject>
 
+#include <memory>
+
 namespace unity
 {
 
@@ -41,8 +43,8 @@ public:
     explicit ArtDownloader(QObject *parent = nullptr);
     virtual ~ArtDownloader() = default;
 
-    virtual ArtReply* download_album(QString const& artist, QString const& album) = 0;
-    virtual ArtReply* download_artist(QString const& artist, QString const& album) = 0;
+    virtual std::shared_ptr<ArtReply> download_album(QString const& artist, QString const& album) = 0;
+    virtual std::shared_ptr<ArtReply> download_artist(QString const& artist, QString const& album) = 0;
 
 protected:
     void assert_valid_url(QUrl const& url);

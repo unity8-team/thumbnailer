@@ -47,7 +47,7 @@ public:
     virtual QString url_string() const = 0;
 
 Q_SIGNALS:
-    void finished(ArtReply *reply);
+    void finished();
 
 protected:
     ArtReply(QObject *parent = nullptr) : QObject(parent){};

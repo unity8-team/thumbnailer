@@ -23,6 +23,9 @@
 
 #include <QNetworkAccessManager>
 
+#include <map>
+#include <memory>
+
 namespace unity
 {
 
@@ -33,6 +36,7 @@ namespace internal
 {
 
 class ArtReply;
+class UbuntuServerArtReply;
 
 class UbuntuServerDownloader final : public ArtDownloader
 {
@@ -43,19 +47,19 @@ public:
     explicit UbuntuServerDownloader(QObject* parent = nullptr);
     ~UbuntuServerDownloader() = default;
 
-    ArtReply * download_album(QString const& artist, QString const& album) override;
-    ArtReply * download_artist(QString const& artist, QString const& album) override;
+    std::shared_ptr<ArtReply> download_album(QString const& artist, QString const& album) override;
+    std::shared_ptr<ArtReply> download_artist(QString const& artist, QString const& album) override;
 
 protected Q_SLOTS:
     void download_finished(QNetworkReply* reply);
 
 private:
     void set_api_key();
-    ArtReply * download_url(QUrl const& url);
+    std::shared_ptr<ArtReply> download_url(QUrl const& url);
 
     QString api_key_;
     QNetworkAccessManager network_manager_;
-    QMap<QNetworkReply *, ArtReply *> replies_map_;
+    std::map<QNetworkReply *, std::shared_ptr<UbuntuServerArtReply>> replies_map_;
 };
 
 }  // namespace internal
