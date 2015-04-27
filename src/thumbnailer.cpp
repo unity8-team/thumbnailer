@@ -224,7 +224,7 @@ string ThumbnailerPrivate::extract_image(string const& filename)
         return "";
     }
 
-    unique_gobj<GFileInfo> info(g_file_query_info(file.get(), G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
+    unique_gobj<GFileInfo> info(g_file_query_info(file.get(), G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE,
                                                   G_FILE_QUERY_INFO_NONE,
                                                   /* cancellable */ NULL,
                                                   /* error */ NULL));
@@ -233,7 +233,7 @@ string ThumbnailerPrivate::extract_image(string const& filename)
         return "";
     }
 
-    string content_type(g_file_info_get_content_type(info.get()));
+    string content_type = g_file_info_get_attribute_string(info.get(), G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE);
     if (content_type.empty())
     {
         return "";
