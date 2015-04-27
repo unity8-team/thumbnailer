@@ -68,6 +68,34 @@ public:
 namespace
 {
 
+auto do_loader_close = [](GdkPixbufLoader* loader)
+{
+    if (loader)
+    {
+        gdk_pixbuf_loader_close(loader, NULL);
+        g_object_unref(loader);
+    }
+};
+typedef unity::util::ResourcePtr<GdkPixbufLoader*, decltype(do_loader_close)> LoaderPtr;
+
+auto do_exif_loader_close = [](ExifLoader* loader)
+{
+    if (loader)
+    {
+        exif_loader_unref(loader);
+    }
+};
+typedef unity::util::ResourcePtr<ExifLoader*, decltype(do_exif_loader_close)> ExifLoaderPtr;
+
+auto do_exif_data_unref = [](ExifData* data)
+{
+    if (data)
+    {
+        exif_data_unref(data);
+    }
+};
+typedef unity::util::ResourcePtr<ExifData*, decltype(do_exif_data_unref)> ExifDataPtr;
+
 string create_tmp_filename()
 {
     static string dir = []

@@ -26,6 +26,21 @@
 using namespace unity::thumbnailer::internal;
 using namespace std;
 
+namespace
+{
+
+auto do_loader_close = [](GdkPixbufLoader* loader)
+{
+    if (loader)
+    {
+        gdk_pixbuf_loader_close(loader, NULL);
+        g_object_unref(loader);
+    }
+};
+typedef unity::util::ResourcePtr<GdkPixbufLoader*, decltype(do_loader_close)> LoaderPtr;
+
+}  // namespace
+
 Image::Image(string const& data, int orientation)
 {
     load(data, orientation);
