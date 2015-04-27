@@ -106,7 +106,7 @@ string create_tmp_filename()
     }();
 
     string tmp = dir + "/thumbnailer.XXXXXX";
-    int fd = mkstemp(&dir[0]);
+    int fd = mkstemp(&tmp[0]);
     if (fd == -1)
     {
         string s = string("Thumbnailer::create_tmp_filename(): mkstemp() failed: ") + safe_strerror(errno);
