@@ -42,7 +42,7 @@ void Image::load(string const& data, int orientation)
     if (!gdk_pixbuf_loader_write(loader.get(), reinterpret_cast<guchar const*>(&data[0]), data.size(), &err))
     {
         // LCOV_EXCL_START
-        string msg = string("Image::load): cannot write to pixbuf loader: ") + err->message;
+        string msg = string("Image::load(): cannot write to pixbuf loader: ") + err->message;
         g_error_free(err);
         throw runtime_error(msg);
         // LCOV_EXCL_STOP
@@ -50,7 +50,7 @@ void Image::load(string const& data, int orientation)
     if (!gdk_pixbuf_loader_close(loader.get(), &err))
     {
         // LCOV_EXCL_START
-        string msg = string("Image::load): cannot close pixbuf loader: ") + err->message;
+        string msg = string("Image::load(): cannot close pixbuf loader: ") + err->message;
         g_error_free(err);
         throw runtime_error(msg);
         // LCOV_EXCL_STOP

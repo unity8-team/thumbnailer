@@ -127,7 +127,7 @@ TEST(Image, exceptions)
         catch (std::exception const& e)
         {
             string msg = e.what();
-            EXPECT_TRUE(boost::starts_with(msg, "Image::load): cannot close pixbuf loader: ")) << msg;
+            EXPECT_TRUE(boost::starts_with(msg, "Image::load(): cannot close pixbuf loader: ")) << msg;
         }
     }
 }
