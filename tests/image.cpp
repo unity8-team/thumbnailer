@@ -18,9 +18,10 @@
 
 #include <internal/image.h>
 
+#include <boost/algorithm/string.hpp>
+#include <gtest/gtest.h>
 #include <internal/file_io.h>
 #include <testsetup.h>
-#include <gtest/gtest.h>
 
 #define TESTIMAGE TESTDATADIR "/testimage.jpg"
 #define PORTRAITIMAGE TESTDATADIR "/michi.jpg"
@@ -125,7 +126,8 @@ TEST(Image, exceptions)
         }
         catch (std::exception const& e)
         {
-            EXPECT_STREQ("Image::load(): cannot create pixbuf", e.what());
+            string msg = e.what();
+            EXPECT_TRUE(boost::starts_with(msg, "Image::load): cannot close pixbuf loader: ")) << msg;
         }
     }
 }
