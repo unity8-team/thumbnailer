@@ -66,3 +66,11 @@ target_link_libraries(test_dbus
   gtest)
 add_test(test_dbus test_dbus)
 add_dependencies(test_dbus thumbnailer-service)
+
+# Tests for the QML plugin
+add_executable(test_qml test_qml.cpp)
+qt5_use_modules(test_qml Qml DBus QuickTest)
+target_link_libraries(test_qml
+  ${QTDBUSTEST_DEPS_LDFLAGS})
+add_test(test_qml xvfb-run -a -s "-screen 0 800x600x24" ./test_qml -import ${CMAKE_BINARY_DIR}/plugins)
+add_dependencies(test_qml thumbnailer-service)
