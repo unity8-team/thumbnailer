@@ -1,9 +1,11 @@
 #include <cstdio>
+#include <iostream>
 
 #include <QCoreApplication>
 
 #include "dbusinterface.h"
 #include "dbusinterfaceadaptor.h"
+#include "inactivityhandler.h"
 
 using namespace unity::thumbnailer::service;
 
@@ -22,6 +24,12 @@ int main(int argc, char **argv) {
     if (!bus.registerService(BUS_NAME)) {
         fprintf(stderr, "Could no acquire D-Bus name %s.\n", BUS_NAME);
         return 0;
+    }
+    try {
+        new InactivityHandler(server);
+    } catch(std::invalid_argument & e) {
+        std::cerr << e.what() << std::endl;
+        exit(1);
     }
     return app.exec();
 }
