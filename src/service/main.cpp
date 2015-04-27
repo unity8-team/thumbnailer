@@ -24,6 +24,11 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Could no acquire D-Bus name %s.\n", BUS_NAME);
         return 0;
     }
-    new InactivityHandler(server);
+    try {
+        new InactivityHandler(server);
+    } catch(std::invalid_argument & e) {
+        fprintf(stderr, e.what());
+        exit(1);
+    }
     return app.exec();
 }
