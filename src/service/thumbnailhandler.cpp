@@ -93,6 +93,8 @@ QDBusUnixFileDescriptor ThumbnailHandler::create() {
         throw std::runtime_error("ThumbnailHandler::create(): Could not get thumbnail for " + p->filename.toStdString());
     }
 
+    // FIXME: check that the thumbnail was produced for fd_stat
+
     return write_to_tmpfile(art_image);
 }
 

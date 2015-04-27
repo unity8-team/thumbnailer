@@ -26,13 +26,12 @@
 #include <internal/lastfmdownloader.h>
 #include <internal/make_directories.h>
 #include <internal/raii.h>
+#include <internal/safe_strerror.h>
 #include <internal/ubuntuserverdownloader.h>
 #include <internal/videoscreenshotter.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/uuid/random_generator.hpp>
-#include <boost/uuid/uuid_io.hpp>
 #include <core/persistent_string_cache.h>
 #include <unity/util/ResourcePtr.h>
 
@@ -77,11 +76,16 @@ string create_tmp_filename()
         string dir = dirp ? dirp : "/tmp";
         return dir;
     }();
-    static auto gen = boost::uuids::random_generator();
 
-    string uuid = boost::lexical_cast<string>(gen());
-    return dir + "/thumbnailer." + uuid + ".tmp";
-    ;
+    string tmp = dir + "/thumbnailer.XXXXXX";
+    int fd = mkstemp(&dir[0]);
+    if (fd == -1)
+    {
+        string s = string("Thumbnailer::create_tmp_filename(): mkstemp() failed: ") + safe_strerror(errno);
+        throw runtime_error(s);
+    }
+    close(fd);
+    return tmp;
 }
 
 string extract_exif_image(string const& filename, int& orientation)
