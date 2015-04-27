@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <iostream>
 
 #include <QCoreApplication>
 
@@ -27,7 +28,7 @@ int main(int argc, char **argv) {
     try {
         new InactivityHandler(server);
     } catch(std::invalid_argument & e) {
-        fprintf(stderr, e.what());
+        std::cerr << e.what() << std::endl;
         exit(1);
     }
     return app.exec();
