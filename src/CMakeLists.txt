@@ -11,7 +11,6 @@ soupdownloader.cpp
 thumbnailer.cpp
 ubuntuserverdownloader.cpp
 videoscreenshotter.cpp
-safe_strerror.cpp
 artdownloader.cpp
 syncdownloader.cpp
 ${CMAKE_SOURCE_DIR}/include/internal/artdownloader.h
@@ -22,7 +21,7 @@ ${CMAKE_SOURCE_DIR}/include/internal/syncdownloader.h
 ${CMAKE_SOURCE_DIR}/include/thumbnailer.h
 )
 
-qt5_use_modules(thumbnailer Core Network Gui)
+qt5_use_modules(thumbnailer Core Network)
 
 target_link_libraries(thumbnailer
  core
