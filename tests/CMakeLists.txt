@@ -1,5 +1,9 @@
 add_subdirectory(core)
 
+add_definitions(
+  -DFAKE_DOWNLOADER_SERVER="${CMAKE_CURRENT_SOURCE_DIR}/server/server.py"
+)
+
 if (NOT DEFINED GTEST_ROOT)
     set(GTEST_ROOT /usr/src/gtest)
 endif()
@@ -28,10 +32,12 @@ target_link_libraries(thumbnailer_test thumbnailer core gtest)
 add_test(thumbnailer_test thumbnailer_test)
 set_property(TEST thumbnailer_test PROPERTY ENVIRONMENT "XDG_CACHE_HOME=${CMAKE_CURRENT_BINARY_DIR}")
 
-add_executable(downloadtest download.cpp ../src/lastfmdownloader.cpp ../src/ubuntuserverdownloader.cpp ../src/soupdownloader.cpp)
-target_link_libraries(downloadtest ${XML_DEPS_LDFLAGS} ${SOUP_DEPS_LDFLAGS} gtest)
+add_executable(downloadtest download.cpp)
+
+target_link_libraries(downloadtest ${XML_DEPS_LDFLAGS} ${SOUP_DEPS_LDFLAGS} thumbnailer gtest process-cpp)
 add_test(downloadtest downloadtest)
 set_property(TEST downloadtest PROPERTY ENVIRONMENT "GSETTINGS_SCHEMA_DIR=${CMAKE_BINARY_DIR}/data")
+qt5_use_modules(downloadtest Core Network Test)
 
 # This is only needed here because GStreamer brings in gobject.
 pkg_check_modules(GOBJ_DEPS REQUIRED gobject-2.0)
@@ -44,7 +50,7 @@ add_test(unique_gobj unique_gobj)
 
 add_executable(test_vsthumb
   test_vsthumb.cpp
-  ../src/vs-thumb/thumbnailextractor.cpp)
+  ${CMAKE_SOURCE_DIR}/src/vs-thumb/thumbnailextractor.cpp)
 target_link_libraries(test_vsthumb
   ${GST_DEPS_LDFLAGS}
   ${IMG_DEPS_LDFLAGS}

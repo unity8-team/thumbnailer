@@ -14,15 +14,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authored by: Pawel Stolowski <pawel.stolowski@canonical.com>
+ *              Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
 #pragma once
 
 #include <internal/artdownloader.h>
-#include <internal/httpdownloader.h>
 
+#include <QNetworkAccessManager>
+
+#include <map>
 #include <memory>
-#include <string>
 
 namespace unity
 {
@@ -33,22 +35,27 @@ namespace thumbnailer
 namespace internal
 {
 
+class ArtReply;
+class UbuntuServerArtReply;
+
 class UbuntuServerDownloader final : public ArtDownloader
 {
+    Q_OBJECT
 public:
-    UbuntuServerDownloader();
-    UbuntuServerDownloader(HttpDownloader* o);  // Takes ownership.
+    Q_DISABLE_COPY(UbuntuServerDownloader)
+
+    explicit UbuntuServerDownloader(QObject* parent = nullptr);
     ~UbuntuServerDownloader() = default;
 
-    std::string download(std::string const& artist, std::string const& album) override;
-    std::string download_artist(std::string const& artist, std::string const& album) override;
+    std::shared_ptr<ArtReply> download_album(QString const& artist, QString const& album) override;
+    std::shared_ptr<ArtReply> download_artist(QString const& artist, QString const& album) override;
 
 private:
-    std::string download(std::string const& url);
     void set_api_key();
+    std::shared_ptr<ArtReply> download_url(QUrl const& url);
 
-    std::unique_ptr<HttpDownloader> dl;
-    std::string api_key;
+    QString api_key_;
+    std::unique_ptr<QNetworkAccessManager> network_manager_;
 };
 
 }  // namespace internal

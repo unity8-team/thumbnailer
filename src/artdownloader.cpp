@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Canonical Ltd.
+ * Copyright (C) 2015 Canonical Ltd
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License version 3 as
@@ -13,18 +13,26 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Pawel Stolowski <pawel.stolowski@canonical.com>
+ * Authored by: Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
-#include <internal/ubuntuserverdownloader.h>
+#include <internal/artdownloader.h>
 
-using namespace std;
+#include <QUrl>
+
+#include <stdexcept>
+
 using namespace unity::thumbnailer::internal;
 
-int main(int, char **)
+ArtDownloader::ArtDownloader(QObject* parent)
+    : QObject(parent)
 {
-    UbuntuServerDownloader dl;
-    dl.download("Radiohead", "Amnesiac");
-    dl.download_artist("Radiohead", "Amnesiac");
-    return 0;
+}
+
+void ArtDownloader::assert_valid_url(QUrl const& url)
+{
+    if (!url.isValid())
+    {
+        throw std::logic_error("ArtDownloader::assert_valid_url(): The url provided is not valid");
+    }
 }

@@ -13,15 +13,12 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Pawel Stolowski <pawel.stolowski@canonical.com>
- *              Xavi Garcia <xavi.garcia.mena@canonical.com>
+ * Authored by: Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
 #pragma once
 
 #include <QObject>
-
-#include <memory>
 
 namespace unity
 {
@@ -32,22 +29,29 @@ namespace thumbnailer
 namespace internal
 {
 
-class ArtReply;
+class ArtReplyPrivate;
 
-class ArtDownloader : public QObject
+class ArtReply : public QObject
 {
     Q_OBJECT
 public:
-    Q_DISABLE_COPY(ArtDownloader)
+    Q_DISABLE_COPY(ArtReply)
 
-    explicit ArtDownloader(QObject* parent = nullptr);
-    virtual ~ArtDownloader() = default;
+    virtual ~ArtReply() = default;
 
-    virtual std::shared_ptr<ArtReply> download_album(QString const& artist, QString const& album) = 0;
-    virtual std::shared_ptr<ArtReply> download_artist(QString const& artist, QString const& album) = 0;
+    virtual bool succeded() const = 0;
+    virtual bool is_running() const = 0;
+    virtual QString error_string() const = 0;
+    virtual bool not_found_error() const = 0;
+    virtual QByteArray const& data() const = 0;
+    virtual QString url_string() const = 0;
+
+Q_SIGNALS:
+    void finished();
 
 protected:
-    void assert_valid_url(QUrl const& url);
+    ArtReply(QObject* parent = nullptr)
+        : QObject(parent){};
 };
 
 }  // namespace internal
