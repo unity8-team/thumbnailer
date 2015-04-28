@@ -25,3 +25,6 @@ std::string read_file(std::string const& filename);
 
 // Write contents to filename.
 void write_file(std::string const& filename, std::string const& contents);
+
+// Return a temporary file name in TMPDIR.
+std::string create_tmp_filename();

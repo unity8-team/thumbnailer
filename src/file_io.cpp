@@ -62,24 +62,64 @@ string read_file(string const& filename)
     return contents;
 }
 
-// Write contents to filename.
+namespace
+{
+    
+static string tmp_dir = []
+{
+    char const* dirp = getenv("TMPDIR");
+    string dir = dirp ? dirp : "/tmp";
+    return dir;
+}();
+
+}  // namespace
+
+// Atomically write contents to filename.
 
 void write_file(string const& filename, string const& contents)
 {
-    int fd = open(filename.c_str(), O_CREAT | O_TRUNC | O_WRONLY, 0700);
+    string tmp_path = tmp_dir + "/thumbnailer.XXXXXX";
+    int fd = mkstemp(&tmp_path[0]);
     if (fd == -1)
     {
-        throw runtime_error("write_file(): cannot open \"" + filename + "\": " + safe_strerror(errno));
+        // LCOV_EXCL_START
+        string s = string("write_file(): mkstemp() failed: ") + safe_strerror(errno);
+        throw runtime_error(s);
+        // LCOV_EXCL_STOP
     }
-    FdPtr fd_ptr(fd, do_close);
 
-    int rc = write(fd_ptr.get(), &contents[0], contents.size());
-    if (rc == -1)
     {
-        throw runtime_error("write_file(): cannot write to \"" + filename + "\": " + safe_strerror(errno)); // LCOV_EXCL_LINE
-    }
-    if (string::size_type(rc) != contents.size())
+        FdPtr fd_ptr(fd, do_close);
+
+        int rc = write(fd_ptr.get(), &contents[0], contents.size());
+        if (rc == -1)
+        {
+            throw runtime_error("write_file(): cannot write to \"" + filename + "\": " + safe_strerror(errno)); // LCOV_EXCL_LINE
+        }
+        if (string::size_type(rc) != contents.size())
+        {
+            throw runtime_error("write_file(): short write for \"" + filename + "\""); // LCOV_EXCL_LINE
+        }
+    }  // Close tmp file
+
+    if (rename(tmp_path.c_str(), filename.c_str()) == -1)
     {
-        throw runtime_error("write_file(): short write for \"" + filename + "\""); // LCOV_EXCL_LINE
+        unlink(tmp_path.c_str());
+        throw runtime_error("write_file(): cannot rename " + tmp_path + " to " + filename + ": " + safe_strerror(errno));
     }
+}
+
+string create_tmp_filename()
+{
+    string tmp_path = tmp_dir + "/thumbnailer.XXXXXX";
+    int fd = mkstemp(&tmp_path[0]);
+    if (fd == -1)
+    {
+        // LCOV_EXCL_START
+        string s = string("create_tmp_filename(): mkstemp() failed: ") + safe_strerror(errno);
+        throw runtime_error(s);
+        // LCOV_EXCL_STOP
+    }
+    close(fd);
+    return tmp_path;
 }
