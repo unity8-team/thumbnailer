@@ -23,20 +23,6 @@
 
 class ThumbnailerPrivate;
 
-enum ThumbnailSize
-{
-    TN_SIZE_SMALL,    // maximum dimension 128 pixels
-    TN_SIZE_LARGE,    // maximum dimension 256 pixels
-    TN_SIZE_XLARGE,   // maximum dimension 512 pixels
-    TN_SIZE_ORIGINAL  // Whatever the original size was, e.g. 1920x1080 for FullHD video
-};
-
-enum ThumbnailPolicy
-{
-    TN_LOCAL,   // Use only local information
-    TN_REMOTE,  // Use remote services (e.g. album art downloading)
-};
-
 /**
  * This class provides a way to generate and access
  * thumbnails of video, audio and image files.
@@ -54,38 +40,27 @@ public:
     Thumbnailer();
     ~Thumbnailer();
 
+    Thumbnailer(Thumbnailer const&) = delete;
+    Thumbnailer& operator=(Thumbnailer const&) = delete;
+
     /**
      * Gets a thumbnail of the given input file in the requested size.
      *
-     * Return value is a string pointing to the thumbnail file. If
-     * the thumbnail could not be generated and empty string is returned.
-     *
-     * Applications should treat the returned file as read only. They should _not_
-     * delete it.
-     *
-     * In case of unexpected problems, the function throws a
-     * std::runtime_error.
+     * Return value is the thumbnail image as a string.
+     * If the thumbnail could not be generated, an empty string is returned.
      */
-    std::string get_thumbnail(std::string const& filename, ThumbnailSize desired_size, ThumbnailPolicy policy);
+    std::string get_thumbnail(std::string const& filename, int desired_size);
+
     /**
-     * Deprecated. Do not use!
+     * Gets album art for the given artist an album.
      */
-    std::string get_thumbnail(std::string const& filename, ThumbnailSize desired_size);
+    std::string get_album_art(std::string const& artist, std::string const& album, int desiredSize);
 
-    std::string get_album_art(std::string const& artist,
-                              std::string const& album,
-                              ThumbnailSize desiredSize,
-                              ThumbnailPolicy policy);
-
-    std::string get_artist_art(std::string const& artist,
-                               std::string const& album,
-                               ThumbnailSize desiredSize,
-                               ThumbnailPolicy policy);
+    /**
+     * Gets artist art for the given artist and album.
+     */
+    std::string get_artist_art(std::string const& artist, std::string const& album, int desiredSize);
 
 private:
-    Thumbnailer(Thumbnailer const& t);
-    Thumbnailer& operator=(Thumbnailer const& t);
-
     std::unique_ptr<ThumbnailerPrivate> p_;
 };
-

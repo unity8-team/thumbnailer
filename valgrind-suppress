@@ -1,0 +1,41 @@
+{
+    DynLinker
+    Memcheck:Leak
+    ...
+    fun:call_init.part.0
+    fun:call_init
+    fun:_dl_init
+}
+
+{
+    glib1
+    Memcheck:Leak
+    match-leak-kinds: possible
+    ...
+    fun:g_type_register_static
+}
+
+{
+    glib2
+    Memcheck:Leak
+    match-leak-kinds: possible
+    ...
+    fun:g_type_class_ref
+}
+
+{
+    glib3
+    Memcheck:Leak
+    match-leak-kinds: possible
+    ...
+    obj:/usr/lib/x86_64-linux-gnu/libgobject-2.0.so.0.4400.0
+    fun:g_type_add_interface_static
+}
+
+{
+    leveldb
+    Memcheck:Leak
+    match-leak-kinds: possible
+    ...
+    fun:_ZN7leveldb6DBImpl12CompactRangeEPKNS_5SliceES3_
+}

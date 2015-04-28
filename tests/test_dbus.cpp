@@ -1,4 +1,6 @@
 
+#include <internal/raii.h>
+
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -8,6 +10,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <gtest/gtest.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <libqtdbustest/DBusTestRunner.h>
@@ -19,12 +22,12 @@
 
 #include <testsetup.h>
 
+using namespace unity::thumbnailer::internal;
+
 static const char BUS_NAME[] = "com.canonical.Thumbnailer";
 static const char BUS_PATH[] = "/com/canonical/Thumbnailer";
 static const char THUMBNAILER_IFACE[] = "com.canonical.Thumbnailer";
 
-
-typedef unity::util::ResourcePtr<int, decltype(&::close)> FdPtr;
 typedef std::unique_ptr<GdkPixbuf, decltype(&g_object_unref)> PixbufPtr;
 
 template <typename T>
@@ -144,7 +147,7 @@ TEST_F(DBusTest, get_album_art) {
 
 TEST_F(DBusTest, thumbnail_image) {
     const char *filename = TESTDATADIR "/testimage.jpg";
-    FdPtr fd(open(filename, O_RDONLY), close);
+    FdPtr fd(open(filename, O_RDONLY), do_close);
     ASSERT_GE(fd.get(), 0);
 
     QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
@@ -154,15 +157,15 @@ TEST_F(DBusTest, thumbnail_image) {
     assert_no_error(reply);
 
     auto pixbuf = read_image(reply.value());
-    EXPECT_EQ(gdk_pixbuf_get_width(pixbuf.get()), 256);
-    EXPECT_EQ(gdk_pixbuf_get_height(pixbuf.get()), 160);
+    EXPECT_EQ(256, gdk_pixbuf_get_width(pixbuf.get()));
+    EXPECT_EQ(160, gdk_pixbuf_get_height(pixbuf.get()));
 }
 
 TEST_F(DBusTest, thumbnail_no_such_file) {
     const char *no_such_file = TESTDATADIR "/no-such-file.jpg";
     const char *filename2 = TESTDATADIR "/testrotate.jpg";
 
-    FdPtr fd(open(filename2, O_RDONLY), close);
+    FdPtr fd(open(filename2, O_RDONLY), do_close);
     ASSERT_GE(fd.get(), 0);
 
     QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
@@ -171,14 +174,14 @@ TEST_F(DBusTest, thumbnail_no_such_file) {
         QSize(256, 256));
     EXPECT_FALSE(reply.isValid());
     auto message = reply.error().message().toStdString();
-    EXPECT_EQ(message, "Could not stat file");
+    EXPECT_TRUE(boost::starts_with(message, "ThumbnailHandler::create(): Could not stat ")) << message;
 }
 
 TEST_F(DBusTest, thumbnail_wrong_fd_fails) {
     const char *filename1 = TESTDATADIR "/testimage.jpg";
     const char *filename2 = TESTDATADIR "/testrotate.jpg";
 
-    FdPtr fd(open(filename2, O_RDONLY), close);
+    FdPtr fd(open(filename2, O_RDONLY), do_close);
     ASSERT_GE(fd.get(), 0);
 
     QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
@@ -187,13 +190,13 @@ TEST_F(DBusTest, thumbnail_wrong_fd_fails) {
         QSize(256, 256));
     EXPECT_FALSE(reply.isValid());
     auto message = reply.error().message().toStdString();
-    EXPECT_EQ(message, "filename refers to a different file to the file descriptor");
+    EXPECT_TRUE(boost::ends_with(message, " refers to a different file than the file descriptor"));
 }
 
 TEST_F(DBusTest, test_inactivity_exit) {
     // basic setup to the query
     const char *filename = TESTDATADIR "/testimage.jpg";
-    FdPtr fd(open(filename, O_RDONLY), close);
+    FdPtr fd(open(filename, O_RDONLY), do_close);
     ASSERT_GE(fd.get(), 0);
 
     QSignalSpy spy_exit(&dbusService->underlyingProcess(), static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished));

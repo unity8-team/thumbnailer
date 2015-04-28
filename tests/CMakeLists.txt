@@ -19,11 +19,14 @@ set(TESTDATADIR ${CMAKE_CURRENT_SOURCE_DIR}/media)
 configure_file(testsetup.h.in testsetup.h @ONLY)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-add_executable(basic basic.cpp)
-target_link_libraries(basic thumbnailer core gtest)
-add_test(basic basic)
-set_property(TEST basic PROPERTY ENVIRONMENT "XDG_CACHE_HOME=${CMAKE_CURRENT_BINARY_DIR}")
-set_property(TEST basic APPEND PROPERTY ENVIRONMENT "TN_UTILDIR=${CMAKE_BINARY_DIR}/src/vs-thumb")
+add_executable(image image.cpp)
+target_link_libraries(image thumbnailer core gtest)
+add_test(image image)
+
+add_executable(thumbnailer_test thumbnailer_test.cpp)
+target_link_libraries(thumbnailer_test thumbnailer core gtest)
+add_test(thumbnailer_test thumbnailer_test)
+set_property(TEST thumbnailer_test PROPERTY ENVIRONMENT "XDG_CACHE_HOME=${CMAKE_CURRENT_BINARY_DIR}")
 
 add_executable(downloadtest download.cpp ../src/lastfmdownloader.cpp ../src/ubuntuserverdownloader.cpp ../src/soupdownloader.cpp)
 target_link_libraries(downloadtest ${XML_DEPS_LDFLAGS} ${SOUP_DEPS_LDFLAGS} gtest)
@@ -57,10 +60,12 @@ add_executable(test_dbus
   test_dbus.cpp)
 qt5_use_modules(test_dbus DBus Test)
 target_link_libraries(test_dbus
+  thumbnailer
   ${QTDBUSTEST_DEPS_LDFLAGS}
   ${IMG_DEPS_LDFLAGS}
   gtest)
 add_test(test_dbus test_dbus)
+add_dependencies(test_dbus thumbnailer-service)
 
 # Tests for the QML plugin
 add_executable(test_qml test_qml.cpp)
@@ -68,4 +73,4 @@ qt5_use_modules(test_qml Qml DBus QuickTest)
 target_link_libraries(test_qml
   ${QTDBUSTEST_DEPS_LDFLAGS})
 add_test(test_qml xvfb-run -a -s "-screen 0 800x600x24" ./test_qml -import ${CMAKE_BINARY_DIR}/plugins)
-
+add_dependencies(test_qml thumbnailer-service)

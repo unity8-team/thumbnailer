@@ -158,24 +158,15 @@ void Handler::sendError(const QString &error) {
     Q_EMIT finished();
 }
 
-ThumbnailSize thumbnail_size_from_qsize(const QSize &size)
+int thumbnail_size_from_qsize(const QSize &size)
 {
     if (!size.isValid()) {
         // If an invalid size is passed to the QQuickImageProvider,
         // then we don't know what size is expected.  In this case,
         // return the unscaled original.
-        return TN_SIZE_ORIGINAL;
+        return 0;
     }
-
-    int maxsize = size.width() > size.height() ? size.width() : size.height();
-    if (maxsize <= 128) {
-        return TN_SIZE_SMALL;
-    } else if (maxsize <= 256) {
-        return TN_SIZE_LARGE;
-    } else if (maxsize <= 512) {
-        return TN_SIZE_XLARGE;
-    }
-    return TN_SIZE_ORIGINAL;
+    return std::max(size.width(), size.height());
 }
 
 QDBusUnixFileDescriptor write_to_tmpfile(std::string const& image)
@@ -192,7 +183,11 @@ QDBusUnixFileDescriptor write_to_tmpfile(std::string const& image)
     static std::string dir = find_tmpdir();
 
     int fd = open(dir.c_str(), O_TMPFILE | O_RDWR);
-    if (fd < 0 && errno == EISDIR) {
+    // Different kernel verions return different errno if they don't recognize O_TMPFILE,
+    // so we check for all failures here. If it is a real failure (rather than the flag not
+    // being recognized), mkstemp will fail too.
+    if (fd < 0)
+    {
         // We are running on an old kernel without O_TMPFILE support:
         // the flag has been ignored, and treated as an attempt to
         // open /tmp.
@@ -200,7 +195,8 @@ QDBusUnixFileDescriptor write_to_tmpfile(std::string const& image)
         // As a fallback, use mkstemp() and unlink the resulting file.
         std::string tmpfile = dir + "/thumbnail.XXXXXX";
         fd = mkstemp(const_cast<char*>(tmpfile.data()));
-        if (fd >= 0) {
+        if (fd >= 0)
+        {
             unlink(tmpfile.data());
         }
     }

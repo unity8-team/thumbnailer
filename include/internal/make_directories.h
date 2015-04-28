@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Canonical Ltd.
+ * Copyright (C) 2015 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License version 3 as
@@ -13,25 +13,17 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
+ * Authored by: MichiHenning <michi@canonical.com>
  */
 
-#include<thumbnailer.h>
-#include<cstdio>
-#include<gst/gst.h>
-#include<stdexcept>
+#pragma once
 
-int main(int argc, char **argv) {
-    Thumbnailer t;
-    if(argc != 2) {
-        printf("%s <file name>\n", argv[0]);
-        return 1;
-    }
-    std::string ifilename(argv[1]);
-    std::string ofilename = t.get_thumbnail(ifilename, 256);
-    if(ofilename.empty())
-        printf("Thumbnail could not be generated.\n");
-    else
-        printf("Thumbnail file is %s.\n", ofilename.c_str());
-    return 0;
-}
+#include <string>
+#include <sys/stat.h>
+
+// Recursively create the directories in path, setting permissions to the specified mode
+// (regardless of the setting of umask). If one or more directories already exist, they
+// are left unchanged (including their permissions). If a directory cannot be created,
+// fail silently.
+
+void make_directories(std::string const& path_name, mode_t mode);

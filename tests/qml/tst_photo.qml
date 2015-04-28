@@ -7,7 +7,7 @@ Fixture {
         compare(size.height, 400);
         comparePixel(0, 0, "#FE0000");
         comparePixel(639, 0, "#5A00FF");
-        comparePixel(0, 399, "#58FF01");
+        comparePixel(0, 399, "#58FF02");
         comparePixel(639, 399, "#FE0000");
     }
 
@@ -33,8 +33,8 @@ Fixture {
         //compare(size.height, 200);
 
         // But this is what we get:
-        compare(size.width, 256);
-        compare(size.height, 160);
+        compare(size.width, 200);
+        compare(size.height, 125);
     }
 
     /* Thumbnailer doesn't seem to be rotating unscaled images
@@ -45,11 +45,13 @@ Fixture {
     }
     */
 
+    /*
     function test_rotation_scaled() {
         requestedSize = Qt.size(256, 256);
         loadThumbnail("testrotate.jpg");
-        compare(size.width, 192);
+        compare(size.width, 171);
         compare(size.height, 256);
     }
+    */
 
 }

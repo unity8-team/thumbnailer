@@ -18,6 +18,7 @@
  */
 
 #include "thumbnailhandler.h"
+#include <internal/raii.h>
 #include <internal/safe_strerror.h>
 
 #include <fcntl.h>
@@ -69,34 +70,32 @@ void ThumbnailHandler::download() {
 }
 
 QDBusUnixFileDescriptor ThumbnailHandler::create() {
-    typedef unity::util::ResourcePtr<int, decltype(&::close)> FdPtr;
     struct stat filename_stat, fd_stat;
 
     if (stat(p->filename.toUtf8(), &filename_stat) < 0) {
-        throw std::runtime_error("Could not stat file");
+        throw std::runtime_error("ThumbnailHandler::create(): Could not stat " +
+                                 p->filename.toStdString() + ": " + safe_strerror(errno));
     }
     if (fstat(p->filename_fd.fileDescriptor(), &fd_stat) < 0) {
-        throw std::runtime_error("Could not stat file descriptor");
+        throw std::runtime_error("ThumbnailHandler::create(): Could not stat file descriptor: " + safe_strerror(errno));
     }
     if (filename_stat.st_dev != fd_stat.st_dev ||
         filename_stat.st_ino != fd_stat.st_ino) {
-        throw std::runtime_error("filename refers to a different file to the file descriptor");
+        throw std::runtime_error("ThumbnailHandler::create(): " + p->filename.toStdString()
+                                 + " refers to a different file than the file descriptor");
     }
 
-    ThumbnailSize size = thumbnail_size_from_qsize(p->requestedSize);
-    std::string art = p->thumbnailer->get_thumbnail(
-        p->filename.toStdString(), size, TN_REMOTE);
+    int size = thumbnail_size_from_qsize(p->requestedSize);
+    std::string art_image = p->thumbnailer->get_thumbnail(
+        p->filename.toStdString(), size);
 
-    if (art.empty()) {
-        throw std::runtime_error("Could not get thumbnail");
+    if (art_image.empty()) {
+        throw std::runtime_error("ThumbnailHandler::create(): Could not get thumbnail for " + p->filename.toStdString());
     }
 
     // FIXME: check that the thumbnail was produced for fd_stat
-    FdPtr fd(open(art.c_str(), O_RDONLY), ::close);
-    if (fd.get() < 0) {
-        throw std::runtime_error(safe_strerror(errno));
-    }
-    return QDBusUnixFileDescriptor(fd.get());
+
+    return write_to_tmpfile(art_image);
 }
 
 }

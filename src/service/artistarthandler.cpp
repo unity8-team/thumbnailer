@@ -66,12 +66,12 @@ void ArtistArtHandler::download() {
 }
 
 QDBusUnixFileDescriptor ArtistArtHandler::create() {
-    ThumbnailSize size = thumbnail_size_from_qsize(p->requestedSize);
+    int size = thumbnail_size_from_qsize(p->requestedSize);
     std::string art_image = p->thumbnailer->get_artist_art(
-        p->artist.toStdString(), p->album.toStdString(), size, TN_REMOTE);
+        p->artist.toStdString(), p->album.toStdString(), size);
 
     if (art_image.empty()) {
-        throw std::runtime_error("Could not get thumbnail");
+        throw std::runtime_error("ArtistArtHandler::create() Could not get thumbnail for " + p->artist.toStdString());
     }
 
     return write_to_tmpfile(art_image);
