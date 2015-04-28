@@ -294,6 +294,85 @@ TEST_F(TestDownloaderServer, lastfm_download_ok)
     EXPECT_EQ(QString(reply->data()), QString("SIA_FEAR_TEST_STRING_IMAGE"));
 }
 
+TEST_F(TestDownloaderServer, lastfm_xml_not_found)
+{
+    LastFMDownloader downloader;
+
+    auto reply = downloader.download_album("xml", "not_found");
+    ASSERT_NE(reply, nullptr);
+
+    QSignalSpy spy(reply.get(), SIGNAL(finished()));
+
+    EXPECT_EQ(reply->url_string(), apiroot_ + "/1.0/album/xml/not_found/info.xml");
+
+    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+    // which should never be reached
+    spy.wait(5000);
+
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+
+    EXPECT_EQ(reply->succeded(), false);
+    EXPECT_EQ(reply->not_found_error(), true);
+    EXPECT_EQ(reply->is_running(), false);
+    // Finally check the content of the error message
+    EXPECT_EQ(reply->error_string(),
+              QString("LastFMArtReply::download_xml_finished() Error downloading %1/1.0/album/xml/not_found/info.xml - server replied: Not Found").arg(apiroot_));
+}
+
+TEST_F(TestDownloaderServer, lastfm_image_returned_is_default_not_found)
+{
+    LastFMDownloader downloader;
+
+    auto reply = downloader.download_album("image", "notfound");
+    ASSERT_NE(reply, nullptr);
+
+    QSignalSpy spy(reply.get(), SIGNAL(finished()));
+
+    EXPECT_EQ(reply->url_string(), apiroot_ + "/1.0/album/image/notfound/info.xml");
+
+    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+    // which should never be reached
+    spy.wait(5000);
+
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+
+    EXPECT_EQ(reply->succeded(), false);
+    EXPECT_EQ(reply->not_found_error(), true);
+    EXPECT_EQ(reply->is_running(), false);
+    // Finally check the content of the error message
+    qDebug() << reply->error_string();
+    EXPECT_EQ(reply->error_string(),
+              QString("LastFMArtReply::download_xml_finished() Image for http://cdn.last.fm/flatness/catalogue/noimage/2/default_album_medium.png was not found"));
+}
+
+TEST_F(TestDownloaderServer, lastfm_invalid_url_in_xml)
+{
+    LastFMDownloader downloader;
+
+    auto reply = downloader.download_album("invalid", "url");
+    ASSERT_NE(reply, nullptr);
+
+    QSignalSpy spy(reply.get(), SIGNAL(finished()));
+
+    EXPECT_EQ(reply->url_string(), apiroot_ + "/1.0/album/invalid/url/info.xml");
+
+    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+    // which should never be reached
+    spy.wait(5000);
+
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+
+    EXPECT_EQ(reply->succeded(), false);
+    EXPECT_EQ(reply->not_found_error(), false);
+    EXPECT_EQ(reply->is_running(), false);
+    // Finally check the content of the error message
+    EXPECT_EQ(reply->error_string(),
+              QString("LastFMArtReply::download_xml_finished() Bad url obtained from lastfm: http://http://cdn.last.fm/flatness/catalogue/noimage/2/default_album_medium.png"));
+}
+
 TEST_F(TestDownloaderServer, lastfm_xml_parsing_errors)
 {
     LastFMDownloader downloader;
@@ -317,7 +396,87 @@ TEST_F(TestDownloaderServer, lastfm_xml_parsing_errors)
     EXPECT_EQ(reply->is_running(), false);
     // Finally check the content of the error message
     EXPECT_EQ(reply->error_string(),
-              QString("LastFMArtReply::parse_xml() XML ERROR: Expected '?', '!', or '[a-zA-Z]', but got '/'."));
+              QString("LastFMArtReply::parse_xml() XML ERROR: Start tag expected."));
+}
+
+TEST_F(TestDownloaderServer, lastfm_server_error)
+{
+    LastFMDownloader downloader;
+
+    auto reply = downloader.download_album("simulate500", "error");
+    ASSERT_NE(reply, nullptr);
+
+    QSignalSpy spy(reply.get(), SIGNAL(finished()));
+
+    EXPECT_EQ(reply->url_string(), apiroot_ + "/1.0/album/simulate500/error/info.xml");
+
+    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+    // which should never be reached
+    spy.wait(5000);
+
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+
+    EXPECT_EQ(reply->succeded(), false);
+    EXPECT_EQ(reply->not_found_error(), false);
+    EXPECT_EQ(reply->is_running(), false);
+    // Finally check the content of the error message
+    EXPECT_EQ(reply->error_string(),
+              QString("LastFMArtReply::download_xml_finished() Error downloading %1/1.0/album/simulate500/error/info.xml - server replied: Internal Server Error").arg(apiroot_));
+}
+
+TEST_F(TestDownloaderServer, lastfm_image_defined_in_xml_not_found)
+{
+    LastFMDownloader downloader;
+
+    auto reply = downloader.download_album("image", "notinserver");
+    ASSERT_NE(reply, nullptr);
+
+    QSignalSpy spy(reply.get(), SIGNAL(finished()));
+
+    EXPECT_EQ(reply->url_string(), apiroot_ + "/1.0/album/image/notinserver/info.xml");
+
+    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+    // which should never be reached
+    spy.wait(5000);
+
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+
+    EXPECT_EQ(reply->succeded(), false);
+    EXPECT_EQ(reply->not_found_error(), true);
+    EXPECT_EQ(reply->is_running(), false);
+    qDebug() << reply->error_string();
+    // Finally check the content of the error message
+    EXPECT_EQ(reply->error_string(),
+              QString("Error downloading %1/imag/sia_fearrrrr.png - server replied: Not Found").arg(apiroot_));
+}
+
+TEST_F(TestDownloaderServer, lastfm_xml_parsing_errors_empty_file)
+{
+    LastFMDownloader downloader;
+
+    auto reply = downloader.download_album("xml", "errorsemptyfile");
+    ASSERT_NE(reply, nullptr);
+
+    QSignalSpy spy(reply.get(), SIGNAL(finished()));
+
+    EXPECT_EQ(reply->url_string(), apiroot_ + "/1.0/album/xml/errorsemptyfile/info.xml");
+
+    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+    // which should never be reached
+    spy.wait(5000);
+
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+
+    EXPECT_EQ(reply->succeded(), false);
+    EXPECT_EQ(reply->not_found_error(), false);
+    EXPECT_EQ(reply->is_running(), false);
+    // Finally check the content of the error message
+    qDebug() << reply->error_string();
+    EXPECT_EQ(reply->error_string(),
+              QString("LastFMArtReply::parse_xml() XML ERROR: Premature end of document."));
 }
 
 TEST_F(TestDownloaderServer, lastfm_xml_image_not_found)
@@ -343,6 +502,16 @@ TEST_F(TestDownloaderServer, lastfm_xml_image_not_found)
     EXPECT_EQ(reply->is_running(), false);
     // Finally check the content of the error message
     EXPECT_EQ(reply->error_string(), QString("LastFMArtReply::parse_xml() Image url not found"));
+}
+
+TEST_F(TestDownloaderServer, lastfm_artist_ok)
+{
+    LastFMDownloader downloader;
+
+    // this test just verifies that the reply returned is null
+    // this method is not implemented.
+    auto reply = downloader.download_artist("sia", "fear");
+    ASSERT_EQ(reply, nullptr);
 }
 
 TEST_F(TestDownloaderServer, lastfm_test_threads)

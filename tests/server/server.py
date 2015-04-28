@@ -83,7 +83,17 @@ class LastFMArtistAlbumInfo(ErrorHandler):
                 self.finish("<html><body>500 ERROR</body></html>")
                 return
         RETRIES_BEFORE_OK = 0
+
+        if (artist == "simulate500"):
+            self.set_status(500)
+            self.finish("<html><body>500 ERROR</body></html>")
+            return
+
         file = 'queries/%s_%s.xml' % (artist, album)
+        if (not os.path.exists(os.path.join(os.path.dirname(__file__), file))):
+            self.set_status(404)
+            self.finish("<html><body>404 ERROR</body></html>")
+            return
         self.write(read_file(file))
         self.finish()
 
