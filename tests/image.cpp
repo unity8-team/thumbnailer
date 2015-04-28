@@ -27,6 +27,7 @@
 #define PORTRAITIMAGE TESTDATADIR "/michi.jpg"
 #define JPEGIMAGE TESTBINDIR "/saved_image.jpg"
 #define BADIMAGE TESTDATADIR "/bad_image.jpg"
+#define ROTATEDIMAGE TESTDATADIR "/testrotate.jpg"
 #define RGBIMAGE TESTDATADIR "/RGB.png"
 
 using namespace std;
@@ -42,7 +43,6 @@ TEST(Image, basic)
         Image i(data);
         EXPECT_EQ(640, i.width());
         EXPECT_EQ(400, i.height());
-        EXPECT_EQ(640, i.max_size());
 
         // Move constructor
         Image i2(move(i));
@@ -55,20 +55,20 @@ TEST(Image, basic)
         EXPECT_EQ(640, i3.width());
         EXPECT_EQ(400, i3.height());
 
-        // Down-scale
-        i3.scale_to(320);
-        EXPECT_EQ(320, i3.width());
-        EXPECT_EQ(200, i3.height());
+        // Load to fit in bounding box
+        Image i4(data, QSize(320, 320));
+        EXPECT_EQ(320, i4.width());
+        EXPECT_EQ(200, i4.height());
 
-        // Up-scale
-        i3.scale_to(960);
-        EXPECT_EQ(960, i3.width());
-        EXPECT_EQ(600, i3.height());
+        // Load to fit width
+        Image i5(data, QSize(320, 0));
+        EXPECT_EQ(320, i5.width());
+        EXPECT_EQ(200, i5.height());
 
-        // Test that we can't go below 1x1.
-        i3.scale_to(1);
-        EXPECT_EQ(1, i3.width());
-        EXPECT_EQ(1, i3.height());
+        // Load to fit height
+        Image i6(data, QSize(0, 200));
+        EXPECT_EQ(320, i6.width());
+        EXPECT_EQ(200, i6.height());
     }
 
     {
@@ -76,17 +76,11 @@ TEST(Image, basic)
         Image i(data);
         EXPECT_EQ(39, i.width());
         EXPECT_EQ(48, i.height());
-        EXPECT_EQ(48, i.max_size());
-
-        // Up-scale
-        i.scale_to(100);
-        EXPECT_EQ(81, i.width());
-        EXPECT_EQ(100, i.height());
 
         // Down-scale
-        i.scale_to(20);
-        EXPECT_EQ(16, i.width());
-        EXPECT_EQ(20, i.height());
+        Image i2(data, QSize(20, 20));
+        EXPECT_EQ(16, i2.width());
+        EXPECT_EQ(20, i2.height());
     }
 
     {
@@ -105,14 +99,13 @@ TEST(Image, basic)
 
 TEST(Image, rotate)
 {
-    string data = read_file(RGBIMAGE);
+    string data = read_file(ROTATEDIMAGE);
+    Image img(data);
+    EXPECT_EQ(img.width(), 428);
+    EXPECT_EQ(img.height(), 640);
 
-    for (int i = 0; i <= 9; ++i)
-    {
-        Image img(data, i);
-        // TODO: No test here yet, this is for coverage.
-        //       Need to add pixel sampling functionality to Image.
-    }
+    // TODO: Need to test all 8 possible image orientations, including
+    // data from thumbnails.
 }
 
 TEST(Image, exceptions)

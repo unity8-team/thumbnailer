@@ -66,9 +66,8 @@ void AlbumArtHandler::download() {
 }
 
 QDBusUnixFileDescriptor AlbumArtHandler::create() {
-    int size = thumbnail_size_from_qsize(p->requestedSize);
     std::string art_image = p->thumbnailer->get_album_art(
-        p->artist.toStdString(), p->album.toStdString(), size);
+        p->artist.toStdString(), p->album.toStdString(), p->requestedSize);
 
     if (art_image.empty()) {
         throw std::runtime_error("AlbumArtHandler::create(): Could not get thumbnail for " +

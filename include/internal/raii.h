@@ -19,7 +19,6 @@
 #pragma once
 
 #include <gdk-pixbuf/gdk-pixbuf.h>
-#include <libexif/exif-loader.h>
 #include <unity/util/ResourcePtr.h>
 
 #include <string>

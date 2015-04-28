@@ -39,38 +39,38 @@ TEST(Thumbnailer, basic)
     string thumb;
     Image img;
 
-    thumb = tn.get_thumbnail(TEST_IMAGE, 0);
-    img.load(thumb);
+    thumb = tn.get_thumbnail(TEST_IMAGE, QSize());
+    img = Image(thumb);
     EXPECT_EQ(640, img.width());
     EXPECT_EQ(400, img.height());
     
-    thumb = tn.get_thumbnail(TEST_IMAGE, 160);
-    img.load(thumb);
+    thumb = tn.get_thumbnail(TEST_IMAGE, QSize(160, 160));
+    img = Image(thumb);
     EXPECT_EQ(160, img.width());
     EXPECT_EQ(100, img.height());
 
-    thumb = tn.get_thumbnail(EXIF_IMAGE, 1000);  // Will up-scale, but not from EXIF data
-    img.load(thumb);
-    EXPECT_EQ(1000, img.width());
-    EXPECT_EQ(669, img.height());
+    thumb = tn.get_thumbnail(EXIF_IMAGE, QSize(1000, 1000));  // Will not up-scale
+    img = Image(thumb);
+    EXPECT_EQ(640, img.width());
+    EXPECT_EQ(480, img.height());
 
-    thumb = tn.get_thumbnail(EXIF_IMAGE, 65);  // From EXIF data, which indicates to rotate the image.
-    img.load(thumb);
+    thumb = tn.get_thumbnail(EXIF_IMAGE, QSize(65, 65));  // From EXIF data
+    img = Image(thumb);
     EXPECT_EQ(49, img.width());
     EXPECT_EQ(65, img.height());
 
-    thumb = tn.get_thumbnail(RGB_IMAGE, 48);
+    thumb = tn.get_thumbnail(RGB_IMAGE, QSize(48, 48));
     cout << "thumb size: " << thumb.size() << endl;
     write_file("/tmp/x.jpg", thumb);
-    img.load(thumb);
+    img = Image(thumb);
     EXPECT_EQ(48, img.width());
     EXPECT_EQ(48, img.height());
 
-    string thumb2 = tn.get_thumbnail(RGB_IMAGE, 48);
+    string thumb2 = tn.get_thumbnail(RGB_IMAGE, QSize(48, 48));
     cout << "thumb2 size: " << thumb2.size() << endl;
     write_file("/tmp/y.jpg", thumb2);
     EXPECT_EQ(thumb, thumb2);
-    img.load(thumb2);
+    img = Image(thumb2);
     EXPECT_EQ(48, img.width());
     EXPECT_EQ(48, img.height());
 }
