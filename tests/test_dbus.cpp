@@ -17,6 +17,9 @@
 #include <libqtdbustest/QProcessDBusService.h>
 #include <unity/util/ResourcePtr.h>
 
+#include <QSignalSpy>
+#include <QProcess>
+
 #include <testsetup.h>
 
 using namespace unity::thumbnailer::internal;
@@ -93,12 +96,15 @@ protected:
         setenv("XDG_CACHE_HOME", (tempdir + "/cache").c_str(), true);
 
         dbusTestRunner.reset(new QtDBusTest::DBusTestRunner());
-        dbusTestRunner->registerService(
-            QtDBusTest::DBusServicePtr(
-                new QtDBusTest::QProcessDBusService(
-                    BUS_NAME, QDBusConnection::SessionBus,
-                    TESTBINDIR "/../src/service/thumbnailer-service",
-                    QStringList())));
+
+        // set 3 seconds as max idle time
+        setenv("THUMBNAILER_MAX_IDLE", "1000", true);
+
+        dbusService.reset(new QtDBusTest::QProcessDBusService(
+                BUS_NAME, QDBusConnection::SessionBus,
+                TESTBINDIR "/../src/service/thumbnailer-service",
+                QStringList()));
+        dbusTestRunner->registerService(dbusService);
         dbusTestRunner->startServices();
 
         iface.reset(
@@ -110,6 +116,8 @@ protected:
         iface.reset();
         dbusTestRunner.reset();
 
+        unsetenv("THUMBNAILER_MAX_IDLE");
+        unsetenv("XDG_CACHE_HOME");
         if (!tempdir.empty()) {
             std::string cmd = "rm -rf \"" + tempdir + "\"";
             ASSERT_EQ(system(cmd.c_str()), 0);
@@ -119,6 +127,7 @@ protected:
     std::string tempdir;
     std::unique_ptr<QtDBusTest::DBusTestRunner> dbusTestRunner;
     std::unique_ptr<QDBusInterface> iface;
+    QSharedPointer<QtDBusTest::QProcessDBusService> dbusService;
 };
 
 /* Disabled until we have the fake art service hooked up */
@@ -182,6 +191,61 @@ TEST_F(DBusTest, thumbnail_wrong_fd_fails) {
     EXPECT_FALSE(reply.isValid());
     auto message = reply.error().message().toStdString();
     EXPECT_TRUE(boost::ends_with(message, " refers to a different file than the file descriptor"));
+}
+
+TEST_F(DBusTest, test_inactivity_exit) {
+    // basic setup to the query
+    const char *filename = TESTDATADIR "/testimage.jpg";
+    FdPtr fd(open(filename, O_RDONLY), do_close);
+    ASSERT_GE(fd.get(), 0);
+
+    QSignalSpy spy_exit(&dbusService->underlyingProcess(), static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished));
+
+    // start a query
+    QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
+        "GetThumbnail", filename,
+        QVariant::fromValue(QDBusUnixFileDescriptor(fd.get())),
+        QSize(256, 256));
+    assert_no_error(reply);
+
+    // wait for 5 seconds... (default)
+    // Maximum inactivity should be less than that.
+    spy_exit.wait();
+    ASSERT_EQ(spy_exit.count(), 1);
+
+    QList<QVariant> arguments = spy_exit.takeFirst();
+    EXPECT_EQ(arguments.at(0).toInt(), 0);
+}
+
+TEST(DBusTestBadIdle, env_variable_bad_value)
+{
+    std::string tempdir;
+    std::unique_ptr<QtDBusTest::DBusTestRunner> dbusTestRunner;
+    std::unique_ptr<QDBusInterface> iface;
+    QSharedPointer<QtDBusTest::QProcessDBusService> dbusService;
+
+    tempdir = TESTBINDIR "/dbus-test.XXXXXX";
+    if (mkdtemp(const_cast<char*>(tempdir.data())) == nullptr) {
+        tempdir = "";
+        throw std::runtime_error("could not create temporary directory");
+    }
+    setenv("XDG_CACHE_HOME", (tempdir + "/cache").c_str(), true);
+
+    dbusTestRunner.reset(new QtDBusTest::DBusTestRunner());
+
+    setenv("THUMBNAILER_MAX_IDLE", "bad_value", true);
+
+    dbusService.reset(new QtDBusTest::QProcessDBusService(
+            BUS_NAME, QDBusConnection::SessionBus,
+            TESTBINDIR "/../src/service/thumbnailer-service",
+            QStringList()));
+
+    dbusTestRunner->registerService(dbusService);
+    dbusTestRunner->startServices();
+    EXPECT_EQ(const_cast<QProcess *>(&dbusService->underlyingProcess())->waitForFinished(), true);
+    EXPECT_EQ(const_cast<QProcess *>(&dbusService->underlyingProcess())->exitCode(), 1);
+
+    unsetenv("THUMBNAILER_MAX_IDLE");
 }
 
 int main(int argc, char **argv) {

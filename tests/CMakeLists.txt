@@ -58,7 +58,7 @@ add_definitions(${QTDBUSTEST_DEPS_CFLAGS})
 
 add_executable(test_dbus
   test_dbus.cpp)
-qt5_use_modules(test_dbus DBus)
+qt5_use_modules(test_dbus DBus Test)
 target_link_libraries(test_dbus
   thumbnailer
   ${QTDBUSTEST_DEPS_LDFLAGS}
