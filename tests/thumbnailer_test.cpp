@@ -23,6 +23,7 @@
 
 #include <testsetup.h>
 #include <gtest/gtest.h>
+#include <QTemporaryDir>
 
 #define TEST_IMAGE TESTDATADIR "/testimage.jpg"
 #define PORTRAIT_IMAGE TESTDATADIR "/michi.jpg"
@@ -33,7 +34,23 @@
 
 using namespace std;
 
-TEST(Thumbnailer, basic)
+class ThumbnailerTest : public ::testing::Test
+{
+protected:
+    virtual void SetUp() override {
+        tempdir.reset(new QTemporaryDir(TESTBINDIR "/thumbnailer-test.XXXXXX"));
+        ASSERT_TRUE(tempdir->isValid());
+        setenv("XDG_CACHE_HOME", tempdir->path().toUtf8().data(), true);
+    }
+
+    virtual void TearDown() override {
+        tempdir.reset();
+    }
+    unique_ptr<QTemporaryDir> tempdir;
+};
+
+
+TEST_F(ThumbnailerTest, basic)
 {
     Thumbnailer tn;
     string thumb;
@@ -51,12 +68,12 @@ TEST(Thumbnailer, basic)
 
     thumb = tn.get_thumbnail(EXIF_IMAGE, QSize(1000, 1000));  // Will not up-scale
     img = Image(thumb);
-    EXPECT_EQ(640, img.width());
-    EXPECT_EQ(480, img.height());
+    EXPECT_EQ(428, img.width());
+    EXPECT_EQ(640, img.height());
 
     thumb = tn.get_thumbnail(EXIF_IMAGE, QSize(65, 65));  // From EXIF data
     img = Image(thumb);
-    EXPECT_EQ(49, img.width());
+    EXPECT_EQ(48, img.width());
     EXPECT_EQ(65, img.height());
 
     thumb = tn.get_thumbnail(RGB_IMAGE, QSize(48, 48));

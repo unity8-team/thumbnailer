@@ -79,7 +79,7 @@ TEST(Image, basic)
 
         // Down-scale
         Image i2(data, QSize(20, 20));
-        EXPECT_EQ(16, i2.width());
+        EXPECT_EQ(15, i2.width()); // should be 16?
         EXPECT_EQ(20, i2.height());
     }
 

@@ -18,14 +18,12 @@
 
 #include <internal/image.h>
 
-#include <internal/raii.h>
-
 #include <libexif/exif-loader.h>
 
+#include <memory>
 #include <cassert>
 #include <cmath>
 
-using namespace unity::thumbnailer::internal;
 using namespace std;
 
 namespace
@@ -39,7 +37,7 @@ auto do_loader_close = [](GdkPixbufLoader* loader)
         g_object_unref(loader);
     }
 };
-typedef unity::util::ResourcePtr<GdkPixbufLoader*, decltype(do_loader_close)> LoaderPtr;
+typedef unique_ptr<GdkPixbufLoader, decltype(do_loader_close)> LoaderPtr;
 
 auto do_exif_loader_close = [](ExifLoader* loader)
 {
@@ -48,7 +46,7 @@ auto do_exif_loader_close = [](ExifLoader* loader)
         exif_loader_unref(loader);
     }
 };
-typedef unity::util::ResourcePtr<ExifLoader*, decltype(do_exif_loader_close)> ExifLoaderPtr;
+typedef unique_ptr<ExifLoader, decltype(do_exif_loader_close)> ExifLoaderPtr;
 
 auto do_exif_data_unref = [](ExifData* data)
 {
@@ -57,7 +55,7 @@ auto do_exif_data_unref = [](ExifData* data)
         exif_data_unref(data);
     }
 };
-typedef unity::util::ResourcePtr<ExifData*, decltype(do_exif_data_unref)> ExifDataPtr;
+typedef unique_ptr<ExifData, decltype(do_exif_data_unref)> ExifDataPtr;
 
 unique_gobj<GdkPixbuf> load_image(unsigned char const *data, size_t length,
                                   GCallback size_prepared_cb, void *user_data)
@@ -113,11 +111,12 @@ void maybe_scale_thumbnail(GdkPixbufLoader *loader, int width, int height, void 
         requested_size.setHeight(height);
     }
 
-    if (width > requested_size.width() || height > requested_size.height())
+    if (width < requested_size.width() && height < requested_size.height())
     {
         // The thumbnail is smaller than the requested size, so don't
         // bother loading it.
         gdk_pixbuf_loader_set_size(loader, 0, 0);
+        return;
     }
     QSize image_size(width, height);
     image_size.scale(requested_size, Qt::KeepAspectRatio);
@@ -148,13 +147,15 @@ void maybe_scale_image(GdkPixbufLoader *loader, int width, int height, void *use
         requested_size.setHeight(height);
     }
 
+    // If the image fits within the requested size, load it as is.
+    if (width <= requested_size.width() && height <= requested_size.height())
+    {
+        return;
+    }
+
     QSize image_size(width, height);
     image_size.scale(requested_size, Qt::KeepAspectRatio);
-    if (image_size.width() != width || image_size.height() != height)
-    {
-        gdk_pixbuf_loader_set_size(loader, image_size.width(),
-                                   image_size.height());
-    }
+    gdk_pixbuf_loader_set_size(loader, image_size.width(), image_size.height());
 }
 
 }  // namespace
@@ -199,11 +200,11 @@ Image::Image(string const& data, QSize requested_size)
         }
 
         // If there is an embedded thumbnail and we want to resize the image, check if the pixbuf is appropriate.
-        if (exif.get()->data != nullptr && requested_size.isValid())
+        if (exif->data != nullptr && requested_size.isValid())
         {
             try
             {
-                pixbuf_ = load_image(exif.get()->data, exif.get()->size,
+                pixbuf_ = load_image(exif->data, exif->size,
                                      G_CALLBACK(maybe_scale_thumbnail),
                                      &unrotated_requested_size);
             }

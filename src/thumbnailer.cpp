@@ -35,6 +35,7 @@
 #include <core/persistent_string_cache.h>
 #include <unity/util/ResourcePtr.h>
 
+#include <iostream>
 #include <fcntl.h>
 #include <sys/stat.h>
 
@@ -240,29 +241,26 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
 
     // Don't have the thumbnail yet, see if we have the original image around.
     auto image_data = full_size_cache_->get(key);
-    if (image_data)
+    if (!image_data)
     {
-        Image scaled_image(*image_data, requested_size);
-        string jpeg = scaled_image.to_jpeg();
-        thumbnail_cache_->put(sized_key, jpeg);
-        return jpeg;
-    }
+        // Try and download or read the artwork.
+        image_data = fetch(key1, key2);
+        if (image_data->empty())
+        {
+            // TODO: If download failed, need to disable re-try for some time.
+            //       Might need to do this in the calling code, because timeouts
+            //       will be different depending on why it failed, and whether
+            //       the fetch was from a local or remote source.
+            return "";
+        }
 
-    // Try and download or read the artwork.
-    image_data = fetch(key1, key2);
-    if (image_data->empty())
-    {
-        // TODO: If download failed, need to disable re-try for some time.
-        //       Might need to do this in the calling code, because timeouts
-        //       will be different depending on why it failed, and whether
-        //       the fetch was from a local or remote source.
-        return "";
+        // We keep the full-size version around for a while because it
+        // is likely that the caller will ask for small thumbnail
+        // first (for initial search results), followed by a larger
+        // thumbnail (for a preview). If so, we don't download the
+        // artwork a second time.
+        full_size_cache_->put(key, *image_data);
     }
-
-    // We keep the full-size version around for a while because it is likely that the caller
-    // will ask for small thumbnail first (for initial search results), followed by a
-    // larger thumbnail (for a preview). If so, we don't download the artwork a second time.
-    full_size_cache_->put(key, *image_data);
 
     Image scaled_image(*image_data, requested_size);
     string jpeg = scaled_image.to_jpeg();
