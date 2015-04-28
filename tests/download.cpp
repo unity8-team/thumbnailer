@@ -18,6 +18,7 @@
 
 #include <internal/ubuntuserverdownloader.h>
 #include <internal/lastfmdownloader.h>
+#include <internal/syncdownloader.h>
 #include <internal/artreply.h>
 
 #include <gtest/gtest.h>
@@ -316,7 +317,7 @@ TEST_F(TestDownloaderServer, lastfm_xml_parsing_errors)
     EXPECT_EQ(reply->is_running(), false);
     // Finally check the content of the error message
     EXPECT_EQ(reply->error_string(),
-              QString("LastFMDownloader::parse_xml() XML ERROR: Expected '?', '!', or '[a-zA-Z]', but got '/'."));
+              QString("LastFMArtReply::parse_xml() XML ERROR: Expected '?', '!', or '[a-zA-Z]', but got '/'."));
 }
 
 TEST_F(TestDownloaderServer, lastfm_xml_image_not_found)
@@ -341,7 +342,7 @@ TEST_F(TestDownloaderServer, lastfm_xml_image_not_found)
     EXPECT_EQ(reply->not_found_error(), false);
     EXPECT_EQ(reply->is_running(), false);
     // Finally check the content of the error message
-    EXPECT_EQ(reply->error_string(), QString("LastFMDownloader::parse_xml() Image url not found"));
+    EXPECT_EQ(reply->error_string(), QString("LastFMArtReply::parse_xml() Image url not found"));
 }
 
 TEST_F(TestDownloaderServer, lastfm_test_threads)
@@ -371,6 +372,24 @@ TEST_F(TestDownloaderServer, lastfm_test_threads)
     {
         delete th;
     }
+}
+
+TEST_F(TestDownloaderServer, sync_download_ok)
+{
+    auto downloader = std::make_shared<UbuntuServerDownloader>();
+    SyncDownloader sync_downloader(downloader);
+
+    auto data = sync_downloader.download_album("sia", "fear");
+    EXPECT_EQ(QString(data), QString("SIA_FEAR_TEST_STRING_IMAGE"));
+}
+
+TEST_F(TestDownloaderServer, sync_download_error)
+{
+    auto downloader = std::make_shared<UbuntuServerDownloader>();
+    SyncDownloader sync_downloader(downloader);
+
+    auto data = sync_downloader.download_album("test", "test");
+    EXPECT_EQ(QString(data), QString(""));
 }
 
 int main(int argc, char** argv)

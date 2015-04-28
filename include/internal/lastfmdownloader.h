@@ -25,7 +25,6 @@
 
 #include <memory>
 
-
 namespace unity
 {
 
@@ -49,18 +48,8 @@ public:
     std::shared_ptr<ArtReply> download_album(QString const& artist, QString const& album) override;
     std::shared_ptr<ArtReply> download_artist(QString const& artist, QString const& album) override;
 
-protected Q_SLOTS:
-    void download_finished(QNetworkReply* reply);
-
 private:
-    typedef QMap<QNetworkReply *, std::shared_ptr<LastFMArtReply>>::iterator IterReply;
-
-    void download_xml_finished(QNetworkReply* reply, IterReply const& iter);
-    void download_image_finished(QNetworkReply* reply, IterReply const& iter);
-
-    QNetworkAccessManager network_manager_;
-    QMap<QNetworkReply *, std::shared_ptr<LastFMArtReply>> replies_xml_map_;
-    QMap<QNetworkReply *, std::shared_ptr<LastFMArtReply>> replies_image_map_;
+    std::shared_ptr<QNetworkAccessManager> network_manager_;
 };
 
 }  // namespace internal

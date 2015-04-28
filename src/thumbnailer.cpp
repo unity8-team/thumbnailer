@@ -28,6 +28,7 @@
 #include <internal/imagescaler.h>
 #include <internal/lastfmdownloader.h>
 #include <internal/thumbnailcache.h>
+#include <internal/syncdownloader.h>
 #include <internal/ubuntuserverdownloader.h>
 #include <internal/videoscreenshotter.h>
 
@@ -71,20 +72,22 @@ public:
     VideoScreenshotter video;
     ImageScaler scaler;
     core::PersistentStringCache::UPtr macache;
-    std::unique_ptr<ArtDownloader> downloader;
+    std::shared_ptr<ArtDownloader> downloader;
+    std::unique_ptr<SyncDownloader> sync_downloader;
 
     ThumbnailerPrivate()
     {
         char* artservice = getenv("THUMBNAILER_ART_PROVIDER");
         if (artservice != nullptr && strcmp(artservice, "lastfm") == 0)
         {
-            // Disable LastFM by now
-            // downloader.reset(new LastFMDownloader());
+            downloader.reset(new LastFMDownloader());
         }
         else
         {
             downloader.reset(new UbuntuServerDownloader());
         }
+
+        sync_downloader.reset(new SyncDownloader(downloader));
 
         string xdg_base = g_get_user_cache_dir();
 
@@ -357,8 +360,8 @@ std::string Thumbnailer::get_album_art(std::string const& artist,
         // -> nothing to be done.
         return "";
     }
-    QString image;
-    p_->downloader->download_album(QString::fromStdString(artist), QString::fromStdString(album));
+
+    QString image(p_->sync_downloader->download_album(QString::fromStdString(artist), QString::fromStdString(album)));
     if (image.isEmpty())
     {
         return "";
@@ -384,8 +387,8 @@ std::string Thumbnailer::get_artist_art(std::string const& artist,
         // -> nothing to be done.
         return "";
     }
-    QString image;
-    p_->downloader->download_artist(QString::fromStdString(artist), QString::fromStdString(album));
+
+    QString image(p_->sync_downloader->download_artist(QString::fromStdString(artist), QString::fromStdString(album)));
     if (image.isEmpty())
     {
         return "";

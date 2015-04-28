@@ -50,16 +50,12 @@ public:
     std::shared_ptr<ArtReply> download_album(QString const& artist, QString const& album) override;
     std::shared_ptr<ArtReply> download_artist(QString const& artist, QString const& album) override;
 
-protected Q_SLOTS:
-    void download_finished(QNetworkReply* reply);
-
 private:
     void set_api_key();
     std::shared_ptr<ArtReply> download_url(QUrl const& url);
 
     QString api_key_;
-    QNetworkAccessManager network_manager_;
-    std::map<QNetworkReply *, std::shared_ptr<UbuntuServerArtReply>> replies_map_;
+    std::unique_ptr<QNetworkAccessManager> network_manager_;
 };
 
 }  // namespace internal

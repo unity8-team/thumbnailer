@@ -18,7 +18,13 @@
 
 #pragma once
 
+#include <QMutex>
 #include <QObject>
+#include <QThread>
+#include <QWaitCondition>
+
+#include <atomic>
+#include <memory>
 
 namespace unity
 {
@@ -29,29 +35,32 @@ namespace thumbnailer
 namespace internal
 {
 
-class ArtReplyPrivate;
+class DownloadThread;
+class ArtDownloader;
 
-class ArtReply : public QObject
+class SyncDownloader : public QObject
 {
     Q_OBJECT
 public:
-    Q_DISABLE_COPY(ArtReply)
+    Q_DISABLE_COPY(SyncDownloader)
 
-    virtual ~ArtReply() = default;
+    SyncDownloader(std::shared_ptr<ArtDownloader> const &async_downloader);
+    virtual ~SyncDownloader();
 
-    virtual bool succeded() const = 0;
-    virtual bool is_running() const = 0;
-    virtual QString error_string() const = 0;
-    virtual bool not_found_error() const = 0;
-    virtual QByteArray const& data() const = 0;
-    virtual QString url_string() const = 0;
+    QByteArray download_album(QString const& artist, QString const& album);
+    QByteArray download_artist(QString const& artist, QString const& album);
 
 Q_SIGNALS:
-    void finished();
+    void start_downloading_album(QString const&, QString const&);
+    void start_downloading_artist(QString const&, QString const&);
 
-protected:
-    ArtReply(QObject* parent = nullptr)
-        : QObject(parent){};
+private:
+    std::shared_ptr<ArtDownloader> downloader_;
+    QThread downloader_thread_;
+    std::atomic<bool> downloading_;
+    QMutex mutex_;
+    QWaitCondition wait_downloader_;
+    DownloadThread *downloader_worker_;
 };
 
 }  // namespace internal

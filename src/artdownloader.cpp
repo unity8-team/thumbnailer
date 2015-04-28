@@ -24,9 +24,9 @@
 
 using namespace unity::thumbnailer::internal;
 
-ArtDownloader::ArtDownloader(QObject *parent) : QObject(parent)
+ArtDownloader::ArtDownloader(QObject* parent)
+    : QObject(parent)
 {
-
 }
 
 void ArtDownloader::assert_valid_url(QUrl const& url)

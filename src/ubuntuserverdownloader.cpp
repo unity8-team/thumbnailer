@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authored by: Pawel Stolowski <pawel.stolowski@canonical.com>
+ *              Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
 #include <gio/gio.h>
@@ -25,8 +26,6 @@
 #include <QUrlQuery>
 #include <QThread>
 
-#include <memory>
-#include <iostream>
 #include <cassert>
 
 using namespace std;
@@ -34,13 +33,13 @@ using namespace std;
 // const strings
 namespace
 {
-    constexpr const char THUMBNAILER_SCHEMA[] = "com.canonical.Unity.Thumbnailer";
-    constexpr const char THUMBNAILER_API_KEY[] = "dash-ubuntu-com-key";
-    constexpr const char UBUNTU_SERVER_BASE_URL[] = "https://dash.ubuntu.com";
-    constexpr const char REQUESTED_ALBUM_IMAGE_SIZE[] = "350";
-    constexpr const char REQUESTED_ARTIST_IMAGE_SIZE[] = "300";
-    constexpr const char ALBUM_ART_BASE_URL[] = "musicproxy/v1/album-art";
-    constexpr const char ARTIST_ART_BASE_URL[] = "musicproxy/v1/artist-art";
+constexpr const char THUMBNAILER_SCHEMA[] = "com.canonical.Unity.Thumbnailer";
+constexpr const char THUMBNAILER_API_KEY[] = "dash-ubuntu-com-key";
+constexpr const char UBUNTU_SERVER_BASE_URL[] = "https://dash.ubuntu.com";
+constexpr const char REQUESTED_ALBUM_IMAGE_SIZE[] = "350";
+constexpr const char REQUESTED_ARTIST_IMAGE_SIZE[] = "300";
+constexpr const char ALBUM_ART_BASE_URL[] = "musicproxy/v1/album-art";
+constexpr const char ARTIST_ART_BASE_URL[] = "musicproxy/v1/artist-art";
 }
 
 namespace unity
@@ -58,10 +57,11 @@ class UbuntuServerArtReply : public ArtReply
 public:
     Q_DISABLE_COPY(UbuntuServerArtReply)
 
-    UbuntuServerArtReply(QObject *parent = nullptr)
-        : ArtReply(parent),
-          is_running_(false),
-          error_(QNetworkReply::NoError)
+    UbuntuServerArtReply(QString const& url, QObject* parent = nullptr)
+        : ArtReply(parent)
+        , is_running_(false)
+        , error_(QNetworkReply::NoError)
+        , url_string_(url)
     {
     }
 
@@ -110,11 +110,27 @@ public:
         return url_string_;
     }
 
-    void finish()
+public Q_SLOTS:
+    void download_finished()
     {
+        QNetworkReply* reply = static_cast<QNetworkReply*>(sender());
+        assert(reply);
+
+        this->is_running_ = false;
+        this->error_ = reply->error();
+        if (!reply->error())
+        {
+            this->data_ = reply->readAll();
+        }
+        else
+        {
+            this->error_string_ = reply->errorString();
+        }
         Q_EMIT finished();
+        reply->deleteLater();
     }
 
+private:
     bool is_running_;
     QString error_string_;
     QNetworkReply::NetworkError error_;
@@ -156,6 +172,7 @@ QUrl get_artist_art_url(QString const& artist, QString const& album, QString con
 
 UbuntuServerDownloader::UbuntuServerDownloader(QObject* parent)
     : ArtDownloader(parent)
+    , network_manager_(new QNetworkAccessManager(this))
 {
     set_api_key();
 }
@@ -205,36 +222,12 @@ shared_ptr<ArtReply> UbuntuServerDownloader::download_artist(QString const& arti
     return download_url(get_artist_art_url(artist, album, api_key_));
 }
 
-void UbuntuServerDownloader::download_finished(QNetworkReply* reply)
-{
-    std::map<QNetworkReply *, shared_ptr<UbuntuServerArtReply>>::iterator iter = replies_map_.find(reply);
-    if (iter != replies_map_.end())
-    {
-        (*iter).second->is_running_ = false;
-        (*iter).second->error_ = reply->error();
-        if (!reply->error())
-        {
-            (*iter).second->data_ = reply->readAll();
-        }
-        else
-        {
-            (*iter).second->error_string_ = reply->errorString();
-        }
-        (*iter).second->finish();
-        replies_map_.erase(iter);
-    }
-    reply->deleteLater();
-}
-
 shared_ptr<ArtReply> UbuntuServerDownloader::download_url(QUrl const& url)
 {
     assert_valid_url(url);
-    std::shared_ptr<UbuntuServerArtReply> art_reply(new UbuntuServerArtReply());
-    QNetworkReply* reply = network_manager_.get(QNetworkRequest(url));
-    connect(&network_manager_, &QNetworkAccessManager::finished, this, &UbuntuServerDownloader::download_finished);
-    art_reply->is_running_ = true;
-    art_reply->url_string_ = url.toString();
-    replies_map_[reply] = art_reply;
+    std::shared_ptr<UbuntuServerArtReply> art_reply(new UbuntuServerArtReply(url.toString(), this));
+    QNetworkReply* reply = network_manager_->get(QNetworkRequest(url));
+    connect(reply, &QNetworkReply::finished, art_reply.get(), &UbuntuServerArtReply::download_finished);
 
     return art_reply;
 }

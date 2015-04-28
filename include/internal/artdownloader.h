@@ -14,7 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authored by: Pawel Stolowski <pawel.stolowski@canonical.com>
- * 				Xavi Garcia <xavi.garcia.mena@canonical.com>
+ *              Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
 #pragma once
@@ -40,7 +40,7 @@ class ArtDownloader : public QObject
 public:
     Q_DISABLE_COPY(ArtDownloader)
 
-    explicit ArtDownloader(QObject *parent = nullptr);
+    explicit ArtDownloader(QObject* parent = nullptr);
     virtual ~ArtDownloader() = default;
 
     virtual std::shared_ptr<ArtReply> download_album(QString const& artist, QString const& album) = 0;
