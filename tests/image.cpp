@@ -104,6 +104,10 @@ TEST(Image, rotate)
     EXPECT_EQ(img.width(), 428);
     EXPECT_EQ(img.height(), 640);
 
+    img = Image(data, QSize(250, 320));
+    EXPECT_EQ(img.width(), 214);
+    EXPECT_EQ(img.height(), 320);
+
     // TODO: Need to test all 8 possible image orientations, including
     // data from thumbnails.
 }
@@ -120,7 +124,7 @@ TEST(Image, exceptions)
         catch (std::exception const& e)
         {
             string msg = e.what();
-            EXPECT_TRUE(boost::starts_with(msg, "Image::load(): cannot close pixbuf loader: ")) << msg;
+            EXPECT_TRUE(boost::starts_with(msg, "load_image(): cannot close pixbuf loader: ")) << msg;
         }
     }
 }

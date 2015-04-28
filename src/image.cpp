@@ -63,7 +63,7 @@ unique_gobj<GdkPixbuf> load_image(unsigned char const *data, size_t length,
     LoaderPtr loader(gdk_pixbuf_loader_new(), do_loader_close);
     if (!loader.get())
     {
-        throw runtime_error("Image::load_image(): cannot allocate GdkPixbufLoader");  // LCOV_EXCL_LINE
+        throw runtime_error("load_image(): cannot allocate GdkPixbufLoader");  // LCOV_EXCL_LINE
     }
 
     g_signal_connect(loader.get(), "size-prepared",
@@ -72,7 +72,7 @@ unique_gobj<GdkPixbuf> load_image(unsigned char const *data, size_t length,
     if (!gdk_pixbuf_loader_write(loader.get(), data, length, &err))
     {
         // LCOV_EXCL_START
-        string msg = string("Image::load(): cannot write to pixbuf loader: ") + err->message;
+        string msg = string("load_image(): cannot write to pixbuf loader: ") + err->message;
         g_error_free(err);
         throw runtime_error(msg);
         // LCOV_EXCL_STOP
@@ -80,7 +80,7 @@ unique_gobj<GdkPixbuf> load_image(unsigned char const *data, size_t length,
     if (!gdk_pixbuf_loader_close(loader.get(), &err))
     {
         // LCOV_EXCL_START
-        string msg = string("Image::load(): cannot close pixbuf loader: ") + err->message;
+        string msg = string("load_image(): cannot close pixbuf loader: ") + err->message;
         g_error_free(err);
         throw runtime_error(msg);
         // LCOV_EXCL_STOP
@@ -90,7 +90,7 @@ unique_gobj<GdkPixbuf> load_image(unsigned char const *data, size_t length,
     unique_gobj<GdkPixbuf> pixbuf(gdk_pixbuf_loader_get_pixbuf(loader.get()));
     if (!pixbuf)
     {
-        throw runtime_error("Image::load(): cannot create pixbuf");
+        throw runtime_error("load_image(): cannot create pixbuf");
     }
     // gdk_pixbuf_loader_get_pixbuf() returns a borrowed reference
     g_object_ref(pixbuf.get());
@@ -167,7 +167,7 @@ Image::Image(string const& data, QSize requested_size)
     ExifLoaderPtr el(exif_loader_new(), do_exif_loader_close);
     if (!el.get())
     {
-        throw runtime_error("Image::load(): could not create ExifLoader"); // LCOV_EXCL_LINE
+        throw runtime_error("Image(): could not create ExifLoader"); // LCOV_EXCL_LINE
     }
     exif_loader_write(el.get(), const_cast<unsigned char*>(reinterpret_cast<unsigned char const*>(&data[0])), data.size());
     ExifDataPtr exif(exif_loader_get_data(el.get()), do_exif_data_unref);
