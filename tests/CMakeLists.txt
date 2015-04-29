@@ -34,7 +34,7 @@ set_property(TEST thumbnailer_test PROPERTY ENVIRONMENT "XDG_CACHE_HOME=${CMAKE_
 
 add_executable(downloadtest download.cpp)
 
-target_link_libraries(downloadtest ${XML_DEPS_LDFLAGS} ${SOUP_DEPS_LDFLAGS} thumbnailer gtest process-cpp)
+target_link_libraries(downloadtest ${XML_DEPS_LDFLAGS} ${SOUP_DEPS_LDFLAGS} thumbnailer gtest)
 add_test(downloadtest downloadtest)
 set_property(TEST downloadtest PROPERTY ENVIRONMENT "GSETTINGS_SCHEMA_DIR=${CMAKE_BINARY_DIR}/data")
 qt5_use_modules(downloadtest Core Network Test)
