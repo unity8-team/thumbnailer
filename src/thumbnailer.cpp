@@ -43,12 +43,13 @@ using namespace unity::thumbnailer::internal;
 
 class ThumbnailerPrivate
 {
-private:
-    string extract_image_from_audio(string const& filename);
-    string extract_image_from_video(string const& filename);
-    string extract_image_from_other(string const& filename);
-
 public:
+    struct ImageData
+    {
+        string data;
+        bool keep_in_cache;
+    };
+
     AudioImageExtractor audio_;
     VideoScreenshotter video_;
     core::PersistentStringCache::UPtr full_size_cache_;  // Small cache of full (original) size images.
@@ -57,11 +58,16 @@ public:
 
     ThumbnailerPrivate();
 
-    string extract_image(string const& filename);
+    ImageData extract_image(string const& filename);
     string fetch_thumbnail(string const& key1,
                            string const& key2,
                            QSize const& requested_size,
-                           function<string(string const&, string const&)> fetch);
+                           function<ImageData(string const&, string const&)> fetch);
+
+private:
+    string extract_image_from_audio(string const& filename);
+    string extract_image_from_video(string const& filename);
+    string extract_image_from_other(string const& filename);
 };
 
 ThumbnailerPrivate::ThumbnailerPrivate()
@@ -129,14 +135,14 @@ string ThumbnailerPrivate::extract_image_from_other(string const& filename)
     return read_file(filename);
 }
 
-string ThumbnailerPrivate::extract_image(string const& filename)
+ThumbnailerPrivate::ImageData ThumbnailerPrivate::extract_image(string const& filename)
 {
     // Work out content type.
 
     unique_gobj<GFile> file(g_file_new_for_path(filename.c_str()));
     if (!file)
     {
-        return "";
+        return {"", false};
     }
 
     unique_gobj<GFileInfo> info(g_file_query_info(file.get(), G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE,
@@ -145,26 +151,26 @@ string ThumbnailerPrivate::extract_image(string const& filename)
                                                   /* error */ NULL));
     if (!info)
     {
-        return "";
+        return {"", false};
     }
 
     string content_type = g_file_info_get_attribute_string(info.get(), G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE);
     if (content_type.empty())
     {
-        return "";
+        return {"", false};
     }
 
     // Call the appropriate image extractor and return the image data as JPEG (not scaled).
 
     if (content_type.find("audio/") == 0)
     {
-        return extract_image_from_audio(filename);
+        return ImageData{extract_image_from_audio(filename), true};
     }
     if (content_type.find("video/") == 0)
     {
-        return extract_image_from_video(filename);
+        return ImageData{extract_image_from_video(filename), true};
     }
-    return extract_image_from_other(filename);
+    return ImageData{extract_image_from_other(filename), false};
 }
 
 Thumbnailer::Thumbnailer()
@@ -191,7 +197,7 @@ Thumbnailer::~Thumbnailer() = default;
 string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
                                            string const& key2,
                                            QSize const& requested_size,
-                                           function<string(string const&, string const&)> fetch)
+                                           function<ImageData(string const&, string const&)> fetch)
 {
     string key = key1;
     key += '\0';
@@ -214,12 +220,12 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
     }
 
     // Don't have the thumbnail yet, see if we have the original image around.
-    auto image_data = full_size_cache_->get(key);
-    if (!image_data)
+    auto full_size = full_size_cache_->get(key);
+    if (!full_size)
     {
         // Try and download or read the artwork.
-        image_data = fetch(key1, key2);
-        if (image_data->empty())
+        auto image_data = fetch(key1, key2);
+        if (image_data.data.empty())
         {
             // TODO: If download failed, need to disable re-try for some time.
             //       Might need to do this in the calling code, because timeouts
@@ -232,11 +238,17 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
         // is likely that the caller will ask for small thumbnail
         // first (for initial search results), followed by a larger
         // thumbnail (for a preview). If so, we don't download the
-        // artwork a second time.
-        full_size_cache_->put(key, *image_data);
+        // artwork a second time. For local files, we keep the full-size
+        // version if it was generated from a video or audio file (which is
+        // expensive), but not if it was generated from an image file (which is cheap).
+        if (image_data.keep_in_cache)
+        {
+            full_size_cache_->put(key, image_data.data);
+        }
+        full_size = move(image_data.data);
     }
 
-    Image scaled_image(*image_data, requested_size);
+    Image scaled_image(*full_size, requested_size);
     string jpeg = scaled_image.to_jpeg();
     thumbnail_cache_->put(sized_key, jpeg);
     return jpeg;
@@ -283,7 +295,7 @@ string Thumbnailer::get_album_art(string const& artist, string const& album, QSi
 
     auto fetch = [this](string const& artist, string const& album)
     {
-        return p_->downloader_->download(artist, album);
+        return ThumbnailerPrivate::ImageData{p_->downloader_->download(artist, album), true};
     };
     // Append "\0album" to key2, so we don't mix up album art and artist art.
     string key2 = album;
@@ -299,7 +311,7 @@ string Thumbnailer::get_artist_art(string const& artist, string const& album, QS
 
     auto fetch = [this](string const& artist, string const& album)
     {
-        return p_->downloader_->download_artist(artist, album);
+        return ThumbnailerPrivate::ImageData{p_->downloader_->download_artist(artist, album), true};
     };
     // Append "\0artist" to key2, so we don't mix up album art and artist art.
     string key2 = album;
