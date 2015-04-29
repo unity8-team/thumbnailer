@@ -20,17 +20,16 @@
 
 #include <internal/file_io.h>
 #include <internal/image.h>
-
 #include <testsetup.h>
+
+#include <boost/algorithm/string.hpp>
 #include <gtest/gtest.h>
 #include <QTemporaryDir>
 
-#define TEST_IMAGE TESTDATADIR "/testimage.jpg"
-#define PORTRAIT_IMAGE TESTDATADIR "/michi.jpg"
-#define JPEG_IMAGE TESTBINDIR "/saved_image.jpg"
+#define TEST_IMAGE TESTDATADIR "/orientation-1.jpg"
 #define BAD_IMAGE TESTDATADIR "/bad_image.jpg"
 #define RGB_IMAGE TESTDATADIR "/RGB.png"
-#define EXIF_IMAGE TESTDATADIR "/testrotate.jpg"
+
 
 using namespace std;
 
@@ -59,33 +58,41 @@ TEST_F(ThumbnailerTest, basic)
     thumb = tn.get_thumbnail(TEST_IMAGE, QSize());
     img = Image(thumb);
     EXPECT_EQ(640, img.width());
-    EXPECT_EQ(400, img.height());
-    
+    EXPECT_EQ(480, img.height());
+
     thumb = tn.get_thumbnail(TEST_IMAGE, QSize(160, 160));
     img = Image(thumb);
     EXPECT_EQ(160, img.width());
-    EXPECT_EQ(100, img.height());
+    EXPECT_EQ(120, img.height());
 
-    thumb = tn.get_thumbnail(EXIF_IMAGE, QSize(1000, 1000));  // Will not up-scale
+    thumb = tn.get_thumbnail(TEST_IMAGE, QSize(1000, 1000));  // Will not up-scale
     img = Image(thumb);
-    EXPECT_EQ(428, img.width());
-    EXPECT_EQ(640, img.height());
+    EXPECT_EQ(640, img.width());
+    EXPECT_EQ(480, img.height());
 
-    thumb = tn.get_thumbnail(EXIF_IMAGE, QSize(65, 65));  // From EXIF data
+    thumb = tn.get_thumbnail(TEST_IMAGE, QSize(100, 100));  // From EXIF data
     img = Image(thumb);
-    EXPECT_EQ(48, img.width());
-    EXPECT_EQ(65, img.height());
+    EXPECT_EQ(100, img.width());
+    EXPECT_EQ(75, img.height());
+
+    try
+    {
+        tn.get_thumbnail(BAD_IMAGE, QSize());
+    }
+    catch (std::exception const& e)
+    {
+        string msg = e.what();
+        EXPECT_TRUE(boost::starts_with(msg, "load_image(): cannot close pixbuf loader: ")) << msg;
+    }
 
     thumb = tn.get_thumbnail(RGB_IMAGE, QSize(48, 48));
     cout << "thumb size: " << thumb.size() << endl;
-    write_file("/tmp/x.jpg", thumb);
     img = Image(thumb);
     EXPECT_EQ(48, img.width());
     EXPECT_EQ(48, img.height());
 
     string thumb2 = tn.get_thumbnail(RGB_IMAGE, QSize(48, 48));
     cout << "thumb2 size: " << thumb2.size() << endl;
-    write_file("/tmp/y.jpg", thumb2);
     EXPECT_EQ(thumb, thumb2);
     img = Image(thumb2);
     EXPECT_EQ(48, img.width());

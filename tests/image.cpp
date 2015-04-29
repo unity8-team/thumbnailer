@@ -24,11 +24,8 @@
 #include <testsetup.h>
 
 #define TESTIMAGE TESTDATADIR "/orientation-1.jpg"
-#define PORTRAITIMAGE TESTDATADIR "/michi.jpg"
 #define JPEGIMAGE TESTBINDIR "/saved_image.jpg"
 #define BADIMAGE TESTDATADIR "/bad_image.jpg"
-#define ROTATEDIMAGE TESTDATADIR "/testrotate.jpg"
-#define RGBIMAGE TESTDATADIR "/RGB.png"
 
 using namespace std;
 
@@ -72,28 +69,19 @@ TEST(Image, basic)
     }
 
     {
-        string data = read_file(PORTRAITIMAGE);
-        Image i(data);
-        EXPECT_EQ(39, i.width());
-        EXPECT_EQ(48, i.height());
-
-        // Down-scale
-        Image i2(data, QSize(20, 20));
-        EXPECT_EQ(15, i2.width()); // should be 16?
-        EXPECT_EQ(20, i2.height());
-    }
-
-    {
         string data = read_file(TESTIMAGE);
         Image i(data);
         EXPECT_EQ(640, i.width());
         EXPECT_EQ(480, i.height());
 
         string jpeg = i.to_jpeg();
-        write_file(JPEGIMAGE, jpeg);
+        Image i2(jpeg);
+        EXPECT_EQ(640, i2.width());
+        EXPECT_EQ(480, i2.height());
         // No test here. Because JPEG is lossy, there is no easy way to verify
         // that the image was saved correctly. Manual inspection of the file
         // is easier (see JPEGIMAGE in the test build dir).
+        write_file(JPEGIMAGE, jpeg);
     }
 }
 
