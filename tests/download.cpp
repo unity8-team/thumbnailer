@@ -28,14 +28,11 @@
 #include <QtTest/QSignalSpy>
 #include <QVector>
 
-#include <core/posix/exec.h>
-
 #include <chrono>
 #include <thread>
 #include <vector>
 
 using namespace unity::thumbnailer::internal;
-namespace posix = core::posix;
 
 class TestDownloaderServer : public ::testing::Test
 {
