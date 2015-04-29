@@ -85,9 +85,8 @@ QDBusUnixFileDescriptor ThumbnailHandler::create() {
                                  + " refers to a different file than the file descriptor");
     }
 
-    int size = thumbnail_size_from_qsize(p->requestedSize);
     std::string art_image = p->thumbnailer->get_thumbnail(
-        p->filename.toStdString(), size);
+        p->filename.toStdString(), p->requestedSize);
 
     if (art_image.empty()) {
         throw std::runtime_error("ThumbnailHandler::create(): Could not get thumbnail for " + p->filename.toStdString());
