@@ -45,7 +45,8 @@ protected:
             qCritical() << "Failed to launch " << FAKE_DOWNLOADER_SERVER;
         }
         ASSERT_GT(fake_downloader_server_.pid(), 0);
-        fake_downloader_server_.waitForReadyRead();
+        QSignalSpy spy(&fake_downloader_server_, &QProcess::readyReadStandardOutput);
+        ASSERT_TRUE(spy.wait());
         QString port = QString(fake_downloader_server_.readAllStandardOutput()).trimmed();
 
         apiroot_ = QString("http://127.0.0.1:%1").arg(port);
