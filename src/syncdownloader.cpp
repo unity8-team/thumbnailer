@@ -17,12 +17,10 @@
  */
 
 #include <internal/syncdownloader.h>
-#include <internal/ubuntuserverdownloader.h>
 #include <internal/artdownloader.h>
 #include <internal/artreply.h>
 
 #include <cassert>
-#include <future>
 
 #include <QEventLoop>
 
