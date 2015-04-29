@@ -43,8 +43,13 @@ public:
     int width() const;
     int height() const;
 
+    // Return the pixel value at the (x,y) coordinates as an integer:
+    //  r << 16 | g << 8 | b
+    int pixel(int x, int y) const;
+
     // Returns image as JPEG data.
     std::string to_jpeg() const;
+
 
 private:
     typedef unique_gobj<GdkPixbuf> PixbufPtr;

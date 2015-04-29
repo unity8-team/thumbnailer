@@ -40,6 +40,10 @@ TEST(Image, basic)
         Image i(data);
         EXPECT_EQ(640, i.width());
         EXPECT_EQ(480, i.height());
+        EXPECT_EQ(0xFE0000, i.pixel(0, 0));
+        EXPECT_EQ(0xFFFF00, i.pixel(639, 0));
+        EXPECT_EQ(0x00FF01, i.pixel(639, 479));
+        EXPECT_EQ(0x0000FE, i.pixel(0, 479));
 
         // Move constructor
         Image i2(move(i));
@@ -67,22 +71,35 @@ TEST(Image, basic)
         EXPECT_EQ(320, i6.width());
         EXPECT_EQ(240, i6.height());
     }
+}
 
-    {
-        string data = read_file(TESTIMAGE);
-        Image i(data);
-        EXPECT_EQ(640, i.width());
-        EXPECT_EQ(480, i.height());
+TEST(Image, save_jpeg)
+{
+    string data = read_file(TESTIMAGE);
+    Image i(data);
+    EXPECT_EQ(640, i.width());
+    EXPECT_EQ(480, i.height());
 
-        string jpeg = i.to_jpeg();
-        Image i2(jpeg);
-        EXPECT_EQ(640, i2.width());
-        EXPECT_EQ(480, i2.height());
-        // No test here. Because JPEG is lossy, there is no easy way to verify
-        // that the image was saved correctly. Manual inspection of the file
-        // is easier (see JPEGIMAGE in the test build dir).
-        write_file(JPEGIMAGE, jpeg);
-    }
+    string jpeg = i.to_jpeg();
+    Image i2(jpeg);
+    EXPECT_EQ(640, i2.width());
+    EXPECT_EQ(480, i2.height());
+    // No test here. Because JPEG is lossy, there is no easy way to verify
+    // that the image was saved correctly. Manual inspection of the file
+    // is easier (see JPEGIMAGE in the test build dir).
+    write_file(JPEGIMAGE, jpeg);
+}
+
+TEST(Image, use_exif_thumbnail)
+{
+    string data = read_file(TESTIMAGE);
+    Image img(data, QSize(160, 160));
+    EXPECT_EQ(160, img.width());
+    EXPECT_EQ(120, img.height());
+    EXPECT_EQ(0xFE8081, img.pixel(0, 0));
+    EXPECT_EQ(0xFFFF80, img.pixel(159, 0));
+    EXPECT_EQ(0x81FF81, img.pixel(159, 119));
+    EXPECT_EQ(0x807FFE, img.pixel(0, 119));
 }
 
 TEST(Image, orientation)
@@ -93,11 +110,29 @@ TEST(Image, orientation)
         Image img(data);
         EXPECT_EQ(640, img.width());
         EXPECT_EQ(480, img.height());
-        // Check corners
+        EXPECT_EQ(0xFE0000, img.pixel(0, 0));
+        EXPECT_EQ(0xFFFF00, img.pixel(639, 0));
+        EXPECT_EQ(0x00FF01, img.pixel(639, 479));
+        EXPECT_EQ(0x0000FE, img.pixel(0, 479));
 
+        // Scaled version
+        img = Image(data, QSize(320, 240));
+        EXPECT_EQ(320, img.width());
+        EXPECT_EQ(240, img.height());
+        EXPECT_EQ(0xFE0000, img.pixel(0, 0));
+        EXPECT_EQ(0xFFFF00, img.pixel(319, 0));
+        EXPECT_EQ(0x00FF01, img.pixel(319, 239));
+        EXPECT_EQ(0x0000FE, img.pixel(0, 239));
+
+        // This version will be produced from the thumbnail, which has
+        // been tinted to distinguish it from the original.
         img = Image(data, QSize(160, 160));
         EXPECT_EQ(160, img.width());
         EXPECT_EQ(120, img.height());
+        EXPECT_EQ(0xFE8081, img.pixel(0, 0));
+        EXPECT_EQ(0xFFFF80, img.pixel(159, 0));
+        EXPECT_EQ(0x81FF81, img.pixel(159, 119));
+        EXPECT_EQ(0x807FFE, img.pixel(0, 119));
     }
 }
 

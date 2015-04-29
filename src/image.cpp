@@ -296,6 +296,28 @@ int Image::height() const
     return h;
 }
 
+int Image::pixel(int x, int y) const
+{
+    assert(gdk_pixbuf_get_colorspace(pixbuf_.get()) == GDK_COLORSPACE_RGB);
+    assert(gdk_pixbuf_get_bits_per_sample(pixbuf_.get()) == 8);
+
+    if (x < 0 || x >= width())
+    {
+        throw runtime_error("Image::pixel(): invalid x coordinate: " + to_string(x));
+    }
+    if (y < 0 || y >= height())
+    {
+        throw runtime_error("Image::pixel(): invalid y coordinate: " + to_string(y));
+    }
+
+    int n_channels = gdk_pixbuf_get_n_channels(pixbuf_.get());
+    int rowstride = gdk_pixbuf_get_rowstride(pixbuf_.get());
+    unsigned char* data = gdk_pixbuf_get_pixels(pixbuf_.get());
+
+    unsigned char* p = data + y * rowstride + x * n_channels;
+    return p[0] << 16 | p[1] << 8 | p[2];
+}
+
 string Image::to_jpeg() const
 {
     assert(pixbuf_);
