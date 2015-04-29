@@ -13,3 +13,4 @@ add_executable(downloaderstest downloaderstest.cpp)
 target_link_libraries(downloaderstest thumbnailer)
 
 qt5_use_modules(downloaderstest Core Network)
+set_target_properties(downloaderstest PROPERTIES AUTOMOC TRUE)

@@ -95,7 +95,7 @@ public slots:
     void download_finished()
     {
         ArtReply * reply = static_cast<ArtReply*>(sender());
-        if (reply->succeded())
+        if (reply->succeeded())
         {
             qDebug() << "FINISH: " << reply->url_string();
             std::map<ArtReply*, DownloadType>::iterator iter = map_active_downloads_.find(reply);

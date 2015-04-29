@@ -29,8 +29,6 @@ namespace thumbnailer
 namespace internal
 {
 
-class ArtReplyPrivate;
-
 class ArtReply : public QObject
 {
     Q_OBJECT
@@ -39,7 +37,7 @@ public:
 
     virtual ~ArtReply() = default;
 
-    virtual bool succeded() const = 0;
+    virtual bool succeeded() const = 0;
     virtual bool is_running() const = 0;
     virtual QString error_string() const = 0;
     virtual bool not_found_error() const = 0;

@@ -62,14 +62,15 @@ public:
         , is_running_(false)
         , error_(QNetworkReply::NoError)
         , url_string_(url)
+        , succeeded_(false)
     {
     }
 
     virtual ~UbuntuServerArtReply() = default;
 
-    bool succeded() const override
+    bool succeeded() const override
     {
-        return error_ == QNetworkReply::NoError;
+        return succeeded_;
     };
 
     bool is_running() const override
@@ -87,9 +88,6 @@ public:
         switch (error_)
         {
             // add here all the cases that you consider as source not found
-            case QNetworkReply::HostNotFoundError:
-            case QNetworkReply::ContentAccessDenied:
-            case QNetworkReply::ContentOperationNotPermittedError:
             case QNetworkReply::ContentNotFoundError:
             case QNetworkReply::ContentGoneError:
                 return true;
@@ -121,6 +119,7 @@ public Q_SLOTS:
         if (!reply->error())
         {
             this->data_ = reply->readAll();
+            succeeded_ = true;
         }
         else
         {
@@ -136,6 +135,7 @@ private:
     QNetworkReply::NetworkError error_;
     QByteArray data_;
     QString url_string_;
+    bool succeeded_;
 };
 
 // helper methods to retrieve image urls

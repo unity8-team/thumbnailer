@@ -34,8 +34,6 @@ namespace thumbnailer
 namespace internal
 {
 
-class LastFMArtReply;
-
 class LastFMDownloader final : public ArtDownloader
 {
     Q_OBJECT

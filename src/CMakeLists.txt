@@ -18,10 +18,11 @@ ${CMAKE_SOURCE_DIR}/include/internal/ubuntuserverdownloader.h
 ${CMAKE_SOURCE_DIR}/include/internal/lastfmdownloader.h
 ${CMAKE_SOURCE_DIR}/include/internal/artreply.h
 ${CMAKE_SOURCE_DIR}/include/internal/syncdownloader.h
-${CMAKE_SOURCE_DIR}/include/thumbnailer.h
 )
 
 qt5_use_modules(thumbnailer Core Network)
+set_target_properties(thumbnailer PROPERTIES AUTOMOC TRUE)
+set_target_properties(thumbnailer PROPERTIES INCLUDE_CURRENT_DIR TRUE)
 
 target_link_libraries(thumbnailer
  core

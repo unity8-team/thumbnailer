@@ -49,9 +49,6 @@ bool is_not_found_error(QNetworkReply::NetworkError error)
     switch (error)
     {
         // add here all the cases that you consider as source not found
-        case QNetworkReply::HostNotFoundError:
-        case QNetworkReply::ContentAccessDenied:
-        case QNetworkReply::ContentOperationNotPermittedError:
         case QNetworkReply::ContentNotFoundError:
         case QNetworkReply::ContentGoneError:
             return true;
@@ -73,7 +70,7 @@ public:
                    QObject* parent = nullptr)
         : ArtReply(parent)
         , is_running_(false)
-        , error_(false)
+        , succeeded_(false)
         , is_not_found_error_(false)
         , url_string_(url)
         , network_manager_(network_manager)
@@ -82,9 +79,9 @@ public:
 
     virtual ~LastFMArtReply() = default;
 
-    bool succeded() const override
+    bool succeeded() const override
     {
-        return !error_;
+        return succeeded_;
     };
 
     bool is_running() const override
@@ -115,7 +112,7 @@ public:
     void finish_with_error(bool is_not_found_error, QString const& error_string)
     {
         this->is_running_ = false;
-        this->error_ = true;
+        this->succeeded_ = false;
         this->is_not_found_error_ = is_not_found_error;
         this->error_string_ = error_string;
         Q_EMIT finished();
@@ -171,12 +168,12 @@ public Q_SLOTS:
         if (!reply->error())
         {
             this->data_ = reply->readAll();
-            this->error_ = false;
+            this->succeeded_ = true;
         }
         else
         {
             this->error_string_ = reply->errorString();
-            this->error_ = true;
+            this->succeeded_ = false;
         }
         Q_EMIT finished();
         reply->deleteLater();
@@ -246,7 +243,7 @@ protected:
 
     bool is_running_;
     QString error_string_;
-    bool error_;
+    bool succeeded_;
     bool is_not_found_error_;
     QByteArray data_;
     QString url_string_;

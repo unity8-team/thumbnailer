@@ -39,6 +39,7 @@ add_test(downloadtest downloadtest)
 set_property(TEST downloadtest PROPERTY ENVIRONMENT "GSETTINGS_SCHEMA_DIR=${CMAKE_BINARY_DIR}/data")
 qt5_use_modules(downloadtest Core Network Test)
 
+
 # This is only needed here because GStreamer brings in gobject.
 pkg_check_modules(GOBJ_DEPS REQUIRED gobject-2.0)
 

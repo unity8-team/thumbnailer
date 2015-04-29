@@ -26,7 +26,6 @@ Build-Depends: cmake,
                shared-mime-info,
                xvfb,
                libunity-api-dev,
-               libprocess-cpp-dev,
                python-tornado,
 
 Homepage: https://launchpad.net/thumbnailer

@@ -74,7 +74,7 @@ protected Q_SLOTS:
     {
         ArtReply *reply = static_cast<ArtReply*>(sender());
         assert(reply);
-        if (reply->succeded())
+        if (reply->succeeded())
         {
             downloaded_data_ = reply->data();;
         }

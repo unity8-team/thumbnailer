@@ -35,9 +35,6 @@ namespace thumbnailer
 namespace internal
 {
 
-class ArtReply;
-class UbuntuServerArtReply;
-
 class UbuntuServerDownloader final : public ArtDownloader
 {
     Q_OBJECT
