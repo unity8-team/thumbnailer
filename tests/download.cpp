@@ -171,7 +171,7 @@ TEST_F(TestDownloaderServer, test_multiple_downloads)
 
     std::vector<std::pair<std::shared_ptr<ArtReply>, std::shared_ptr<QSignalSpy>>> replies;
 
-    int NUM_DOWNLOADS = 10;
+    int NUM_DOWNLOADS = 100;
     for (auto i = 0; i < NUM_DOWNLOADS; ++i)
     {
         QString download_id = QString("TEST_%1").arg(i);
@@ -279,7 +279,7 @@ TEST_F(TestDownloaderServer, lastfm_test_multiple_downloads)
 
     std::vector<std::pair<std::shared_ptr<ArtReply>, std::shared_ptr<QSignalSpy>>> replies;
 
-    int NUM_DOWNLOADS = 1;
+    int NUM_DOWNLOADS = 100;
     for (auto i = 0; i < NUM_DOWNLOADS; ++i)
     {
         QString download_id = QString("TEST_%1").arg(i);
