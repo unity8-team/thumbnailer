@@ -23,7 +23,7 @@
 #include <internal/file_io.h>
 #include <testsetup.h>
 
-#define TESTIMAGE TESTDATADIR "/testimage.jpg"
+#define TESTIMAGE TESTDATADIR "/orientation-1.jpg"
 #define PORTRAITIMAGE TESTDATADIR "/michi.jpg"
 #define JPEGIMAGE TESTBINDIR "/saved_image.jpg"
 #define BADIMAGE TESTDATADIR "/bad_image.jpg"
@@ -42,33 +42,33 @@ TEST(Image, basic)
         string data = read_file(TESTIMAGE);
         Image i(data);
         EXPECT_EQ(640, i.width());
-        EXPECT_EQ(400, i.height());
+        EXPECT_EQ(480, i.height());
 
         // Move constructor
         Image i2(move(i));
         EXPECT_EQ(640, i2.width());
-        EXPECT_EQ(400, i2.height());
+        EXPECT_EQ(480, i2.height());
 
         // Move assignment
         Image i3;
         i3 = move(i2);
         EXPECT_EQ(640, i3.width());
-        EXPECT_EQ(400, i3.height());
+        EXPECT_EQ(480, i3.height());
 
         // Load to fit in bounding box
         Image i4(data, QSize(320, 320));
         EXPECT_EQ(320, i4.width());
-        EXPECT_EQ(200, i4.height());
+        EXPECT_EQ(240, i4.height());
 
         // Load to fit width
         Image i5(data, QSize(320, 0));
         EXPECT_EQ(320, i5.width());
-        EXPECT_EQ(200, i5.height());
+        EXPECT_EQ(240, i5.height());
 
         // Load to fit height
-        Image i6(data, QSize(0, 200));
+        Image i6(data, QSize(0, 240));
         EXPECT_EQ(320, i6.width());
-        EXPECT_EQ(200, i6.height());
+        EXPECT_EQ(240, i6.height());
     }
 
     {
@@ -87,7 +87,7 @@ TEST(Image, basic)
         string data = read_file(TESTIMAGE);
         Image i(data);
         EXPECT_EQ(640, i.width());
-        EXPECT_EQ(400, i.height());
+        EXPECT_EQ(480, i.height());
 
         string jpeg = i.to_jpeg();
         write_file(JPEGIMAGE, jpeg);
@@ -97,19 +97,20 @@ TEST(Image, basic)
     }
 }
 
-TEST(Image, rotate)
+TEST(Image, orientation)
 {
-    string data = read_file(ROTATEDIMAGE);
-    Image img(data);
-    EXPECT_EQ(img.width(), 428);
-    EXPECT_EQ(img.height(), 640);
+    for (int i = 1; i <= 8; i++) {
+        auto filename = string(TESTDATADIR "/orientation-") + to_string(i) + ".jpg";
+        string data = read_file(filename);
+        Image img(data);
+        EXPECT_EQ(640, img.width());
+        EXPECT_EQ(480, img.height());
+        // Check corners
 
-    img = Image(data, QSize(250, 320));
-    EXPECT_EQ(img.width(), 214);
-    EXPECT_EQ(img.height(), 320);
-
-    // TODO: Need to test all 8 possible image orientations, including
-    // data from thumbnails.
+        img = Image(data, QSize(160, 160));
+        EXPECT_EQ(160, img.width());
+        EXPECT_EQ(120, img.height());
+    }
 }
 
 TEST(Image, exceptions)

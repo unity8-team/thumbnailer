@@ -101,6 +101,15 @@ void maybe_scale_thumbnail(GdkPixbufLoader *loader, int width, int height, void 
 {
     QSize requested_size = *reinterpret_cast<QSize*>(user_data);
 
+    if ((requested_size.width() == 0 || width < requested_size.width()) &&
+        (requested_size.height() == 0 || height < requested_size.height()))
+    {
+        // The thumbnail is smaller than the requested size, so don't
+        // bother loading it.
+        gdk_pixbuf_loader_set_size(loader, 0, 0);
+        return;
+    }
+
     // Fill in missing dimensions from requested size
     if (requested_size.width() == 0)
     {
@@ -111,13 +120,6 @@ void maybe_scale_thumbnail(GdkPixbufLoader *loader, int width, int height, void 
         requested_size.setHeight(height);
     }
 
-    if (width < requested_size.width() && height < requested_size.height())
-    {
-        // The thumbnail is smaller than the requested size, so don't
-        // bother loading it.
-        gdk_pixbuf_loader_set_size(loader, 0, 0);
-        return;
-    }
     QSize image_size(width, height);
     image_size.scale(requested_size, Qt::KeepAspectRatio);
     if (image_size.width() != width || image_size.height() != height)
