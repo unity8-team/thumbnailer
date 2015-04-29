@@ -37,6 +37,7 @@
 #include <unity/util/ResourcePtr.h>
 
 #include <fcntl.h>
+#include <iostream>
 #include <sys/stat.h>
 
 using namespace std;
