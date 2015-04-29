@@ -64,31 +64,6 @@ public:
                            function<string(string const&, string const&)> fetch);
 };
 
-namespace
-{
-
-string create_tmp_filename()
-{
-    static string dir = []
-    {
-        char const* dirp = getenv("TMPDIR");
-        string dir = dirp ? dirp : "/tmp";
-        return dir;
-    }();
-
-    string tmp = dir + "/thumbnailer.XXXXXX";
-    int fd = mkstemp(&tmp[0]);
-    if (fd == -1)
-    {
-        string s = string("Thumbnailer::create_tmp_filename(): mkstemp() failed: ") + safe_strerror(errno);
-        throw runtime_error(s);
-    }
-    close(fd);
-    return tmp;
-}
-
-}  // namespace
-
 ThumbnailerPrivate::ThumbnailerPrivate()
 {
     char const* artservice = getenv("THUMBNAILER_ART_PROVIDER");
