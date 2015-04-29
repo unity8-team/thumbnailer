@@ -19,6 +19,7 @@
 
 #include <QSignalSpy>
 #include <QProcess>
+#include <QTemporaryDir>
 
 #include <testsetup.h>
 
@@ -88,12 +89,8 @@ protected:
     virtual ~DBusTest() {}
 
     virtual void SetUp() override {
-        tempdir = TESTBINDIR "/dbus-test.XXXXXX";
-        if (mkdtemp(const_cast<char*>(tempdir.data())) == nullptr) {
-            tempdir = "";
-            throw std::runtime_error("could not create temporary directory");
-        }
-        setenv("XDG_CACHE_HOME", (tempdir + "/cache").c_str(), true);
+        tempdir.reset(new QTemporaryDir(TESTBINDIR "/dbus-test.XXXXXX"));
+        setenv("XDG_CACHE_HOME", (tempdir->path() + "/cache").toUtf8().data(), true);
 
         dbusTestRunner.reset(new QtDBusTest::DBusTestRunner());
 
@@ -118,13 +115,10 @@ protected:
 
         unsetenv("THUMBNAILER_MAX_IDLE");
         unsetenv("XDG_CACHE_HOME");
-        if (!tempdir.empty()) {
-            std::string cmd = "rm -rf \"" + tempdir + "\"";
-            ASSERT_EQ(system(cmd.c_str()), 0);
-        }
+        tempdir.reset();
     }
 
-    std::string tempdir;
+    std::unique_ptr<QTemporaryDir> tempdir;
     std::unique_ptr<QtDBusTest::DBusTestRunner> dbusTestRunner;
     std::unique_ptr<QDBusInterface> iface;
     QSharedPointer<QtDBusTest::QProcessDBusService> dbusService;
@@ -219,17 +213,12 @@ TEST_F(DBusTest, test_inactivity_exit) {
 
 TEST(DBusTestBadIdle, env_variable_bad_value)
 {
-    std::string tempdir;
+    QTemporaryDir tempdir(TESTBINDIR "/dbus-test.XXXXXX");
     std::unique_ptr<QtDBusTest::DBusTestRunner> dbusTestRunner;
     std::unique_ptr<QDBusInterface> iface;
     QSharedPointer<QtDBusTest::QProcessDBusService> dbusService;
 
-    tempdir = TESTBINDIR "/dbus-test.XXXXXX";
-    if (mkdtemp(const_cast<char*>(tempdir.data())) == nullptr) {
-        tempdir = "";
-        throw std::runtime_error("could not create temporary directory");
-    }
-    setenv("XDG_CACHE_HOME", (tempdir + "/cache").c_str(), true);
+    setenv("XDG_CACHE_HOME", (tempdir.path() + "/cache").toUtf8().data(), true);
 
     dbusTestRunner.reset(new QtDBusTest::DBusTestRunner());
 

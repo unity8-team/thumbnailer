@@ -34,8 +34,8 @@
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 #include <core/persistent_string_cache.h>
-#include <unity/util/ResourcePtr.h>
 
+#include <iostream>
 #include <fcntl.h>
 #include <iostream>
 #include <sys/stat.h>
@@ -45,12 +45,13 @@ using namespace unity::thumbnailer::internal;
 
 class ThumbnailerPrivate
 {
-private:
-    string extract_image_from_audio(string const& filename);
-    string extract_image_from_video(string const& filename);
-    string extract_image_from_other(string const& filename);
-
 public:
+    struct ImageData
+    {
+        string data;
+        bool keep_in_cache;
+    };
+
     AudioImageExtractor audio_;
     VideoScreenshotter video_;
     core::PersistentStringCache::UPtr full_size_cache_;  // Small cache of full (original) size images.
@@ -60,97 +61,17 @@ public:
 
     ThumbnailerPrivate();
 
-    string extract_image(string const& filename);
+    ImageData extract_image(string const& filename);
     string fetch_thumbnail(string const& key1,
                            string const& key2,
-                           int desired_size,
-                           function<string(string const&, string const&)> fetch,
-                           bool use_exif = false);
+                           QSize const& requested_size,
+                           function<ImageData(string const&, string const&)> fetch);
+
+private:
+    string extract_image_from_audio(string const& filename);
+    string extract_image_from_video(string const& filename);
+    string extract_image_from_other(string const& filename);
 };
-
-namespace
-{
-
-auto do_loader_close = [](GdkPixbufLoader* loader)
-{
-    if (loader)
-    {
-        gdk_pixbuf_loader_close(loader, NULL);
-        g_object_unref(loader);
-    }
-};
-typedef unity::util::ResourcePtr<GdkPixbufLoader*, decltype(do_loader_close)> LoaderPtr;
-
-auto do_exif_loader_close = [](ExifLoader* loader)
-{
-    if (loader)
-    {
-        exif_loader_unref(loader);
-    }
-};
-typedef unity::util::ResourcePtr<ExifLoader*, decltype(do_exif_loader_close)> ExifLoaderPtr;
-
-auto do_exif_data_unref = [](ExifData* data)
-{
-    if (data)
-    {
-        exif_data_unref(data);
-    }
-};
-typedef unity::util::ResourcePtr<ExifData*, decltype(do_exif_data_unref)> ExifDataPtr;
-
-string create_tmp_filename()
-{
-    static string dir = []
-    {
-        char const* dirp = getenv("TMPDIR");
-        string dir = dirp ? dirp : "/tmp";
-        return dir;
-    }();
-
-    string tmp = dir + "/thumbnailer.XXXXXX";
-    int fd = mkstemp(&tmp[0]);
-    if (fd == -1)
-    {
-        string s = string("Thumbnailer::create_tmp_filename(): mkstemp() failed: ") + safe_strerror(errno);
-        throw runtime_error(s);
-    }
-    close(fd);
-    return tmp;
-}
-
-string extract_exif_image(string const& filename, int& orientation)
-{
-    orientation = 1;  // Default, already in correct orientation.
-
-    ExifLoaderPtr el(exif_loader_new(), do_exif_loader_close);
-    if (!el.get())
-    {
-        // We don't throw here because we can still extract a thumbnail from the full-size image
-        // and this error should never happen anyway.
-        cerr << "exif loader is NULL!!!" << endl;
-        return "";
-    }
-
-    exif_loader_write_file(el.get(), filename.c_str());
-
-    ExifDataPtr ed(exif_loader_get_data(el.get()), do_exif_data_unref);
-    if (!ed.get() || !ed.get()->data || ed.get()->size == 0)
-    {
-        cerr << "no EXIF data for " << filename << endl;
-        return "";  // Image wasn't extracted for a reason that libexif won't tell us about.
-    }
-
-    ExifEntry* e(exif_data_get_entry(ed.get(), EXIF_TAG_ORIENTATION));
-    if (e)
-    {
-        orientation = exif_get_short(e->data, exif_data_get_byte_order(ed.get()));
-    }
-
-    return string(reinterpret_cast<char*>(ed.get()->data), ed.get()->size);
-}
-
-}  // namespace
 
 ThumbnailerPrivate::ThumbnailerPrivate()
 {
@@ -219,14 +140,14 @@ string ThumbnailerPrivate::extract_image_from_other(string const& filename)
     return read_file(filename);
 }
 
-string ThumbnailerPrivate::extract_image(string const& filename)
+ThumbnailerPrivate::ImageData ThumbnailerPrivate::extract_image(string const& filename)
 {
     // Work out content type.
 
     unique_gobj<GFile> file(g_file_new_for_path(filename.c_str()));
     if (!file)
     {
-        return "";
+        return {"", false};
     }
 
     unique_gobj<GFileInfo> info(g_file_query_info(file.get(), G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE,
@@ -235,26 +156,26 @@ string ThumbnailerPrivate::extract_image(string const& filename)
                                                   /* error */ NULL));
     if (!info)
     {
-        return "";
+        return {"", false};
     }
 
     string content_type = g_file_info_get_attribute_string(info.get(), G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE);
     if (content_type.empty())
     {
-        return "";
+        return {"", false};
     }
 
     // Call the appropriate image extractor and return the image data as JPEG (not scaled).
 
     if (content_type.find("audio/") == 0)
     {
-        return extract_image_from_audio(filename);
+        return ImageData{extract_image_from_audio(filename), true};
     }
     if (content_type.find("video/") == 0)
     {
-        return extract_image_from_video(filename);
+        return ImageData{extract_image_from_video(filename), true};
     }
-    return extract_image_from_other(filename);
+    return ImageData{extract_image_from_other(filename), false};
 }
 
 Thumbnailer::Thumbnailer()
@@ -280,9 +201,8 @@ Thumbnailer::~Thumbnailer() = default;
 
 string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
                                            string const& key2,
-                                           int desired_size,
-                                           function<string(string const&, string const&)> fetch,
-                                           bool use_exif)
+                                           QSize const& requested_size,
+                                           function<ImageData(string const&, string const&)> fetch)
 {
     string key = key1;
     key += '\0';
@@ -291,9 +211,12 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
     // desired_size is 0 if the caller wants original size.
     string sized_key = key;
     sized_key += '\0';
-    sized_key += to_string(desired_size);
+    sized_key += to_string(requested_size.width());
+    sized_key += '\0';
+    sized_key += to_string(requested_size.height());
 
-    cerr << "desired: " << desired_size << endl;
+    cerr << "Requested size: " << requested_size.width() << ", "
+         << requested_size.height() << endl;
     // Check if we have the thumbnail in the cache already.
     auto thumbnail = thumbnail_cache_->get(sized_key);
     if (thumbnail)
@@ -301,68 +224,44 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
         return *thumbnail;
     }
 
-    // Check if there is an EXIF thumbnail we can use.
-    if (use_exif && desired_size != 0)
-    {
-        int orientation;
-        string exif_data = extract_exif_image(key1, orientation);
-        if (!exif_data.empty())
-        {
-            Image exif_image(exif_data, orientation);
-            if (exif_image.max_size() >= desired_size)
-            {
-                exif_image.scale_to(desired_size);
-                thumbnail = exif_image.to_jpeg();
-                thumbnail_cache_->put(sized_key, *thumbnail);
-                return *thumbnail;
-            }
-        }
-    }
-
     // Don't have the thumbnail yet, see if we have the original image around.
-    auto image_data = full_size_cache_->get(key);
-    if (image_data)
+    auto full_size = full_size_cache_->get(key);
+    if (!full_size)
     {
-        Image scaled_image(*image_data);
-        if (desired_size != 0)
+        // Try and download or read the artwork.
+        auto image_data = fetch(key1, key2);
+        if (image_data.data.empty())
         {
-            scaled_image.scale_to(desired_size);
+            // TODO: If download failed, need to disable re-try for some time.
+            //       Might need to do this in the calling code, because timeouts
+            //       will be different depending on why it failed, and whether
+            //       the fetch was from a local or remote source.
+            return "";
         }
-        string jpeg = scaled_image.to_jpeg();
-        thumbnail_cache_->put(sized_key, jpeg);
-        return jpeg;
+
+        // We keep the full-size version around for a while because it
+        // is likely that the caller will ask for small thumbnail
+        // first (for initial search results), followed by a larger
+        // thumbnail (for a preview). If so, we don't download the
+        // artwork a second time. For local files, we keep the full-size
+        // version if it was generated from a video or audio file (which is
+        // expensive), but not if it was generated from an image file (which is cheap).
+        if (image_data.keep_in_cache)
+        {
+            full_size_cache_->put(key, image_data.data);
+        }
+        full_size = move(image_data.data);
     }
 
-    // Try and download or read the artwork.
-    image_data = fetch(key1, key2);
-    if (image_data->empty())
-    {
-        // TODO: If download failed, need to disable re-try for some time.
-        //       Might need to do this in the calling code, because timeouts
-        //       will be different depending on why it failed, and whether
-        //       the fetch was from a local or remote source.
-        return "";
-    }
-
-    // We keep the full-size version around for a while because it is likely that the caller
-    // will ask for small thumbnail first (for initial search results), followed by a
-    // larger thumbnail (for a preview). If so, we don't download the artwork a second time.
-    full_size_cache_->put(key, *image_data);
-
-    Image scaled_image(*image_data);
-    if (desired_size != 0)
-    {
-        scaled_image.scale_to(desired_size);
-    }
+    Image scaled_image(*full_size, requested_size);
     string jpeg = scaled_image.to_jpeg();
     thumbnail_cache_->put(sized_key, jpeg);
     return jpeg;
 }
 
-string Thumbnailer::get_thumbnail(string const& filename, int desired_size)
+string Thumbnailer::get_thumbnail(string const& filename, QSize const &requested_size)
 {
     assert(!filename.empty());
-    assert(desired_size >= 0);
 
     auto path = boost::filesystem::canonical(filename);
 
@@ -391,39 +290,37 @@ string Thumbnailer::get_thumbnail(string const& filename, int desired_size)
     {
         return p_->extract_image(key1);
     };
-    return p_->fetch_thumbnail(key1, key2, desired_size, fetch, true);
+    return p_->fetch_thumbnail(key1, key2, requested_size, fetch);
 }
 
-string Thumbnailer::get_album_art(string const& artist, string const& album, int desired_size)
+string Thumbnailer::get_album_art(string const& artist, string const& album, QSize const &requested_size)
 {
     assert(artist.empty() || !album.empty());
     assert(album.empty() || !artist.empty());
-    assert(desired_size >= 0);
 
     auto fetch = [this](string const& artist, string const& album)
     {
-        return p_->sync_downloader_->download_album(QString::fromStdString(artist), QString::fromStdString(album)).data();
+        return ThumbnailerPrivate::ImageData{p_->sync_downloader_->download_album(QString::fromStdString(artist), QString::fromStdString(album)).data(), true};
     };
     // Append "\0album" to key2, so we don't mix up album art and artist art.
     string key2 = album;
     key2 += '\0';
     key2 += "album";
-    return p_->fetch_thumbnail(artist, key2, desired_size, fetch);
+    return p_->fetch_thumbnail(artist, key2, requested_size, fetch);
 }
 
-string Thumbnailer::get_artist_art(string const& artist, string const& album, int desired_size)
+string Thumbnailer::get_artist_art(string const& artist, string const& album, QSize const &requested_size)
 {
     assert(artist.empty() || !album.empty());
     assert(album.empty() || !artist.empty());
-    assert(desired_size >= 0);
 
     auto fetch = [this](string const& artist, string const& album)
     {
-        return p_->sync_downloader_->download_artist(QString::fromStdString(artist), QString::fromStdString(album)).data();
+        return ThumbnailerPrivate::ImageData{p_->sync_downloader_->download_artist(QString::fromStdString(artist), QString::fromStdString(album)).data(), true};
     };
     // Append "\0artist" to key2, so we don't mix up album art and artist art.
     string key2 = album;
     key2 += '\0';
     key2 += "artist";
-    return p_->fetch_thumbnail(artist, key2, desired_size, fetch);
+    return p_->fetch_thumbnail(artist, key2, requested_size, fetch);
 }

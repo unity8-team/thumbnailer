@@ -21,6 +21,8 @@
 #include <memory>
 #include <string>
 
+#include <QSize>
+
 class ThumbnailerPrivate;
 
 /**
@@ -49,17 +51,17 @@ public:
      * Return value is the thumbnail image as a string.
      * If the thumbnail could not be generated, an empty string is returned.
      */
-    std::string get_thumbnail(std::string const& filename, int desired_size);
+    std::string get_thumbnail(std::string const& filename, QSize const& requested_size);
 
     /**
      * Gets album art for the given artist an album.
      */
-    std::string get_album_art(std::string const& artist, std::string const& album, int desiredSize);
+    std::string get_album_art(std::string const& artist, std::string const& album, QSize const& requested_size);
 
     /**
      * Gets artist art for the given artist and album.
      */
-    std::string get_artist_art(std::string const& artist, std::string const& album, int desiredSize);
+    std::string get_artist_art(std::string const& artist, std::string const& album, QSize const& requested_size);
 
 private:
     std::unique_ptr<ThumbnailerPrivate> p_;
