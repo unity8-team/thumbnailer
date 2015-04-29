@@ -33,7 +33,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 #include <core/persistent_string_cache.h>
-#include <unity/util/ResourcePtr.h>
 
 #include <iostream>
 #include <fcntl.h>
