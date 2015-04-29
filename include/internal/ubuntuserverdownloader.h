@@ -42,7 +42,7 @@ public:
     Q_DISABLE_COPY(UbuntuServerDownloader)
 
     explicit UbuntuServerDownloader(QObject* parent = nullptr);
-    ~UbuntuServerDownloader() = default;
+    virtual ~UbuntuServerDownloader() = default;
 
     std::shared_ptr<ArtReply> download_album(QString const& artist, QString const& album) override;
     std::shared_ptr<ArtReply> download_artist(QString const& artist, QString const& album) override;

@@ -41,7 +41,7 @@ public:
     Q_DISABLE_COPY(LastFMDownloader)
 
     explicit LastFMDownloader(QObject* parent = nullptr);
-    ~LastFMDownloader() = default;
+    virtual ~LastFMDownloader() = default;
 
     std::shared_ptr<ArtReply> download_album(QString const& artist, QString const& album) override;
     std::shared_ptr<ArtReply> download_artist(QString const& artist, QString const& album) override;
