@@ -17,6 +17,7 @@ Build-Depends: cmake,
                libsoup2.4-dev,
                libunity-api-dev,
                libxml2-dev,
+               python-tornado,
                qml-module-qtquick2,
                qml-module-qttest,
                qt5-default,
@@ -25,9 +26,6 @@ Build-Depends: cmake,
                qtdeclarative5-dev,
                shared-mime-info,
                xvfb,
-               libunity-api-dev,
-               python-tornado,
-
 Homepage: https://launchpad.net/thumbnailer
 # if you don't have have commit access to this branch but would like to upload
 # directly to Ubuntu, don't worry: your changes will be merged back into the
