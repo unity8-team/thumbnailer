@@ -76,6 +76,6 @@ TEST(file_io, exceptions)
     catch (runtime_error const& e)
     {
         string msg = e.what();
-        EXPECT_TRUE(boost::starts_with(msg, "write_file(): cannot rename")) << msg;
+        EXPECT_TRUE(boost::starts_with(msg, "write_file(): mkstemp() failed for ")) << msg;
     }
 }

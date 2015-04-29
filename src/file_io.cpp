@@ -21,6 +21,8 @@
 #include <internal/raii.h>
 #include <internal/safe_strerror.h>
 
+#include <boost/filesystem.hpp>
+
 #include <cstring>
 
 #include <fcntl.h>
@@ -78,14 +80,17 @@ static string tmp_dir = []
 
 void write_file(string const& filename, string const& contents)
 {
-    string tmp_path = tmp_dir + "/thumbnailer.XXXXXX";
+    using namespace boost::filesystem;
+
+    path abs_path = absolute(filename);
+    path dir = abs_path.parent_path();
+
+    string tmp_path = dir.native() + "/thumbnailer.XXXXXX";
     int fd = mkstemp(&tmp_path[0]);
     if (fd == -1)
     {
-        // LCOV_EXCL_START
-        string s = string("write_file(): mkstemp() failed: ") + safe_strerror(errno);
+        string s = string("write_file(): mkstemp() failed for " + tmp_path + ": ") + safe_strerror(errno);
         throw runtime_error(s);
-        // LCOV_EXCL_STOP
     }
 
     {
@@ -104,8 +109,10 @@ void write_file(string const& filename, string const& contents)
 
     if (rename(tmp_path.c_str(), filename.c_str()) == -1)
     {
+        // LCOV_EXCL_START
         unlink(tmp_path.c_str());
         throw runtime_error("write_file(): cannot rename " + tmp_path + " to " + filename + ": " + safe_strerror(errno));
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -116,7 +123,7 @@ string create_tmp_filename()
     if (fd == -1)
     {
         // LCOV_EXCL_START
-        string s = string("create_tmp_filename(): mkstemp() failed: ") + safe_strerror(errno);
+        string s = string("create_tmp_filename(): mkstemp() failed for " + tmp_path + ": ") + safe_strerror(errno);
         throw runtime_error(s);
         // LCOV_EXCL_STOP
     }
