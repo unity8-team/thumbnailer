@@ -83,6 +83,7 @@ TEST_F(TestDownloaderServer, test_download_album_url)
     EXPECT_EQ(url_query.queryItemValue("artist"), "sia");
     EXPECT_EQ(url_query.queryItemValue("album"), "fear");
     EXPECT_EQ(check_url.path(), "/musicproxy/v1/album-art");
+    qDebug() << check_url.toString();
     EXPECT_TRUE(check_url.toString().startsWith(apiroot_));
 }
 
