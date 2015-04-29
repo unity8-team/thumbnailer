@@ -26,14 +26,14 @@ using namespace std;
 
 TEST(file_io, read_write)
 {
-    string in_file = TESTDATADIR "/michi.jpg";
+    string in_file = TESTDATADIR "/testimage.jpg";
     struct stat st;
     ASSERT_NE(-1, stat(in_file.c_str(), &st));
 
     string data = read_file(in_file);
     ASSERT_EQ(st.st_size, data.size());
 
-    string out_file = TESTBINDIR "/michi.jpg";
+    string out_file = TESTBINDIR "/testimage.jpg";
     write_file(out_file, data);
 
     string cmd = "cmp " + in_file + " " + out_file;

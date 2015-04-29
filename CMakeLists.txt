@@ -44,7 +44,7 @@ enable_testing()
 
 add_subdirectory(src)
 add_subdirectory(data)
-add_subdirectory(plugins/Ubuntu/Thumbnailer)
+add_subdirectory(plugins/Ubuntu/Thumbnailer.0.1)
 add_subdirectory(tests)
 add_subdirectory(tools)
 add_subdirectory(include)

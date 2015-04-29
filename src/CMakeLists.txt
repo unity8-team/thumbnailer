@@ -12,6 +12,7 @@ thumbnailer.cpp
 ubuntuserverdownloader.cpp
 videoscreenshotter.cpp
 )
+qt5_use_modules(thumbnailer Core)
 
 target_link_libraries(thumbnailer
  core

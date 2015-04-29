@@ -9,6 +9,7 @@
 #include <QGuiApplication>
 #include <QtQml>
 #include <QtQuickTest/quicktest.h>
+#include <QTemporaryDir>
 
 #include <testsetup.h>
 
@@ -19,12 +20,8 @@ class TestFixture
 {
 public:
     TestFixture() {
-        cachedir = TESTBINDIR "/qml-test.XXXXXX";
-        if (mkdtemp(const_cast<char*>(cachedir.data())) == nullptr) {
-            cachedir = "";
-            throw std::runtime_error("Could not create temporary directory");
-        }
-        setenv("XDG_CACHE_HOME", cachedir.c_str(), true);
+        cachedir.reset(new QTemporaryDir(TESTBINDIR "/qml-test.XXXXXX"));
+        setenv("XDG_CACHE_HOME", cachedir->path().toUtf8().data(), true);
 
         dbusTestRunner.reset(new QtDBusTest::DBusTestRunner());
         dbusTestRunner->registerService(
@@ -38,16 +35,11 @@ public:
 
     ~TestFixture() {
         dbusTestRunner.reset();
-        if (!cachedir.empty()) {
-            std::string cmd = "rm -rf \"" + cachedir + "\"";
-            if (system(cmd.c_str()) != 0) {
-                throw std::runtime_error("Could not remove temporary directory");
-            }
-        }
+        cachedir.reset();
     }
 
 private:
-    std::string cachedir;
+    std::unique_ptr<QTemporaryDir> cachedir;
     std::unique_ptr<QtDBusTest::DBusTestRunner> dbusTestRunner;
 };
 

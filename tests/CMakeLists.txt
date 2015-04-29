@@ -30,7 +30,6 @@ add_test(image image)
 add_executable(thumbnailer_test thumbnailer_test.cpp)
 target_link_libraries(thumbnailer_test thumbnailer core gtest)
 add_test(thumbnailer_test thumbnailer_test)
-set_property(TEST thumbnailer_test PROPERTY ENVIRONMENT "XDG_CACHE_HOME=${CMAKE_CURRENT_BINARY_DIR}")
 
 add_executable(downloadtest download.cpp ../src/lastfmdownloader.cpp ../src/ubuntuserverdownloader.cpp ../src/soupdownloader.cpp)
 target_link_libraries(downloadtest ${XML_DEPS_LDFLAGS} ${SOUP_DEPS_LDFLAGS} gtest)
