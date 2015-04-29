@@ -21,6 +21,7 @@
 #include <internal/gobj_memory.h>
 
 #include <gdk-pixbuf/gdk-pixbuf.h>
+#include <QSize>
 
 #include <string>
 
@@ -32,29 +33,25 @@ public:
 
     // Loads internal pixbuf with provided image data. The orientation
     // is as described by the EXIF specification. 1 means "already in correct orientation".
-    Image(std::string const& data, int orientation = 1);
+    Image(std::string const& data, QSize requested_size = QSize());
 
     Image(Image const&) = delete;
     Image& operator=(Image const&) = delete;
     Image(Image&&) = default;
     Image& operator=(Image &&) = default;
 
-    // Replaces internal pixbuf with provided image data.
-    void load(std::string const& data, int orientation = 1);
-
     int width() const;
     int height() const;
-    int max_size() const;
 
-    // Replaces internal pixbuf with new pixbuf scaled to size in larger dimension.
-    void scale_to(int desired_size);
+    // Return the pixel value at the (x,y) coordinates as an integer:
+    //  r << 16 | g << 8 | b
+    int pixel(int x, int y) const;
 
     // Returns image as JPEG data.
     std::string to_jpeg() const;
 
-private:
-    void fix_orientation(int orientation);
 
+private:
     typedef unique_gobj<GdkPixbuf> PixbufPtr;
     PixbufPtr pixbuf_;
 };

@@ -158,17 +158,6 @@ void Handler::sendError(const QString &error) {
     Q_EMIT finished();
 }
 
-int thumbnail_size_from_qsize(const QSize &size)
-{
-    if (!size.isValid()) {
-        // If an invalid size is passed to the QQuickImageProvider,
-        // then we don't know what size is expected.  In this case,
-        // return the unscaled original.
-        return 0;
-    }
-    return std::max(size.width(), size.height());
-}
-
 QDBusUnixFileDescriptor write_to_tmpfile(std::string const& image)
 {
 

@@ -23,11 +23,9 @@
 #include <internal/file_io.h>
 #include <testsetup.h>
 
-#define TESTIMAGE TESTDATADIR "/testimage.jpg"
-#define PORTRAITIMAGE TESTDATADIR "/michi.jpg"
+#define TESTIMAGE TESTDATADIR "/orientation-1.jpg"
 #define JPEGIMAGE TESTBINDIR "/saved_image.jpg"
 #define BADIMAGE TESTDATADIR "/bad_image.jpg"
-#define RGBIMAGE TESTDATADIR "/RGB.png"
 
 using namespace std;
 
@@ -41,77 +39,100 @@ TEST(Image, basic)
         string data = read_file(TESTIMAGE);
         Image i(data);
         EXPECT_EQ(640, i.width());
-        EXPECT_EQ(400, i.height());
-        EXPECT_EQ(640, i.max_size());
+        EXPECT_EQ(480, i.height());
+        EXPECT_EQ(0xFE0000, i.pixel(0, 0));
+        EXPECT_EQ(0xFFFF00, i.pixel(639, 0));
+        EXPECT_EQ(0x00FF01, i.pixel(639, 479));
+        EXPECT_EQ(0x0000FE, i.pixel(0, 479));
 
         // Move constructor
         Image i2(move(i));
         EXPECT_EQ(640, i2.width());
-        EXPECT_EQ(400, i2.height());
+        EXPECT_EQ(480, i2.height());
 
         // Move assignment
         Image i3;
         i3 = move(i2);
         EXPECT_EQ(640, i3.width());
-        EXPECT_EQ(400, i3.height());
+        EXPECT_EQ(480, i3.height());
 
-        // Down-scale
-        i3.scale_to(320);
-        EXPECT_EQ(320, i3.width());
-        EXPECT_EQ(200, i3.height());
+        // Load to fit in bounding box
+        Image i4(data, QSize(320, 320));
+        EXPECT_EQ(320, i4.width());
+        EXPECT_EQ(240, i4.height());
 
-        // Up-scale
-        i3.scale_to(960);
-        EXPECT_EQ(960, i3.width());
-        EXPECT_EQ(600, i3.height());
+        // Load to fit width
+        Image i5(data, QSize(320, 0));
+        EXPECT_EQ(320, i5.width());
+        EXPECT_EQ(240, i5.height());
 
-        // Test that we can't go below 1x1.
-        i3.scale_to(1);
-        EXPECT_EQ(1, i3.width());
-        EXPECT_EQ(1, i3.height());
-    }
-
-    {
-        string data = read_file(PORTRAITIMAGE);
-        Image i(data);
-        EXPECT_EQ(39, i.width());
-        EXPECT_EQ(48, i.height());
-        EXPECT_EQ(48, i.max_size());
-
-        // Up-scale
-        i.scale_to(100);
-        EXPECT_EQ(81, i.width());
-        EXPECT_EQ(100, i.height());
-
-        // Down-scale
-        i.scale_to(20);
-        EXPECT_EQ(16, i.width());
-        EXPECT_EQ(20, i.height());
-    }
-
-    {
-        string data = read_file(TESTIMAGE);
-        Image i(data);
-        EXPECT_EQ(640, i.width());
-        EXPECT_EQ(400, i.height());
-
-        string jpeg = i.to_jpeg();
-        write_file(JPEGIMAGE, jpeg);
-        // No test here. Because JPEG is lossy, there is no easy way to verify
-        // that the image was saved correctly. Manual inspection of the file
-        // is easier (see JPEGIMAGE in the test build dir).
+        // Load to fit height
+        Image i6(data, QSize(0, 240));
+        EXPECT_EQ(320, i6.width());
+        EXPECT_EQ(240, i6.height());
     }
 }
 
-TEST(Image, rotate)
+TEST(Image, save_jpeg)
 {
-    string data = read_file(RGBIMAGE);
+    string data = read_file(TESTIMAGE);
+    Image i(data);
+    EXPECT_EQ(640, i.width());
+    EXPECT_EQ(480, i.height());
 
-    for (int i = 0; i <= 9; ++i)
-    {
-        Image img(data, i);
-        // TODO: No test here yet, this is for coverage.
-        //       Need to add pixel sampling functionality to Image.
+    string jpeg = i.to_jpeg();
+    Image i2(jpeg);
+    EXPECT_EQ(640, i2.width());
+    EXPECT_EQ(480, i2.height());
+    // No test here. Because JPEG is lossy, there is no easy way to verify
+    // that the image was saved correctly. Manual inspection of the file
+    // is easier (see JPEGIMAGE in the test build dir).
+    write_file(JPEGIMAGE, jpeg);
+}
+
+TEST(Image, use_exif_thumbnail)
+{
+    string data = read_file(TESTIMAGE);
+    Image img(data, QSize(160, 160));
+    EXPECT_EQ(160, img.width());
+    EXPECT_EQ(120, img.height());
+    EXPECT_EQ(0xFE8081, img.pixel(0, 0));
+    EXPECT_EQ(0xFFFF80, img.pixel(159, 0));
+    EXPECT_EQ(0x81FF81, img.pixel(159, 119));
+    EXPECT_EQ(0x807FFE, img.pixel(0, 119));
+}
+
+TEST(Image, orientation)
+{
+    for (int i = 1; i <= 8; i++) {
+        auto filename = string(TESTDATADIR "/orientation-") + to_string(i) + ".jpg";
+        string data = read_file(filename);
+        Image img(data);
+        EXPECT_EQ(640, img.width());
+        EXPECT_EQ(480, img.height());
+        EXPECT_EQ(0xFE0000, img.pixel(0, 0));
+        EXPECT_EQ(0xFFFF00, img.pixel(639, 0));
+        EXPECT_EQ(0x00FF01, img.pixel(639, 479));
+        EXPECT_EQ(0x0000FE, img.pixel(0, 479));
+
+        // Scaled version
+        img = Image(data, QSize(320, 240));
+        EXPECT_EQ(320, img.width());
+        EXPECT_EQ(240, img.height());
+        EXPECT_EQ(0xFE0000, img.pixel(0, 0));
+        EXPECT_EQ(0xFFFF00, img.pixel(319, 0));
+        EXPECT_EQ(0x00FF01, img.pixel(319, 239));
+        EXPECT_EQ(0x0000FE, img.pixel(0, 239));
+
+        // This version will be produced from the thumbnail, which has
+        // been tinted to distinguish it from the original.
+        img = Image(data, QSize(160, 160));
+        EXPECT_EQ(160, img.width());
+        EXPECT_EQ(120, img.height());
+        EXPECT_EQ(0xFE8081, img.pixel(0, 0));
+        EXPECT_EQ(0xFFFF80, img.pixel(159, 0));
+        EXPECT_EQ(0x81FF81, img.pixel(159, 119));
+        EXPECT_EQ(0x807FFE, img.pixel(0, 119));
     }
 }
 
@@ -127,7 +148,7 @@ TEST(Image, exceptions)
         catch (std::exception const& e)
         {
             string msg = e.what();
-            EXPECT_TRUE(boost::starts_with(msg, "Image::load(): cannot close pixbuf loader: ")) << msg;
+            EXPECT_TRUE(boost::starts_with(msg, "load_image(): cannot close pixbuf loader: ")) << msg;
         }
     }
 }
