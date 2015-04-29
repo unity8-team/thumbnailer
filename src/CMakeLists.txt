@@ -22,7 +22,6 @@ ${CMAKE_SOURCE_DIR}/include/internal/syncdownloader.h
 
 qt5_use_modules(thumbnailer Core Network)
 set_target_properties(thumbnailer PROPERTIES AUTOMOC TRUE)
-set_target_properties(thumbnailer PROPERTIES INCLUDE_CURRENT_DIR TRUE)
 
 target_link_libraries(thumbnailer
  core
