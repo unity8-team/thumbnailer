@@ -40,7 +40,7 @@ protected:
     void SetUp() override
     {
         fake_downloader_server_.setProcessChannelMode(QProcess::ForwardedErrorChannel);
-        fake_downloader_server_.start("/usr/bin/python", QStringList() << FAKE_DOWNLOADER_SERVER);
+        fake_downloader_server_.start("/usr/bin/python3", QStringList() << FAKE_DOWNLOADER_SERVER);
         ASSERT_TRUE(fake_downloader_server_.waitForStarted()) << "Failed to launch " << FAKE_DOWNLOADER_SERVER;
         ASSERT_GT(fake_downloader_server_.pid(), 0);
         ASSERT_TRUE(fake_downloader_server_.waitForReadyRead());
