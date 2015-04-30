@@ -33,12 +33,16 @@ tornado.options.parse_command_line()
 global PORT
 PORT = ""
 
-def read_file(path):
+def read_file(path, replace_root):
     file = os.path.join(os.path.dirname(__file__), path)
     if os.path.isfile(file):
-        with open(file, 'r') as fp:
+        mode = 'r'
+        if (not replace_root):
+            mode = 'rb'
+        with open(file, mode) as fp:
             content = fp.read()
-        content = content.replace("DOWNLOAD_ROOT", "127.0.0.1:%s" % PORT )
+        if(replace_root):
+            content = content.replace("DOWNLOAD_ROOT", "127.0.0.1:%s" % PORT )
     else:
         raise Exception("File '%s' not found\n" % file)
     return content
@@ -53,7 +57,7 @@ class UbuntuArtistImagesProvider(ErrorHandler):
             self.write("TEST_THREADS_TEST_%s" % self.get_argument('album', None ))
         else:
             file = 'images/%s_%s.png' % (self.get_argument('artist', None ), self.get_argument('album', None ))
-            self.write(read_file(file))
+            self.write(read_file(file, False))
         self.finish()
 
 class UbuntuAlbumImagesProvider(ErrorHandler):
@@ -63,13 +67,13 @@ class UbuntuAlbumImagesProvider(ErrorHandler):
             self.write("TEST_THREADS_TEST_%s" % self.get_argument('album', None ))
         else:
             file = 'images/%s_%s.png' % (self.get_argument('artist', None ), self.get_argument('album', None ))
-            self.write(read_file(file))
+            self.write(read_file(file, False))
         self.finish()
 
 class LastFMArtistAlbumInfo(ErrorHandler):
     def get(self, artist, album):
         file = 'queries/%s_%s.xml' % (artist, album)
-        self.write(read_file(file))
+        self.write(read_file(file, True))
         self.finish()
 
 class LastFMImagesProvider(ErrorHandler):
@@ -78,7 +82,7 @@ class LastFMImagesProvider(ErrorHandler):
             self.write("TEST_THREADS_TEST_%s" % image)
         else:
             file = 'images/%s.png' % image
-            self.write(read_file(file))
+            self.write(read_file(file, False))
         self.finish()
 
 def validate_argument(self, name, expected):
