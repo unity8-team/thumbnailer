@@ -11,8 +11,18 @@ soupdownloader.cpp
 thumbnailer.cpp
 ubuntuserverdownloader.cpp
 videoscreenshotter.cpp
+artdownloader.cpp
+syncdownloader.cpp
+${CMAKE_SOURCE_DIR}/include/internal/artdownloader.h
+${CMAKE_SOURCE_DIR}/include/internal/ubuntuserverdownloader.h
+${CMAKE_SOURCE_DIR}/include/internal/lastfmdownloader.h
+${CMAKE_SOURCE_DIR}/include/internal/artreply.h
+${CMAKE_SOURCE_DIR}/include/internal/syncdownloader.h
 )
 qt5_use_modules(thumbnailer Core)
+
+qt5_use_modules(thumbnailer Core Network)
+set_target_properties(thumbnailer PROPERTIES AUTOMOC TRUE)
 
 target_link_libraries(thumbnailer
  core

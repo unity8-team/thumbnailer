@@ -27,6 +27,7 @@
 #include <internal/make_directories.h>
 #include <internal/raii.h>
 #include <internal/safe_strerror.h>
+#include <internal/syncdownloader.h>
 #include <internal/ubuntuserverdownloader.h>
 #include <internal/videoscreenshotter.h>
 
@@ -36,6 +37,7 @@
 
 #include <iostream>
 #include <fcntl.h>
+#include <iostream>
 #include <sys/stat.h>
 
 using namespace std;
@@ -54,7 +56,8 @@ public:
     VideoScreenshotter video_;
     core::PersistentStringCache::UPtr full_size_cache_;  // Small cache of full (original) size images.
     core::PersistentStringCache::UPtr thumbnail_cache_;  // Large cache of scaled images.
-    unique_ptr<ArtDownloader> downloader_;
+    shared_ptr<ArtDownloader> downloader_;
+    unique_ptr<SyncDownloader> sync_downloader_;
 
     ThumbnailerPrivate();
 
@@ -81,6 +84,8 @@ ThumbnailerPrivate::ThumbnailerPrivate()
     {
         downloader_.reset(new UbuntuServerDownloader());
     }
+
+    sync_downloader_.reset(new SyncDownloader(downloader_));
 
     string xdg_base = g_get_user_cache_dir();
     if (xdg_base == "")
@@ -295,7 +300,7 @@ string Thumbnailer::get_album_art(string const& artist, string const& album, QSi
 
     auto fetch = [this](string const& artist, string const& album)
     {
-        return ThumbnailerPrivate::ImageData{p_->downloader_->download(artist, album), true};
+        return ThumbnailerPrivate::ImageData{p_->sync_downloader_->download_album(QString::fromStdString(artist), QString::fromStdString(album)).data(), true};
     };
     // Append "\0album" to key2, so we don't mix up album art and artist art.
     string key2 = album;
@@ -311,7 +316,7 @@ string Thumbnailer::get_artist_art(string const& artist, string const& album, QS
 
     auto fetch = [this](string const& artist, string const& album)
     {
-        return ThumbnailerPrivate::ImageData{p_->downloader_->download_artist(artist, album), true};
+        return ThumbnailerPrivate::ImageData{p_->sync_downloader_->download_artist(QString::fromStdString(artist), QString::fromStdString(album)).data(), true};
     };
     // Append "\0artist" to key2, so we don't mix up album art and artist art.
     string key2 = album;
