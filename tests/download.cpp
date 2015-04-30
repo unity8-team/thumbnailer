@@ -39,19 +39,16 @@ class TestDownloaderServer : public ::testing::Test
 protected:
     void SetUp() override
     {
-        fake_downloader_server_.start(FAKE_DOWNLOADER_SERVER, QStringList());
-        if (!fake_downloader_server_.waitForStarted())
-        {
-            qCritical() << "Failed to launch " << FAKE_DOWNLOADER_SERVER;
-        }
+        fake_downloader_server_.setProcessChannelMode(QProcess::ForwardedErrorChannel);
+        fake_downloader_server_.start("/usr/bin/python", QStringList() << FAKE_DOWNLOADER_SERVER);
+        ASSERT_TRUE(fake_downloader_server_.waitForStarted()) << "Failed to launch " << FAKE_DOWNLOADER_SERVER;
         ASSERT_GT(fake_downloader_server_.pid(), 0);
-        QSignalSpy spy(&fake_downloader_server_, &QProcess::readyReadStandardOutput);
-        ASSERT_TRUE(spy.wait());
-        QString port = QString(fake_downloader_server_.readAllStandardOutput()).trimmed();
+        ASSERT_TRUE(fake_downloader_server_.waitForReadyRead());
+        QString port = QString::fromUtf8(fake_downloader_server_.readAllStandardOutput()).trimmed();
 
         apiroot_ = QString("http://127.0.0.1:%1").arg(port);
-        setenv("THUMBNAILER_LASTFM_APIROOT", apiroot_.toStdString().c_str(), true);
-        setenv("THUMBNAILER_UBUNTU_APIROOT", apiroot_.toStdString().c_str(), true);
+        setenv("THUMBNAILER_LASTFM_APIROOT", apiroot_.toUtf8().constData(), true);
+        setenv("THUMBNAILER_UBUNTU_APIROOT", apiroot_.toUtf8().constData(), true);
     }
 
     void TearDown() override
