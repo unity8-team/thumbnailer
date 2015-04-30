@@ -231,8 +231,13 @@ TEST(DBusTestBadIdle, env_variable_bad_value)
 
     dbusTestRunner->registerService(dbusService);
     dbusTestRunner->startServices();
-    EXPECT_EQ(const_cast<QProcess *>(&dbusService->underlyingProcess())->waitForFinished(), true);
-    EXPECT_EQ(const_cast<QProcess *>(&dbusService->underlyingProcess())->exitCode(), 1);
+
+    auto process = const_cast<QProcess *>(&dbusService->underlyingProcess());
+    if (process->state() != QProcess::NotRunning)
+    {
+        EXPECT_EQ(process->waitForFinished(), true);
+    }
+    EXPECT_EQ(process->exitCode(), 1);
 
     unsetenv("THUMBNAILER_MAX_IDLE");
 }

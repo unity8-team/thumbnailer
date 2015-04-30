@@ -29,7 +29,7 @@
 #define TEST_IMAGE TESTDATADIR "/orientation-1.jpg"
 #define BAD_IMAGE TESTDATADIR "/bad_image.jpg"
 #define RGB_IMAGE TESTDATADIR "/RGB.png"
-
+#define BIG_IMAGE TESTDATADIR "/big.jpg"
 
 using namespace std;
 
@@ -86,15 +86,17 @@ TEST_F(ThumbnailerTest, basic)
     }
 
     thumb = tn.get_thumbnail(RGB_IMAGE, QSize(48, 48));
-    cout << "thumb size: " << thumb.size() << endl;
     img = Image(thumb);
     EXPECT_EQ(48, img.width());
     EXPECT_EQ(48, img.height());
 
-    string thumb2 = tn.get_thumbnail(RGB_IMAGE, QSize(48, 48));
-    cout << "thumb2 size: " << thumb2.size() << endl;
-    EXPECT_EQ(thumb, thumb2);
-    img = Image(thumb2);
-    EXPECT_EQ(48, img.width());
-    EXPECT_EQ(48, img.height());
+    thumb = tn.get_thumbnail(BIG_IMAGE, QSize());  // > 1920, so will be trimmed down
+    img = Image(thumb);
+    EXPECT_EQ(1920, img.width());
+    EXPECT_EQ(1439, img.height());
+
+    thumb = tn.get_thumbnail(BIG_IMAGE, QSize(0, 0));  // unconstrained, so will not be trimmed down
+    img = Image(thumb);
+    EXPECT_EQ(2731, img.width());
+    EXPECT_EQ(2048, img.height());
 }

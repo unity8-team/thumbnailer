@@ -199,6 +199,9 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
                                            QSize const& requested_size,
                                            function<ImageData(string const&, string const&)> fetch)
 {
+    int MAX_SIZE = 1920;  // TODO: Make limit configurable?
+    QSize target_size = requested_size.isValid() ? requested_size : QSize(MAX_SIZE, MAX_SIZE);
+
     string key = key1;
     key += '\0';
     key += key2;
@@ -206,12 +209,10 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
     // desired_size is 0 if the caller wants original size.
     string sized_key = key;
     sized_key += '\0';
-    sized_key += to_string(requested_size.width());
+    sized_key += to_string(target_size.width());
     sized_key += '\0';
-    sized_key += to_string(requested_size.height());
+    sized_key += to_string(target_size.height());
 
-    cerr << "Requested size: " << requested_size.width() << ", "
-         << requested_size.height() << endl;
     // Check if we have the thumbnail in the cache already.
     auto thumbnail = thumbnail_cache_->get(sized_key);
     if (thumbnail)
@@ -243,12 +244,20 @@ string ThumbnailerPrivate::fetch_thumbnail(string const& key1,
         // expensive), but not if it was generated from an image file (which is cheap).
         if (image_data.keep_in_cache)
         {
-            full_size_cache_->put(key, image_data.data);
+            Image full_size_image(image_data.data, target_size);
+            auto w = full_size_image.width();
+            auto h = full_size_image.height();
+            if (max(w, h) > MAX_SIZE)
+            {
+                // Don't put ridiculously large images into the full-size cache.
+                full_size_image = Image(image_data.data, QSize(MAX_SIZE, MAX_SIZE));
+            }
+            full_size_cache_->put(key, full_size_image.to_jpeg());
         }
         full_size = move(image_data.data);
     }
 
-    Image scaled_image(*full_size, requested_size);
+    Image scaled_image(*full_size, target_size);
     string jpeg = scaled_image.to_jpeg();
     thumbnail_cache_->put(sized_key, jpeg);
     return jpeg;
