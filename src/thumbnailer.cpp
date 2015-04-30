@@ -46,12 +46,6 @@ using namespace unity::thumbnailer::internal;
 class ThumbnailerPrivate
 {
 public:
-    struct ImageData
-    {
-        string data;
-        bool keep_in_cache;
-    };
-
     AudioImageExtractor audio_;
     VideoScreenshotter video_;
     core::PersistentStringCache::UPtr full_size_cache_;  // Small cache of full (original) size images.
@@ -61,9 +55,6 @@ public:
 
     ThumbnailerPrivate();
 
-    ImageData extract_image(string const& filename);
-
-private:
     string extract_image_from_audio(string const& filename);
     string extract_image_from_video(string const& filename);
     string extract_image_from_other(string const& filename);
@@ -134,44 +125,6 @@ string ThumbnailerPrivate::extract_image_from_video(string const& filename)
 string ThumbnailerPrivate::extract_image_from_other(string const& filename)
 {
     return read_file(filename);
-}
-
-ThumbnailerPrivate::ImageData ThumbnailerPrivate::extract_image(string const& filename)
-{
-    // Work out content type.
-
-    unique_gobj<GFile> file(g_file_new_for_path(filename.c_str()));
-    if (!file)
-    {
-        return {"", false};
-    }
-
-    unique_gobj<GFileInfo> info(g_file_query_info(file.get(), G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE,
-                                                  G_FILE_QUERY_INFO_NONE,
-                                                  /* cancellable */ NULL,
-                                                  /* error */ NULL));
-    if (!info)
-    {
-        return {"", false};
-    }
-
-    string content_type = g_file_info_get_attribute_string(info.get(), G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE);
-    if (content_type.empty())
-    {
-        return {"", false};
-    }
-
-    // Call the appropriate image extractor and return the image data as JPEG (not scaled).
-
-    if (content_type.find("audio/") == 0)
-    {
-        return ImageData{extract_image_from_audio(filename), true};
-    }
-    if (content_type.find("video/") == 0)
-    {
-        return ImageData{extract_image_from_video(filename), true};
-    }
-    return ImageData{extract_image_from_other(filename), false};
 }
 
 namespace
@@ -343,8 +296,43 @@ LocalThumbnailRequest::LocalThumbnailRequest(shared_ptr<ThumbnailerPrivate> cons
 }
 
 RequestBase::ImageData LocalThumbnailRequest::fetch() {
-    auto data = p_->extract_image(filename_);
-    return ImageData{FetchStatus::Downloaded, data.data, data.keep_in_cache};
+    // Work out content type.
+
+    unique_gobj<GFile> file(g_file_new_for_path(filename_.c_str()));
+    if (!file)
+    {
+        return {FetchStatus::Error, "", false};
+    }
+
+    unique_gobj<GFileInfo> info(g_file_query_info(file.get(), G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE,
+                                                  G_FILE_QUERY_INFO_NONE,
+                                                  /* cancellable */ NULL,
+                                                  /* error */ NULL));
+    if (!info)
+    {
+        return {FetchStatus::Error, "", false};
+    }
+
+    string content_type = g_file_info_get_attribute_string(info.get(), G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE);
+    if (content_type.empty())
+    {
+        return {FetchStatus::Error, "", false};
+    }
+
+    // Call the appropriate image extractor and return the image data as JPEG (not scaled).
+
+    if (content_type.find("audio/") == 0)
+    {
+        return ImageData{FetchStatus::Downloaded,
+                p_->extract_image_from_audio(filename_), true};
+    }
+    if (content_type.find("video/") == 0)
+    {
+        return ImageData{FetchStatus::Downloaded,
+                p_->extract_image_from_video(filename_), true};
+    }
+    return ImageData{FetchStatus::Downloaded,
+            p_->extract_image_from_other(filename_), false};
 }
 
 void LocalThumbnailRequest::download() {
@@ -358,11 +346,8 @@ AlbumRequest::AlbumRequest(std::shared_ptr<ThumbnailerPrivate> const& p, string 
 
 RequestBase::ImageData AlbumRequest::fetch() {
     auto raw_data = p_->sync_downloader_->download_album(QString::fromStdString(artist_), QString::fromStdString(album_));
-    return ImageData{
-        FetchStatus::Downloaded,
-        string(raw_data.data(), raw_data.size()),
-        true
-    };
+    return ImageData{FetchStatus::Downloaded,
+        string(raw_data.data(), raw_data.size()), true};
 }
 
 void AlbumRequest::download() {
@@ -376,11 +361,8 @@ ArtistRequest::ArtistRequest(std::shared_ptr<ThumbnailerPrivate> const& p, strin
 
 RequestBase::ImageData ArtistRequest::fetch() {
     auto raw_data = p_->sync_downloader_->download_artist(QString::fromStdString(artist_), QString::fromStdString(album_));
-    return ImageData{
-        FetchStatus::Downloaded,
-        string(raw_data.data(), raw_data.size()),
-        true
-    };
+    return ImageData{FetchStatus::Downloaded,
+        string(raw_data.data(), raw_data.size()), true};
 }
 
 void ArtistRequest::download() {
