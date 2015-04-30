@@ -16,8 +16,11 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
 #include<internal/soupdownloader.h>
 #include<libsoup/soup.h>
+#pragma GCC diagnostic pop
 #include<internal/gobj_memory.h>
 #include<stdexcept>
 
@@ -28,9 +31,12 @@ SoupDownloader::SoupDownloader() {
     }
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
 SoupDownloader::~SoupDownloader() {
     g_object_unref(G_OBJECT(session));
 }
+#pragma GCC diagnostic pop
 
 std::string SoupDownloader::download(const std::string &url) {
     unique_gobj<SoupMessage> msg(soup_message_new("GET", url.c_str()));

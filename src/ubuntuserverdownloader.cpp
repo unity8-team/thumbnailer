@@ -17,7 +17,11 @@
  *              Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+#pragma GCC diagnostic ignored "-Wcast-qual"
 #include <gio/gio.h>
+#pragma GCC diagnostic pop
 
 #include <internal/artreply.h>
 #include <internal/ubuntuserverdownloader.h>

@@ -18,6 +18,13 @@ ${GTEST_SRC_DIR}/gtest_main.cc
 set_target_properties(gtest PROPERTIES INCLUDE_DIRECTORIES ${GTEST_INCLUDE_DIR})
 target_link_libraries(gtest ${CMAKE_THREAD_LIBS_INIT})
 
+# Make sure we always build gtest with debug info, otherwise we don't
+# get line numbers for the code that is dragged in by the test macros.
+set_property(TARGET gtest APPEND_STRING PROPERTY COMPILE_FLAGS " -g")
+
+# gtest won't compile cleanly without this.
+set_property(TARGET gtest APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-missing-field-initializers -Wno-old-style-cast")
+
 set(TESTDATADIR ${CMAKE_CURRENT_SOURCE_DIR}/media)
 
 configure_file(testsetup.h.in testsetup.h @ONLY)

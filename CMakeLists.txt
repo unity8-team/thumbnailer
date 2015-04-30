@@ -2,16 +2,60 @@ project(thumbnailer C CXX)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-cmake_minimum_required(VERSION 2.8.7)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra")
+cmake_minimum_required(VERSION 2.8.10)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11 -Wall -pedantic -Wextra")
 
-include(CheckCXXCompilerFlag)
-check_cxx_compiler_flag(-std=c++11 HAS_C11)
-# Precise's GCC is too old to have -std=c++11
-if(HAS_C11)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+# Some additional warnings not included by the general flags set above.
+set(EXTRA_C_WARNINGS "-Wcast-align -Wcast-qual -Wformat -Wredundant-decls -Wswitch-default")
+set(EXTRA_CXX_WARNINGS "-Wnon-virtual-dtor -Wctor-dtor-privacy -Wold-style-cast")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${EXTRA_C_WARNINGS} ${EXTRA_CXX_WARNINGS}")
+
+# By default, for release builds, warnings become hard errors.
+if ("${cmake_build_type_lower}" STREQUAL "release" OR "${cmake_build_type_lower}" STREQUAL "relwithdebinfo")
+    option(Werror "Treat warnings as errors" ON)
 else()
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Dfinal=")
+    option(Werror "Treat warnings as errors" OFF)
+endif()
+
+# If warnings are errors, don't error on deprecated declarations.
+if (${Werror})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+    if ("${cmake_build_type_lower}" STREQUAL "release" OR "${cmake_build_type_lower}" STREQUAL "relwithdebinfo")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=deprecated-declarations")
+    endif()
+endif()
+
+# Some tests are slow, so make it possible not to run them
+# during day-to-day development.
+option(slowtests "Run slow tests" ON)
+
+# Definitions for testing with valgrind.
+
+configure_file(CTestCustom.cmake.in CTestCustom.cmake) # Tests in CTestCustom.cmake are skipped for valgrind
+
+find_program(MEMORYCHECK_COMMAND NAMES valgrind)
+if (MEMORYCHECK_COMMAND)
+    if (DEFINED CVS_UPDATE_OPTIONS)  # This is set by include(CTest), which must be included *afterwards*.
+        message(FATAL_ERROR "CTest was included before adding the valgrind custom target. You must include CTest *before* adding the valgrind target")
+    endif()
+    set(MEMORYCHECK_COMMAND_OPTIONS
+        "--suppressions=${CMAKE_SOURCE_DIR}/valgrind-suppress --leak-check=full --num-callers=40 --error-exitcode=3"
+    )
+    add_custom_target(valgrind DEPENDS NightlyMemCheck)
+else()
+    message(WARNING "Cannot find valgrind: valgrind target will not be available")
+endif()
+
+include(CTest)
+enable_testing()
+
+if (${Werror})
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+    if ("${cmake_build_type_lower}" STREQUAL "release" OR "${cmake_build_type_lower}" STREQUAL "relwithdebinfo")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=deprecated-declarations")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=deprecated-declarations")
+    endif()
 endif()
 
 include(cmake/coverage.cmake)
@@ -42,8 +86,6 @@ include_directories(${SOUP_DEPS_INCLUDE_DIRS})
 include_directories(${XML_DEPS_INCLUDE_DIRS})
 include_directories(include)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
-
-enable_testing()
 
 add_subdirectory(src)
 add_subdirectory(data)

@@ -66,8 +66,10 @@ unique_gobj<GdkPixbuf> load_image(unsigned char const *data, size_t length,
         throw runtime_error("load_image(): cannot allocate GdkPixbufLoader");  // LCOV_EXCL_LINE
     }
 
-    g_signal_connect(loader.get(), "size-prepared",
-                     size_prepared_cb, user_data);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+    g_signal_connect(loader.get(), "size-prepared", size_prepared_cb, user_data);
+#pragma GCC diagnostic pop
     GError* err = nullptr;
     if (!gdk_pixbuf_loader_write(loader.get(), data, length, &err))
     {
@@ -206,9 +208,12 @@ Image::Image(string const& data, QSize requested_size)
         {
             try
             {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
                 pixbuf_ = load_image(exif->data, exif->size,
                                      G_CALLBACK(maybe_scale_thumbnail),
                                      &unrotated_requested_size);
+#pragma GCC diagnostic push
             }
             catch (const runtime_error& e)
             {

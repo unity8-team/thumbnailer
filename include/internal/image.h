@@ -20,7 +20,11 @@
 
 #include <internal/gobj_memory.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+#pragma GCC diagnostic ignored "-Wcast-qual"
 #include <gdk-pixbuf/gdk-pixbuf.h>
+#pragma GCC diagnostic pop
 #include <QSize>
 
 #include <string>

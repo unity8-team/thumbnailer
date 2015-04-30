@@ -18,7 +18,11 @@
 
 #include<thumbnailer.h>
 #include<cstdio>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+#pragma GCC diagnostic ignored "-Wcast-qual"
 #include<gst/gst.h>
+#pragma GCC diagnostic pop
 #include<stdexcept>
 
 int main(int argc, char **argv) {
