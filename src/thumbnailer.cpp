@@ -300,7 +300,8 @@ string Thumbnailer::get_album_art(string const& artist, string const& album, QSi
 
     auto fetch = [this](string const& artist, string const& album)
     {
-        return ThumbnailerPrivate::ImageData{p_->sync_downloader_->download_album(QString::fromStdString(artist), QString::fromStdString(album)).data(), true};
+        auto raw_data = p_->sync_downloader_->download_album(QString::fromStdString(artist), QString(album.c_str()));
+        return ThumbnailerPrivate::ImageData{string(raw_data.data(), raw_data.size()), true};
     };
     // Append "\0album" to key2, so we don't mix up album art and artist art.
     string key2 = album;
@@ -316,7 +317,8 @@ string Thumbnailer::get_artist_art(string const& artist, string const& album, QS
 
     auto fetch = [this](string const& artist, string const& album)
     {
-        return ThumbnailerPrivate::ImageData{p_->sync_downloader_->download_artist(QString::fromStdString(artist), QString::fromStdString(album)).data(), true};
+        auto raw_data = p_->sync_downloader_->download_artist(QString::fromStdString(artist), QString(album.c_str()));
+        return ThumbnailerPrivate::ImageData{string(raw_data.data(), raw_data.size()), true};
     };
     // Append "\0artist" to key2, so we don't mix up album art and artist art.
     string key2 = album;
