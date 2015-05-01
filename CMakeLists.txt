@@ -96,14 +96,15 @@ enable_coverage_report(
         thumbnailer
         thumbnailer-service
         thumbnailer-qml
+    FILTER
+        ${CMAKE_SOURCE_DIR}/tests/*
+        ${CMAKE_SOURCE_DIR}/tools/*
+        ${CMAKE_BINARY_DIR}/*
+    TESTS
         downloadtest
         file_io
         image
         thumbnailer_test
         cachetool
         downloaderstest
-    FILTER
-        ${CMAKE_SOURCE_DIR}/tests/*
-        ${CMAKE_SOURCE_DIR}/tools/*
-        ${CMAKE_BINARY_DIR}/*
 )
