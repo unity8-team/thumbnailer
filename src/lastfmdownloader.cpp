@@ -138,7 +138,7 @@ public Q_SLOTS:
             {
                 if (xml_url == NOTFOUND_IMAGE)
                 {
-                    finish_with_error(true, QString("Image for %1 was not found").arg(xml_url));
+                    finish_with_error(true, QString("LastFMArtReply::download_xml_finished() Image for %1 was not found").arg(xml_url));
                 }
                 else
                 {
@@ -165,6 +165,7 @@ public Q_SLOTS:
         assert(reply);
 
         this->is_running_ = false;
+        this->is_not_found_error_ = is_not_found_error(reply->error());
         if (!reply->error())
         {
             this->data_ = reply->readAll();
@@ -186,11 +187,6 @@ protected:
         const QString LARGE_IMAGE_ELEMENT = "large";
 
         QXmlStreamReader xml(data);
-        if (xml.hasError())
-        {
-            finish_with_error(false, "LastFMArtReply::parse_xml() XML ERROR: " + xml.errorString());
-            return "";
-        }
 
         bool parsing_coverart_node = false;
         while (!xml.atEnd() && !xml.hasError())
