@@ -379,30 +379,30 @@ Thumbnailer::Thumbnailer()
 
 Thumbnailer::~Thumbnailer() = default;
 
-string Thumbnailer::get_thumbnail(string const& filename, QSize const &requested_size)
+unique_ptr<ThumbnailRequest> Thumbnailer::get_thumbnail(string const& filename, QSize const &requested_size)
 {
     assert(!filename.empty());
 
-    LocalThumbnailRequest req(p_, filename, requested_size);
-    return req.thumbnail();
+    return unique_ptr<ThumbnailRequest>(
+        new LocalThumbnailRequest(p_, filename, requested_size));
 }
 
-string Thumbnailer::get_album_art(string const& artist, string const& album, QSize const &requested_size)
+unique_ptr<ThumbnailRequest> Thumbnailer::get_album_art(string const& artist, string const& album, QSize const &requested_size)
 {
     assert(artist.empty() || !album.empty());
     assert(album.empty() || !artist.empty());
 
-    AlbumRequest req(p_, artist, album, requested_size);
-    return req.thumbnail();
+    return unique_ptr<ThumbnailRequest>(
+        new AlbumRequest(p_, artist, album, requested_size));
 }
 
-string Thumbnailer::get_artist_art(string const& artist, string const& album, QSize const &requested_size)
+unique_ptr<ThumbnailRequest> Thumbnailer::get_artist_art(string const& artist, string const& album, QSize const &requested_size)
 {
     assert(artist.empty() || !album.empty());
     assert(album.empty() || !artist.empty());
 
-    ArtistRequest req(p_, artist, album, requested_size);
-    return req.thumbnail();
+    return unique_ptr<ThumbnailRequest>(
+        new ArtistRequest(p_, artist, album, requested_size));
 }
 
 #include "thumbnailer.moc"

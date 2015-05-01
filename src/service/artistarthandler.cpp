@@ -66,8 +66,9 @@ void ArtistArtHandler::download() {
 }
 
 QDBusUnixFileDescriptor ArtistArtHandler::create() {
-    std::string art_image = p->thumbnailer->get_artist_art(
+    auto req = p->thumbnailer->get_artist_art(
         p->artist.toStdString(), p->album.toStdString(), p->requestedSize);
+    std::string art_image = req->thumbnail();
 
     if (art_image.empty()) {
         throw std::runtime_error("ArtistArtHandler::create() Could not get thumbnail for " + p->artist.toStdString());
