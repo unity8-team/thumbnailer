@@ -18,7 +18,6 @@
 
 #include <internal/ubuntuserverdownloader.h>
 #include <internal/lastfmdownloader.h>
-#include <internal/syncdownloader.h>
 #include <internal/artreply.h>
 
 #include <gtest/gtest.h>
@@ -302,24 +301,6 @@ TEST_F(TestDownloaderServer, lastfm_test_multiple_downloads)
         // Finally check the content of the file downloaded
         EXPECT_EQ(QString(replies[i].first->data()), QString("TEST_THREADS_TEST_test_thread_%1").arg((i % 5) + 1));
     }
-}
-
-TEST_F(TestDownloaderServer, sync_download_ok)
-{
-    auto downloader = std::make_shared<UbuntuServerDownloader>();
-    SyncDownloader sync_downloader(downloader);
-
-    auto data = sync_downloader.download_album("sia", "fear");
-    EXPECT_EQ(QString(data), QString("SIA_FEAR_TEST_STRING_IMAGE"));
-}
-
-TEST_F(TestDownloaderServer, sync_download_error)
-{
-    auto downloader = std::make_shared<UbuntuServerDownloader>();
-    SyncDownloader sync_downloader(downloader);
-
-    auto data = sync_downloader.download_album("test", "test");
-    EXPECT_EQ(QString(data), QString(""));
 }
 
 int main(int argc, char** argv)
