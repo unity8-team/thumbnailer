@@ -159,9 +159,9 @@ TEST_F(TestDownloaderServer, test_not_found)
     ASSERT_EQ(spy.count(), 1);
 
     EXPECT_EQ(reply->succeeded(), false);
-    EXPECT_EQ(reply->not_found_error(), false);
+    EXPECT_EQ(reply->not_found_error(), true);
     EXPECT_EQ(reply->is_running(), false);
-    EXPECT_TRUE(reply->error_string().endsWith("server replied: Internal Server Error"));
+    EXPECT_TRUE(reply->error_string().endsWith("server replied: Not Found"));
 }
 
 TEST_F(TestDownloaderServer, test_multiple_downloads)
