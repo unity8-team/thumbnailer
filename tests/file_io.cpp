@@ -60,8 +60,8 @@ TEST(file_io, exceptions)
     }
 
     string dir = TESTBINDIR "/dir";
-    mkdir(dir.c_str(), 0700);  // If dir doesn't exist, create it.
     chmod(dir.c_str(), 0700);  // If dir exists, make sure it's writable.
+    mkdir(dir.c_str(), 0700);  // If dir doesn't exist, create it.
 
     string out_file = dir + "/no_perm";
     write_file(out_file, "");
@@ -71,10 +71,12 @@ TEST(file_io, exceptions)
     try
     {
         write_file(out_file, "");
+        chmod(dir.c_str(), 0700);
         FAIL();
     }
     catch (runtime_error const& e)
     {
+        chmod(dir.c_str(), 0700);
         string msg = e.what();
         EXPECT_TRUE(boost::starts_with(msg, "write_file(): mkstemp() failed for ")) << msg;
     }

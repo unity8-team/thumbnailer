@@ -20,9 +20,13 @@
 #include<string>
 #include<memory>
 #include<stdexcept>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+#pragma GCC diagnostic ignored "-Wcast-qual"
 #include<gst/gst.h>
 #include<gio/gio.h>
 #include<glib.h>
+#pragma GCC diagnostic pop
 
 #include "thumbnailextractor.h"
 
