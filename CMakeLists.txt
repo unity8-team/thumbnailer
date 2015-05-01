@@ -5,6 +5,8 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 cmake_minimum_required(VERSION 2.8.10)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11 -Wall -pedantic -Wextra")
 
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
+
 # Some additional warnings not included by the general flags set above.
 set(EXTRA_C_WARNINGS "-Wcast-align -Wcast-qual -Wformat -Wredundant-decls -Wswitch-default")
 set(EXTRA_CXX_WARNINGS "-Wnon-virtual-dtor -Wctor-dtor-privacy -Wold-style-cast")
@@ -48,7 +50,10 @@ endif()
 include(CTest)
 enable_testing()
 
-include(cmake/coverage.cmake)
+# TODO: replace this with include(EnableCoverageReport) once the updated module makes it into the archives.
+#       See https://code.launchpad.net/~michihenning/cmake-extras/cmake-extras-coverage/+merge/258021
+include(XEnableCoverageReport)
+
 include(cmake/UseGSettings.cmake)
 
 include(GNUInstallDirs)
@@ -79,3 +84,23 @@ add_subdirectory(plugins/Ubuntu/Thumbnailer.0.1)
 add_subdirectory(tests)
 add_subdirectory(tools)
 add_subdirectory(include)
+
+# TODO: generate the list of test targets rather than enumerating them here.
+#       We'll do this when we sort out the test subtree.
+enable_coverage_report(
+    TARGETS
+        thumbnailer
+        thumbnailer-service
+        thumbnailer-qml
+    FILTER
+        ${CMAKE_SOURCE_DIR}/tests/*
+        ${CMAKE_SOURCE_DIR}/tools/*
+        ${CMAKE_BINARY_DIR}/*
+    TESTS
+        downloadtest
+        file_io
+        image
+        thumbnailer_test
+        cachetool
+        downloaderstest
+)
