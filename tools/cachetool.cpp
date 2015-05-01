@@ -18,7 +18,6 @@
 
 #include<thumbnailer.h>
 #include<cstdio>
-#include<gst/gst.h>
 #include<stdexcept>
 
 int main(int argc, char **argv) {
