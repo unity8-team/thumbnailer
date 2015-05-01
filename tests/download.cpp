@@ -120,7 +120,7 @@ TEST_F(TestDownloaderServer, test_ok_album)
     EXPECT_EQ(reply->not_found_error(), false);
     EXPECT_EQ(reply->is_running(), false);
     // Finally check the content of the file downloaded
-    EXPECT_EQ(QString(reply->data()), QString("SIA_FEAR_TEST_STRING_IMAGE"));
+    EXPECT_EQ(QString(reply->data()), QString("SIA_FEAR_TEST_STRING_IMAGE_ALBUM"));
 }
 
 TEST_F(TestDownloaderServer, test_ok_artist)
@@ -310,7 +310,7 @@ TEST_F(TestDownloaderServer, sync_download_ok)
     SyncDownloader sync_downloader(downloader);
 
     auto data = sync_downloader.download_album("sia", "fear");
-    EXPECT_EQ(QString(data), QString("SIA_FEAR_TEST_STRING_IMAGE"));
+    EXPECT_EQ(QString(data), QString("SIA_FEAR_TEST_STRING_IMAGE_ALBUM"));
 }
 
 TEST_F(TestDownloaderServer, sync_download_error)

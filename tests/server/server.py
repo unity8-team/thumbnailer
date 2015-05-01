@@ -17,6 +17,7 @@
 #
 # Authored by: Xavi Garcia <xavi.garcia.mena@canonical.com>
 
+import imghdr
 import os
 import tornado.httpserver
 import tornado.web
@@ -30,33 +31,44 @@ PORT = ""
 
 class FileReaderProvider(tornado.web.RequestHandler):
     def read_file(self, path, replace_root):
-            file = os.path.join(os.path.dirname(__file__), path)
-            if os.path.isfile(file):
-                mode = 'r'
-                if (not replace_root):
-                    mode = 'rb'
-                with open(file, mode) as fp:
-                    content = fp.read()
-                if(replace_root):
-                    content = content.replace("DOWNLOAD_ROOT", "127.0.0.1:%s" % PORT )
-            else:
-                self.set_status(404)
-                content = "<html><body>404 ERROR</body></html>"
-            return content
+        image_type = None
+        file = os.path.join(os.path.dirname(__file__), path)
+        if os.path.isfile(file):
+            with open(file, 'rb') as fp:
+                content = fp.read()
+            if replace_root:
+                content = content.replace(b"DOWNLOAD_ROOT", "127.0.0.1:{}".format(PORT).encode("utf-8"))
+            # determine if the content is a real image
+            image_type = imghdr.what(file)
+        else:
+            self.set_status(404)
+            content = "<html><body>404 ERROR</body></html>"
+        if (image_type != None):
+            self.set_header("Content-Type", 'image/%s' % image_type)
+        self.write(content)
 
-class UbuntuImagesProvider(FileReaderProvider):
+class UbuntuAlbumImagesProvider(FileReaderProvider):
+    def get(self):
+        if self.get_argument('artist', None) == "test_threads":
+            self.write("TEST_THREADS_TEST_%s" % self.get_argument('album', None ))
+        else:
+            file = 'images/%s_%s_album.png' % (self.get_argument('artist', None ), self.get_argument('album', None ))
+            self.read_file(file, False)
+        self.finish()
+
+class UbuntuArtistImagesProvider(FileReaderProvider):
     def get(self):
         if self.get_argument('artist', None) == "test_threads":
             self.write("TEST_THREADS_TEST_%s" % self.get_argument('album', None ))
         else:
             file = 'images/%s_%s.png' % (self.get_argument('artist', None ), self.get_argument('album', None ))
-            self.write(self.read_file(file, False))
+            self.read_file(file, False)
         self.finish()
 
 class LastFMArtistAlbumInfo(FileReaderProvider):
     def get(self, artist, album):
         file = 'queries/%s_%s.xml' % (artist, album)
-        self.write(self.read_file(file, True))
+        self.read_file(file, True)
         self.finish()
 
 class LastFMImagesProvider(FileReaderProvider):
@@ -65,15 +77,15 @@ class LastFMImagesProvider(FileReaderProvider):
             self.write("TEST_THREADS_TEST_%s" % image)
         else:
             file = 'images/%s.png' % image
-            self.write(self.read_file(file, False))
+            self.read_file(file, False)
         self.finish()
 
 def new_app():
     application = tornado.web.Application([
         (r"/1.0/album/(\w+)/(\w+)/info.xml", LastFMArtistAlbumInfo),
         (r"/images/(\w+).png", LastFMImagesProvider),
-        (r"/musicproxy/v1/album-art", UbuntuImagesProvider),
-        (r"/musicproxy/v1/artist-art", UbuntuImagesProvider)
+        (r"/musicproxy/v1/album-art", UbuntuAlbumImagesProvider),
+        (r"/musicproxy/v1/artist-art", UbuntuArtistImagesProvider)
     ], gzip=True)
     sockets = tornado.netutil.bind_sockets(0, '127.0.0.1')
     server = tornado.httpserver.HTTPServer(application)
