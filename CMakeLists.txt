@@ -35,9 +35,6 @@ configure_file(CTestCustom.cmake.in CTestCustom.cmake) # Tests in CTestCustom.cm
 
 find_program(MEMORYCHECK_COMMAND NAMES valgrind)
 if (MEMORYCHECK_COMMAND)
-    if (DEFINED CVS_UPDATE_OPTIONS)  # This is set by include(CTest), which must be included *afterwards*.
-        message(FATAL_ERROR "CTest was included before adding the valgrind custom target. You must include CTest *before* adding the valgrind target")
-    endif()
     set(MEMORYCHECK_COMMAND_OPTIONS
         "--suppressions=${CMAKE_SOURCE_DIR}/valgrind-suppress --leak-check=full --num-callers=40 --error-exitcode=3"
     )
