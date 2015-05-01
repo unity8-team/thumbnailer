@@ -242,6 +242,10 @@ string RequestBase::thumbnail()
             break;
         case FetchStatus::NotFound:
         case FetchStatus::Error:
+            // TODO: If download failed, need to disable re-try for some time.
+            //       Might need to do this in the calling code, because timeouts
+            //       will be different depending on why it failed, and whether
+            //       the fetch was from a local or remote source.
             return "";
         }
 
