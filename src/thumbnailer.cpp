@@ -35,6 +35,11 @@
 #include <boost/lexical_cast.hpp>
 #include <core/persistent_string_cache.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+#include <gio/gio.h>
+#pragma GCC diagnostic push
+
 #include <iostream>
 #include <fcntl.h>
 #include <iostream>

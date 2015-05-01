@@ -18,6 +18,12 @@
 
 #include <internal/image.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+#pragma GCC diagnostic ignored "-Wcast-qual"
+#include <gdk-pixbuf/gdk-pixbuf.h>
+#pragma GCC diagnostic push
+
 #include <libexif/exif-loader.h>
 
 #include <memory>
@@ -66,10 +72,7 @@ unique_gobj<GdkPixbuf> load_image(unsigned char const *data, size_t length,
         throw runtime_error("load_image(): cannot allocate GdkPixbufLoader");  // LCOV_EXCL_LINE
     }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
     g_signal_connect(loader.get(), "size-prepared", size_prepared_cb, user_data);
-#pragma GCC diagnostic pop
     GError* err = nullptr;
     if (!gdk_pixbuf_loader_write(loader.get(), data, length, &err))
     {
