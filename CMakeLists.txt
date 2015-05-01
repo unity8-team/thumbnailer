@@ -25,6 +25,8 @@ if (${Werror})
     endif()
 endif()
 
+add_definitions(-DQT_NO_KEYWORDS)
+
 # Some tests are slow, so make it possible not to run them
 # during day-to-day development.
 option(slowtests "Run slow tests" ON)
@@ -45,13 +47,6 @@ endif()
 
 include(CTest)
 enable_testing()
-
-if (${Werror})
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
-    if ("${cmake_build_type_lower}" STREQUAL "release" OR "${cmake_build_type_lower}" STREQUAL "relwithdebinfo")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=deprecated-declarations")
-    endif()
-endif()
 
 include(cmake/coverage.cmake)
 include(cmake/UseGSettings.cmake)
