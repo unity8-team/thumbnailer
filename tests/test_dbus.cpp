@@ -87,13 +87,24 @@ PixbufPtr read_image(const QDBusUnixFileDescriptor &unix_fd) {
                      g_object_unref);
 }
 
-
 class DBusTest : public ::testing::Test {
 protected:
     DBusTest() {}
     virtual ~DBusTest() {}
 
     virtual void SetUp() override {
+        // start fake server
+        fake_downloader_server_.setProcessChannelMode(QProcess::ForwardedErrorChannel);
+        fake_downloader_server_.start("/usr/bin/python3", QStringList() << FAKE_DOWNLOADER_SERVER);
+        ASSERT_TRUE(fake_downloader_server_.waitForStarted()) << "Failed to launch " << FAKE_DOWNLOADER_SERVER;
+        ASSERT_GT(fake_downloader_server_.pid(), 0);
+        ASSERT_TRUE(fake_downloader_server_.waitForReadyRead());
+        QString port = QString::fromUtf8(fake_downloader_server_.readAllStandardOutput()).trimmed();
+
+        QString apiroot = QString("http://127.0.0.1:%1").arg(port);
+        setenv("THUMBNAILER_UBUNTU_APIROOT", apiroot.toUtf8().constData(), true);
+
+        // start dbus service
         tempdir.reset(new QTemporaryDir(TESTBINDIR "/dbus-test.XXXXXX"));
         setenv("XDG_CACHE_HOME", (tempdir->path() + "/cache").toUtf8().data(), true);
 
@@ -121,28 +132,40 @@ protected:
         unsetenv("THUMBNAILER_MAX_IDLE");
         unsetenv("XDG_CACHE_HOME");
         tempdir.reset();
+
+        fake_downloader_server_.terminate();
+        if (!fake_downloader_server_.waitForFinished())
+        {
+            qCritical() << "Failed to terminate fake server";
+        }
+        unsetenv("THUMBNAILER_UBUNTU_APIROOT");
     }
 
     std::unique_ptr<QTemporaryDir> tempdir;
     std::unique_ptr<QtDBusTest::DBusTestRunner> dbusTestRunner;
     std::unique_ptr<QDBusInterface> iface;
     QSharedPointer<QtDBusTest::QProcessDBusService> dbusService;
+    QProcess fake_downloader_server_;
+    QString apiroot_;
 };
 
-/* Disabled until we have the fake art service hooked up */
-/*
 TEST_F(DBusTest, get_album_art) {
     QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
-        "GetAlbumArt", "Radiohead", "OK Computer", QSize(256, 256));
+        "GetAlbumArt", "metallica", "load", QSize(24, 24));
     assert_no_error(reply);
+    auto pixbuf = read_image(reply.value());
+    EXPECT_EQ(24, gdk_pixbuf_get_width(pixbuf.get()));
+    EXPECT_EQ(24, gdk_pixbuf_get_height(pixbuf.get()));
 }
 
-TEST_F(DBusTest, get_album_art) {
+TEST_F(DBusTest, get_artist_art) {
     QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
-        "GetArtistArt", "Radiohead", "OK Computer", QSize(256, 256));
+        "GetArtistArt", "metallica", "load", QSize(24, 24));
     assert_no_error(reply);
+    auto pixbuf = read_image(reply.value());
+    EXPECT_EQ(24, gdk_pixbuf_get_width(pixbuf.get()));
+    EXPECT_EQ(24, gdk_pixbuf_get_height(pixbuf.get()));
 }
-*/
 
 TEST_F(DBusTest, thumbnail_image) {
     const char *filename = TESTDATADIR "/testimage.jpg";
