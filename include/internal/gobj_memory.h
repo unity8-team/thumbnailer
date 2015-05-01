@@ -19,8 +19,12 @@
 #ifndef GOBJ_MEMORY_H_
 #define GOBJ_MEMORY_H_
 
-#include<glib-object.h>
 #include<stdexcept>
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+#pragma GCC diagnostic ignored "-Wcast-qual"
+#include<glib-object.h>
 
 /**
  * This class is meant for automatically managing the lifetime of C objects derived
@@ -104,5 +108,7 @@ public:
   bool operator>(const unique_gobj<T> &o) const noexcept { return u > o.u; }
   bool operator>=(const unique_gobj<T> &o) const noexcept { return u >= o.u; }
 };
+
+#pragma GCC diagnostic pop
 
 #endif
