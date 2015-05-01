@@ -15,6 +15,7 @@
  *
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  *              Michi Henning <michi.henning@canonical.com>
+ *              James Henstridge <james.henstridge@canonical.com>
  */
 
 #include <thumbnailer.h>
