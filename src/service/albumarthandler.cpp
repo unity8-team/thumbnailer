@@ -35,6 +35,7 @@ struct AlbumArtHandlerPrivate {
     const QString artist;
     const QString album;
     const QSize requestedSize;
+    std::unique_ptr<ThumbnailRequest> request;
 
     AlbumArtHandlerPrivate(const std::shared_ptr<Thumbnailer> &thumbnailer,
                            const QString &artist,
@@ -58,17 +59,24 @@ AlbumArtHandler::~AlbumArtHandler() {
 }
 
 QDBusUnixFileDescriptor AlbumArtHandler::check() {
-    return QDBusUnixFileDescriptor();
+    p->request = p->thumbnailer->get_album_art(
+        p->artist.toStdString(), p->album.toStdString(), p->requestedSize);
+    std::string art_image = p->request->thumbnail();
+
+    if (art_image.empty()) {
+        return QDBusUnixFileDescriptor();
+    }
+    return write_to_tmpfile(art_image);
 }
 
 void AlbumArtHandler::download() {
-    downloadFinished();
+    connect(p->request.get(), &ThumbnailRequest::downloadFinished,
+            this, &AlbumArtHandler::downloadFinished);
+    p->request->download();
 }
 
 QDBusUnixFileDescriptor AlbumArtHandler::create() {
-    auto req = p->thumbnailer->get_album_art(
-        p->artist.toStdString(), p->album.toStdString(), p->requestedSize);
-    std::string art_image = req->thumbnail();
+    std::string art_image = p->request->thumbnail();
 
     if (art_image.empty()) {
         throw std::runtime_error("AlbumArtHandler::create(): Could not get thumbnail for " +

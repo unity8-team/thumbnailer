@@ -19,6 +19,7 @@
 
 #include <thumbnailer.h>
 
+#include <internal/artreply.h>
 #include <internal/audioimageextractor.h>
 #include <internal/file_io.h>
 #include <internal/gobj_memory.h>
@@ -27,7 +28,6 @@
 #include <internal/make_directories.h>
 #include <internal/raii.h>
 #include <internal/safe_strerror.h>
-#include <internal/syncdownloader.h>
 #include <internal/ubuntuserverdownloader.h>
 #include <internal/videoscreenshotter.h>
 
@@ -50,8 +50,7 @@ public:
     VideoScreenshotter video_;
     core::PersistentStringCache::UPtr full_size_cache_;  // Small cache of full (original) size images.
     core::PersistentStringCache::UPtr thumbnail_cache_;  // Large cache of scaled images.
-    shared_ptr<ArtDownloader> downloader_;
-    unique_ptr<SyncDownloader> sync_downloader_;
+    unique_ptr<ArtDownloader> downloader_;
 
     ThumbnailerPrivate();
 
@@ -71,8 +70,6 @@ ThumbnailerPrivate::ThumbnailerPrivate()
     {
         downloader_.reset(new UbuntuServerDownloader());
     }
-
-    sync_downloader_.reset(new SyncDownloader(downloader_));
 
     string xdg_base = g_get_user_cache_dir();
     if (xdg_base == "")
@@ -169,25 +166,27 @@ private:
 class AlbumRequest : public RequestBase {
     Q_OBJECT
 public:
-    AlbumRequest(std::shared_ptr<ThumbnailerPrivate> const& p, string const& artist, string const& album, QSize const& requested_size);
+    AlbumRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& artist, string const& album, QSize const& requested_size);
 protected:
     ImageData fetch() override;
     void download() override;
 private:
     string artist_;
     string album_;
+    shared_ptr<ArtReply> artreply_;
 };
 
 class ArtistRequest : public RequestBase {
     Q_OBJECT
 public:
-    ArtistRequest(std::shared_ptr<ThumbnailerPrivate> const& p, string const& artist, string const& album, QSize const& requested_size);
+    ArtistRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& artist, string const& album, QSize const& requested_size);
 protected:
     ImageData fetch() override;
     void download() override;
 private:
     string artist_;
     string album_;
+    shared_ptr<ArtReply> artreply_;
 };
 }
 
@@ -342,34 +341,76 @@ RequestBase::ImageData LocalThumbnailRequest::fetch() {
 void LocalThumbnailRequest::download() {
 }
 
-AlbumRequest::AlbumRequest(std::shared_ptr<ThumbnailerPrivate> const& p, string const& artist, string const& album, QSize const& requested_size)
+AlbumRequest::AlbumRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& artist, string const& album, QSize const& requested_size)
     : RequestBase(p, artist + '\0' + album, requested_size),
       artist_(artist), album_(album)
 {
 }
 
 RequestBase::ImageData AlbumRequest::fetch() {
-    auto raw_data = p_->sync_downloader_->download_album(QString::fromStdString(artist_), QString::fromStdString(album_));
-    return ImageData{FetchStatus::Downloaded,
-        string(raw_data.data(), raw_data.size()), true};
+    if (artreply_)
+    {
+        if (artreply_->succeeded())
+        {
+            auto raw_data = artreply_->data();
+            return ImageData{FetchStatus::Downloaded,
+                    string(raw_data.data(), raw_data.size()), true};
+        }
+        else if (artreply_->not_found_error())
+        {
+            return ImageData{FetchStatus::NotFound, "", false};
+        }
+        else
+        {
+            return ImageData{FetchStatus::Error, "", false};
+        }
+    }
+    else
+    {
+        return ImageData{FetchStatus::NeedsDownload, "", false};
+    }
 }
 
 void AlbumRequest::download() {
+    artreply_ = p_->downloader_->download_album(QString::fromStdString(artist_), QString::fromStdString(album_));
+    connect(artreply_.get(), &ArtReply::finished,
+            this, &AlbumRequest::downloadFinished, Qt::DirectConnection);
 }
 
-ArtistRequest::ArtistRequest(std::shared_ptr<ThumbnailerPrivate> const& p, string const& artist, string const& album, QSize const& requested_size)
+ArtistRequest::ArtistRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& artist, string const& album, QSize const& requested_size)
     : RequestBase(p, artist + '\0' + album, requested_size),
       artist_(artist), album_(album)
 {
 }
 
 RequestBase::ImageData ArtistRequest::fetch() {
-    auto raw_data = p_->sync_downloader_->download_artist(QString::fromStdString(artist_), QString::fromStdString(album_));
-    return ImageData{FetchStatus::Downloaded,
-        string(raw_data.data(), raw_data.size()), true};
+    if (artreply_)
+    {
+        if (artreply_->succeeded())
+        {
+            auto raw_data = artreply_->data();
+            return ImageData{FetchStatus::Downloaded,
+                    string(raw_data.data(), raw_data.size()), true};
+        }
+        else if (artreply_->not_found_error())
+        {
+            return ImageData{FetchStatus::NotFound, "", false};
+        }
+        else
+        {
+            return ImageData{FetchStatus::Error, "", false};
+        }
+    }
+    else
+    {
+        return ImageData{FetchStatus::NeedsDownload, "", false};
+    }
 }
 
 void ArtistRequest::download() {
+    artreply_ = p_->downloader_->download_artist(QString::fromStdString(artist_), QString::fromStdString(album_));
+    connect(artreply_.get(), &ArtReply::finished,
+            this, &ThumbnailRequest::downloadFinished, Qt::DirectConnection);
 }
 
 Thumbnailer::Thumbnailer()
