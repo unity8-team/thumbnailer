@@ -96,9 +96,8 @@ protected:
         ASSERT_TRUE(fake_downloader_server_.waitForReadyRead());
         QString port = QString::fromUtf8(fake_downloader_server_.readAllStandardOutput()).trimmed();
 
-        apiroot_ = QString("http://127.0.0.1:%1").arg(port);
-        setenv("THUMBNAILER_LASTFM_APIROOT", apiroot_.toUtf8().constData(), true);
-        setenv("THUMBNAILER_UBUNTU_APIROOT", apiroot_.toUtf8().constData(), true);
+        QString apiroot = QString("http://127.0.0.1:%1").arg(port);
+        setenv("THUMBNAILER_UBUNTU_APIROOT", apiroot.toUtf8().constData(), true);
 
         // start dbus service
         tempdir.reset(new QTemporaryDir(TESTBINDIR "/dbus-test.XXXXXX"));
@@ -134,7 +133,6 @@ protected:
         {
             qCritical() << "Failed to terminate fake server";
         }
-        unsetenv("THUMBNAILER_LASTFM_APIROOT");
         unsetenv("THUMBNAILER_UBUNTU_APIROOT");
     }
 
@@ -148,20 +146,20 @@ protected:
 
 TEST_F(DBusTest, get_album_art) {
     QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
-        "GetAlbumArt", "metallica", "load", QSize(512, 512));
+        "GetAlbumArt", "metallica", "load", QSize(24, 24));
     assert_no_error(reply);
     auto pixbuf = read_image(reply.value());
-    EXPECT_EQ(512, gdk_pixbuf_get_width(pixbuf.get()));
-    EXPECT_EQ(384, gdk_pixbuf_get_height(pixbuf.get()));
+    EXPECT_EQ(24, gdk_pixbuf_get_width(pixbuf.get()));
+    EXPECT_EQ(24, gdk_pixbuf_get_height(pixbuf.get()));
 }
 
 TEST_F(DBusTest, get_artist_art) {
     QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
-        "GetArtistArt", "metallica", "load", QSize(256, 256));
+        "GetArtistArt", "metallica", "load", QSize(24, 24));
     assert_no_error(reply);
     auto pixbuf = read_image(reply.value());
-    EXPECT_EQ(256, gdk_pixbuf_get_width(pixbuf.get()));
-    EXPECT_EQ(192, gdk_pixbuf_get_height(pixbuf.get()));
+    EXPECT_EQ(24, gdk_pixbuf_get_width(pixbuf.get()));
+    EXPECT_EQ(24, gdk_pixbuf_get_height(pixbuf.get()));
 }
 
 TEST_F(DBusTest, thumbnail_image) {
