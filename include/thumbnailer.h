@@ -21,9 +21,26 @@
 #include <memory>
 #include <string>
 
+#include <core/optional.h>
+#include <QObject>
 #include <QSize>
 
 class ThumbnailerPrivate;
+
+class ThumbnailRequest : public QObject {
+    Q_OBJECT
+public:
+    virtual ~ThumbnailRequest() = default;
+
+    // Returns empty string if the thumbnail data needs to be
+    // downloaded to complete request.  If this happens, call
+    // download() and wait for downloadFinished signal to fire, then
+    // call thumbnail() again.
+    virtual std::string thumbnail() = 0;
+    virtual void download() = 0;
+Q_SIGNALS:
+    void downloadFinished();
+};
 
 /**
  * This class provides a way to generate and access
@@ -64,5 +81,5 @@ public:
     std::string get_artist_art(std::string const& artist, std::string const& album, QSize const& requested_size);
 
 private:
-    std::unique_ptr<ThumbnailerPrivate> p_;
+    std::shared_ptr<ThumbnailerPrivate> p_;
 };

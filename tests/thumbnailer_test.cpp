@@ -24,6 +24,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include <gtest/gtest.h>
+#include <QCoreApplication>
 #include <QTemporaryDir>
 
 #define TEST_IMAGE TESTDATADIR "/orientation-1.jpg"
@@ -97,4 +98,11 @@ TEST_F(ThumbnailerTest, basic)
     img = Image(thumb2);
     EXPECT_EQ(48, img.width());
     EXPECT_EQ(48, img.height());
+}
+
+int main(int argc, char** argv)
+{
+    QCoreApplication app(argc, argv);
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }

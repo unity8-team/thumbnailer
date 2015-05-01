@@ -43,6 +43,8 @@ include_directories(${XML_DEPS_INCLUDE_DIRS})
 include_directories(include)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 
+add_definitions(-DQT_NO_KEYWORDS)
+
 enable_testing()
 
 add_subdirectory(src)

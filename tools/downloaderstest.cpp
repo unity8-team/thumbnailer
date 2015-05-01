@@ -91,7 +91,7 @@ public:
         }
     }
 
-public slots:
+public Q_SLOTS:
     void download_finished()
     {
         ArtReply * reply = static_cast<ArtReply*>(sender());
