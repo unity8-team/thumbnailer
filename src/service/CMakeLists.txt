@@ -1,5 +1,4 @@
 add_definitions(${THUMBNAILER_CFLAGS})
-include_directories(. ${CMAKE_CURRENT_BINARY_DIR})
 
 qt5_add_dbus_adaptor(adaptor_files dbusinterface.xml dbusinterface.h unity::thumbnailer::service::DBusInterface)
 
@@ -13,7 +12,6 @@ add_executable(thumbnailer-service
   inactivityhandler.cpp
   ${adaptor_files}
   )
-add_definitions(-DQT_NO_KEYWORDS)
 
 qt5_use_modules(thumbnailer-service DBus Concurrent)
 target_link_libraries(thumbnailer-service thumbnailer ${CMAKE_THREAD_LIBS_INIT})

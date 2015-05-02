@@ -4,8 +4,10 @@ add_definitions(-DTEST_DIR="${CMAKE_CURRENT_BINARY_DIR}")
 
 add_test(persistent_string_cache persistent_string_cache_test)
 
-add_executable(speed_test speed_test.cpp)
-target_link_libraries(speed_test ${TESTLIBS})
-add_definitions(-DTEST_DIR="${CMAKE_CURRENT_BINARY_DIR}")
+if (${slowtests})
+    add_executable(speed_test speed_test.cpp)
+    target_link_libraries(speed_test ${TESTLIBS})
+    add_definitions(-DTEST_DIR="${CMAKE_CURRENT_BINARY_DIR}")
 
-add_test(speed speed_test)
+    add_test(speed speed_test)
+endif()

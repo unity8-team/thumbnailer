@@ -13,155 +13,318 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
+ * Authored by: Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
-#include <internal/lastfmdownloader.h>
 #include <internal/ubuntuserverdownloader.h>
+#include <internal/lastfmdownloader.h>
+#include <internal/syncdownloader.h>
+#include <internal/artreply.h>
 
 #include <gtest/gtest.h>
 
-#include <gio/gio.h>
+#include <QProcess>
+#include <QtTest/QtTest>
+#include <QtTest/QSignalSpy>
+#include <QVector>
 
-#include <condition_variable>
-#include <cstdio>
-#include <fstream>
-#include <mutex>
+#include <chrono>
 #include <thread>
-#include <unistd.h>
+#include <vector>
 
-using namespace std;
 using namespace unity::thumbnailer::internal;
 
-const char* testimage = "abc";
-
-class FakeDownloader : public HttpDownloader
+class TestDownloaderServer : public ::testing::Test
 {
-private:
-    constexpr static const char* imloc = "http://dummy";
-    constexpr static const char* xml = "<album><coverart><large>http://dummy</large></coverart></album>";
-
-public:
-    std::string download(const std::string& url) override
+protected:
+    void SetUp() override
     {
-        if (url.find("audioscrobbler") != std::string::npos)
-        {
-            return xml;
-        }
-        if (url == imloc)
-        {
-            return testimage;
-        }
-        throw std::runtime_error("Tried to get unknown data from FakeDownloader.");
+        fake_downloader_server_.setProcessChannelMode(QProcess::ForwardedErrorChannel);
+        fake_downloader_server_.start("/usr/bin/python3", QStringList() << FAKE_DOWNLOADER_SERVER);
+        ASSERT_TRUE(fake_downloader_server_.waitForStarted()) << "Failed to launch " << FAKE_DOWNLOADER_SERVER;
+        ASSERT_GT(fake_downloader_server_.pid(), 0);
+        ASSERT_TRUE(fake_downloader_server_.waitForReadyRead());
+        QString port = QString::fromUtf8(fake_downloader_server_.readAllStandardOutput()).trimmed();
+
+        apiroot_ = QString("http://127.0.0.1:%1").arg(port);
+        setenv("THUMBNAILER_LASTFM_APIROOT", apiroot_.toUtf8().constData(), true);
+        setenv("THUMBNAILER_UBUNTU_APIROOT", apiroot_.toUtf8().constData(), true);
     }
+
+    void TearDown() override
+    {
+        fake_downloader_server_.terminate();
+        if (!fake_downloader_server_.waitForFinished())
+        {
+            qCritical() << "Failed to terminate fake server";
+        }
+        unsetenv("THUMBNAILER_LASTFM_APIROOT");
+        unsetenv("THUMBNAILER_UBUNTU_APIROOT");
+    }
+
+    QProcess fake_downloader_server_;
+    QString apiroot_;
+    QString server_argv_;
+    int number_of_errors_before_ok_;
+
 };
 
-class FakeDownloader2 : public HttpDownloader
+TEST_F(TestDownloaderServer, test_download_album_url)
 {
-private:
-    constexpr static const char* imloc = "http://dummy";
+    UbuntuServerDownloader downloader;
 
-public:
-    std::string download(const std::string& url) override
-    {
-        return url;  // use url as file content
-    }
-};
+    auto reply = downloader.download_album("sia", "fear");
+    ASSERT_NE(reply, nullptr);
 
-TEST(Downloader, api_key)
+    QUrl check_url(reply->url_string());
+    QUrlQuery url_query(check_url.query());
+    EXPECT_EQ(url_query.queryItemValue("artist"), "sia");
+    EXPECT_EQ(url_query.queryItemValue("album"), "fear");
+    EXPECT_EQ(check_url.path(), "/musicproxy/v1/album-art");
+    qDebug() << check_url.toString();
+    EXPECT_TRUE(check_url.toString().startsWith(apiroot_));
+}
+
+TEST_F(TestDownloaderServer, test_download_artist_url)
 {
-    setenv("GSETTINGS_BACKEND", "memory", 1);
+    UbuntuServerDownloader downloader;
 
-    UbuntuServerDownloader ubdl(new FakeDownloader2());
+    auto reply = downloader.download_artist("sia", "fear");
+    ASSERT_NE(reply, nullptr);
+
+    QUrl check_url(reply->url_string());
+    QUrlQuery url_query(check_url.query());
+    EXPECT_EQ(url_query.queryItemValue("artist"), "sia");
+    EXPECT_EQ(url_query.queryItemValue("album"), "fear");
+    EXPECT_EQ(check_url.path(), "/musicproxy/v1/artist-art");
+    EXPECT_TRUE(check_url.toString().startsWith(apiroot_));
+}
+
+TEST_F(TestDownloaderServer, test_ok_album)
+{
+    UbuntuServerDownloader downloader;
+
+    auto reply = downloader.download_album("sia", "fear");
+    ASSERT_NE(reply, nullptr);
+
+    QSignalSpy spy(reply.get(), &ArtReply::finished);
+
+    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+    // which should never be reached
+    ASSERT_TRUE(spy.wait(5000));
+
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+
+    EXPECT_EQ(reply->succeeded(), true);
+    EXPECT_EQ(reply->not_found_error(), false);
+    EXPECT_EQ(reply->is_running(), false);
+    // Finally check the content of the file downloaded
+    EXPECT_EQ(QString(reply->data()), QString("SIA_FEAR_TEST_STRING_IMAGE"));
+}
+
+TEST_F(TestDownloaderServer, test_ok_artist)
+{
+    UbuntuServerDownloader downloader;
+
+    auto reply = downloader.download_artist("sia", "fear");
+    ASSERT_NE(reply, nullptr);
+
+    QSignalSpy spy(reply.get(), &ArtReply::finished);
+    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+    // which should never be reached
+    ASSERT_TRUE(spy.wait(5000));
+
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+    EXPECT_EQ(reply->succeeded(), true);
+    EXPECT_EQ(reply->not_found_error(), false);
+    EXPECT_EQ(reply->is_running(), false);
+    EXPECT_EQ(QString(reply->data()), QString("SIA_FEAR_TEST_STRING_IMAGE"));
+}
+
+TEST_F(TestDownloaderServer, test_not_found)
+{
+    UbuntuServerDownloader downloader;
+
+    auto reply = downloader.download_album("test", "test");
+    ASSERT_NE(reply, nullptr);
+
+    QSignalSpy spy(reply.get(), &ArtReply::finished);
+    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+    // which should never be reached
+    ASSERT_TRUE(spy.wait(5000));
+
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+
+    EXPECT_EQ(reply->succeeded(), false);
+    EXPECT_EQ(reply->not_found_error(), false);
+    EXPECT_EQ(reply->is_running(), false);
+    EXPECT_TRUE(reply->error_string().endsWith("server replied: Internal Server Error"));
+}
+
+TEST_F(TestDownloaderServer, test_multiple_downloads)
+{
+    UbuntuServerDownloader downloader;
+
+    std::vector<std::pair<std::shared_ptr<ArtReply>, std::shared_ptr<QSignalSpy>>> replies;
+
+    int NUM_DOWNLOADS = 100;
+    for (auto i = 0; i < NUM_DOWNLOADS; ++i)
     {
-        string outfile("/tmp/temptestfile");
-
-        unlink(outfile.c_str());
-        std::string output = ubdl.download("foo", "bar");
-
-        ASSERT_NE(output.find("key=0f450aa882a6125ebcbfb3d7f7aa25bc"), std::string::npos);
+        QString download_id = QString("TEST_%1").arg(i);
+        auto reply = downloader.download_album("test_threads", download_id);
+        ASSERT_NE(reply, nullptr);
+        std::shared_ptr<QSignalSpy> spy(new QSignalSpy(reply.get(), &ArtReply::finished));
+        replies.push_back(std::make_pair(reply, spy));
     }
 
+    for (auto i = 0; i < NUM_DOWNLOADS; ++i)
     {
-        string outfile("/tmp/temptestfile2");
-        unlink(outfile.c_str());
-        std::string output = ubdl.download_artist("foo", "bar");
-
-        ASSERT_NE(output.find("key=0f450aa882a6125ebcbfb3d7f7aa25bc"), std::string::npos);
+        if (!replies[i].second->count())
+        {
+            // if it was not called yet, wait for it
+            ASSERT_TRUE(replies[i].second->wait());
+        }
+        ASSERT_EQ(replies[i].second->count(), 1);
+        EXPECT_EQ(replies[i].first->succeeded(), true);
+        EXPECT_EQ(replies[i].first->not_found_error(), false);
+        EXPECT_EQ(replies[i].first->is_running(), false);
+        // Finally check the content of the file downloaded
+        EXPECT_EQ(QString(replies[i].first->data()), QString("TEST_THREADS_TEST_TEST_%1").arg(i));
     }
 }
 
-TEST(Downloader, canned)
+TEST_F(TestDownloaderServer, lastfm_download_ok)
 {
-    LastFMDownloader lfdl(new FakeDownloader());
-    string artist("Some guy");
-    string album("Some album");
-    string outfile("/tmp/temptestfile");
-    unlink(outfile.c_str());
-    std::string content = lfdl.download(artist, album);
-    ASSERT_TRUE(!content.empty());
+    LastFMDownloader downloader;
 
-    std::ofstream out_stream(outfile);
-    out_stream << content;
-    out_stream.close();
+    auto reply = downloader.download_album("sia", "fear");
+    ASSERT_NE(reply, nullptr);
 
-    std::ifstream in_stream(outfile);
+    QSignalSpy spy(reply.get(), &ArtReply::finished);
 
-    string content_test(static_cast<stringstream const&>(stringstream() << in_stream.rdbuf()).str());
-    in_stream.close();
-    ASSERT_EQ(content, content_test);
+    EXPECT_EQ(reply->url_string(), apiroot_ + "/1.0/album/sia/fear/info.xml");
+
+    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+    // which should never be reached
+    ASSERT_TRUE(spy.wait(5000));
+
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+
+    EXPECT_EQ(reply->succeeded(), true);
+    EXPECT_EQ(reply->not_found_error(), false);
+    EXPECT_EQ(reply->is_running(), false);
+    // Finally check the content of the file downloaded
+    EXPECT_EQ(QString(reply->data()), QString("SIA_FEAR_TEST_STRING_IMAGE"));
 }
 
-static std::mutex m;
-static std::condition_variable cv;
-static bool go = false;
-
-static void query_thread(LastFMDownloader* lfdl, int num)
+TEST_F(TestDownloaderServer, lastfm_xml_parsing_errors)
 {
-    string fname("/tmp/tmpfile");
-    string artist("Some guy");
-    string album("Some album");
-    artist += num;
-    album += num;
-    fname += num;
-    {
-        std::unique_lock<std::mutex> lk(m);
-        cv.wait(lk,
-                []
-                {
-            return go;
-        });
-    }
-    for (int i = 0; i < 10; i++)
-    {
-        unlink(fname.c_str());
-        ASSERT_TRUE(!lfdl->download(artist, album).empty());
-    }
-    unlink(fname.c_str());
+    LastFMDownloader downloader;
+
+    auto reply = downloader.download_album("xml", "errors");
+    ASSERT_NE(reply, nullptr);
+
+    QSignalSpy spy(reply.get(), &ArtReply::finished);
+
+    EXPECT_EQ(reply->url_string(), apiroot_ + "/1.0/album/xml/errors/info.xml");
+
+    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+    // which should never be reached
+    ASSERT_TRUE(spy.wait(5000));
+
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+
+    EXPECT_EQ(reply->succeeded(), false);
+    EXPECT_EQ(reply->not_found_error(), false);
+    EXPECT_EQ(reply->is_running(), false);
+    // Finally check the content of the error message
+    EXPECT_EQ(reply->error_string(),
+              QString("LastFMArtReply::parse_xml() XML ERROR: Expected '?', '!', or '[a-zA-Z]', but got '/'."));
 }
 
-TEST(Downloader, threads)
+TEST_F(TestDownloaderServer, lastfm_xml_image_not_found)
 {
-    LastFMDownloader lfdl(new FakeDownloader());
-    vector<std::thread> workers;
-    for (int i = 0; i < 10; i++)
+    LastFMDownloader downloader;
+
+    auto reply = downloader.download_album("no", "cover");
+    ASSERT_NE(reply, nullptr);
+
+    QSignalSpy spy(reply.get(), &ArtReply::finished);
+
+    EXPECT_EQ(reply->url_string(), apiroot_ + "/1.0/album/no/cover/info.xml");
+
+    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+    // which should never be reached
+    ASSERT_TRUE(spy.wait(5000));
+
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+
+    EXPECT_EQ(reply->succeeded(), false);
+    EXPECT_EQ(reply->not_found_error(), false);
+    EXPECT_EQ(reply->is_running(), false);
+    // Finally check the content of the error message
+    EXPECT_EQ(reply->error_string(), QString("LastFMArtReply::parse_xml() Image url not found"));
+}
+
+TEST_F(TestDownloaderServer, lastfm_test_multiple_downloads)
+{
+    LastFMDownloader downloader;
+
+    std::vector<std::pair<std::shared_ptr<ArtReply>, std::shared_ptr<QSignalSpy>>> replies;
+
+    int NUM_DOWNLOADS = 100;
+    for (auto i = 0; i < NUM_DOWNLOADS; ++i)
     {
-        workers.emplace_back(query_thread, &lfdl, i);
+        QString download_id = QString("TEST_%1").arg(i);
+        auto reply = downloader.download_album("test", QString("thread_%1").arg((i % 5) + 1));
+        ASSERT_NE(reply, nullptr);
+        std::shared_ptr<QSignalSpy> spy(new QSignalSpy(reply.get(), &ArtReply::finished));
+        replies.push_back(std::make_pair(reply, spy));
     }
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    for (auto i = 0; i < NUM_DOWNLOADS; ++i)
     {
-        std::lock_guard<std::mutex> g(m);
-        go = true;
+        if (!replies[i].second->count())
+        {
+            // if it was not called yet, wait for it
+            ASSERT_TRUE(replies[i].second->wait());
+        }
+        ASSERT_EQ(replies[i].second->count(), 1);
+        EXPECT_EQ(replies[i].first->succeeded(), true);
+        EXPECT_EQ(replies[i].first->not_found_error(), false);
+        EXPECT_EQ(replies[i].first->is_running(), false);
+        // Finally check the content of the file downloaded
+        EXPECT_EQ(QString(replies[i].first->data()), QString("TEST_THREADS_TEST_test_thread_%1").arg((i % 5) + 1));
     }
-    cv.notify_all();
-    for (auto& i : workers)
-    {
-        i.join();
-    }
+}
+
+TEST_F(TestDownloaderServer, sync_download_ok)
+{
+    auto downloader = std::make_shared<UbuntuServerDownloader>();
+    SyncDownloader sync_downloader(downloader);
+
+    auto data = sync_downloader.download_album("sia", "fear");
+    EXPECT_EQ(QString(data), QString("SIA_FEAR_TEST_STRING_IMAGE"));
+}
+
+TEST_F(TestDownloaderServer, sync_download_error)
+{
+    auto downloader = std::make_shared<UbuntuServerDownloader>();
+    SyncDownloader sync_downloader(downloader);
+
+    auto data = sync_downloader.download_album("test", "test");
+    EXPECT_EQ(QString(data), QString(""));
 }
 
 int main(int argc, char** argv)
 {
+    QCoreApplication qt_app(argc, argv);
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

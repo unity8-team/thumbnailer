@@ -19,7 +19,10 @@
 
 #include <internal/make_directories.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
 #include <glib.h>
+#pragma GCC diagnostic push
 
 using namespace std;
 

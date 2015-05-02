@@ -14,15 +14,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
+ *              Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
 #pragma once
 
 #include <internal/artdownloader.h>
-#include <internal/httpdownloader.h>
+
+#include <QNetworkAccessManager>
 
 #include <memory>
-#include <string>
 
 namespace unity
 {
@@ -35,19 +36,18 @@ namespace internal
 
 class LastFMDownloader final : public ArtDownloader
 {
+    Q_OBJECT
 public:
-    LastFMDownloader();
-    LastFMDownloader(HttpDownloader* o);  // Takes ownership.
-    ~LastFMDownloader() = default;
-    LastFMDownloader(LastFMDownloader const& o) = delete;
-    LastFMDownloader& operator=(LastFMDownloader const& o) = delete;
+    Q_DISABLE_COPY(LastFMDownloader)
 
-    std::string download(std::string const& artist, std::string const& album) override;
-    std::string download_artist(std::string const& artist, std::string const& album) override;
+    explicit LastFMDownloader(QObject* parent = nullptr);
+    virtual ~LastFMDownloader() = default;
+
+    std::shared_ptr<ArtReply> download_album(QString const& artist, QString const& album) override;
+    std::shared_ptr<ArtReply> download_artist(QString const& artist, QString const& album) override;
 
 private:
-    std::string parse_xml(std::string const& xml);
-    std::unique_ptr<HttpDownloader> dl;
+    std::shared_ptr<QNetworkAccessManager> network_manager_;
 };
 
 }  // namespace internal
