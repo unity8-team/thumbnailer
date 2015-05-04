@@ -12,7 +12,12 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <gtest/gtest.h>
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+#pragma GCC diagnostic ignored "-Wcast-qual"
 #include <gdk-pixbuf/gdk-pixbuf.h>
+#pragma GCC diagnostic pop
 #include <libqtdbustest/DBusTestRunner.h>
 #include <libqtdbustest/QProcessDBusService.h>
 #include <unity/util/ResourcePtr.h>

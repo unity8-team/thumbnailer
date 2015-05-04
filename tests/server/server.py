@@ -33,6 +33,9 @@ class FileReaderProvider(tornado.web.RequestHandler):
     def read_file(self, path, replace_root):
         image_type = None
         file = os.path.join(os.path.dirname(__file__), path)
+        print(file)
+        if os.path.islink(file):
+            print ("IS LINK")
         if os.path.isfile(file):
             with open(file, 'rb') as fp:
                 content = fp.read()

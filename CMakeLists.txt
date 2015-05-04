@@ -2,19 +2,58 @@ project(thumbnailer C CXX)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-cmake_minimum_required(VERSION 2.8.7)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra")
+cmake_minimum_required(VERSION 2.8.10)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11 -Wall -pedantic -Wextra")
 
-include(CheckCXXCompilerFlag)
-check_cxx_compiler_flag(-std=c++11 HAS_C11)
-# Precise's GCC is too old to have -std=c++11
-if(HAS_C11)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
+
+# Some additional warnings not included by the general flags set above.
+set(EXTRA_C_WARNINGS "-Wcast-align -Wcast-qual -Wformat -Wredundant-decls -Wswitch-default")
+set(EXTRA_CXX_WARNINGS "-Wnon-virtual-dtor -Wctor-dtor-privacy -Wold-style-cast")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${EXTRA_C_WARNINGS} ${EXTRA_CXX_WARNINGS}")
+
+# By default, for release builds, warnings become hard errors.
+if ("${cmake_build_type_lower}" STREQUAL "release" OR "${cmake_build_type_lower}" STREQUAL "relwithdebinfo")
+    option(Werror "Treat warnings as errors" ON)
 else()
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Dfinal=")
+    option(Werror "Treat warnings as errors" OFF)
 endif()
 
-include(cmake/coverage.cmake)
+# If warnings are errors, don't error on deprecated declarations.
+if (${Werror})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+    if ("${cmake_build_type_lower}" STREQUAL "release" OR "${cmake_build_type_lower}" STREQUAL "relwithdebinfo")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=deprecated-declarations")
+    endif()
+endif()
+
+add_definitions(-DQT_NO_KEYWORDS)
+
+# Some tests are slow, so make it possible not to run them
+# during day-to-day development.
+option(slowtests "Run slow tests" ON)
+
+# Definitions for testing with valgrind.
+
+configure_file(CTestCustom.cmake.in CTestCustom.cmake) # Tests in CTestCustom.cmake are skipped for valgrind
+
+find_program(MEMORYCHECK_COMMAND NAMES valgrind)
+if (MEMORYCHECK_COMMAND)
+    set(MEMORYCHECK_COMMAND_OPTIONS
+        "--suppressions=${CMAKE_SOURCE_DIR}/valgrind-suppress --leak-check=full --num-callers=40 --error-exitcode=3"
+    )
+    add_custom_target(valgrind DEPENDS NightlyMemCheck)
+else()
+    message(WARNING "Cannot find valgrind: valgrind target will not be available")
+endif()
+
+include(CTest)
+enable_testing()
+
+# TODO: replace this with include(EnableCoverageReport) once the updated module makes it into the archives.
+#       See https://code.launchpad.net/~michihenning/cmake-extras/cmake-extras-coverage/+merge/258021
+include(XEnableCoverageReport)
+
 include(cmake/UseGSettings.cmake)
 
 include(GNUInstallDirs)
@@ -31,19 +70,13 @@ include(FindPkgConfig)
 pkg_check_modules(GST_DEPS REQUIRED gstreamer-1.0 gstreamer-plugins-base-1.0 gstreamer-tag-1.0)
 pkg_check_modules(GIO_DEPS REQUIRED gio-2.0 gio-unix-2.0)
 pkg_check_modules(IMG_DEPS REQUIRED gdk-pixbuf-2.0 libexif)
-pkg_check_modules(SOUP_DEPS REQUIRED libsoup-2.4)
 pkg_check_modules(UNITY_API_DEPS REQUIRED libunity-api)
-pkg_check_modules(XML_DEPS REQUIRED libxml-2.0)
 
 include_directories(${GST_DEPS_INCLUDE_DIRS})
 include_directories(${GIO_DEPS_INCLUDE_DIRS})
 include_directories(${IMG_DEPS_INCLUDE_DIRS})
-include_directories(${SOUP_DEPS_INCLUDE_DIRS})
-include_directories(${XML_DEPS_INCLUDE_DIRS})
 include_directories(include)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
-
-enable_testing()
 
 add_subdirectory(src)
 add_subdirectory(data)
@@ -51,3 +84,23 @@ add_subdirectory(plugins/Ubuntu/Thumbnailer.0.1)
 add_subdirectory(tests)
 add_subdirectory(tools)
 add_subdirectory(include)
+
+# TODO: generate the list of test targets rather than enumerating them here.
+#       We'll do this when we sort out the test subtree.
+enable_coverage_report(
+    TARGETS
+        thumbnailer
+        thumbnailer-service
+        thumbnailer-qml
+    FILTER
+        ${CMAKE_SOURCE_DIR}/tests/*
+        ${CMAKE_SOURCE_DIR}/tools/*
+        ${CMAKE_BINARY_DIR}/*
+    TESTS
+        downloadtest
+        file_io
+        image
+        thumbnailer_test
+        cachetool
+        downloaderstest
+)

@@ -4,6 +4,7 @@ Priority: optional
 Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 Standards-Version: 3.9.4
 Build-Depends: cmake,
+               cmake-extras,
                debhelper (>= 9),
                gstreamer1.0-plugins-good,
                libboost-filesystem-dev,
@@ -14,7 +15,6 @@ Build-Depends: cmake,
                libgtest-dev,
                libleveldb-dev,
                libqtdbustest1-dev,
-               libsoup2.4-dev,
                libunity-api-dev,
                libxml2-dev,
                python3-tornado,

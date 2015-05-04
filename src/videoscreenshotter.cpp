@@ -97,7 +97,7 @@ bool VideoScreenshotter::extract(const std::string &ifname, const std::string &o
         throw runtime_error("Could not spawn worker process.");
     }
     if(child == 0) {
-        execl(cmd.c_str(), cmd.c_str(), ifname.c_str(), ofname.c_str(), (char*) NULL);
+        execl(cmd.c_str(), cmd.c_str(), ifname.c_str(), ofname.c_str(), nullptr);
         fprintf(stderr, "Could not execute worker process: %s", safe_strerror(errno).c_str());
         _exit(100);
     } else {

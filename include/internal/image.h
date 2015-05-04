@@ -20,7 +20,6 @@
 
 #include <internal/gobj_memory.h>
 
-#include <gdk-pixbuf/gdk-pixbuf.h>
 #include <QSize>
 
 #include <string>
@@ -52,6 +51,7 @@ public:
 
 
 private:
+    typedef struct _GdkPixbuf GdkPixbuf;
     typedef unique_gobj<GdkPixbuf> PixbufPtr;
     PixbufPtr pixbuf_;
 };
