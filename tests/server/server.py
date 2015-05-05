@@ -17,7 +17,6 @@
 #
 # Authored by: Xavi Garcia <xavi.garcia.mena@canonical.com>
 
-import imghdr
 import os
 import tornado.httpserver
 import tornado.web
@@ -30,32 +29,36 @@ global PORT
 PORT = ""
 
 class FileReaderProvider(tornado.web.RequestHandler):
+    def initialize(self):
+        self.extensions_map = {'jpeg': 'image/jpeg', 'jpg': 'image/jpeg', 'png': 'image/png', 'txt': 'text/plain', 'xml': 'application/xml'}
+
     def read_file(self, path, replace_root):
-        image_type = None
-        file = os.path.join(os.path.dirname(__file__), path)
-        print(file)
-        if os.path.islink(file):
-            print ("IS LINK")
-        if os.path.isfile(file):
+        extension = self.search_file_extension(path)
+        if extension != None:
+            file = os.path.join(os.path.dirname(__file__), "%s.%s" % (path, extension))
             with open(file, 'rb') as fp:
                 content = fp.read()
             if replace_root:
                 content = content.replace(b"DOWNLOAD_ROOT", "127.0.0.1:{}".format(PORT).encode("utf-8"))
-            # determine if the content is a real image
-            image_type = imghdr.what(file)
+            self.set_header("Content-Type", self.extensions_map[extension])
         else:
             self.set_status(404)
             content = "<html><body>404 ERROR</body></html>"
-        if (image_type != None):
-            self.set_header("Content-Type", 'image/%s' % image_type)
         self.write(content)
+
+    def search_file_extension(self, file_base_name):
+        for extension in self.extensions_map.keys():
+            file = os.path.join(os.path.dirname(__file__), "%s.%s" % (file_base_name, extension))
+            if os.path.isfile(file):
+                return extension
+        return None
 
 class UbuntuAlbumImagesProvider(FileReaderProvider):
     def get(self):
         if self.get_argument('artist', None) == "test_threads":
             self.write("TEST_THREADS_TEST_%s" % self.get_argument('album', None ))
         else:
-            file = 'images/%s_%s_album.png' % (self.get_argument('artist', None ), self.get_argument('album', None ))
+            file = 'images/%s_%s_album' % (self.get_argument('artist', None ), self.get_argument('album', None ))
             self.read_file(file, False)
         self.finish()
 
@@ -64,13 +67,13 @@ class UbuntuArtistImagesProvider(FileReaderProvider):
         if self.get_argument('artist', None) == "test_threads":
             self.write("TEST_THREADS_TEST_%s" % self.get_argument('album', None ))
         else:
-            file = 'images/%s_%s.png' % (self.get_argument('artist', None ), self.get_argument('album', None ))
+            file = 'images/%s_%s' % (self.get_argument('artist', None ), self.get_argument('album', None ))
             self.read_file(file, False)
         self.finish()
 
 class LastFMArtistAlbumInfo(FileReaderProvider):
     def get(self, artist, album):
-        file = 'queries/%s_%s.xml' % (artist, album)
+        file = 'queries/%s_%s' % (artist, album)
         self.read_file(file, True)
         self.finish()
 
@@ -79,7 +82,7 @@ class LastFMImagesProvider(FileReaderProvider):
         if(image.startswith("test_thread")):
             self.write("TEST_THREADS_TEST_%s" % image)
         else:
-            file = 'images/%s.png' % image
+            file = 'images/%s' % image
             self.read_file(file, False)
         self.finish()
 
