@@ -60,7 +60,7 @@ public Q_SLOTS:
 
     void download_artist(QString const& artist, QString const& album)
     {
-        auto reply = downloader_->download_album(artist, album);
+        auto reply = downloader_->download_artist(artist, album);
         connect(reply.get(), &ArtReply::finished, this, &DownloadThread::download_finished);
         QEventLoop loop;
         QObject::connect(reply.get(), SIGNAL(finished()), &loop, SLOT(quit()));

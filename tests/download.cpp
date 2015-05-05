@@ -272,6 +272,118 @@ TEST_F(TestDownloaderServer, lastfm_xml_image_not_found)
     EXPECT_EQ(reply->error_string(), QString("LastFMArtReply::parse_xml() Image url not found"));
 }
 
+TEST_F(TestDownloaderServer, lastfm_xml_image_returns_default_not_found)
+{
+    LastFMDownloader downloader;
+
+    auto reply = downloader.download_album("xml", "defaultlastfm");
+    ASSERT_NE(reply, nullptr);
+
+    QSignalSpy spy(reply.get(), &ArtReply::finished);
+
+    EXPECT_EQ(reply->url_string(), apiroot_ + "/1.0/album/xml/defaultlastfm/info.xml");
+
+    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+    // which should never be reached
+    ASSERT_TRUE(spy.wait(5000));
+
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+
+    EXPECT_EQ(reply->succeeded(), false);
+    EXPECT_EQ(reply->not_found_error(), true);
+    EXPECT_EQ(reply->is_running(), false);
+    // Finally check the content of the error message
+    qDebug() << reply->error_string();
+    EXPECT_EQ(reply->error_string(), QString("LastFMArtReply::download_xml_finished() Image for http://cdn.last.fm/flatness/catalogue/noimage/2/default_album_medium.png was not found"));
+}
+
+TEST_F(TestDownloaderServer, lastfm_xml_returns_invalid_url)
+{
+    LastFMDownloader downloader;
+
+    auto reply = downloader.download_album("xml", "badimageurl");
+    ASSERT_NE(reply, nullptr);
+
+    QSignalSpy spy(reply.get(), &ArtReply::finished);
+
+    EXPECT_EQ(reply->url_string(), apiroot_ + "/1.0/album/xml/badimageurl/info.xml");
+
+    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+    // which should never be reached
+    ASSERT_TRUE(spy.wait(5000));
+
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+
+    EXPECT_EQ(reply->succeeded(), false);
+    EXPECT_EQ(reply->not_found_error(), false);
+    EXPECT_EQ(reply->is_running(), false);
+    // Finally check the content of the error message
+    qDebug() << reply->error_string();
+    EXPECT_EQ(reply->error_string(), QString("LastFMArtReply::download_xml_finished() Bad url obtained from lastfm: http%://cdn.last.fm/flatness/catalogue/noimage/2/default_album_medium.png"));
+}
+
+TEST_F(TestDownloaderServer, lastfm_xml_returns_error_500)
+{
+    LastFMDownloader downloader;
+
+    auto reply = downloader.download_album("test_error_500", "test");
+    ASSERT_NE(reply, nullptr);
+
+    QSignalSpy spy(reply.get(), &ArtReply::finished);
+
+    EXPECT_EQ(reply->url_string(), apiroot_ + "/1.0/album/test_error_500/test/info.xml");
+
+    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+    // which should never be reached
+    ASSERT_TRUE(spy.wait(5000));
+
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+
+    EXPECT_EQ(reply->succeeded(), false);
+    EXPECT_EQ(reply->not_found_error(), false);
+    EXPECT_EQ(reply->is_running(), false);
+    // Finally check the content of the error message
+    qDebug() << reply->error_string();
+    EXPECT_TRUE(reply->error_string().endsWith("- server replied: Internal Server Error"));
+}
+
+TEST_F(TestDownloaderServer, lastfm_error_downloading_final_image)
+{
+    LastFMDownloader downloader;
+
+    auto reply = downloader.download_album("error", "downloading_image");
+    ASSERT_NE(reply, nullptr);
+
+    QSignalSpy spy(reply.get(), &ArtReply::finished);
+
+    EXPECT_EQ(reply->url_string(), apiroot_ + "/1.0/album/error/downloading_image/info.xml");
+
+    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+    // which should never be reached
+    ASSERT_TRUE(spy.wait(5000));
+
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+
+    EXPECT_EQ(reply->succeeded(), false);
+    EXPECT_EQ(reply->not_found_error(), true);
+    EXPECT_EQ(reply->is_running(), false);
+    // Finally check the content of the error message
+    qDebug() << reply->error_string();
+    EXPECT_TRUE(reply->error_string().endsWith("server replied: Not Found"));
+}
+
+TEST_F(TestDownloaderServer, lastfm_download_artist_not_implemented)
+{
+    LastFMDownloader downloader;
+
+    auto reply = downloader.download_artist("error", "test");
+    ASSERT_EQ(reply, nullptr);
+}
+
 TEST_F(TestDownloaderServer, lastfm_test_multiple_downloads)
 {
     LastFMDownloader downloader;
@@ -304,6 +416,32 @@ TEST_F(TestDownloaderServer, lastfm_test_multiple_downloads)
     }
 }
 
+TEST_F(TestDownloaderServer, lastfm_xml_file_not_found)
+{
+    LastFMDownloader downloader;
+
+    auto reply = downloader.download_album("xml", "notfound");
+    ASSERT_NE(reply, nullptr);
+
+    QSignalSpy spy(reply.get(), &ArtReply::finished);
+
+    EXPECT_EQ(reply->url_string(), apiroot_ + "/1.0/album/xml/notfound/info.xml");
+
+    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+    // which should never be reached
+    ASSERT_TRUE(spy.wait(5000));
+
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+
+    EXPECT_EQ(reply->succeeded(), false);
+    EXPECT_EQ(reply->not_found_error(), true);
+    EXPECT_EQ(reply->is_running(), false);
+    // Finally check the content of the error message
+    qDebug() << reply->error_string();
+    EXPECT_TRUE(reply->error_string().endsWith("server replied: Not Found"));
+}
+
 TEST_F(TestDownloaderServer, sync_download_ok)
 {
     auto downloader = std::make_shared<UbuntuServerDownloader>();
@@ -313,6 +451,16 @@ TEST_F(TestDownloaderServer, sync_download_ok)
     EXPECT_EQ(QString(data), QString("SIA_FEAR_TEST_STRING_IMAGE_ALBUM"));
 }
 
+TEST_F(TestDownloaderServer, sync_download_artist_ok)
+{
+    auto downloader = std::make_shared<UbuntuServerDownloader>();
+    SyncDownloader sync_downloader(downloader);
+
+    auto data = sync_downloader.download_artist("sia", "fear");
+    qDebug() << QString(data);
+    EXPECT_EQ(QString(data), QString("SIA_FEAR_TEST_STRING_IMAGE"));
+}
+
 TEST_F(TestDownloaderServer, sync_download_error)
 {
     auto downloader = std::make_shared<UbuntuServerDownloader>();
@@ -320,6 +468,32 @@ TEST_F(TestDownloaderServer, sync_download_error)
 
     auto data = sync_downloader.download_album("test", "test");
     EXPECT_EQ(QString(data), QString(""));
+}
+
+TEST_F(TestDownloaderServer, sync_download_artist_error)
+{
+    auto downloader = std::make_shared<UbuntuServerDownloader>();
+    SyncDownloader sync_downloader(downloader);
+
+    auto data = sync_downloader.download_artist("test", "test");
+    EXPECT_EQ(QString(data), QString(""));
+}
+
+TEST_F(TestDownloaderServer, test_incorrect_generater_url)
+{
+    setenv("THUMBNAILER_UBUNTU_APIROOT", "http%:/badurl", true);
+
+    UbuntuServerDownloader downloader;
+    ASSERT_THROW(downloader.download_artist("test", "test"), std::logic_error);
+    try
+    {
+        downloader.download_artist("test", "test");
+    }
+    catch (std::logic_error & e)
+    {
+        EXPECT_EQ(std::string(e.what()), "ArtDownloader::assert_valid_url(): The url provided is not valid");
+    }
+    unsetenv("THUMBNAILER_UBUNTU_APIROOT");
 }
 
 int main(int argc, char** argv)

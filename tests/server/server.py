@@ -73,6 +73,10 @@ class UbuntuArtistImagesProvider(FileReaderProvider):
 
 class LastFMArtistAlbumInfo(FileReaderProvider):
     def get(self, artist, album):
+        if (artist == "test_error_500"):
+            self.set_status(500)
+            self.write("<html><body>500 ERROR</body></html>")
+            return
         file = 'queries/%s_%s' % (artist, album)
         self.read_file(file, True)
         self.finish()
