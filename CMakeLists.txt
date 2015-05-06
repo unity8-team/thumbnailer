@@ -92,6 +92,7 @@ enable_coverage_report(
         thumbnailer
         thumbnailer-service
         thumbnailer-qml
+        vs-thumb
     FILTER
         ${CMAKE_SOURCE_DIR}/tests/*
         ${CMAKE_SOURCE_DIR}/tools/*
