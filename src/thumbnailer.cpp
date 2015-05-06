@@ -202,18 +202,26 @@ RequestBase::RequestBase(shared_ptr<ThumbnailerPrivate> const& p, string const& 
 }
 
 // Main look-up logic for thumbnails.
-// key1 and key2 are set by the caller. They are artist and album or, for files,
-// the pathname in key1 and the device, inode, and mtime in key2.
 //
-// We first look in the cache to see if we have a thumbnail already for the provided keys and size.
-// If not, we check whether a full-size image was downloaded previously and is still hanging
-// around. If so, we scale the full-size image to what was asked for, add it to the thumbnail
-// cache, and return the scaled image. Otherwise, we fetch the image (by downloading it
-// or extracting it from a file), add the full-size image to the full-size cache, scale
-// the image and add the scaled version to the thumbnail cache, and return the scaled image.
+// key_ is set by the subclass to uniquely identify what is being
+// thumbnailed.  For online art, this includes the artist and album.
+// For local thumbnails, this includes the path name, inode and mtime.
 //
-// If an image contains an EXIF thumbnail and the thumbnail is >= desired size, we generate
-// the thumbnail from the EXIF thumbnail.
+// We first look in the cache to see if we have a thumbnail already
+// for the provided key and size.  If not, we check whether a
+// full-size image was downloaded previously and is still hanging
+// around. If no image is available in the full size cache, we call
+// the fetch() routine (implemented by the subclass), which will
+// either (a) report that the data needs to be downloaded, (b) return
+// the full size image ready for scaling, or (c) report an error.
+//
+// If the data needs downloading, we return immediately.  Similarly,
+// we return in case of an error.  If the data is available, it may be
+// stored in the full size cache.
+//
+// At this point we have the image data, so scale it to the desired
+// size, store the scaled version to the thumbnail cache and return
+// it.
 
 string RequestBase::thumbnail()
 {
