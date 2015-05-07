@@ -114,14 +114,31 @@ TEST_F(ThumbnailerTest, thumbnail_video)
 
     QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
     request->download();
-    ASSERT_TRUE(spy.wait(5000));
+    ASSERT_TRUE(spy.wait(15000));
     string thumb = request->thumbnail();
     ASSERT_NE("", thumb);
     Image img(thumb);
-    EXPECT_EQ(100, img.width());
-    EXPECT_EQ(100, img.height());
+    EXPECT_EQ(1920, img.width());
+    EXPECT_EQ(1080, img.height());
 }
 
+TEST_F(ThumbnailerTest, thumbnail_song)
+{
+    Thumbnailer tn;
+    auto request = tn.get_thumbnail(TEST_SONG, QSize());
+    ASSERT_NE(nullptr, request.get());
+    // Audio thumbnails can not be produced immediately
+    ASSERT_EQ("", request->thumbnail());
+
+    QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
+    request->download();
+    ASSERT_TRUE(spy.wait(15000));
+    string thumb = request->thumbnail();
+    ASSERT_NE("", thumb);
+    Image img(thumb);
+    EXPECT_EQ(200, img.width());
+    EXPECT_EQ(200, img.height());
+}
 
 int main(int argc, char** argv)
 {

@@ -66,8 +66,8 @@ void VideoScreenshotter::extract()
     if (!p->tmpfile.open()) {
         throw runtime_error("VideoScreenshotter::extract: unable to open temporary file");
     }
-    p->process.execute(exe_path,
-                       {QString::fromStdString(p->filename), p->tmpfile.fileName()});
+    p->process.start(exe_path,
+                     {QString::fromStdString(p->filename), p->tmpfile.fileName()});
     // Set a watchdog timer in case vs-thumb doesn't finish in time.
     p->timer.start(10000);
 }
@@ -110,7 +110,6 @@ string VideoScreenshotter::data()
 void VideoScreenshotter::processFinished(int /*exitCode*/, QProcess::ExitStatus /*exitStatus*/)
 {
     p->timer.stop();
-
     Q_EMIT finished();
 }
 

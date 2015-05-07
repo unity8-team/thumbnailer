@@ -331,7 +331,7 @@ RequestBase::ImageData LocalThumbnailRequest::fetch() {
 void LocalThumbnailRequest::download() {
     screenshotter.reset(new VideoScreenshotter(filename_));
     connect(screenshotter.get(), &VideoScreenshotter::finished,
-            this, &LocalThumbnailRequest::downloadFinished);
+            this, &LocalThumbnailRequest::downloadFinished, Qt::DirectConnection);
     screenshotter->extract();
 }
 
