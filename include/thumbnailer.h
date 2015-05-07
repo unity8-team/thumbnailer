@@ -30,6 +30,9 @@ class ThumbnailerPrivate;
 class ThumbnailRequest : public QObject {
     Q_OBJECT
 public:
+    Q_DISABLE_COPY(ThumbnailRequest)
+
+    ThumbnailRequest() = default;
     virtual ~ThumbnailRequest() = default;
 
     // Returns the empty string if the thumbnail data needs to be
@@ -68,17 +71,17 @@ public:
      * Return value is the thumbnail image as a string.
      * If the thumbnail could not be generated, an empty string is returned.
      */
-    std::string get_thumbnail(std::string const& filename, QSize const& requested_size);
+    std::unique_ptr<ThumbnailRequest> get_thumbnail(std::string const& filename, QSize const& requested_size);
 
     /**
      * Gets album art for the given artist an album.
      */
-    std::string get_album_art(std::string const& artist, std::string const& album, QSize const& requested_size);
+    std::unique_ptr<ThumbnailRequest> get_album_art(std::string const& artist, std::string const& album, QSize const& requested_size);
 
     /**
      * Gets artist art for the given artist and album.
      */
-    std::string get_artist_art(std::string const& artist, std::string const& album, QSize const& requested_size);
+    std::unique_ptr<ThumbnailRequest> get_artist_art(std::string const& artist, std::string const& album, QSize const& requested_size);
 
 private:
     std::shared_ptr<ThumbnailerPrivate> p_;

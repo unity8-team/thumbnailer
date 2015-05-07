@@ -18,7 +18,6 @@
 
 #include <internal/ubuntuserverdownloader.h>
 #include <internal/lastfmdownloader.h>
-#include <internal/syncdownloader.h>
 #include <internal/artreply.h>
 
 #include <gtest/gtest.h>
@@ -120,7 +119,7 @@ TEST_F(TestDownloaderServer, test_ok_album)
     EXPECT_EQ(reply->not_found_error(), false);
     EXPECT_EQ(reply->is_running(), false);
     // Finally check the content of the file downloaded
-    EXPECT_EQ(QString(reply->data()), QString("SIA_FEAR_TEST_STRING_IMAGE"));
+    EXPECT_EQ(QString(reply->data()), QString("SIA_FEAR_TEST_STRING_IMAGE_ALBUM"));
 }
 
 TEST_F(TestDownloaderServer, test_ok_artist)
@@ -159,9 +158,9 @@ TEST_F(TestDownloaderServer, test_not_found)
     ASSERT_EQ(spy.count(), 1);
 
     EXPECT_EQ(reply->succeeded(), false);
-    EXPECT_EQ(reply->not_found_error(), false);
+    EXPECT_EQ(reply->not_found_error(), true);
     EXPECT_EQ(reply->is_running(), false);
-    EXPECT_TRUE(reply->error_string().endsWith("server replied: Internal Server Error"));
+    EXPECT_TRUE(reply->error_string().endsWith("server replied: Not Found"));
 }
 
 TEST_F(TestDownloaderServer, test_multiple_downloads)
@@ -302,24 +301,6 @@ TEST_F(TestDownloaderServer, lastfm_test_multiple_downloads)
         // Finally check the content of the file downloaded
         EXPECT_EQ(QString(replies[i].first->data()), QString("TEST_THREADS_TEST_test_thread_%1").arg((i % 5) + 1));
     }
-}
-
-TEST_F(TestDownloaderServer, sync_download_ok)
-{
-    auto downloader = std::make_shared<UbuntuServerDownloader>();
-    SyncDownloader sync_downloader(downloader);
-
-    auto data = sync_downloader.download_album("sia", "fear");
-    EXPECT_EQ(QString(data), QString("SIA_FEAR_TEST_STRING_IMAGE"));
-}
-
-TEST_F(TestDownloaderServer, sync_download_error)
-{
-    auto downloader = std::make_shared<UbuntuServerDownloader>();
-    SyncDownloader sync_downloader(downloader);
-
-    auto data = sync_downloader.download_album("test", "test");
-    EXPECT_EQ(QString(data), QString(""));
 }
 
 int main(int argc, char** argv)
