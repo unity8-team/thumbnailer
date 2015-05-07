@@ -56,29 +56,29 @@ TEST_F(ThumbnailerTest, basic)
     string thumb;
     Image img;
 
-    thumb = tn.get_thumbnail(TEST_IMAGE, QSize());
+    thumb = tn.get_thumbnail(TEST_IMAGE, QSize())->thumbnail();
     img = Image(thumb);
     EXPECT_EQ(640, img.width());
     EXPECT_EQ(480, img.height());
 
-    thumb = tn.get_thumbnail(TEST_IMAGE, QSize(160, 160));
+    thumb = tn.get_thumbnail(TEST_IMAGE, QSize(160, 160))->thumbnail();
     img = Image(thumb);
     EXPECT_EQ(160, img.width());
     EXPECT_EQ(120, img.height());
 
-    thumb = tn.get_thumbnail(TEST_IMAGE, QSize(1000, 1000));  // Will not up-scale
+    thumb = tn.get_thumbnail(TEST_IMAGE, QSize(1000, 1000))->thumbnail();  // Will not up-scale
     img = Image(thumb);
     EXPECT_EQ(640, img.width());
     EXPECT_EQ(480, img.height());
 
-    thumb = tn.get_thumbnail(TEST_IMAGE, QSize(100, 100));  // From EXIF data
+    thumb = tn.get_thumbnail(TEST_IMAGE, QSize(100, 100))->thumbnail();  // From EXIF data
     img = Image(thumb);
     EXPECT_EQ(100, img.width());
     EXPECT_EQ(75, img.height());
 
     try
     {
-        tn.get_thumbnail(BAD_IMAGE, QSize());
+        tn.get_thumbnail(BAD_IMAGE, QSize())->thumbnail();
     }
     catch (std::exception const& e)
     {
@@ -86,13 +86,13 @@ TEST_F(ThumbnailerTest, basic)
         EXPECT_TRUE(boost::starts_with(msg, "load_image(): cannot close pixbuf loader: ")) << msg;
     }
 
-    thumb = tn.get_thumbnail(RGB_IMAGE, QSize(48, 48));
+    thumb = tn.get_thumbnail(RGB_IMAGE, QSize(48, 48))->thumbnail();
     cout << "thumb size: " << thumb.size() << endl;
     img = Image(thumb);
     EXPECT_EQ(48, img.width());
     EXPECT_EQ(48, img.height());
 
-    string thumb2 = tn.get_thumbnail(RGB_IMAGE, QSize(48, 48));
+    string thumb2 = tn.get_thumbnail(RGB_IMAGE, QSize(48, 48))->thumbnail();
     cout << "thumb2 size: " << thumb2.size() << endl;
     EXPECT_EQ(thumb, thumb2);
     img = Image(thumb2);
