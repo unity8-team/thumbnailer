@@ -195,7 +195,7 @@ TEST_F(TestDownloaderServer, test_multiple_downloads)
     }
 }
 
-TEST_F(TestDownloaderServer, lastfm_download_ok)
+TEST_F(TestDownloaderServer, lastfm_album_download_ok)
 {
     LastFMDownloader downloader;
 
@@ -218,6 +218,14 @@ TEST_F(TestDownloaderServer, lastfm_download_ok)
     EXPECT_EQ(reply->is_running(), false);
     // Finally check the content of the file downloaded
     EXPECT_EQ(QString(reply->data()), QString("SIA_FEAR_TEST_STRING_IMAGE"));
+}
+
+TEST_F(TestDownloaderServer, lastfm_artist_download_ok)
+{
+    LastFMDownloader downloader;
+
+    auto reply = downloader.download_artist("sia", "fear");
+    ASSERT_EQ(reply, nullptr);
 }
 
 TEST_F(TestDownloaderServer, lastfm_xml_parsing_errors)
