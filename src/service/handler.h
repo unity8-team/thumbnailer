@@ -28,6 +28,8 @@
 #include <QDBusUnixFileDescriptor>
 #include <QSize>
 
+class QThreadPool;
+
 namespace unity {
 namespace thumbnailer {
 namespace service {
@@ -37,7 +39,8 @@ struct HandlerPrivate;
 class Handler : public QObject {
     Q_OBJECT
 public:
-    Handler(const QDBusConnection &bus, const QDBusMessage &message);
+    Handler(const QDBusConnection &bus, const QDBusMessage &message,
+            std::shared_ptr<QThreadPool> do_check_pool, std::shared_ptr<QThreadPool> do_create_pool);
     ~Handler();
 
     Handler(const Handler&) = delete;

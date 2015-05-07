@@ -52,10 +52,13 @@ struct ThumbnailHandlerPrivate {
 ThumbnailHandler::ThumbnailHandler(const QDBusConnection &bus,
                                    const QDBusMessage &message,
                                    const std::shared_ptr<Thumbnailer> &thumbnailer,
+                                   std::shared_ptr<QThreadPool> do_check_pool,
+                                   std::shared_ptr<QThreadPool> do_create_pool,
                                    const QString &filename,
                                    const QDBusUnixFileDescriptor &filename_fd,
                                    const QSize &requestedSize)
-    : Handler(bus, message), p(new ThumbnailHandlerPrivate(thumbnailer, filename, filename_fd, requestedSize)) {
+    : Handler(bus, message,  do_check_pool, do_create_pool),
+      p(new ThumbnailHandlerPrivate(thumbnailer, filename, filename_fd, requestedSize)) {
 }
 
 ThumbnailHandler::~ThumbnailHandler() {
