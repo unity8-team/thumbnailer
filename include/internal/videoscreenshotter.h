@@ -16,24 +16,36 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#ifndef VIDEOSCREENSHOTTER_H_
-#define VIDEOSCREENSHOTTER_H_
+#pragma once
 
-#include<string>
+#include <memory>
+#include <string>
+#include <QObject>
+#include <QProcess>
 
-class VideoScreenshotterPrivate;
+struct VideoScreenshotterPrivate;
 
-class VideoScreenshotter final {
+class VideoScreenshotter final : public QObject {
+    Q_OBJECT
 public:
-    VideoScreenshotter();
+    VideoScreenshotter(const std::string &filename);
     ~VideoScreenshotter();
 
     VideoScreenshotter(const VideoScreenshotter &t) = delete;
     VideoScreenshotter & operator=(const VideoScreenshotter &t) = delete;
 
-    bool extract(const std::string &ifname, const std::string &ofname);
+    void extract();
+    bool success();
+    std::string error();
+    std::string data();
 
+Q_SIGNALS:
+    void finished();
+
+private Q_SLOTS:
+    void processFinished(int exitCode, QProcess::ExitStatus exitStatus);
+    void timeout();
+
+private:
+    std::unique_ptr<VideoScreenshotterPrivate> p;
 };
-
-
-#endif

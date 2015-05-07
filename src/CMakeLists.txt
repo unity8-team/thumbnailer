@@ -1,7 +1,6 @@
 add_subdirectory(core)
 
 add_library(thumbnailer STATIC
-audioimageextractor.cpp
 file_io.cpp
 image.cpp
 lastfmdownloader.cpp
@@ -15,6 +14,7 @@ ${CMAKE_SOURCE_DIR}/include/internal/artdownloader.h
 ${CMAKE_SOURCE_DIR}/include/internal/ubuntuserverdownloader.h
 ${CMAKE_SOURCE_DIR}/include/internal/lastfmdownloader.h
 ${CMAKE_SOURCE_DIR}/include/internal/artreply.h
+${CMAKE_SOURCE_DIR}/include/internal/videoscreenshotter.h
 ${CMAKE_SOURCE_DIR}/include/thumbnailer.h
 )
 qt5_use_modules(thumbnailer Core)
