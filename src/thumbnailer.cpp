@@ -48,6 +48,16 @@
 using namespace std;
 using namespace unity::thumbnailer::internal;
 
+namespace
+{
+
+enum class Location
+{
+    local, remote
+};
+
+}
+
 class ThumbnailerPrivate
 {
 public:
@@ -55,10 +65,13 @@ public:
     VideoScreenshotter video_;
     core::PersistentStringCache::UPtr full_size_cache_;  // Small cache of full (original) size images.
     core::PersistentStringCache::UPtr thumbnail_cache_;  // Large cache of scaled images.
+    core::PersistentStringCache::UPtr failure_cache_;    // Cache for failed attempts (value is always empty).
     shared_ptr<ArtDownloader> downloader_;
     unique_ptr<SyncDownloader> sync_downloader_;
 
     ThumbnailerPrivate();
+    ThumbnailerPrivate(ThumbnailerPrivate const&) = delete;
+    ThumbnailerPrivate& operator=(ThumbnailerPrivate const&) = delete;
 
     string extract_image_from_audio(string const& filename);
     string extract_image_from_video(string const& filename);
@@ -93,9 +106,11 @@ ThumbnailerPrivate::ThumbnailerPrivate()
     {
         // TODO: No good to hard-wire the cache size.
         full_size_cache_ = core::PersistentStringCache::open(cache_dir + "/images", 50 * 1024 * 1024,
-                                                             core::CacheDiscardPolicy::lru_ttl);
+                                                             core::CacheDiscardPolicy::lru_only);
         thumbnail_cache_ = core::PersistentStringCache::open(cache_dir + "/thumbnails", 100 * 1024 * 1024,
-                                                             core::CacheDiscardPolicy::lru_ttl);
+                                                             core::CacheDiscardPolicy::lru_only);
+        failure_cache_ = core::PersistentStringCache::open(cache_dir + "/failures", 2 * 1024 * 1024,
+                                                           core::CacheDiscardPolicy::lru_ttl);
     }
     catch (std::exception const& e)
     {
@@ -143,11 +158,16 @@ protected:
     enum class FetchStatus {
         NeedsDownload, Downloaded, NotFound, Error
     };
+    enum class CachePolicy
+    {
+        cache_fullsize, dont_cache_fullsize
+    };
     struct ImageData
     {
         FetchStatus status;
         string data;
-        bool keep_in_cache;
+        CachePolicy cache_policy;
+        Location location;
     };
 
     RequestBase(shared_ptr<ThumbnailerPrivate> const& p, string const& key, QSize const& requested_size);
@@ -202,8 +222,10 @@ RequestBase::RequestBase(shared_ptr<ThumbnailerPrivate> const& p, string const& 
 }
 
 // Main look-up logic for thumbnails.
-// key_ is the artist and album or, for files,
-// the pathname, device, inode, and mtime.
+// key_ is the artist and album or,
+// for files, the pathname, device, inode, and mtime.
+// Either way, the tail end of the key is the requested size.
+// For example: /home/michi/Music/mysong.mp3\0<dev#>\0<inode#>\0<mtime>\0128\0256
 //
 // We first look in the cache to see if we have a thumbnail already for the provided key.
 // If not, we check whether a full-size image was downloaded previously and is still hanging
@@ -238,23 +260,56 @@ string RequestBase::thumbnail()
     auto full_size = p_->full_size_cache_->get(key_);
     if (!full_size)
     {
-        // Try and download or read the artwork.
+        // Try and download or read the artwork, provided that we don't
+        // have this image in the failure cache.
+        if (p_->failure_cache_->contains_key(key_))
+        {
+            return "";
+        }
         auto image_data = fetch();
         switch (image_data.status)
         {
-        case FetchStatus::NeedsDownload:
-            return "";
-        case FetchStatus::Downloaded:
-            break;
-        case FetchStatus::NotFound:
-        case FetchStatus::Error:
-            // TODO: If download failed, need to disable re-try for some time.
-            //       Might need to do this in the calling code, because timeouts
-            //       will be different depending on why it failed, and whether
-            //       the fetch was from a local or remote source.
-            return "";
-        default:
-            abort();  // Impossible
+            case FetchStatus::Downloaded:  // Success, we'll return the thumbnail below.
+                break;
+            case FetchStatus::NeedsDownload:  // Caller will call download().
+                return "";
+            case FetchStatus::NotFound:
+            {
+                // Authoritative answer that artwork does not exist.
+                // For local files, we don't set an expiry time because, if the file is
+                // changed (say, such that artwork is added), the file's key will change too.
+                // For remote files, we try again after one week.
+                // TODO: Make interval configurable.
+                // TODO: If the network is down, we don't want to add an
+                // entry to the failure cache, but try again ASAP.
+                chrono::time_point<std::chrono::steady_clock> later;  // Infinite expiry time
+                if (image_data.location == Location::remote)
+                {
+                    later = chrono::steady_clock::now() + chrono::hours(24 * 7);  // One week
+                }
+                p_->failure_cache_->put(key_, "", later);
+                return "";
+            }
+            case FetchStatus::Error:
+            {
+                // Some non-authoritative failure, such as the server not responding,
+                // or an out-of-process codec crashing.
+                // For local files, we don't set an expiry time because, if the file is
+                // changed, (say, its permissions change), the file's key will change too.
+                // For remote files, we try again after two hours.
+                // TODO: Make interval configurable.
+                // TODO: If the network is down, we don't want to add an
+                // entry to the failure cache, but try again ASAP.
+                chrono::time_point<std::chrono::steady_clock> later;  // Infinite expiry time
+                if (image_data.location == Location::remote)
+                {
+                    later = chrono::steady_clock::now() + chrono::hours(2);  // Two hours before we try again.
+                }
+                p_->failure_cache_->put(key_, "", later);
+                return "";
+            }
+            default:
+                abort();  // Impossible
         }
 
         // We keep the full-size version around for a while because it
@@ -264,7 +319,7 @@ string RequestBase::thumbnail()
         // artwork a second time. For local files, we keep the full-size
         // version if it was generated from a video or audio file (which is
         // expensive), but not if it was generated from an image file (which is cheap).
-        if (image_data.keep_in_cache)
+        if (image_data.cache_policy == CachePolicy::cache_fullsize)
         {
             Image full_size_image(image_data.data, target_size);
             auto w = full_size_image.width();
@@ -295,7 +350,8 @@ static string local_key(string const& filename)
         throw runtime_error("local_key(): cannot stat " + path.native() + ", errno = " + to_string(errno));
     }
 
-    // The full cache key for the file is the concatenation of path name, device, inode, and modification time.
+    // The full cache key for the file is the concatenation of path name, device, inode, modification time,
+    // and inode modification time (because permissions may change).
     // If the file exists with the same path on different removable media, or the file was modified since
     // we last cached it, the key will be different. There is no point in trying to remove such stale entries
     // from the cache. Instead, we just let the normal eviction mechanism take care of them (because stale
@@ -307,6 +363,8 @@ static string local_key(string const& filename)
     key += to_string(st.st_ino);
     key += '\0';
     key += to_string(st.st_mtim.tv_sec) + "." + to_string(st.st_mtim.tv_nsec);
+    key += '\0';
+    key += to_string(st.st_ctim.tv_sec) + "." + to_string(st.st_ctim.tv_nsec);
     return key;
 }
 
@@ -321,38 +379,40 @@ RequestBase::ImageData LocalThumbnailRequest::fetch() {
     unique_gobj<GFile> file(g_file_new_for_path(filename_.c_str()));
     if (!file)
     {
-        return {FetchStatus::Error, "", false};
+        return {FetchStatus::Error, "", CachePolicy::dont_cache_fullsize, Location::local};
     }
 
     unique_gobj<GFileInfo> info(g_file_query_info(file.get(), G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE,
                                                   G_FILE_QUERY_INFO_NONE,
                                                   /* cancellable */ NULL,
-                                                  /* error */ NULL));
+                                                  /* error */ NULL));      // TODO: need decent error reporting
     if (!info)
     {
-        return {FetchStatus::Error, "", false};
+        return {FetchStatus::Error, "", CachePolicy::dont_cache_fullsize, Location::local};
     }
 
     string content_type = g_file_info_get_attribute_string(info.get(), G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE);
     if (content_type.empty())
     {
-        return {FetchStatus::Error, "", false};
+        return {FetchStatus::Error, "", CachePolicy::dont_cache_fullsize, Location::local};
     }
 
     // Call the appropriate image extractor and return the image data as JPEG (not scaled).
+    // We indicate that full-size images are to be cached only for audio and video files,
+    // for which extraction is expensive. For local images, we don't cache full size.
 
     if (content_type.find("audio/") == 0)
     {
         return ImageData{FetchStatus::Downloaded,
-                p_->extract_image_from_audio(filename_), true};
+                p_->extract_image_from_audio(filename_), CachePolicy::cache_fullsize, Location::local};
     }
     if (content_type.find("video/") == 0)
     {
         return ImageData{FetchStatus::Downloaded,
-                p_->extract_image_from_video(filename_), true};
+                p_->extract_image_from_video(filename_), CachePolicy::cache_fullsize, Location::local};
     }
     return ImageData{FetchStatus::Downloaded,
-            p_->extract_image_from_other(filename_), false};
+            p_->extract_image_from_other(filename_), CachePolicy::dont_cache_fullsize, Location::local};
 }
 
 void LocalThumbnailRequest::download() {
@@ -367,7 +427,7 @@ AlbumRequest::AlbumRequest(std::shared_ptr<ThumbnailerPrivate> const& p, string 
 RequestBase::ImageData AlbumRequest::fetch() {
     auto raw_data = p_->sync_downloader_->download_album(QString::fromStdString(artist_), QString::fromStdString(album_));
     return ImageData{FetchStatus::Downloaded,
-        string(raw_data.data(), raw_data.size()), true};
+        string(raw_data.data(), raw_data.size()), CachePolicy::cache_fullsize, Location::remote};
 }
 
 void AlbumRequest::download() {
@@ -382,7 +442,7 @@ ArtistRequest::ArtistRequest(std::shared_ptr<ThumbnailerPrivate> const& p, strin
 RequestBase::ImageData ArtistRequest::fetch() {
     auto raw_data = p_->sync_downloader_->download_artist(QString::fromStdString(artist_), QString::fromStdString(album_));
     return ImageData{FetchStatus::Downloaded,
-        string(raw_data.data(), raw_data.size()), true};
+        string(raw_data.data(), raw_data.size()), CachePolicy::cache_fullsize, Location::remote};
 }
 
 void ArtistRequest::download() {
