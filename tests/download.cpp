@@ -119,7 +119,7 @@ TEST_F(TestDownloaderServer, test_ok_album)
     EXPECT_EQ(reply->not_found_error(), false);
     EXPECT_EQ(reply->is_running(), false);
     // Finally check the content of the file downloaded
-    EXPECT_EQ(QString(reply->data()), QString("SIA_FEAR_TEST_STRING_IMAGE"));
+    EXPECT_EQ(QString(reply->data()), QString("SIA_FEAR_TEST_STRING_IMAGE_ALBUM"));
 }
 
 TEST_F(TestDownloaderServer, test_ok_artist)
@@ -158,9 +158,9 @@ TEST_F(TestDownloaderServer, test_not_found)
     ASSERT_EQ(spy.count(), 1);
 
     EXPECT_EQ(reply->succeeded(), false);
-    EXPECT_EQ(reply->not_found_error(), false);
+    EXPECT_EQ(reply->not_found_error(), true);
     EXPECT_EQ(reply->is_running(), false);
-    EXPECT_TRUE(reply->error_string().endsWith("server replied: Internal Server Error"));
+    EXPECT_TRUE(reply->error_string().endsWith("server replied: Not Found"));
 }
 
 TEST_F(TestDownloaderServer, test_multiple_downloads)
