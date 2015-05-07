@@ -288,6 +288,7 @@ RequestBase::ImageData LocalThumbnailRequest::fetch() {
         if (screenshotter->success()) {
             return ImageData{FetchStatus::Downloaded, screenshotter->data(), true};
         } else {
+            cerr << "Failed to get thumbnail: " << screenshotter->error();
             return {FetchStatus::Error, "", false};
         }
     }
