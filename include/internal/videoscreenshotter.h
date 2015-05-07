@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Canonical Ltd.
+ * Copyright (C) 2013-2015 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License version 3 as
@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
+ *              James Henstridge <james.henstridge@canonical.com>
  */
 
 #pragma once
@@ -21,7 +22,6 @@
 #include <memory>
 #include <string>
 #include <QObject>
-#include <QProcess>
 
 struct VideoScreenshotterPrivate;
 
@@ -43,7 +43,7 @@ Q_SIGNALS:
     void finished();
 
 private Q_SLOTS:
-    void processFinished(int exitCode, QProcess::ExitStatus exitStatus);
+    void processFinished();
     void timeout();
 
 private:

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Canonical Ltd.
+ * Copyright (C) 2013-2015 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License version 3 as
@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
+ *              James Henstridge <james.henstridge@canonical.com>
  */
 
 #include <internal/videoscreenshotter.h>
@@ -107,7 +108,7 @@ string VideoScreenshotter::data()
 }
 
 
-void VideoScreenshotter::processFinished(int /*exitCode*/, QProcess::ExitStatus /*exitStatus*/)
+void VideoScreenshotter::processFinished()
 {
     p->timer.stop();
     Q_EMIT finished();
