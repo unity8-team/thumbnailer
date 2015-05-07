@@ -25,7 +25,6 @@
 #include <internal/file_io.h>
 #include <internal/gobj_memory.h>
 #include <internal/image.h>
-#include <internal/lastfmdownloader.h>
 #include <internal/make_directories.h>
 #include <internal/raii.h>
 #include <internal/safe_strerror.h>
@@ -66,17 +65,8 @@ public:
 };
 
 ThumbnailerPrivate::ThumbnailerPrivate()
+    : downloader_(new UbuntuServerDownloader())
 {
-    char const* artservice = getenv("THUMBNAILER_ART_PROVIDER");
-    if (artservice && strcmp(artservice, "lastfm") == 0)
-    {
-        downloader_.reset(new LastFMDownloader());
-    }
-    else
-    {
-        downloader_.reset(new UbuntuServerDownloader());
-    }
-
     string xdg_base = g_get_user_cache_dir();
     if (xdg_base == "")
     {
