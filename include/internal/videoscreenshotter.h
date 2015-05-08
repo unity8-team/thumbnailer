@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Canonical Ltd.
+ * Copyright (C) 2013-2015 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License version 3 as
@@ -14,26 +14,38 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
+ *              James Henstridge <james.henstridge@canonical.com>
  */
 
-#ifndef VIDEOSCREENSHOTTER_H_
-#define VIDEOSCREENSHOTTER_H_
+#pragma once
 
-#include<string>
+#include <memory>
+#include <string>
+#include <QObject>
 
-class VideoScreenshotterPrivate;
+struct VideoScreenshotterPrivate;
 
-class VideoScreenshotter final {
+class VideoScreenshotter final : public QObject {
+    Q_OBJECT
 public:
-    VideoScreenshotter();
+    VideoScreenshotter(const std::string &filename);
     ~VideoScreenshotter();
 
     VideoScreenshotter(const VideoScreenshotter &t) = delete;
     VideoScreenshotter & operator=(const VideoScreenshotter &t) = delete;
 
-    bool extract(const std::string &ifname, const std::string &ofname);
+    void extract();
+    bool success();
+    std::string error();
+    std::string data();
 
+Q_SIGNALS:
+    void finished();
+
+private Q_SLOTS:
+    void processFinished();
+    void timeout();
+
+private:
+    std::unique_ptr<VideoScreenshotterPrivate> p;
 };
-
-
-#endif
