@@ -55,22 +55,22 @@ struct HandlerPrivate {
     bool cancelled = false;
     QFutureWatcher<FdOrError> checkWatcher;
     QFutureWatcher<FdOrError> createWatcher;
-    std::shared_ptr<QThreadPool> do_check_pool;
-    std::shared_ptr<QThreadPool> do_create_pool;
+    std::shared_ptr<QThreadPool> check_pool;
+    std::shared_ptr<QThreadPool> create_pool;
 
     HandlerPrivate(const QDBusConnection &bus, const QDBusMessage &message,
             std::shared_ptr<QThreadPool> check_pool,
             std::shared_ptr<QThreadPool> create_pool)
         : bus(bus), message(message),
-          do_check_pool(check_pool),
-          do_create_pool(create_pool){
+          check_pool(check_pool),
+          create_pool(create_pool){
     }
 };
 
 Handler::Handler(const QDBusConnection &bus, const QDBusMessage &message,
-                 std::shared_ptr<QThreadPool> do_check_pool,
-                 std::shared_ptr<QThreadPool> do_create_pool)
-    : p(new HandlerPrivate(bus, message,  do_check_pool, do_create_pool)) {
+                 std::shared_ptr<QThreadPool> check_pool,
+                 std::shared_ptr<QThreadPool> create_pool)
+    : p(new HandlerPrivate(bus, message,  check_pool, create_pool)) {
     connect(&p->checkWatcher, &QFutureWatcher<FdOrError>::finished,
             this, &Handler::checkFinished);
     connect(&p->createWatcher, &QFutureWatcher<FdOrError>::finished,
@@ -93,7 +93,7 @@ void Handler::begin() {
             return FdOrError{QDBusUnixFileDescriptor(), e.what()};
         }
     };
-    p->checkWatcher.setFuture(QtConcurrent::run(p->do_check_pool.get(), do_check));
+    p->checkWatcher.setFuture(QtConcurrent::run(p->check_pool.get(), do_check));
 }
 
 void Handler::checkFinished() {
@@ -131,7 +131,7 @@ void Handler::downloadFinished() {
             return FdOrError{QDBusUnixFileDescriptor(), e.what()};
         }
     };
-    p->createWatcher.setFuture(QtConcurrent::run(p->do_create_pool.get(), do_create));
+    p->createWatcher.setFuture(QtConcurrent::run(p->create_pool.get(), do_create));
 }
 
 void Handler::createFinished() {

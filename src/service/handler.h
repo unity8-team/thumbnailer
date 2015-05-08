@@ -40,7 +40,7 @@ class Handler : public QObject {
     Q_OBJECT
 public:
     Handler(const QDBusConnection &bus, const QDBusMessage &message,
-            std::shared_ptr<QThreadPool> do_check_pool, std::shared_ptr<QThreadPool> do_create_pool);
+            std::shared_ptr<QThreadPool> check_pool, std::shared_ptr<QThreadPool> create_pool);
     ~Handler();
 
     Handler(const Handler&) = delete;

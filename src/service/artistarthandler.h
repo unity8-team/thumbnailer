@@ -40,8 +40,8 @@ class ArtistArtHandler : public Handler {
 public:
     ArtistArtHandler(const QDBusConnection &bus, const QDBusMessage &message,
                     const std::shared_ptr<Thumbnailer> &thumbnailer,
-                    std::shared_ptr<QThreadPool> do_check_pool,
-                    std::shared_ptr<QThreadPool> do_create_pool,
+                    std::shared_ptr<QThreadPool> check_pool,
+                    std::shared_ptr<QThreadPool> create_pool,
                     const QString &artist,
                     const QString &album,
                     const QSize &requestedSize);

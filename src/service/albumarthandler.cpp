@@ -49,12 +49,12 @@ struct AlbumArtHandlerPrivate {
 AlbumArtHandler::AlbumArtHandler(const QDBusConnection &bus,
                                  const QDBusMessage &message,
                                  const std::shared_ptr<Thumbnailer> &thumbnailer,
-                                 std::shared_ptr<QThreadPool> do_check_pool,
-                                 std::shared_ptr<QThreadPool> do_create_pool,
+                                 std::shared_ptr<QThreadPool> check_pool,
+                                 std::shared_ptr<QThreadPool> create_pool,
                                  const QString &artist,
                                  const QString &album,
                                  const QSize &requestedSize)
-    : Handler(bus, message,  do_check_pool, do_create_pool),
+    : Handler(bus, message,  check_pool, create_pool),
       p(new AlbumArtHandlerPrivate(thumbnailer, artist, album, requestedSize)) {
 }
 

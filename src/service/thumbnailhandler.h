@@ -40,8 +40,8 @@ class ThumbnailHandler : public Handler {
 public:
     ThumbnailHandler(const QDBusConnection &bus, const QDBusMessage &message,
                      const std::shared_ptr<Thumbnailer> &thumbnailer,
-                     std::shared_ptr<QThreadPool> do_check_pool,
-                     std::shared_ptr<QThreadPool> do_create_pool,
+                     std::shared_ptr<QThreadPool> check_pool,
+                     std::shared_ptr<QThreadPool> create_pool,
                      const QString &filename,
                      const QDBusUnixFileDescriptor &filename_fd,
                      const QSize &requestedSize);
