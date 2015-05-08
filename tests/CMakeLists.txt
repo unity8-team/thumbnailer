@@ -41,6 +41,7 @@ add_test(image image)
 add_executable(thumbnailer_test thumbnailer_test.cpp)
 target_link_libraries(thumbnailer_test thumbnailer core gtest)
 add_test(thumbnailer_test thumbnailer_test)
+qt5_use_modules(thumbnailer_test Test)
 
 add_executable(downloadtest download.cpp)
 
