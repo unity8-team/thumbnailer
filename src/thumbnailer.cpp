@@ -289,9 +289,7 @@ string RequestBase::thumbnail()
         // is likely that the caller will ask for small thumbnail
         // first (for initial search results), followed by a larger
         // thumbnail (for a preview). If so, we don't download the
-        // artwork a second time. For local files, we keep the full-size
-        // version if it was generated from a video or audio file (which is
-        // expensive), but not if it was generated from an image file (which is cheap).
+        // artwork a second time.
         if (image_data.cache_policy == CachePolicy::cache_fullsize)
         {
             Image full_size_image(image_data.data, target_size);
