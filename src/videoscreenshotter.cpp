@@ -28,7 +28,6 @@
 #include <stdexcept>
 
 using namespace std;
-//using namespace unity::thumbnailer::internal;
 
 struct VideoScreenshotterPrivate
 {
