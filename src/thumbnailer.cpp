@@ -21,7 +21,6 @@
 #include <thumbnailer.h>
 
 #include <internal/artreply.h>
-#include <internal/audioimageextractor.h>
 #include <internal/file_io.h>
 #include <internal/gobj_memory.h>
 #include <internal/image.h>
@@ -52,17 +51,11 @@ using namespace unity::thumbnailer::internal;
 class ThumbnailerPrivate
 {
 public:
-    AudioImageExtractor audio_;
-    VideoScreenshotter video_;
     core::PersistentStringCache::UPtr full_size_cache_;  // Small cache of full (original) size images.
     core::PersistentStringCache::UPtr thumbnail_cache_;  // Large cache of scaled images.
     unique_ptr<ArtDownloader> downloader_;
 
     ThumbnailerPrivate();
-
-    string extract_image_from_audio(string const& filename);
-    string extract_image_from_video(string const& filename);
-    string extract_image_from_other(string const& filename);
 };
 
 ThumbnailerPrivate::ThumbnailerPrivate()
@@ -103,33 +96,6 @@ ThumbnailerPrivate::ThumbnailerPrivate()
     }
 }
 
-string ThumbnailerPrivate::extract_image_from_audio(string const& filename)
-{
-    UnlinkPtr tmpname(create_tmp_filename(), do_unlink);
-
-    if (audio_.extract(filename, tmpname.get()))
-    {
-        return read_file(tmpname.get());  // TODO: use a pipe instead of a temp file.
-    }
-    return "";
-}
-
-string ThumbnailerPrivate::extract_image_from_video(string const& filename)
-{
-    UnlinkPtr tmpname(create_tmp_filename(), do_unlink);
-
-    if (video_.extract(filename, tmpname.get()))
-    {
-        return read_file(tmpname.get());  // TODO: use a pipe instead of a temp file.
-    }
-    return "";
-}
-
-string ThumbnailerPrivate::extract_image_from_other(string const& filename)
-{
-    return read_file(filename);
-}
-
 namespace
 {
 class RequestBase : public ThumbnailRequest {
@@ -167,6 +133,7 @@ protected:
     void download() override;
 private:
     string filename_;
+    unique_ptr<VideoScreenshotter> screenshotter;
 };
 
 class AlbumRequest : public RequestBase {
@@ -324,8 +291,18 @@ LocalThumbnailRequest::LocalThumbnailRequest(shared_ptr<ThumbnailerPrivate> cons
 }
 
 RequestBase::ImageData LocalThumbnailRequest::fetch() {
-    // Work out content type.
+    if (screenshotter)
+    {
+        // The image data has been extracted via vs-thumb
+        if (screenshotter->success()) {
+            return ImageData{FetchStatus::Downloaded, screenshotter->data(), true};
+        } else {
+            cerr << "Failed to get thumbnail: " << screenshotter->error();
+            return {FetchStatus::Error, "", false};
+        }
+    }
 
+    // Work out content type.
     unique_gobj<GFile> file(g_file_new_for_path(filename_.c_str()));
     if (!file)
     {
@@ -351,19 +328,21 @@ RequestBase::ImageData LocalThumbnailRequest::fetch() {
 
     if (content_type.find("audio/") == 0)
     {
-        return ImageData{FetchStatus::Downloaded,
-                p_->extract_image_from_audio(filename_), true};
+        return ImageData{FetchStatus::NeedsDownload, "", false};
     }
     if (content_type.find("video/") == 0)
     {
-        return ImageData{FetchStatus::Downloaded,
-                p_->extract_image_from_video(filename_), true};
+        return ImageData{FetchStatus::NeedsDownload, "", false};
     }
-    return ImageData{FetchStatus::Downloaded,
-            p_->extract_image_from_other(filename_), false};
+    // For other types, we try to parse it as image data directly.
+    return ImageData{FetchStatus::Downloaded, read_file(filename_), false};
 }
 
 void LocalThumbnailRequest::download() {
+    screenshotter.reset(new VideoScreenshotter(filename_));
+    connect(screenshotter.get(), &VideoScreenshotter::finished,
+            this, &LocalThumbnailRequest::downloadFinished, Qt::DirectConnection);
+    screenshotter->extract();
 }
 
 AlbumRequest::AlbumRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& artist, string const& album, QSize const& requested_size)
