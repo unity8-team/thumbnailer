@@ -29,6 +29,7 @@
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <QDebug>
+#include <QThreadPool>
 
 using namespace std;
 
@@ -39,6 +40,8 @@ namespace service {
 struct DBusInterfacePrivate {
     std::shared_ptr<Thumbnailer> thumbnailer = std::make_shared<Thumbnailer>();
     std::map<Handler*,std::unique_ptr<Handler>> requests;
+    std::shared_ptr<QThreadPool> check_thread_pool = std::make_shared<QThreadPool>();
+    std::shared_ptr<QThreadPool> create_thread_pool = std::make_shared<QThreadPool>();
 };
 
 DBusInterface::DBusInterface(QObject *parent)
@@ -51,6 +54,7 @@ DBusInterface::~DBusInterface() {
 QDBusUnixFileDescriptor DBusInterface::GetAlbumArt(const QString &artist, const QString &album, const QSize &requestedSize) {
     qDebug() << "Look up cover art for" << artist << "/" << album << "at size" << requestedSize;
     queueRequest(new AlbumArtHandler(connection(), message(), p->thumbnailer,
+                                     p->check_thread_pool, p->create_thread_pool,
                                      artist, album, requestedSize));
     return QDBusUnixFileDescriptor();
 }
@@ -58,6 +62,7 @@ QDBusUnixFileDescriptor DBusInterface::GetAlbumArt(const QString &artist, const 
 QDBusUnixFileDescriptor DBusInterface::GetArtistArt(const QString &artist, const QString &album, const QSize &requestedSize) {
     qDebug() << "Look up artist art for" << artist << "/" << album << "at size" << requestedSize;
     queueRequest(new ArtistArtHandler(connection(), message(), p->thumbnailer,
+                                      p->check_thread_pool, p->create_thread_pool,
                                       artist, album, requestedSize));
     return QDBusUnixFileDescriptor();
 }
@@ -65,6 +70,7 @@ QDBusUnixFileDescriptor DBusInterface::GetArtistArt(const QString &artist, const
 QDBusUnixFileDescriptor DBusInterface::GetThumbnail(const QString &filename, const QDBusUnixFileDescriptor &filename_fd, const QSize &requestedSize) {
     qDebug() << "Create thumbnail for" << filename << "at size" << requestedSize;
     queueRequest(new ThumbnailHandler(connection(), message(), p->thumbnailer,
+                                      p->check_thread_pool, p->create_thread_pool,
                                       filename, filename_fd, requestedSize));
     return QDBusUnixFileDescriptor();
 }
