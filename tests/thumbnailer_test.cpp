@@ -25,6 +25,7 @@
 #include <boost/algorithm/string.hpp>
 #include <gtest/gtest.h>
 #include <QCoreApplication>
+#include <QSignalSpy>
 #include <QTemporaryDir>
 
 #define TEST_IMAGE TESTDATADIR "/orientation-1.jpg"
@@ -32,6 +33,8 @@
 #define RGB_IMAGE TESTDATADIR "/RGB.png"
 #define BIG_IMAGE TESTDATADIR "/big.jpg"
 #define EMPTY_IMAGE TESTDATADIR "/empty"
+#define TEST_VIDEO TESTDATADIR "/testvideo.ogg"
+#define TEST_SONG TESTDATADIR "/testsong.ogg"
 
 using namespace std;
 
@@ -121,9 +124,46 @@ TEST_F(ThumbnailerTest, exceptions)
 {
 }
 
+TEST_F(ThumbnailerTest, thumbnail_video)
+{
+    Thumbnailer tn;
+    auto request = tn.get_thumbnail(TEST_VIDEO, QSize());
+    ASSERT_NE(nullptr, request.get());
+    // Video thumbnails can not be produced immediately
+    ASSERT_EQ("", request->thumbnail());
+
+    QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
+    request->download();
+    ASSERT_TRUE(spy.wait(15000));
+    string thumb = request->thumbnail();
+    ASSERT_NE("", thumb);
+    Image img(thumb);
+    EXPECT_EQ(1920, img.width());
+    EXPECT_EQ(1080, img.height());
+}
+
+TEST_F(ThumbnailerTest, thumbnail_song)
+{
+    Thumbnailer tn;
+    auto request = tn.get_thumbnail(TEST_SONG, QSize());
+    ASSERT_NE(nullptr, request.get());
+    // Audio thumbnails can not be produced immediately
+    ASSERT_EQ("", request->thumbnail());
+
+    QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
+    request->download();
+    ASSERT_TRUE(spy.wait(15000));
+    string thumb = request->thumbnail();
+    ASSERT_NE("", thumb);
+    Image img(thumb);
+    EXPECT_EQ(200, img.width());
+    EXPECT_EQ(200, img.height());
+}
+
 int main(int argc, char** argv)
 {
     QCoreApplication app(argc, argv);
+    setenv("TN_UTILDIR", TESTBINDIR "/../src/vs-thumb", true);
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

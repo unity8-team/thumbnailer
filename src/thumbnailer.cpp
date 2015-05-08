@@ -21,7 +21,6 @@
 #include <thumbnailer.h>
 
 #include <internal/artreply.h>
-#include <internal/audioimageextractor.h>
 #include <internal/file_io.h>
 #include <internal/gobj_memory.h>
 #include <internal/image.h>
@@ -62,20 +61,12 @@ enum class Location
 class ThumbnailerPrivate
 {
 public:
-    AudioImageExtractor audio_;
-    VideoScreenshotter video_;
     core::PersistentStringCache::UPtr full_size_cache_;  // Small cache of full (original) size images.
     core::PersistentStringCache::UPtr thumbnail_cache_;  // Large cache of scaled images.
     core::PersistentStringCache::UPtr failure_cache_;    // Cache for failed attempts (value is always empty).
     shared_ptr<ArtDownloader> downloader_;
 
     ThumbnailerPrivate();
-    ThumbnailerPrivate(ThumbnailerPrivate const&) = delete;
-    ThumbnailerPrivate& operator=(ThumbnailerPrivate const&) = delete;
-
-    string extract_image_from_audio(string const& filename);
-    string extract_image_from_video(string const& filename);
-    string extract_image_from_other(string const& filename);
 };
 
 ThumbnailerPrivate::ThumbnailerPrivate()
@@ -117,33 +108,6 @@ ThumbnailerPrivate::ThumbnailerPrivate()
         s += e.what();
         throw runtime_error(s);
     }
-}
-
-string ThumbnailerPrivate::extract_image_from_audio(string const& filename)
-{
-    UnlinkPtr tmpname(create_tmp_filename(), do_unlink);
-
-    if (audio_.extract(filename, tmpname.get()))
-    {
-        return read_file(tmpname.get());  // TODO: use a pipe instead of a temp file.
-    }
-    return "";
-}
-
-string ThumbnailerPrivate::extract_image_from_video(string const& filename)
-{
-    UnlinkPtr tmpname(create_tmp_filename(), do_unlink);
-
-    if (video_.extract(filename, tmpname.get()))
-    {
-        return read_file(tmpname.get());  // TODO: use a pipe instead of a temp file.
-    }
-    return "";
-}
-
-string ThumbnailerPrivate::extract_image_from_other(string const& filename)
-{
-    return read_file(filename);
 }
 
 namespace
@@ -188,6 +152,7 @@ protected:
     void download() override;
 private:
     string filename_;
+    unique_ptr<VideoScreenshotter> screenshotter_;
 };
 
 class AlbumRequest : public RequestBase {
@@ -382,8 +347,18 @@ LocalThumbnailRequest::LocalThumbnailRequest(shared_ptr<ThumbnailerPrivate> cons
 }
 
 RequestBase::ImageData LocalThumbnailRequest::fetch() {
-    // Work out content type.
+    if (screenshotter_)
+    {
+        // The image data has been extracted via vs-thumb
+        if (screenshotter_->success()) {
+            return ImageData{FetchStatus::Downloaded, screenshotter_->data(), CachePolicy::cache_fullsize, Location::local};
+        } else {
+            cerr << "Failed to get thumbnail: " << screenshotter_->error();
+            return {FetchStatus::Error, "", CachePolicy::dont_cache_fullsize, Location::local};
+        }
+    }
 
+    // Work out content type.
     unique_gobj<GFile> file(g_file_new_for_path(filename_.c_str()));
     if (!file)
     {
@@ -410,25 +385,22 @@ RequestBase::ImageData LocalThumbnailRequest::fetch() {
     // We indicate that full-size images are to be cached only for audio and video files,
     // for which extraction is expensive. For local images, we don't cache full size.
 
-    if (content_type.find("audio/") == 0)
+    if (content_type.find("audio/") == 0 || content_type.find("video/") == 0)
     {
-        return ImageData{FetchStatus::Downloaded,
-                p_->extract_image_from_audio(filename_), CachePolicy::cache_fullsize, Location::local};
-    }
-    if (content_type.find("video/") == 0)
-    {
-        return ImageData{FetchStatus::Downloaded,
-                p_->extract_image_from_video(filename_), CachePolicy::cache_fullsize, Location::local};
+        return ImageData{FetchStatus::NeedsDownload, "", CachePolicy::cache_fullsize, Location::local};
     }
     if (content_type.find("image/") == 0)
     {
-        return ImageData{FetchStatus::Downloaded,
-                p_->extract_image_from_other(filename_), CachePolicy::dont_cache_fullsize, Location::local};
+        return ImageData{FetchStatus::Downloaded, read_file(filename_), CachePolicy::dont_cache_fullsize, Location::local};
     }
     return ImageData{FetchStatus::NotFound, "", CachePolicy::dont_cache_fullsize, Location::local};
 }
 
 void LocalThumbnailRequest::download() {
+    screenshotter_.reset(new VideoScreenshotter(filename_));
+    connect(screenshotter_.get(), &VideoScreenshotter::finished,
+            this, &LocalThumbnailRequest::downloadFinished, Qt::DirectConnection);
+    screenshotter_->extract();
 }
 
 AlbumRequest::AlbumRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& artist, string const& album, QSize const& requested_size)

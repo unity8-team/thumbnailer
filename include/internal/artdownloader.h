@@ -47,7 +47,7 @@ public:
     virtual std::shared_ptr<ArtReply> download_artist(QString const& artist, QString const& album) = 0;
 
 protected:
-    void assert_valid_url(QUrl const& url);
+    void assert_valid_url(QUrl const& url) const;
 };
 
 }  // namespace internal
