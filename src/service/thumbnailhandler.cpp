@@ -39,6 +39,7 @@ struct ThumbnailHandlerPrivate {
     const QString filename;
     const QDBusUnixFileDescriptor filename_fd;
     const QSize requestedSize;
+    std::unique_ptr<ThumbnailRequest> request;
 
     ThumbnailHandlerPrivate(const std::shared_ptr<Thumbnailer> &thumbnailer,
                             const QString &filename,
@@ -62,14 +63,6 @@ ThumbnailHandler::~ThumbnailHandler() {
 }
 
 QDBusUnixFileDescriptor ThumbnailHandler::check() {
-    return QDBusUnixFileDescriptor();
-}
-
-void ThumbnailHandler::download() {
-    downloadFinished();
-}
-
-QDBusUnixFileDescriptor ThumbnailHandler::create() {
     struct stat filename_stat, fd_stat;
 
     if (stat(p->filename.toUtf8(), &filename_stat) < 0) {
@@ -85,16 +78,30 @@ QDBusUnixFileDescriptor ThumbnailHandler::create() {
                                  + " refers to a different file than the file descriptor");
     }
 
-    auto req = p->thumbnailer->get_thumbnail(
+    p->request = p->thumbnailer->get_thumbnail(
         p->filename.toStdString(), p->requestedSize);
-    std::string art_image = req->thumbnail();
+    std::string art_image = p->request->thumbnail();
+
+    if (art_image.empty()) {
+        return QDBusUnixFileDescriptor();
+    }
+    return write_to_tmpfile(art_image);
+}
+
+void ThumbnailHandler::download() {
+    connect(p->request.get(), &ThumbnailRequest::downloadFinished,
+            this, &ThumbnailHandler::downloadFinished);
+    p->request->download();
+}
+
+QDBusUnixFileDescriptor ThumbnailHandler::create() {
+    std::string art_image = p->request->thumbnail();
 
     if (art_image.empty()) {
         throw std::runtime_error("ThumbnailHandler::create(): Could not get thumbnail for " + p->filename.toStdString());
     }
 
     // FIXME: check that the thumbnail was produced for fd_stat
-
     return write_to_tmpfile(art_image);
 }
 
