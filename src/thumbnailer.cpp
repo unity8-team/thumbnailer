@@ -38,7 +38,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
 #include <gio/gio.h>
-#pragma GCC diagnostic push
+#pragma GCC diagnostic pop
 
 #include <iostream>
 #include <fcntl.h>

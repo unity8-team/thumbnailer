@@ -16,8 +16,7 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#ifndef HTTPDOWNLOADER_H
-#define HTTPDOWNLOADER_H
+#pragma once
 
 #include<string>
 
@@ -26,5 +25,3 @@ public:
     virtual std::string download(const std::string &url) = 0;
     virtual ~HttpDownloader() {};
 };
-
-#endif

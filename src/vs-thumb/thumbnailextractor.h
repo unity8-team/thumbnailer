@@ -16,8 +16,7 @@
  * Authored by: James Henstridge <james.henstridge@canonical.com>
  */
 
-#ifndef THUMBNAILEXTRACTOR_H
-#define THUMBNAILEXTRACTOR_H
+#pragma once
 
 #include <memory>
 #include <string>
@@ -36,5 +35,3 @@ public:
 private:
     std::unique_ptr<Private> p;
 };
-
-#endif
