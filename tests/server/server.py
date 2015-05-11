@@ -65,7 +65,7 @@ class UbuntuAlbumImagesProvider(FileReaderProvider):
 class UbuntuArtistImagesProvider(FileReaderProvider):
     def get(self):
         if self.get_argument('artist', None) == "test_threads":
-            self.write("TEST_THREADS_TEST_%s" % self.get_argument('album', None ))
+            self.write("TEST_THREADS_TEST_%s" % self.get_argument('artist', None ))
         else:
             file = 'images/%s_%s' % (self.get_argument('artist', None ), self.get_argument('album', None ))
             self.read_file(file, False)
