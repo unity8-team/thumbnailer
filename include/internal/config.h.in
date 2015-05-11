@@ -16,9 +16,6 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#ifndef THUMBNAILER_CONFIG_H
-#define THUMBNAILER_CONFIG_H
+#pragma once
 
 #cmakedefine SHARE_PRIV_ABS "@SHARE_PRIV_ABS@"
-
-#endif

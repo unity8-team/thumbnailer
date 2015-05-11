@@ -22,7 +22,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"
 #include <glib.h>
-#pragma GCC diagnostic push
+#pragma GCC diagnostic pop
 
 using namespace std;
 

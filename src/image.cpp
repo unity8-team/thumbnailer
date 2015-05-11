@@ -22,7 +22,6 @@
 #pragma GCC diagnostic ignored "-Wold-style-cast"
 #pragma GCC diagnostic ignored "-Wcast-qual"
 #include <gdk-pixbuf/gdk-pixbuf.h>
-#pragma GCC diagnostic push
 
 #include <libexif/exif-loader.h>
 
@@ -211,12 +210,9 @@ Image::Image(string const& data, QSize requested_size)
         {
             try
             {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
                 pixbuf_ = load_image(exif->data, exif->size,
                                      G_CALLBACK(maybe_scale_thumbnail),
                                      &unrotated_requested_size);
-#pragma GCC diagnostic push
             }
             catch (const runtime_error& e)
             {
@@ -345,3 +341,5 @@ string Image::to_jpeg() const
     g_free(buf);
     return s;
 }
+
+#pragma GCC diagnostic pop

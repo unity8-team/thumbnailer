@@ -16,8 +16,7 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#ifndef GOBJ_MEMORY_H_
-#define GOBJ_MEMORY_H_
+#pragma once
 
 #include<stdexcept>
 
@@ -110,5 +109,3 @@ public:
 };
 
 #pragma GCC diagnostic pop
-
-#endif
