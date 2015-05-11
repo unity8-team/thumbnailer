@@ -33,8 +33,9 @@ namespace internal
 
 // Simple stats class to keep track of accesses.
 
-struct PersistentStringCacheStats
+class PersistentStringCacheStats
 {
+public:
     PersistentStringCacheStats() noexcept
         : policy_(CacheDiscardPolicy::lru_only)
         , num_entries_(0)

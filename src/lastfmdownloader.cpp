@@ -30,7 +30,6 @@ namespace
 constexpr char const NOTFOUND_IMAGE[] = "http://cdn.last.fm/flatness/catalogue/noimage/2/default_album_medium.png";
 constexpr char const LASTFM_APIROOT[] = "http://ws.audioscrobbler.com";
 constexpr char const LASTFM_TEMPLATE_SUFFIX[] = "/1.0/album/%1/%2/info.xml";
-constexpr int MAX_XML_DOWNLOAD_RETRIES = 3;
 }
 
 using namespace std;

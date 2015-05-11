@@ -3,9 +3,18 @@ project(thumbnailer C CXX)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 cmake_minimum_required(VERSION 2.8.10)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11 -Wall -pedantic -Wextra")
+
+string(TOLOWER "${CMAKE_BUILD_TYPE}" cmake_build_type_lower) # Build types should always be lower case
+
+set(ACCEPTED_BUILD_TYPES "" none release debug relwithdebinfo coverage)
+list(FIND ACCEPTED_BUILD_TYPES "${cmake_build_type_lower}" IS_BUILD_TYPE_ACCEPTED)
+if(${IS_BUILD_TYPE_ACCEPTED} EQUAL -1)
+    message(FATAL_ERROR "Invalid CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}\nValid types are: ${ACCEPTED_BUILD_TYPES}")
+endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11 -Wall -pedantic -Wextra")
 
 # Some additional warnings not included by the general flags set above.
 set(EXTRA_C_WARNINGS "-Wcast-align -Wcast-qual -Wformat -Wredundant-decls -Wswitch-default")
@@ -28,6 +37,19 @@ if (${Werror})
 endif()
 
 add_definitions(-DQT_NO_KEYWORDS)
+
+# Flags for thread/address sanitizer
+set(SANITIZER "" CACHE STRING "Build with -fsanitize=<value> (legal values: thread, address)")
+
+if ("${SANITIZER}" STREQUAL "")
+    # Do nothing
+elseif (${SANITIZER} STREQUAL "thread")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -fno-omit-frame-pointer -g")
+elseif (${SANITIZER} STREQUAL "address")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -g")
+else()
+    message(FATAL_ERROR "Invalid SANITIZER setting: ${SANITIZER}")
+endif()
 
 # Some tests are slow, so make it possible not to run them
 # during day-to-day development.
