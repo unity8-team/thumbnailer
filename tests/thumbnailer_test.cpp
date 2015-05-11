@@ -31,10 +31,10 @@
 #define TEST_IMAGE TESTDATADIR "/orientation-1.jpg"
 #define BAD_IMAGE TESTDATADIR "/bad_image.jpg"
 #define RGB_IMAGE TESTDATADIR "/RGB.png"
+#define BIG_IMAGE TESTDATADIR "/big.jpg"
 
 #define TEST_VIDEO TESTDATADIR "/testvideo.ogg"
 #define TEST_SONG TESTDATADIR "/testsong.ogg"
-
 
 using namespace std;
 
@@ -96,12 +96,15 @@ TEST_F(ThumbnailerTest, basic)
     EXPECT_EQ(48, img.width());
     EXPECT_EQ(48, img.height());
 
-    string thumb2 = tn.get_thumbnail(RGB_IMAGE, QSize(48, 48))->thumbnail();
-    cout << "thumb2 size: " << thumb2.size() << endl;
-    EXPECT_EQ(thumb, thumb2);
-    img = Image(thumb2);
-    EXPECT_EQ(48, img.width());
-    EXPECT_EQ(48, img.height());
+    thumb = tn.get_thumbnail(BIG_IMAGE, QSize())->thumbnail();  // > 1920, so will be trimmed down
+    img = Image(thumb);
+    EXPECT_EQ(1920, img.width());
+    EXPECT_EQ(1439, img.height());
+
+    thumb = tn.get_thumbnail(BIG_IMAGE, QSize(0, 0))->thumbnail();  // unconstrained, so will not be trimmed down
+    img = Image(thumb);
+    EXPECT_EQ(2731, img.width());
+    EXPECT_EQ(2048, img.height());
 }
 
 TEST_F(ThumbnailerTest, thumbnail_video)
@@ -114,7 +117,7 @@ TEST_F(ThumbnailerTest, thumbnail_video)
 
     QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
     request->download();
-    ASSERT_TRUE(spy.wait(15000));
+    ASSERT_TRUE(spy.wait(20000));
     string thumb = request->thumbnail();
     ASSERT_NE("", thumb);
     Image img(thumb);
@@ -132,7 +135,7 @@ TEST_F(ThumbnailerTest, thumbnail_song)
 
     QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
     request->download();
-    ASSERT_TRUE(spy.wait(15000));
+    ASSERT_TRUE(spy.wait(20000));
     string thumb = request->thumbnail();
     ASSERT_NE("", thumb);
     Image img(thumb);

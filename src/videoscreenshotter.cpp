@@ -69,7 +69,7 @@ void VideoScreenshotter::extract()
     p->process.start(exe_path,
                      {QString::fromStdString(p->filename), p->tmpfile.fileName()});
     // Set a watchdog timer in case vs-thumb doesn't finish in time.
-    p->timer.start(10000);
+    p->timer.start(15000);
 }
 
 bool VideoScreenshotter::success()

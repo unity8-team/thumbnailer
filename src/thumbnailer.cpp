@@ -182,15 +182,16 @@ RequestBase::RequestBase(shared_ptr<ThumbnailerPrivate> const& p, string const& 
 
 string RequestBase::thumbnail()
 {
-    // desired_size is 0 if the caller wants original size.
+    int MAX_SIZE = 1920;  // TODO: Make limit configurable?
+    QSize target_size = requested_size_.isValid() ? requested_size_ : QSize(MAX_SIZE, MAX_SIZE);
+
+    // desired_size is (0,0) if the caller wants original size.
     string sized_key = key_;
     sized_key += '\0';
-    sized_key += to_string(requested_size_.width());
+    sized_key += to_string(target_size.width());
     sized_key += '\0';
-    sized_key += to_string(requested_size_.height());
+    sized_key += to_string(target_size.height());
 
-    cerr << "Requested size: " << requested_size_.width() << ", "
-         << requested_size_.height() << endl;
     // Check if we have the thumbnail in the cache already.
     auto thumbnail = p_->thumbnail_cache_->get(sized_key);
     if (thumbnail)
@@ -230,12 +231,20 @@ string RequestBase::thumbnail()
         // expensive), but not if it was generated from an image file (which is cheap).
         if (image_data.keep_in_cache)
         {
-            p_->full_size_cache_->put(key_, image_data.data);
+            Image full_size_image(image_data.data, target_size);
+            auto w = full_size_image.width();
+            auto h = full_size_image.height();
+            if (max(w, h) > MAX_SIZE)
+            {
+                // Don't put ridiculously large images into the full-size cache.
+                full_size_image = Image(image_data.data, QSize(MAX_SIZE, MAX_SIZE));
+            }
+            p_->full_size_cache_->put(key_, full_size_image.to_jpeg());
         }
         full_size = move(image_data.data);
     }
 
-    Image scaled_image(*full_size, requested_size_);
+    Image scaled_image(*full_size, target_size);
     string jpeg = scaled_image.to_jpeg();
     p_->thumbnail_cache_->put(sized_key, jpeg);
     return jpeg;
