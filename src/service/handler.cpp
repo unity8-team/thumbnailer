@@ -127,6 +127,8 @@ Handler::Handler(const QDBusConnection &bus, const QDBusMessage &message,
     : p(new HandlerPrivate(bus, message,  check_pool, create_pool, std::move(request))) {
     connect(&p->checkWatcher, &QFutureWatcher<FdOrError>::finished,
             this, &Handler::checkFinished);
+    connect(p->request.get(), &ThumbnailRequest::downloadFinished,
+            this, &Handler::downloadFinished);
     connect(&p->createWatcher, &QFutureWatcher<FdOrError>::finished,
             this, &Handler::createFinished);
 }
@@ -150,6 +152,13 @@ void Handler::begin() {
     p->checkWatcher.setFuture(QtConcurrent::run(p->check_pool.get(), do_check));
 }
 
+// check() determines whether the requested thumbnail exists in
+// the cache.  It is called synchronously in the thread pool.
+//
+// If the thumbnail is available, it is returned as a file descriptor,
+// which will be returned to the user.
+//
+// If not, we continue to the asynchronous download stage.
 QDBusUnixFileDescriptor Handler::check() {
     std::string art_image = p->request->thumbnail();
 
@@ -179,14 +188,8 @@ void Handler::checkFinished() {
         sendThumbnail(fd_error.fd);
     } else {
         // otherwise move on to the download phase.
-        download();
+        p->request->download();
     }
-}
-
-void Handler::download() {
-    connect(p->request.get(), &ThumbnailRequest::downloadFinished,
-            this, &Handler::downloadFinished);
-    p->request->download();
 }
 
 void Handler::downloadFinished() {
@@ -203,6 +206,10 @@ void Handler::downloadFinished() {
     p->createWatcher.setFuture(QtConcurrent::run(p->create_pool.get(), do_create));
 }
 
+// create() picks up after the asynchrnous download stage completes.
+// It effectively repeats the check() stage, except that thumbnailing
+// failures are now errors.  It is called synchronously in the thread
+// pool.
 QDBusUnixFileDescriptor Handler::create() {
     std::string art_image = p->request->thumbnail();
 

@@ -52,32 +52,7 @@ public:
 
     void begin();
 
-protected:
-    void sendThumbnail(const QDBusUnixFileDescriptor &unix_fd);
-    void sendError(const QString &error);
-
-    // Methods to be overridden by handlers
-
-    // check() determines whether the requested thumbnail exists in
-    // the cache.  It is called synchronously in the thread pool.
-    //
-    // If it is available, it should be returned as a file descriptor,
-    // which will be returned to the user.
-    //
-    // If not, processing will continue.
-    QDBusUnixFileDescriptor check();
-
-    // download() is expected to perform any asynchronous actions and
-    // end the request by either calling the downloadFinished() slot
-    // or sendError().
-    void download();
-
-    // create() should create the thumbnail and store it in the cache,
-    // and return it as a file descriptor.  It is called synchronously
-    // in the thread pool.
-    QDBusUnixFileDescriptor create();
-
-protected Q_SLOTS:
+private Q_SLOTS:
     void checkFinished();
     void downloadFinished();
     void createFinished();
@@ -86,6 +61,11 @@ Q_SIGNALS:
     void finished();
 
 private:
+    void sendThumbnail(const QDBusUnixFileDescriptor &unix_fd);
+    void sendError(const QString &error);
+    QDBusUnixFileDescriptor check();
+    QDBusUnixFileDescriptor create();
+
     std::unique_ptr<HandlerPrivate> p;
 };
 
