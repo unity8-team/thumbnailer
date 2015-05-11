@@ -36,8 +36,9 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
+#pragma GCC diagnostic ignored "-Wold-style-cast"
 #include <gio/gio.h>
-#pragma GCC diagnostic push
+#pragma GCC diagnostic pop
 
 #include <iostream>
 #include <fcntl.h>
