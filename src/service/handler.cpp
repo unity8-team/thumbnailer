@@ -19,6 +19,7 @@
 
 #include "handler.h"
 #include <internal/safe_strerror.h>
+#include <internal/raii.h>
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -45,9 +46,6 @@ struct FdOrError {
 
 QDBusUnixFileDescriptor write_to_tmpfile(std::string const& image)
 {
-
-    typedef unity::util::ResourcePtr<int, decltype(&::close)> FdPtr;
-
     static auto find_tmpdir = []
     {
         char const* dirp = getenv("TMPDIR");
@@ -56,12 +54,12 @@ QDBusUnixFileDescriptor write_to_tmpfile(std::string const& image)
     };
     static std::string dir = find_tmpdir();
 
-    int fd = open(dir.c_str(), O_TMPFILE | O_RDWR);
+    FdPtr fd(open(dir.c_str(), O_TMPFILE | O_RDWR), do_close);
     // Different kernel verions return different errno if they don't
     // recognize O_TMPFILE, so we check for all failures here. If it
     // is a real failure (rather than the flag not being recognized),
     // mkstemp will fail too.
-    if (fd < 0)
+    if (fd.get() < 0)
     {
         // We are running on an old kernel without O_TMPFILE support:
         // the flag has been ignored, and treated as an attempt to
@@ -69,18 +67,17 @@ QDBusUnixFileDescriptor write_to_tmpfile(std::string const& image)
         //
         // As a fallback, use mkstemp() and unlink the resulting file.
         std::string tmpfile = dir + "/thumbnail.XXXXXX";
-        fd = mkstemp(const_cast<char*>(tmpfile.data()));
-        if (fd >= 0)
+        fd.reset(mkstemp(const_cast<char*>(tmpfile.data())));
+        if (fd.get() >= 0)
         {
             unlink(tmpfile.data());
         }
     }
-    if (fd < 0) {
+    if (fd.get() < 0) {
         std::string err = "cannot create tmpfile in " + dir + ": " + safe_strerror(errno);
         throw std::runtime_error(err);
     }
-    FdPtr fd_ptr(fd, ::close);
-    auto rc = write(fd_ptr.get(), &image[0], image.size());
+    auto rc = write(fd.get(), &image[0], image.size());
     if (rc == -1)
     {
         std::string err = "cannot write image data in " + dir + ": " + safe_strerror(errno);
@@ -92,9 +89,9 @@ QDBusUnixFileDescriptor write_to_tmpfile(std::string const& image)
             "(requested = " + std::to_string(image.size()) + ", actual = " + std::to_string(rc) + ")";
         throw std::runtime_error(err);
     }
-    lseek(fd, SEEK_SET, 0);  // No error check needed, can't fail.
+    lseek(fd.get(), SEEK_SET, 0);  // No error check needed, can't fail.
 
-    return QDBusUnixFileDescriptor(fd_ptr.get());
+    return QDBusUnixFileDescriptor(fd.get());
 }
 
 }
