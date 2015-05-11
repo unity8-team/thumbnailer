@@ -18,13 +18,15 @@
  */
 
 #include "dbusinterface.h"
-#include "thumbnailhandler.h"
-#include "albumarthandler.h"
-#include "artistarthandler.h"
+#include "handler.h"
 #include <thumbnailer.h>
+#include <internal/safe_strerror.h>
 
 #include <map>
 #include <sstream>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include <QDBusConnection>
 #include <QDBusMessage>
@@ -32,6 +34,11 @@
 #include <QThreadPool>
 
 using namespace std;
+using namespace unity::thumbnailer::internal;
+
+namespace {
+const char ART_ERROR[] = "com.canonical.Thumbnailer.Error.Failed";
+}
 
 namespace unity {
 namespace thumbnailer {
@@ -53,25 +60,50 @@ DBusInterface::~DBusInterface() {
 
 QDBusUnixFileDescriptor DBusInterface::GetAlbumArt(const QString &artist, const QString &album, const QSize &requestedSize) {
     qDebug() << "Look up cover art for" << artist << "/" << album << "at size" << requestedSize;
-    queueRequest(new AlbumArtHandler(connection(), message(), p->thumbnailer,
-                                     p->check_thread_pool, p->create_thread_pool,
-                                     artist, album, requestedSize));
+    auto request = p->thumbnailer->get_album_art(
+        artist.toStdString(), album.toStdString(), requestedSize);
+    queueRequest(new Handler(connection(), message(),
+                             p->check_thread_pool, p->create_thread_pool,
+                             std::move(request)));
     return QDBusUnixFileDescriptor();
 }
 
 QDBusUnixFileDescriptor DBusInterface::GetArtistArt(const QString &artist, const QString &album, const QSize &requestedSize) {
     qDebug() << "Look up artist art for" << artist << "/" << album << "at size" << requestedSize;
-    queueRequest(new ArtistArtHandler(connection(), message(), p->thumbnailer,
-                                      p->check_thread_pool, p->create_thread_pool,
-                                      artist, album, requestedSize));
+    auto request = p->thumbnailer->get_artist_art(
+        artist.toStdString(), album.toStdString(), requestedSize);
+    queueRequest(new Handler(connection(), message(),
+                             p->check_thread_pool, p->create_thread_pool,
+                             std::move(request)));
     return QDBusUnixFileDescriptor();
 }
 
 QDBusUnixFileDescriptor DBusInterface::GetThumbnail(const QString &filename, const QDBusUnixFileDescriptor &filename_fd, const QSize &requestedSize) {
     qDebug() << "Create thumbnail for" << filename << "at size" << requestedSize;
-    queueRequest(new ThumbnailHandler(connection(), message(), p->thumbnailer,
-                                      p->check_thread_pool, p->create_thread_pool,
-                                      filename, filename_fd, requestedSize));
+
+    struct stat filename_stat, fd_stat;
+    if (stat(filename.toUtf8(), &filename_stat) < 0) {
+        sendErrorReply(ART_ERROR, "ThumbnailHandler::create(): Could not stat " +
+                       filename + ": " + QString::fromStdString(safe_strerror(errno)));
+        return QDBusUnixFileDescriptor();
+    }
+    if (fstat(filename_fd.fileDescriptor(), &fd_stat) < 0) {
+        sendErrorReply(ART_ERROR, "ThumbnailHandler::create(): Could not stat file descriptor: " + QString::fromStdString(safe_strerror(errno)));
+        return QDBusUnixFileDescriptor();
+    }
+    if (filename_stat.st_dev != fd_stat.st_dev ||
+        filename_stat.st_ino != fd_stat.st_ino) {
+        sendErrorReply(ART_ERROR, "ThumbnailHandler::create(): " + filename
+                                 + " refers to a different file than the file descriptor");
+        return QDBusUnixFileDescriptor();
+    }
+
+    // FIXME: check that the thumbnail was produced for fd_stat
+    auto request = p->thumbnailer->get_thumbnail(
+        filename.toStdString(), requestedSize);
+    queueRequest(new Handler(connection(), message(),
+                             p->check_thread_pool, p->create_thread_pool,
+                             std::move(request)));
     return QDBusUnixFileDescriptor();
 }
 

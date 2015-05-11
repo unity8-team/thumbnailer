@@ -42,131 +42,6 @@ struct FdOrError {
     QDBusUnixFileDescriptor fd;
     QString error;
 };
-}
-
-namespace unity {
-namespace thumbnailer {
-namespace service {
-
-struct HandlerPrivate {
-    QDBusConnection bus;
-    const QDBusMessage message;
-
-    bool cancelled = false;
-    QFutureWatcher<FdOrError> checkWatcher;
-    QFutureWatcher<FdOrError> createWatcher;
-    std::shared_ptr<QThreadPool> check_pool;
-    std::shared_ptr<QThreadPool> create_pool;
-
-    HandlerPrivate(const QDBusConnection &bus, const QDBusMessage &message,
-            std::shared_ptr<QThreadPool> check_pool,
-            std::shared_ptr<QThreadPool> create_pool)
-        : bus(bus), message(message),
-          check_pool(check_pool),
-          create_pool(create_pool){
-    }
-};
-
-Handler::Handler(const QDBusConnection &bus, const QDBusMessage &message,
-                 std::shared_ptr<QThreadPool> check_pool,
-                 std::shared_ptr<QThreadPool> create_pool)
-    : p(new HandlerPrivate(bus, message,  check_pool, create_pool)) {
-    connect(&p->checkWatcher, &QFutureWatcher<FdOrError>::finished,
-            this, &Handler::checkFinished);
-    connect(&p->createWatcher, &QFutureWatcher<FdOrError>::finished,
-            this, &Handler::createFinished);
-}
-
-Handler::~Handler() {
-    p->cancelled = true;
-    // ensure that jobs occurring in the thread pool complete.
-    p->checkWatcher.waitForFinished();
-    p->createWatcher.waitForFinished();
-    qDebug() << "Handler" << this << "destroyed";
-}
-
-void Handler::begin() {
-    auto do_check = [this]() -> FdOrError {
-        try {
-            return FdOrError{check(), nullptr};
-        } catch (const std::exception &e) {
-            return FdOrError{QDBusUnixFileDescriptor(), e.what()};
-        }
-    };
-    p->checkWatcher.setFuture(QtConcurrent::run(p->check_pool.get(), do_check));
-}
-
-void Handler::checkFinished() {
-    if (p->cancelled)
-        return;
-
-    FdOrError fd_error;
-    try {
-        fd_error = p->checkWatcher.result();
-    } catch (const std::exception &e) {
-        sendError(e.what());
-        return;
-    }
-    if (!fd_error.error.isNull()) {
-        sendError(fd_error.error);
-        return;
-    }
-    // Did we find a valid thumbnail in the cache?
-    if (fd_error.fd.isValid()) {
-        sendThumbnail(fd_error.fd);
-    } else {
-        // otherwise move on to the download phase.
-        download();
-    }
-}
-
-void Handler::downloadFinished() {
-    if (p->cancelled)
-        return;
-
-    auto do_create = [this]() -> FdOrError {
-        try {
-            return FdOrError{create(), nullptr};
-        } catch (const std::exception &e) {
-            return FdOrError{QDBusUnixFileDescriptor(), e.what()};
-        }
-    };
-    p->createWatcher.setFuture(QtConcurrent::run(p->create_pool.get(), do_create));
-}
-
-void Handler::createFinished() {
-    if (p->cancelled)
-        return;
-
-    FdOrError fd_error;
-    try {
-        fd_error = p->createWatcher.result();
-    } catch (const std::exception &e) {
-        sendError(e.what());
-        return;
-    }
-    if (!fd_error.error.isEmpty()) {
-        sendError(fd_error.error);
-        return;
-    }
-    // Did we find a valid thumbnail in the cache?
-    if (fd_error.fd.isValid()) {
-        sendThumbnail(fd_error.fd);
-    } else {
-        // otherwise move on to the download phase.
-        download();
-    }
-}
-
-void Handler::sendThumbnail(const QDBusUnixFileDescriptor &unix_fd) {
-    p->bus.send(p->message.createReply(QVariant::fromValue(unix_fd)));
-    Q_EMIT finished();
-}
-
-void Handler::sendError(const QString &error) {
-    p->bus.send(p->message.createErrorReply(ART_ERROR, error));
-    Q_EMIT finished();
-}
 
 QDBusUnixFileDescriptor write_to_tmpfile(std::string const& image)
 {
@@ -182,9 +57,10 @@ QDBusUnixFileDescriptor write_to_tmpfile(std::string const& image)
     static std::string dir = find_tmpdir();
 
     int fd = open(dir.c_str(), O_TMPFILE | O_RDWR);
-    // Different kernel verions return different errno if they don't recognize O_TMPFILE,
-    // so we check for all failures here. If it is a real failure (rather than the flag not
-    // being recognized), mkstemp will fail too.
+    // Different kernel verions return different errno if they don't
+    // recognize O_TMPFILE, so we check for all failures here. If it
+    // is a real failure (rather than the flag not being recognized),
+    // mkstemp will fail too.
     if (fd < 0)
     {
         // We are running on an old kernel without O_TMPFILE support:
@@ -219,6 +95,158 @@ QDBusUnixFileDescriptor write_to_tmpfile(std::string const& image)
     lseek(fd, SEEK_SET, 0);  // No error check needed, can't fail.
 
     return QDBusUnixFileDescriptor(fd_ptr.get());
+}
+
+}
+
+namespace unity {
+namespace thumbnailer {
+namespace service {
+
+struct HandlerPrivate {
+    QDBusConnection bus;
+    const QDBusMessage message;
+    std::shared_ptr<QThreadPool> check_pool;
+    std::shared_ptr<QThreadPool> create_pool;
+    std::unique_ptr<ThumbnailRequest> request;
+
+    bool cancelled = false;
+    QFutureWatcher<FdOrError> checkWatcher;
+    QFutureWatcher<FdOrError> createWatcher;
+
+    HandlerPrivate(const QDBusConnection &bus, const QDBusMessage &message,
+                   std::shared_ptr<QThreadPool> check_pool,
+                   std::shared_ptr<QThreadPool> create_pool,
+                   std::unique_ptr<ThumbnailRequest> &&request)
+        : bus(bus), message(message),
+          check_pool(check_pool),
+          create_pool(create_pool),
+          request(std::move(request)) {
+    }
+};
+
+Handler::Handler(const QDBusConnection &bus, const QDBusMessage &message,
+                 std::shared_ptr<QThreadPool> check_pool,
+                 std::shared_ptr<QThreadPool> create_pool,
+                 std::unique_ptr<ThumbnailRequest> &&request)
+    : p(new HandlerPrivate(bus, message,  check_pool, create_pool, std::move(request))) {
+    connect(&p->checkWatcher, &QFutureWatcher<FdOrError>::finished,
+            this, &Handler::checkFinished);
+    connect(&p->createWatcher, &QFutureWatcher<FdOrError>::finished,
+            this, &Handler::createFinished);
+}
+
+Handler::~Handler() {
+    p->cancelled = true;
+    // ensure that jobs occurring in the thread pool complete.
+    p->checkWatcher.waitForFinished();
+    p->createWatcher.waitForFinished();
+    qDebug() << "Handler" << this << "destroyed";
+}
+
+void Handler::begin() {
+    auto do_check = [this]() -> FdOrError {
+        try {
+            return FdOrError{check(), nullptr};
+        } catch (const std::exception &e) {
+            return FdOrError{QDBusUnixFileDescriptor(), e.what()};
+        }
+    };
+    p->checkWatcher.setFuture(QtConcurrent::run(p->check_pool.get(), do_check));
+}
+
+QDBusUnixFileDescriptor Handler::check() {
+    std::string art_image = p->request->thumbnail();
+
+    if (art_image.empty()) {
+        return QDBusUnixFileDescriptor();
+    }
+    return write_to_tmpfile(art_image);
+}
+
+void Handler::checkFinished() {
+    if (p->cancelled)
+        return;
+
+    FdOrError fd_error;
+    try {
+        fd_error = p->checkWatcher.result();
+    } catch (const std::exception &e) {
+        sendError(e.what());
+        return;
+    }
+    if (!fd_error.error.isNull()) {
+        sendError(fd_error.error);
+        return;
+    }
+    // Did we find a valid thumbnail in the cache?
+    if (fd_error.fd.isValid()) {
+        sendThumbnail(fd_error.fd);
+    } else {
+        // otherwise move on to the download phase.
+        download();
+    }
+}
+
+void Handler::download() {
+    connect(p->request.get(), &ThumbnailRequest::downloadFinished,
+            this, &Handler::downloadFinished);
+    p->request->download();
+}
+
+void Handler::downloadFinished() {
+    if (p->cancelled)
+        return;
+
+    auto do_create = [this]() -> FdOrError {
+        try {
+            return FdOrError{create(), nullptr};
+        } catch (const std::exception &e) {
+            return FdOrError{QDBusUnixFileDescriptor(), e.what()};
+        }
+    };
+    p->createWatcher.setFuture(QtConcurrent::run(p->create_pool.get(), do_create));
+}
+
+QDBusUnixFileDescriptor Handler::create() {
+    std::string art_image = p->request->thumbnail();
+
+    if (art_image.empty()) {
+        throw std::runtime_error("Handler::create(): Could not get thumbnail");
+    }
+    return write_to_tmpfile(art_image);
+}
+
+void Handler::createFinished() {
+    if (p->cancelled)
+        return;
+
+    FdOrError fd_error;
+    try {
+        fd_error = p->createWatcher.result();
+    } catch (const std::exception &e) {
+        sendError(e.what());
+        return;
+    }
+    if (!fd_error.error.isEmpty()) {
+        sendError(fd_error.error);
+        return;
+    }
+    if (fd_error.fd.isValid()) {
+        sendThumbnail(fd_error.fd);
+    } else {
+        sendError("Handler::create() did not produce a valid file descriptor");
+    }
+}
+
+void Handler::sendThumbnail(const QDBusUnixFileDescriptor &unix_fd) {
+    p->bus.send(p->message.createReply(QVariant::fromValue(unix_fd)));
+    Q_EMIT finished();
+}
+
+void Handler::sendError(const QString &error) {
+    p->bus.send(p->message.createErrorReply(ART_ERROR, error));
+    Q_EMIT finished();
 }
 
 }
