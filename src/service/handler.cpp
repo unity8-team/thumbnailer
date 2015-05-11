@@ -32,8 +32,6 @@
 #include <QDebug>
 #include <QThreadPool>
 
-#include <unity/util/ResourcePtr.h>
-
 using namespace unity::thumbnailer::internal;
 
 namespace {

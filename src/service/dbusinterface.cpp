@@ -83,18 +83,18 @@ QDBusUnixFileDescriptor DBusInterface::GetThumbnail(const QString &filename, con
 
     struct stat filename_stat, fd_stat;
     if (stat(filename.toUtf8(), &filename_stat) < 0) {
-        sendErrorReply(ART_ERROR, "ThumbnailHandler::create(): Could not stat " +
+        sendErrorReply(ART_ERROR, "DBusInterface::GetThumbnail(): Could not stat " +
                        filename + ": " + QString::fromStdString(safe_strerror(errno)));
         return QDBusUnixFileDescriptor();
     }
     if (fstat(filename_fd.fileDescriptor(), &fd_stat) < 0) {
-        sendErrorReply(ART_ERROR, "ThumbnailHandler::create(): Could not stat file descriptor: " + QString::fromStdString(safe_strerror(errno)));
+        sendErrorReply(ART_ERROR, "DBusInterface::GetThumbnail(): Could not stat file descriptor: " + QString::fromStdString(safe_strerror(errno)));
         return QDBusUnixFileDescriptor();
     }
     if (filename_stat.st_dev != fd_stat.st_dev ||
         filename_stat.st_ino != fd_stat.st_ino) {
-        sendErrorReply(ART_ERROR, "ThumbnailHandler::create(): " + filename
-                                 + " refers to a different file than the file descriptor");
+        sendErrorReply(ART_ERROR, "DBusInterface::GetThumbnail(): " + filename
+                       + " refers to a different file than the file descriptor");
         return QDBusUnixFileDescriptor();
     }
 

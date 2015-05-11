@@ -196,7 +196,7 @@ TEST_F(DBusTest, thumbnail_no_such_file) {
         QSize(256, 256));
     EXPECT_FALSE(reply.isValid());
     auto message = reply.error().message().toStdString();
-    EXPECT_TRUE(boost::starts_with(message, "ThumbnailHandler::create(): Could not stat ")) << message;
+    EXPECT_TRUE(boost::starts_with(message, "DBusInterface::GetThumbnail(): Could not stat ")) << message;
 }
 
 TEST_F(DBusTest, thumbnail_wrong_fd_fails) {
