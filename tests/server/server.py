@@ -71,25 +71,8 @@ class UbuntuArtistImagesProvider(FileReaderProvider):
             self.read_file(file, False)
         self.finish()
 
-class LastFMArtistAlbumInfo(FileReaderProvider):
-    def get(self, artist, album):
-        file = 'queries/%s_%s' % (artist, album)
-        self.read_file(file, True)
-        self.finish()
-
-class LastFMImagesProvider(FileReaderProvider):
-    def get(self, image):
-        if(image.startswith("test_thread")):
-            self.write("TEST_THREADS_TEST_%s" % image)
-        else:
-            file = 'images/%s' % image
-            self.read_file(file, False)
-        self.finish()
-
 def new_app():
     application = tornado.web.Application([
-        (r"/1.0/album/(\w+)/(\w+)/info.xml", LastFMArtistAlbumInfo),
-        (r"/images/(\w+).png", LastFMImagesProvider),
         (r"/musicproxy/v1/album-art", UbuntuAlbumImagesProvider),
         (r"/musicproxy/v1/artist-art", UbuntuArtistImagesProvider)
     ], gzip=True)

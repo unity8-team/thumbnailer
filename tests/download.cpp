@@ -45,7 +45,6 @@ protected:
         QString port = QString::fromUtf8(fake_downloader_server_.readAllStandardOutput()).trimmed();
 
         apiroot_ = QString("http://127.0.0.1:%1").arg(port);
-        setenv("THUMBNAILER_LASTFM_APIROOT", apiroot_.toUtf8().constData(), true);
         setenv("THUMBNAILER_UBUNTU_APIROOT", apiroot_.toUtf8().constData(), true);
     }
 
@@ -56,7 +55,6 @@ protected:
         {
             qCritical() << "Failed to terminate fake server";
         }
-        unsetenv("THUMBNAILER_LASTFM_APIROOT");
         unsetenv("THUMBNAILER_UBUNTU_APIROOT");
     }
 
