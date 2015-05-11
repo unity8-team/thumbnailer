@@ -117,7 +117,7 @@ TEST_F(ThumbnailerTest, thumbnail_video)
 
     QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
     request->download();
-    ASSERT_TRUE(spy.wait(15000));
+    ASSERT_TRUE(spy.wait(30000));         // Long timeout, for Arm on Jenkins
     string thumb = request->thumbnail();
     ASSERT_NE("", thumb);
     Image img(thumb);
@@ -135,7 +135,7 @@ TEST_F(ThumbnailerTest, thumbnail_song)
 
     QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
     request->download();
-    ASSERT_TRUE(spy.wait(15000));
+    ASSERT_TRUE(spy.wait(30000));         // Long timeout, for Arm on Jenkins
     string thumb = request->thumbnail();
     ASSERT_NE("", thumb);
     Image img(thumb);
