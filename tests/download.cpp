@@ -17,7 +17,6 @@
  */
 
 #include <internal/ubuntuserverdownloader.h>
-#include <internal/lastfmdownloader.h>
 #include <internal/artreply.h>
 
 #include <gtest/gtest.h>
@@ -46,7 +45,6 @@ protected:
         QString port = QString::fromUtf8(fake_downloader_server_.readAllStandardOutput()).trimmed();
 
         apiroot_ = QString("http://127.0.0.1:%1").arg(port);
-        setenv("THUMBNAILER_LASTFM_APIROOT", apiroot_.toUtf8().constData(), true);
         setenv("THUMBNAILER_UBUNTU_APIROOT", apiroot_.toUtf8().constData(), true);
     }
 
@@ -57,7 +55,6 @@ protected:
         {
             qCritical() << "Failed to terminate fake server";
         }
-        unsetenv("THUMBNAILER_LASTFM_APIROOT");
         unsetenv("THUMBNAILER_UBUNTU_APIROOT");
     }
 
@@ -192,122 +189,6 @@ TEST_F(TestDownloaderServer, test_multiple_downloads)
         EXPECT_EQ(replies[i].first->is_running(), false);
         // Finally check the content of the file downloaded
         EXPECT_EQ(QString(replies[i].first->data()), QString("TEST_THREADS_TEST_TEST_%1").arg(i));
-    }
-}
-
-TEST_F(TestDownloaderServer, lastfm_album_download_ok)
-{
-    LastFMDownloader downloader;
-
-    auto reply = downloader.download_album("sia", "fear");
-    ASSERT_NE(reply, nullptr);
-
-    QSignalSpy spy(reply.get(), &ArtReply::finished);
-
-    EXPECT_EQ(reply->url_string(), apiroot_ + "/1.0/album/sia/fear/info.xml");
-
-    // we set a timeout of 5 seconds waiting for the signal to be emitted,
-    // which should never be reached
-    ASSERT_TRUE(spy.wait(5000));
-
-    // check that we've got exactly one signal
-    ASSERT_EQ(spy.count(), 1);
-
-    EXPECT_EQ(reply->succeeded(), true);
-    EXPECT_EQ(reply->not_found_error(), false);
-    EXPECT_EQ(reply->is_running(), false);
-    // Finally check the content of the file downloaded
-    EXPECT_EQ(QString(reply->data()), QString("SIA_FEAR_TEST_STRING_IMAGE"));
-}
-
-TEST_F(TestDownloaderServer, lastfm_artist_download_ok)
-{
-    LastFMDownloader downloader;
-
-    auto reply = downloader.download_artist("sia", "fear");
-    ASSERT_EQ(reply, nullptr);
-}
-
-TEST_F(TestDownloaderServer, lastfm_xml_parsing_errors)
-{
-    LastFMDownloader downloader;
-
-    auto reply = downloader.download_album("xml", "errors");
-    ASSERT_NE(reply, nullptr);
-
-    QSignalSpy spy(reply.get(), &ArtReply::finished);
-
-    EXPECT_EQ(reply->url_string(), apiroot_ + "/1.0/album/xml/errors/info.xml");
-
-    // we set a timeout of 5 seconds waiting for the signal to be emitted,
-    // which should never be reached
-    ASSERT_TRUE(spy.wait(5000));
-
-    // check that we've got exactly one signal
-    ASSERT_EQ(spy.count(), 1);
-
-    EXPECT_EQ(reply->succeeded(), false);
-    EXPECT_EQ(reply->not_found_error(), false);
-    EXPECT_EQ(reply->is_running(), false);
-    // Finally check the content of the error message
-    EXPECT_EQ(reply->error_string(),
-              QString("LastFMArtReply::parse_xml() XML ERROR: Expected '?', '!', or '[a-zA-Z]', but got '/'."));
-}
-
-TEST_F(TestDownloaderServer, lastfm_xml_image_not_found)
-{
-    LastFMDownloader downloader;
-
-    auto reply = downloader.download_album("no", "cover");
-    ASSERT_NE(reply, nullptr);
-
-    QSignalSpy spy(reply.get(), &ArtReply::finished);
-
-    EXPECT_EQ(reply->url_string(), apiroot_ + "/1.0/album/no/cover/info.xml");
-
-    // we set a timeout of 5 seconds waiting for the signal to be emitted,
-    // which should never be reached
-    ASSERT_TRUE(spy.wait(5000));
-
-    // check that we've got exactly one signal
-    ASSERT_EQ(spy.count(), 1);
-
-    EXPECT_EQ(reply->succeeded(), false);
-    EXPECT_EQ(reply->not_found_error(), false);
-    EXPECT_EQ(reply->is_running(), false);
-    // Finally check the content of the error message
-    EXPECT_EQ(reply->error_string(), QString("LastFMArtReply::parse_xml() Image url not found"));
-}
-
-TEST_F(TestDownloaderServer, lastfm_test_multiple_downloads)
-{
-    LastFMDownloader downloader;
-
-    std::vector<std::pair<std::shared_ptr<ArtReply>, std::shared_ptr<QSignalSpy>>> replies;
-
-    int NUM_DOWNLOADS = 100;
-    for (auto i = 0; i < NUM_DOWNLOADS; ++i)
-    {
-        QString download_id = QString("TEST_%1").arg(i);
-        auto reply = downloader.download_album("test", QString("thread_%1").arg((i % 5) + 1));
-        ASSERT_NE(reply, nullptr);
-        std::shared_ptr<QSignalSpy> spy(new QSignalSpy(reply.get(), &ArtReply::finished));
-        replies.push_back(std::make_pair(reply, spy));
-    }
-
-    for (auto i = 0; i < NUM_DOWNLOADS; ++i)
-    {
-        if (!replies[i].second->count())
-        {
-            // if it was not called yet, wait for it
-            ASSERT_TRUE(replies[i].second->wait());
-        }
-        ASSERT_EQ(replies[i].second->count(), 1);
-        EXPECT_EQ(replies[i].first->succeeded(), true);
-        EXPECT_EQ(replies[i].first->not_found_error(), false);
-        EXPECT_EQ(replies[i].first->is_running(), false);
-        // Finally check the content of the file downloaded
-        EXPECT_EQ(QString(replies[i].first->data()), QString("TEST_THREADS_TEST_test_thread_%1").arg((i % 5) + 1));
     }
 }
 

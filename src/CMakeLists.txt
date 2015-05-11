@@ -3,7 +3,6 @@ add_subdirectory(core)
 add_library(thumbnailer STATIC
 file_io.cpp
 image.cpp
-lastfmdownloader.cpp
 make_directories.cpp
 safe_strerror.cpp
 thumbnailer.cpp
@@ -12,7 +11,6 @@ videoscreenshotter.cpp
 artdownloader.cpp
 ${CMAKE_SOURCE_DIR}/include/internal/artdownloader.h
 ${CMAKE_SOURCE_DIR}/include/internal/ubuntuserverdownloader.h
-${CMAKE_SOURCE_DIR}/include/internal/lastfmdownloader.h
 ${CMAKE_SOURCE_DIR}/include/internal/artreply.h
 ${CMAKE_SOURCE_DIR}/include/internal/videoscreenshotter.h
 ${CMAKE_SOURCE_DIR}/include/thumbnailer.h
