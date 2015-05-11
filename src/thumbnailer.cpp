@@ -15,19 +15,18 @@
  *
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  *              Michi Henning <michi.henning@canonical.com>
+ *              James Henstridge <james.henstridge@canonical.com>
  */
 
 #include <thumbnailer.h>
 
-#include <internal/audioimageextractor.h>
+#include <internal/artreply.h>
 #include <internal/file_io.h>
 #include <internal/gobj_memory.h>
 #include <internal/image.h>
-#include <internal/lastfmdownloader.h>
 #include <internal/make_directories.h>
 #include <internal/raii.h>
 #include <internal/safe_strerror.h>
-#include <internal/syncdownloader.h>
 #include <internal/ubuntuserverdownloader.h>
 #include <internal/videoscreenshotter.h>
 
@@ -51,34 +50,16 @@ using namespace unity::thumbnailer::internal;
 class ThumbnailerPrivate
 {
 public:
-    AudioImageExtractor audio_;
-    VideoScreenshotter video_;
     core::PersistentStringCache::UPtr full_size_cache_;  // Small cache of full (original) size images.
     core::PersistentStringCache::UPtr thumbnail_cache_;  // Large cache of scaled images.
-    shared_ptr<ArtDownloader> downloader_;
-    unique_ptr<SyncDownloader> sync_downloader_;
+    unique_ptr<ArtDownloader> downloader_;
 
     ThumbnailerPrivate();
-
-    string extract_image_from_audio(string const& filename);
-    string extract_image_from_video(string const& filename);
-    string extract_image_from_other(string const& filename);
 };
 
 ThumbnailerPrivate::ThumbnailerPrivate()
+    : downloader_(new UbuntuServerDownloader())
 {
-    char const* artservice = getenv("THUMBNAILER_ART_PROVIDER");
-    if (artservice && strcmp(artservice, "lastfm") == 0)
-    {
-        downloader_.reset(new LastFMDownloader());
-    }
-    else
-    {
-        downloader_.reset(new UbuntuServerDownloader());
-    }
-
-    sync_downloader_.reset(new SyncDownloader(downloader_));
-
     string xdg_base = g_get_user_cache_dir();
     if (xdg_base == "")
     {
@@ -103,33 +84,6 @@ ThumbnailerPrivate::ThumbnailerPrivate()
         s += e.what();
         throw runtime_error(s);
     }
-}
-
-string ThumbnailerPrivate::extract_image_from_audio(string const& filename)
-{
-    UnlinkPtr tmpname(create_tmp_filename(), do_unlink);
-
-    if (audio_.extract(filename, tmpname.get()))
-    {
-        return read_file(tmpname.get());  // TODO: use a pipe instead of a temp file.
-    }
-    return "";
-}
-
-string ThumbnailerPrivate::extract_image_from_video(string const& filename)
-{
-    UnlinkPtr tmpname(create_tmp_filename(), do_unlink);
-
-    if (video_.extract(filename, tmpname.get()))
-    {
-        return read_file(tmpname.get());  // TODO: use a pipe instead of a temp file.
-    }
-    return "";
-}
-
-string ThumbnailerPrivate::extract_image_from_other(string const& filename)
-{
-    return read_file(filename);
 }
 
 namespace
@@ -169,30 +123,33 @@ protected:
     void download() override;
 private:
     string filename_;
+    unique_ptr<VideoScreenshotter> screenshotter;
 };
 
 class AlbumRequest : public RequestBase {
     Q_OBJECT
 public:
-    AlbumRequest(std::shared_ptr<ThumbnailerPrivate> const& p, string const& artist, string const& album, QSize const& requested_size);
+    AlbumRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& artist, string const& album, QSize const& requested_size);
 protected:
     ImageData fetch() override;
     void download() override;
 private:
     string artist_;
     string album_;
+    shared_ptr<ArtReply> artreply_;
 };
 
 class ArtistRequest : public RequestBase {
     Q_OBJECT
 public:
-    ArtistRequest(std::shared_ptr<ThumbnailerPrivate> const& p, string const& artist, string const& album, QSize const& requested_size);
+    ArtistRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& artist, string const& album, QSize const& requested_size);
 protected:
     ImageData fetch() override;
     void download() override;
 private:
     string artist_;
     string album_;
+    shared_ptr<ArtReply> artreply_;
 };
 }
 
@@ -202,30 +159,39 @@ RequestBase::RequestBase(shared_ptr<ThumbnailerPrivate> const& p, string const& 
 }
 
 // Main look-up logic for thumbnails.
-// key1 and key2 are set by the caller. They are artist and album or, for files,
-// the pathname in key1 and the device, inode, and mtime in key2.
 //
-// We first look in the cache to see if we have a thumbnail already for the provided keys and size.
-// If not, we check whether a full-size image was downloaded previously and is still hanging
-// around. If so, we scale the full-size image to what was asked for, add it to the thumbnail
-// cache, and return the scaled image. Otherwise, we fetch the image (by downloading it
-// or extracting it from a file), add the full-size image to the full-size cache, scale
-// the image and add the scaled version to the thumbnail cache, and return the scaled image.
+// key_ is set by the subclass to uniquely identify what is being
+// thumbnailed.  For online art, this includes the artist and album.
+// For local thumbnails, this includes the path name, inode and mtime.
 //
-// If an image contains an EXIF thumbnail and the thumbnail is >= desired size, we generate
-// the thumbnail from the EXIF thumbnail.
+// We first look in the cache to see if we have a thumbnail already
+// for the provided key and size.  If not, we check whether a
+// full-size image was downloaded previously and is still hanging
+// around. If no image is available in the full size cache, we call
+// the fetch() routine (implemented by the subclass), which will
+// either (a) report that the data needs to be downloaded, (b) return
+// the full size image ready for scaling, or (c) report an error.
+//
+// If the data needs downloading, we return immediately.  Similarly,
+// we return in case of an error.  If the data is available, it may be
+// stored in the full size cache.
+//
+// At this point we have the image data, so scale it to the desired
+// size, store the scaled version to the thumbnail cache and return
+// it.
 
 string RequestBase::thumbnail()
 {
-    // desired_size is 0 if the caller wants original size.
+    int MAX_SIZE = 1920;  // TODO: Make limit configurable?
+    QSize target_size = requested_size_.isValid() ? requested_size_ : QSize(MAX_SIZE, MAX_SIZE);
+
+    // desired_size is (0,0) if the caller wants original size.
     string sized_key = key_;
     sized_key += '\0';
-    sized_key += to_string(requested_size_.width());
+    sized_key += to_string(target_size.width());
     sized_key += '\0';
-    sized_key += to_string(requested_size_.height());
+    sized_key += to_string(target_size.height());
 
-    cerr << "Requested size: " << requested_size_.width() << ", "
-         << requested_size_.height() << endl;
     // Check if we have the thumbnail in the cache already.
     auto thumbnail = p_->thumbnail_cache_->get(sized_key);
     if (thumbnail)
@@ -265,12 +231,20 @@ string RequestBase::thumbnail()
         // expensive), but not if it was generated from an image file (which is cheap).
         if (image_data.keep_in_cache)
         {
-            p_->full_size_cache_->put(key_, image_data.data);
+            Image full_size_image(image_data.data, target_size);
+            auto w = full_size_image.width();
+            auto h = full_size_image.height();
+            if (max(w, h) > MAX_SIZE)
+            {
+                // Don't put ridiculously large images into the full-size cache.
+                full_size_image = Image(image_data.data, QSize(MAX_SIZE, MAX_SIZE));
+            }
+            p_->full_size_cache_->put(key_, full_size_image.to_jpeg());
         }
         full_size = move(image_data.data);
     }
 
-    Image scaled_image(*full_size, requested_size_);
+    Image scaled_image(*full_size, target_size);
     string jpeg = scaled_image.to_jpeg();
     p_->thumbnail_cache_->put(sized_key, jpeg);
     return jpeg;
@@ -307,8 +281,18 @@ LocalThumbnailRequest::LocalThumbnailRequest(shared_ptr<ThumbnailerPrivate> cons
 }
 
 RequestBase::ImageData LocalThumbnailRequest::fetch() {
-    // Work out content type.
+    if (screenshotter)
+    {
+        // The image data has been extracted via vs-thumb
+        if (screenshotter->success()) {
+            return ImageData{FetchStatus::Downloaded, screenshotter->data(), true};
+        } else {
+            cerr << "Failed to get thumbnail: " << screenshotter->error();
+            return {FetchStatus::Error, "", false};
+        }
+    }
 
+    // Work out content type.
     unique_gobj<GFile> file(g_file_new_for_path(filename_.c_str()));
     if (!file)
     {
@@ -334,49 +318,93 @@ RequestBase::ImageData LocalThumbnailRequest::fetch() {
 
     if (content_type.find("audio/") == 0)
     {
-        return ImageData{FetchStatus::Downloaded,
-                p_->extract_image_from_audio(filename_), true};
+        return ImageData{FetchStatus::NeedsDownload, "", false};
     }
     if (content_type.find("video/") == 0)
     {
-        return ImageData{FetchStatus::Downloaded,
-                p_->extract_image_from_video(filename_), true};
+        return ImageData{FetchStatus::NeedsDownload, "", false};
     }
-    return ImageData{FetchStatus::Downloaded,
-            p_->extract_image_from_other(filename_), false};
+    // For other types, we try to parse it as image data directly.
+    return ImageData{FetchStatus::Downloaded, read_file(filename_), false};
 }
 
 void LocalThumbnailRequest::download() {
+    screenshotter.reset(new VideoScreenshotter(filename_));
+    connect(screenshotter.get(), &VideoScreenshotter::finished,
+            this, &LocalThumbnailRequest::downloadFinished, Qt::DirectConnection);
+    screenshotter->extract();
 }
 
-AlbumRequest::AlbumRequest(std::shared_ptr<ThumbnailerPrivate> const& p, string const& artist, string const& album, QSize const& requested_size)
+AlbumRequest::AlbumRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& artist, string const& album, QSize const& requested_size)
     : RequestBase(p, artist + '\0' + album, requested_size),
       artist_(artist), album_(album)
 {
 }
 
 RequestBase::ImageData AlbumRequest::fetch() {
-    auto raw_data = p_->sync_downloader_->download_album(QString::fromStdString(artist_), QString::fromStdString(album_));
-    return ImageData{FetchStatus::Downloaded,
-        string(raw_data.data(), raw_data.size()), true};
+    if (artreply_)
+    {
+        if (artreply_->succeeded())
+        {
+            auto raw_data = artreply_->data();
+            return ImageData{FetchStatus::Downloaded,
+                    string(raw_data.data(), raw_data.size()), true};
+        }
+        else if (artreply_->not_found_error())
+        {
+            return ImageData{FetchStatus::NotFound, "", false};
+        }
+        else
+        {
+            return ImageData{FetchStatus::Error, "", false};
+        }
+    }
+    else
+    {
+        return ImageData{FetchStatus::NeedsDownload, "", false};
+    }
 }
 
 void AlbumRequest::download() {
+    artreply_ = p_->downloader_->download_album(QString::fromStdString(artist_), QString::fromStdString(album_));
+    connect(artreply_.get(), &ArtReply::finished,
+            this, &AlbumRequest::downloadFinished, Qt::DirectConnection);
 }
 
-ArtistRequest::ArtistRequest(std::shared_ptr<ThumbnailerPrivate> const& p, string const& artist, string const& album, QSize const& requested_size)
+ArtistRequest::ArtistRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& artist, string const& album, QSize const& requested_size)
     : RequestBase(p, artist + '\0' + album, requested_size),
       artist_(artist), album_(album)
 {
 }
 
 RequestBase::ImageData ArtistRequest::fetch() {
-    auto raw_data = p_->sync_downloader_->download_artist(QString::fromStdString(artist_), QString::fromStdString(album_));
-    return ImageData{FetchStatus::Downloaded,
-        string(raw_data.data(), raw_data.size()), true};
+    if (artreply_)
+    {
+        if (artreply_->succeeded())
+        {
+            auto raw_data = artreply_->data();
+            return ImageData{FetchStatus::Downloaded,
+                    string(raw_data.data(), raw_data.size()), true};
+        }
+        else if (artreply_->not_found_error())
+        {
+            return ImageData{FetchStatus::NotFound, "", false};
+        }
+        else
+        {
+            return ImageData{FetchStatus::Error, "", false};
+        }
+    }
+    else
+    {
+        return ImageData{FetchStatus::NeedsDownload, "", false};
+    }
 }
 
 void ArtistRequest::download() {
+    artreply_ = p_->downloader_->download_artist(QString::fromStdString(artist_), QString::fromStdString(album_));
+    connect(artreply_.get(), &ArtReply::finished,
+            this, &ThumbnailRequest::downloadFinished, Qt::DirectConnection);
 }
 
 Thumbnailer::Thumbnailer()
@@ -386,30 +414,30 @@ Thumbnailer::Thumbnailer()
 
 Thumbnailer::~Thumbnailer() = default;
 
-string Thumbnailer::get_thumbnail(string const& filename, QSize const &requested_size)
+unique_ptr<ThumbnailRequest> Thumbnailer::get_thumbnail(string const& filename, QSize const &requested_size)
 {
     assert(!filename.empty());
 
-    LocalThumbnailRequest req(p_, filename, requested_size);
-    return req.thumbnail();
+    return unique_ptr<ThumbnailRequest>(
+        new LocalThumbnailRequest(p_, filename, requested_size));
 }
 
-string Thumbnailer::get_album_art(string const& artist, string const& album, QSize const &requested_size)
+unique_ptr<ThumbnailRequest> Thumbnailer::get_album_art(string const& artist, string const& album, QSize const &requested_size)
 {
     assert(artist.empty() || !album.empty());
     assert(album.empty() || !artist.empty());
 
-    AlbumRequest req(p_, artist, album, requested_size);
-    return req.thumbnail();
+    return unique_ptr<ThumbnailRequest>(
+        new AlbumRequest(p_, artist, album, requested_size));
 }
 
-string Thumbnailer::get_artist_art(string const& artist, string const& album, QSize const &requested_size)
+unique_ptr<ThumbnailRequest> Thumbnailer::get_artist_art(string const& artist, string const& album, QSize const &requested_size)
 {
     assert(artist.empty() || !album.empty());
     assert(album.empty() || !artist.empty());
 
-    ArtistRequest req(p_, artist, album, requested_size);
-    return req.thumbnail();
+    return unique_ptr<ThumbnailRequest>(
+        new ArtistRequest(p_, artist, album, requested_size));
 }
 
 #include "thumbnailer.moc"

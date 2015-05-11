@@ -35,6 +35,7 @@ struct AlbumArtHandlerPrivate {
     const QString artist;
     const QString album;
     const QSize requestedSize;
+    std::unique_ptr<ThumbnailRequest> request;
 
     AlbumArtHandlerPrivate(const std::shared_ptr<Thumbnailer> &thumbnailer,
                            const QString &artist,
@@ -48,26 +49,37 @@ struct AlbumArtHandlerPrivate {
 AlbumArtHandler::AlbumArtHandler(const QDBusConnection &bus,
                                  const QDBusMessage &message,
                                  const std::shared_ptr<Thumbnailer> &thumbnailer,
+                                 std::shared_ptr<QThreadPool> check_pool,
+                                 std::shared_ptr<QThreadPool> create_pool,
                                  const QString &artist,
                                  const QString &album,
                                  const QSize &requestedSize)
-    : Handler(bus, message), p(new AlbumArtHandlerPrivate(thumbnailer, artist, album, requestedSize)) {
+    : Handler(bus, message,  check_pool, create_pool),
+      p(new AlbumArtHandlerPrivate(thumbnailer, artist, album, requestedSize)) {
 }
 
 AlbumArtHandler::~AlbumArtHandler() {
 }
 
 QDBusUnixFileDescriptor AlbumArtHandler::check() {
-    return QDBusUnixFileDescriptor();
+    p->request = p->thumbnailer->get_album_art(
+        p->artist.toStdString(), p->album.toStdString(), p->requestedSize);
+    std::string art_image = p->request->thumbnail();
+
+    if (art_image.empty()) {
+        return QDBusUnixFileDescriptor();
+    }
+    return write_to_tmpfile(art_image);
 }
 
 void AlbumArtHandler::download() {
-    downloadFinished();
+    connect(p->request.get(), &ThumbnailRequest::downloadFinished,
+            this, &AlbumArtHandler::downloadFinished);
+    p->request->download();
 }
 
 QDBusUnixFileDescriptor AlbumArtHandler::create() {
-    std::string art_image = p->thumbnailer->get_album_art(
-        p->artist.toStdString(), p->album.toStdString(), p->requestedSize);
+    std::string art_image = p->request->thumbnail();
 
     if (art_image.empty()) {
         throw std::runtime_error("AlbumArtHandler::create(): Could not get thumbnail for " +
