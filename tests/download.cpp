@@ -115,6 +115,7 @@ TEST_F(TestDownloaderServer, test_ok_album)
     EXPECT_EQ(reply->succeeded(), true);
     EXPECT_EQ(reply->not_found_error(), false);
     EXPECT_EQ(reply->is_running(), false);
+    EXPECT_EQ(reply->network_error(), false);
     // Finally check the content of the file downloaded
     EXPECT_EQ(QString(reply->data()), QString("SIA_FEAR_TEST_STRING_IMAGE_ALBUM"));
 }
@@ -136,6 +137,7 @@ TEST_F(TestDownloaderServer, test_ok_artist)
     EXPECT_EQ(reply->succeeded(), true);
     EXPECT_EQ(reply->not_found_error(), false);
     EXPECT_EQ(reply->is_running(), false);
+    EXPECT_EQ(reply->network_error(), false);
     EXPECT_EQ(QString(reply->data()), QString("SIA_FEAR_TEST_STRING_IMAGE"));
 }
 
@@ -157,6 +159,7 @@ TEST_F(TestDownloaderServer, test_not_found)
     EXPECT_EQ(reply->succeeded(), false);
     EXPECT_EQ(reply->not_found_error(), true);
     EXPECT_EQ(reply->is_running(), false);
+    EXPECT_EQ(reply->network_error(), false);
     EXPECT_TRUE(reply->error_string().endsWith("server replied: Not Found"));
 }
 
@@ -187,9 +190,35 @@ TEST_F(TestDownloaderServer, test_multiple_downloads)
         EXPECT_EQ(replies[i].first->succeeded(), true);
         EXPECT_EQ(replies[i].first->not_found_error(), false);
         EXPECT_EQ(replies[i].first->is_running(), false);
+        EXPECT_EQ(replies[i].first->network_error(), false);
         // Finally check the content of the file downloaded
         EXPECT_EQ(QString(replies[i].first->data()), QString("TEST_THREADS_TEST_TEST_%1").arg(i));
     }
+}
+
+TEST_F(TestDownloaderServer, test_connection_error)
+{
+    UbuntuServerDownloader downloader;
+
+    auto network_manager = downloader.network_manager();
+
+    // disable connection before executing any query
+    network_manager->setNetworkAccessible(QNetworkAccessManager::NotAccessible);
+
+    auto reply = downloader.download_artist("sia", "fear");
+    ASSERT_NE(reply, nullptr);
+
+    QSignalSpy spy(reply.get(), &ArtReply::finished);
+    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+    // which should never be reached
+    ASSERT_TRUE(spy.wait(5000));
+
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+    EXPECT_EQ(reply->succeeded(), false);
+    EXPECT_EQ(reply->not_found_error(), false);
+    EXPECT_EQ(reply->is_running(), false);
+    EXPECT_EQ(reply->network_error(), true);
 }
 
 int main(int argc, char** argv)

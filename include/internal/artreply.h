@@ -43,6 +43,7 @@ public:
     virtual bool not_found_error() const = 0;
     virtual QByteArray const& data() const = 0;
     virtual QString url_string() const = 0;
+    virtual bool network_error() const = 0;
 
 Q_SIGNALS:
     void finished();

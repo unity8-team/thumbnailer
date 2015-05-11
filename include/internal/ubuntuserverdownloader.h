@@ -47,12 +47,17 @@ public:
     std::shared_ptr<ArtReply> download_album(QString const& artist, QString const& album) override;
     std::shared_ptr<ArtReply> download_artist(QString const& artist, QString const& album) override;
 
+    // NOTE: this method is just used for testing purposes.
+    // We need to expose the internal QNetworkAccessManager in order to
+    // set the networkAccessible accessible and test the code
+    // that manages error disconnected situations
+    std::shared_ptr<QNetworkAccessManager> network_manager() const;
 private:
     void set_api_key();
     std::shared_ptr<ArtReply> download_url(QUrl const& url);
 
     QString api_key_;
-    std::unique_ptr<QNetworkAccessManager> network_manager_;
+    std::shared_ptr<QNetworkAccessManager> network_manager_;
 };
 
 }  // namespace internal
