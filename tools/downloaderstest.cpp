@@ -16,7 +16,6 @@
  * Authored by: Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
-#include <internal/lastfmdownloader.h>
 #include <internal/ubuntuserverdownloader.h>
 #include <internal/artreply.h>
 
@@ -38,7 +37,6 @@ class TestDownload : public QObject
 public:
     enum DownloadType
     {
-        LastFMAlbum,
         UbuntuAlbum,
         UbuntuArtist
     };
@@ -49,7 +47,6 @@ public:
 
     void start()
     {
-        start(LastFMAlbum);
         start(UbuntuArtist);
         start(UbuntuAlbum);
     }
@@ -61,13 +58,6 @@ public:
         std::shared_ptr<ArtReply> reply;
         switch(download_type)
         {
-        case LastFMAlbum:
-            reply = downloader_lastfm_.download_album("prince", "controversy");
-            if (reply)
-            {
-                map_active_downloads_[reply.get()] = LastFMAlbum;
-            }
-            break;
         case UbuntuAlbum:
             reply = downloader_ubuntu_.download_album("u2", "joshua tree");
             if (reply)
@@ -83,6 +73,7 @@ public:
             }
             break;
         default:
+            abort();  // Impossible
             break;
         }
         if (reply)
@@ -134,9 +125,6 @@ private:
         QString ret = "";
         switch(type)
         {
-        case LastFMAlbum:
-            ret = "LastFMAlbum";
-            break;
         case UbuntuAlbum:
             ret = "UbuntuAlbum";
             break;
@@ -144,6 +132,7 @@ private:
             ret = "UbuntuArtist";
             break;
         default:
+            abort();  // Impossible
             break;
         }
         return ret;
@@ -155,9 +144,6 @@ private:
         QString ret = "";
         switch(type)
         {
-        case LastFMAlbum:
-            ret = ".png";
-            break;
         case UbuntuAlbum:
             ret = ".jpg";
             break;
@@ -165,13 +151,13 @@ private:
             ret = ".jpg";
             break;
         default:
+            abort();  // Impossible
             break;
         }
         return ret;
     }
 
     std::map<ArtReply *, DownloadType> map_active_downloads_;
-    LastFMDownloader downloader_lastfm_;
     UbuntuServerDownloader downloader_ubuntu_;
     int downloads_to_wait_;
 };

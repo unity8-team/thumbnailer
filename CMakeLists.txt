@@ -62,7 +62,7 @@ configure_file(CTestCustom.cmake.in CTestCustom.cmake) # Tests in CTestCustom.cm
 find_program(MEMORYCHECK_COMMAND NAMES valgrind)
 if (MEMORYCHECK_COMMAND)
     set(MEMORYCHECK_COMMAND_OPTIONS
-        "--suppressions=${CMAKE_SOURCE_DIR}/valgrind-suppress --leak-check=full --num-callers=40 --error-exitcode=3"
+        "--suppressions=${CMAKE_SOURCE_DIR}/valgrind-suppress --errors-for-leak-kinds=definite --show-leak-kinds=definite --leak-check=full --num-callers=50 --error-exitcode=3"
     )
     add_custom_target(valgrind DEPENDS NightlyMemCheck)
 else()
@@ -114,6 +114,7 @@ enable_coverage_report(
         thumbnailer
         thumbnailer-service
         thumbnailer-qml
+        vs-thumb
     FILTER
         ${CMAKE_SOURCE_DIR}/tests/*
         ${CMAKE_SOURCE_DIR}/tools/*
