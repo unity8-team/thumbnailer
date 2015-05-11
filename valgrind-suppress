@@ -1,41 +1,92 @@
 {
-    DynLinker
+    g_settings_new
     Memcheck:Leak
+    match-leak-kinds: definite
     ...
-    fun:call_init.part.0
-    fun:call_init
-    fun:_dl_init
+    fun:g_settings_backend_get_default
+    ...
+    fun:g_object_new_valist
 }
 
 {
-    glib1
-    Memcheck:Leak
-    match-leak-kinds: possible
+   g_file_new_for_path
+   Memcheck:Leak
+   match-leak-kinds: definite
     ...
-    fun:g_type_register_static
+   fun:g_type_create_instance
+   ...
+   fun:g_object_newv
+   fun:g_object_new
+   fun:g_io_module_new
+   fun:g_io_modules_scan_all_in_directory_with_scope
+   ...
+   fun:g_file_new_for_path
+   fun:_Z15filename_to_uriRKSs
 }
 
 {
-    glib2
+    QNetworkConfigurationManager
     Memcheck:Leak
-    match-leak-kinds: possible
+    match-leak-kinds: definite
     ...
-    fun:g_type_class_ref
+    fun:_ZN35QNetworkConfigurationManagerPrivate10initializeEv
+    fun:_Z35qNetworkConfigurationManagerPrivatev
+    fun:_ZN28QNetworkConfigurationManagerC1EP7QObject
 }
 
 {
-    glib3
+    QCoreApplication
     Memcheck:Leak
-    match-leak-kinds: possible
+    match-leak-kinds: definite
+    fun:calloc
     ...
-    obj:/usr/lib/x86_64-linux-gnu/libgobject-2.0.so.0.4400.0
-    fun:g_type_add_interface_static
+    fun:_ZN7QObject5eventEP6QEvent
+    fun:_ZN16QCoreApplication14notifyInternalEP7QObjectP6QEvent
+    fun:_ZN23QCoreApplicationPrivate16sendPostedEventsEP7QObjectiP11QThreadData
 }
 
 {
-    leveldb
-    Memcheck:Leak
-    match-leak-kinds: possible
+    QCoreApplication2
+    Memcheck:Param
+    writev(vector[...])
     ...
-    fun:_ZN7leveldb6DBImpl12CompactRangeEPKNS_5SliceES3_
+    fun:xcb_wait_for_reply
+    ...
+    fun:_ZN7QObject5eventEP6QEvent
+    fun:_ZN16QCoreApplication6notifyEP7QObjectP6QEvent
+    fun:_ZN16QCoreApplication14notifyInternalEP7QObjectP6QEvent
+    fun:_ZN23QCoreApplicationPrivate16sendPostedEventsEP7QObjectiP11QThreadData
+    ...
+    fun:g_main_context_dispatch
+    ...
+    fun:g_main_context_iteration
+    fun:_ZN20QEventDispatcherGlib13processEventsE6QFlagsIN10QEventLoop17ProcessEventsFlagEE
+    fun:_ZN16QCoreApplication13processEventsE6QFlagsIN10QEventLoop17ProcessEventsFlagEEi
+}
+
+# TODO: remove this once LastFMDownloader is removed.
+{
+    LastFMDownloader_get
+    Memcheck:Leak
+    match-leak-kinds: definite
+    ...
+    fun:_ZN21QNetworkAccessManager13createRequestENS_9OperationERK15QNetworkRequestP9QIODevice
+    fun:_ZN21QNetworkAccessManager3getERK15QNetworkRequest
+    fun:_ZN5unity11thumbnailer8internal16LastFMDownloader14download_albumERK7QStringS5_
+}
+
+{
+    gst_plugin_load_file
+    Memcheck:Leak
+    match-leak-kinds: definite
+    fun:malloc
+    fun:dl_open_worker
+    fun:_dl_catch_error
+    fun:_dl_open
+    fun:dlopen_doit
+    fun:_dl_catch_error
+    fun:_dlerror_run
+    ...
+    fun:g_module_open
+    fun:gst_plugin_load_file
 }
