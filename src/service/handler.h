@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <thumbnailer.h>
+
 #include <memory>
 #include <string>
 
@@ -40,7 +42,9 @@ class Handler : public QObject {
     Q_OBJECT
 public:
     Handler(const QDBusConnection &bus, const QDBusMessage &message,
-            std::shared_ptr<QThreadPool> check_pool, std::shared_ptr<QThreadPool> create_pool);
+            std::shared_ptr<QThreadPool> check_pool,
+            std::shared_ptr<QThreadPool> create_pool,
+            std::unique_ptr<ThumbnailRequest> &&request);
     ~Handler();
 
     Handler(const Handler&) = delete;
@@ -48,32 +52,7 @@ public:
 
     void begin();
 
-protected:
-    void sendThumbnail(const QDBusUnixFileDescriptor &unix_fd);
-    void sendError(const QString &error);
-
-    // Methods to be overridden by handlers
-
-    // check() determines whether the requested thumbnail exists in
-    // the cache.  It is called synchronously in the thread pool.
-    //
-    // If it is available, it should be returned as a file descriptor,
-    // which will be returned to the user.
-    //
-    // If not, processing will continue.
-    virtual QDBusUnixFileDescriptor check() = 0;
-
-    // download() is expected to perform any asynchronous actions and
-    // end the request by either calling the downloadFinished() slot
-    // or sendError().
-    virtual void download() = 0;
-
-    // create() should create the thumbnail and store it in the cache,
-    // and return it as a file descriptor.  It is called synchronously
-    // in the thread pool.
-    virtual QDBusUnixFileDescriptor create() = 0;
-
-protected Q_SLOTS:
+private Q_SLOTS:
     void checkFinished();
     void downloadFinished();
     void createFinished();
@@ -82,11 +61,13 @@ Q_SIGNALS:
     void finished();
 
 private:
+    void sendThumbnail(const QDBusUnixFileDescriptor &unix_fd);
+    void sendError(const QString &error);
+    QDBusUnixFileDescriptor check();
+    QDBusUnixFileDescriptor create();
+
     std::unique_ptr<HandlerPrivate> p;
 };
-
-// Helper routine for creating an unnamed tmpfile from image data
-QDBusUnixFileDescriptor write_to_tmpfile(std::string const& image);
 
 }
 }
