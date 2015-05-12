@@ -60,19 +60,17 @@ bool is_network_error(QNetworkReply::NetworkError error)
     switch (error)
     {
         // add here all the cases that you consider as network errors
-    case QNetworkReply::HostNotFoundError:
-    case QNetworkReply::TemporaryNetworkFailureError:
-    case QNetworkReply::NetworkSessionFailedError:
-    case QNetworkReply::ProxyConnectionRefusedError:
-    case QNetworkReply::ProxyConnectionClosedError:
-    case QNetworkReply::ProxyNotFoundError:
-    case QNetworkReply::ProxyTimeoutError:
-    case QNetworkReply::UnknownNetworkError:
+        case QNetworkReply::HostNotFoundError:
+        case QNetworkReply::TemporaryNetworkFailureError:
+        case QNetworkReply::NetworkSessionFailedError:
+        case QNetworkReply::ProxyConnectionRefusedError:
+        case QNetworkReply::ProxyConnectionClosedError:
+        case QNetworkReply::ProxyNotFoundError:
+        case QNetworkReply::ProxyTimeoutError:
+        case QNetworkReply::UnknownNetworkError:
             return true;
-            break;
         default:
             return false;
-            break;
     }
 }
 
@@ -82,14 +80,16 @@ class UbuntuServerArtReply : public ArtReply
 public:
     Q_DISABLE_COPY(UbuntuServerArtReply)
 
-    UbuntuServerArtReply(QString const& url, QObject* parent = nullptr)
+    UbuntuServerArtReply(QString const& url, QNetworkReply* reply, QObject* parent = nullptr)
         : ArtReply(parent)
         , is_running_(false)
         , error_(QNetworkReply::NoError)
         , url_string_(url)
         , succeeded_(false)
         , is_network_error_(false)
+        , reply_(reply)
     {
+        assert(reply_);
     }
 
     virtual ~UbuntuServerArtReply() = default;
@@ -117,10 +117,8 @@ public:
             case QNetworkReply::ContentNotFoundError:
             case QNetworkReply::ContentGoneError:
                 return true;
-                break;
             default:
                 return false;
-                break;
         }
     }
 
@@ -139,23 +137,28 @@ public:
         return is_network_error_;
     }
 
+    void abort() override
+    {
+        reply_->abort();
+    }
+
 public Q_SLOTS:
     void download_finished()
     {
         QNetworkReply* reply = static_cast<QNetworkReply*>(sender());
         assert(reply);
 
-        this->is_running_ = false;
-        this->error_ = reply->error();
-        if (!reply->error())
+        is_running_ = false;
+        error_ = reply->error();
+        if (error_)
         {
-            this->data_ = reply->readAll();
-            succeeded_ = true;
+            error_string_ = reply->errorString();
+            is_network_error_ = is_network_error(error_);
         }
         else
         {
-            this->error_string_ = reply->errorString();
-            is_network_error_ = is_network_error(reply->error());
+            data_ = reply->readAll();
+            succeeded_ = true;
         }
         Q_EMIT finished();
         reply->deleteLater();
@@ -169,6 +172,7 @@ private:
     QString url_string_;
     bool succeeded_;
     bool is_network_error_;
+    QNetworkReply* reply_;
 };
 
 // helper methods to retrieve image urls
@@ -235,13 +239,13 @@ void UbuntuServerDownloader::set_api_key()
         if (!status)
         {
             // TODO do something with the error
-            qCritical() << "Failed to get API key";
+            qCritical() << "Failed to get API key";  // LCOV_EXCL_LINE
         }
     }
     else
     {
         // TODO do something with the error
-        qCritical() << "The schema " << THUMBNAILER_SCHEMA << " is missing";
+        qCritical() << "The schema " << THUMBNAILER_SCHEMA << " is missing";  // LCOV_EXCL_LINE
     }
 }
 
@@ -258,8 +262,8 @@ shared_ptr<ArtReply> UbuntuServerDownloader::download_artist(QString const& arti
 shared_ptr<ArtReply> UbuntuServerDownloader::download_url(QUrl const& url)
 {
     assert_valid_url(url);
-    std::shared_ptr<UbuntuServerArtReply> art_reply(new UbuntuServerArtReply(url.toString(), this));
     QNetworkReply* reply = network_manager_->get(QNetworkRequest(url));
+    std::shared_ptr<UbuntuServerArtReply> art_reply(new UbuntuServerArtReply(url.toString(), reply, this));
     connect(reply, &QNetworkReply::finished, art_reply.get(), &UbuntuServerArtReply::download_finished);
 
     return art_reply;

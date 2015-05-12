@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <memory>
 #include <string>
 #include <QObject>
@@ -28,7 +29,7 @@ struct VideoScreenshotterPrivate;
 class VideoScreenshotter final : public QObject {
     Q_OBJECT
 public:
-    VideoScreenshotter(const std::string &filename);
+    VideoScreenshotter(const std::string &filename, std::chrono::milliseconds timeout);
     ~VideoScreenshotter();
 
     VideoScreenshotter(const VideoScreenshotter &t) = delete;

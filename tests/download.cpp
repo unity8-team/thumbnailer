@@ -141,6 +141,23 @@ TEST_F(TestDownloaderServer, test_ok_artist)
     EXPECT_EQ(QString(reply->data()), QString("SIA_FEAR_TEST_STRING_IMAGE"));
 }
 
+TEST_F(TestDownloaderServer, test_abort)
+{
+    UbuntuServerDownloader downloader;
+
+    auto reply = downloader.download_artist("sleep", "2");
+    ASSERT_NE(reply, nullptr);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    reply->abort();
+
+    // No signal is emitted if reply is aborted.
+
+    EXPECT_EQ(reply->succeeded(), false);
+    EXPECT_EQ(reply->not_found_error(), false);
+    EXPECT_EQ(reply->is_running(), false);
+    EXPECT_EQ(reply->network_error(), false);
+}
+
 TEST_F(TestDownloaderServer, test_not_found)
 {
     UbuntuServerDownloader downloader;

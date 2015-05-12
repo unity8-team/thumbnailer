@@ -40,9 +40,11 @@
 #include <gio/gio.h>
 #pragma GCC diagnostic pop
 
+#include <QTimer>
+
 #include <iostream>
+
 #include <fcntl.h>
-#include <iostream>
 #include <sys/stat.h>
 
 using namespace std;
@@ -121,7 +123,7 @@ public:
     LocalThumbnailRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& filename, QSize const& requested_size);
 protected:
     ImageData fetch() override;
-    void download() override;
+    void download(std::chrono::milliseconds timeout) override;
 private:
     string filename_;
     unique_ptr<VideoScreenshotter> screenshotter;
@@ -130,27 +132,41 @@ private:
 class AlbumRequest : public RequestBase {
     Q_OBJECT
 public:
-    AlbumRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& artist, string const& album, QSize const& requested_size);
+    AlbumRequest(shared_ptr<ThumbnailerPrivate> const& p,
+                 string const& artist,
+                 string const& album,
+                 QSize const& requested_size);
+    virtual ~AlbumRequest();
 protected:
     ImageData fetch() override;
-    void download() override;
+    void download(std::chrono::milliseconds timeout) override;
+private Q_SLOTS:
+    void timeout();
 private:
     string artist_;
     string album_;
     shared_ptr<ArtReply> artreply_;
+    QTimer timer_;
 };
 
 class ArtistRequest : public RequestBase {
     Q_OBJECT
 public:
-    ArtistRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& artist, string const& album, QSize const& requested_size);
+    ArtistRequest(shared_ptr<ThumbnailerPrivate> const& p,
+                  string const& artist,
+                  string const& album,
+                  QSize const& requested_size);
+    virtual ~ArtistRequest();
 protected:
     ImageData fetch() override;
-    void download() override;
+    void download(std::chrono::milliseconds timeout) override;
+private Q_SLOTS:
+    void timeout();
 private:
     string artist_;
     string album_;
     shared_ptr<ArtReply> artreply_;
+    QTimer timer_;
 };
 }
 
@@ -329,17 +345,26 @@ RequestBase::ImageData LocalThumbnailRequest::fetch() {
     return ImageData{FetchStatus::Downloaded, read_file(filename_), false};
 }
 
-void LocalThumbnailRequest::download() {
-    screenshotter.reset(new VideoScreenshotter(filename_));
+void LocalThumbnailRequest::download(std::chrono::milliseconds timeout) {
+    screenshotter.reset(new VideoScreenshotter(filename_, timeout));
     connect(screenshotter.get(), &VideoScreenshotter::finished,
             this, &LocalThumbnailRequest::downloadFinished, Qt::DirectConnection);
     screenshotter->extract();
 }
 
-AlbumRequest::AlbumRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& artist, string const& album, QSize const& requested_size)
-    : RequestBase(p, artist + '\0' + album, requested_size),
-      artist_(artist), album_(album)
+AlbumRequest::AlbumRequest(shared_ptr<ThumbnailerPrivate> const& p,
+                           string const& artist,
+                           string const& album,
+                           QSize const& requested_size)
+    : RequestBase(p, artist + '\0' + album, requested_size)
+    , artist_(artist)
+    , album_(album)
 {
+}
+
+AlbumRequest::~AlbumRequest()
+{
+    timer_.stop();
 }
 
 RequestBase::ImageData AlbumRequest::fetch() {
@@ -366,16 +391,33 @@ RequestBase::ImageData AlbumRequest::fetch() {
     }
 }
 
-void AlbumRequest::download() {
+void AlbumRequest::download(chrono::milliseconds timeout) {
     artreply_ = p_->downloader_->download_album(QString::fromStdString(artist_), QString::fromStdString(album_));
     connect(artreply_.get(), &ArtReply::finished,
             this, &AlbumRequest::downloadFinished, Qt::DirectConnection);
+    timer_.setSingleShot(true);
+    connect(&timer_, &QTimer::timeout, this, &AlbumRequest::timeout);
+    timer_.start(timeout.count());
 }
 
-ArtistRequest::ArtistRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& artist, string const& album, QSize const& requested_size)
-    : RequestBase(p, artist + '\0' + album, requested_size),
-      artist_(artist), album_(album)
+void AlbumRequest::timeout()
 {
+    artreply_->abort();
+}
+
+ArtistRequest::ArtistRequest(shared_ptr<ThumbnailerPrivate> const& p,
+                             string const& artist,
+                             string const& album,
+                             QSize const& requested_size)
+    : RequestBase(p, artist + '\0' + album, requested_size)
+    , artist_(artist)
+    , album_(album)
+{
+}
+
+ArtistRequest::~ArtistRequest()
+{
+    timer_.stop();
 }
 
 RequestBase::ImageData ArtistRequest::fetch() {
@@ -402,10 +444,18 @@ RequestBase::ImageData ArtistRequest::fetch() {
     }
 }
 
-void ArtistRequest::download() {
+void ArtistRequest::download(chrono::milliseconds timeout) {
     artreply_ = p_->downloader_->download_artist(QString::fromStdString(artist_), QString::fromStdString(album_));
     connect(artreply_.get(), &ArtReply::finished,
             this, &ThumbnailRequest::downloadFinished, Qt::DirectConnection);
+    timer_.setSingleShot(true);
+    connect(&timer_, &QTimer::timeout, this, &ArtistRequest::timeout);
+    timer_.start(timeout.count());
+}
+
+void ArtistRequest::timeout()
+{
+    artreply_->abort();
 }
 
 Thumbnailer::Thumbnailer()
@@ -423,7 +473,9 @@ unique_ptr<ThumbnailRequest> Thumbnailer::get_thumbnail(string const& filename, 
         new LocalThumbnailRequest(p_, filename, requested_size));
 }
 
-unique_ptr<ThumbnailRequest> Thumbnailer::get_album_art(string const& artist, string const& album, QSize const &requested_size)
+unique_ptr<ThumbnailRequest> Thumbnailer::get_album_art(string const& artist,
+                                                        string const& album,
+                                                        QSize const &requested_size)
 {
     assert(artist.empty() || !album.empty());
     assert(album.empty() || !artist.empty());
@@ -432,7 +484,9 @@ unique_ptr<ThumbnailRequest> Thumbnailer::get_album_art(string const& artist, st
         new AlbumRequest(p_, artist, album, requested_size));
 }
 
-unique_ptr<ThumbnailRequest> Thumbnailer::get_artist_art(string const& artist, string const& album, QSize const &requested_size)
+unique_ptr<ThumbnailRequest> Thumbnailer::get_artist_art(string const& artist,
+                                                         string const& album,
+                                                         QSize const &requested_size)
 {
     assert(artist.empty() || !album.empty());
     assert(album.empty() || !artist.empty());
