@@ -33,6 +33,7 @@
 #define RGB_IMAGE TESTDATADIR "/RGB.png"
 #define BIG_IMAGE TESTDATADIR "/big.jpg"
 #define EMPTY_IMAGE TESTDATADIR "/empty"
+
 #define TEST_VIDEO TESTDATADIR "/testvideo.ogg"
 #define TEST_SONG TESTDATADIR "/testsong.ogg"
 
@@ -120,10 +121,6 @@ TEST_F(ThumbnailerTest, basic)
     EXPECT_EQ(2048, img.height());
 }
 
-TEST_F(ThumbnailerTest, exceptions)
-{
-}
-
 TEST_F(ThumbnailerTest, thumbnail_video)
 {
     Thumbnailer tn;
@@ -134,7 +131,7 @@ TEST_F(ThumbnailerTest, thumbnail_video)
 
     QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
     request->download();
-    ASSERT_TRUE(spy.wait(15000));
+    ASSERT_TRUE(spy.wait(20000));
     string thumb = request->thumbnail();
     ASSERT_NE("", thumb);
     Image img(thumb);
@@ -152,7 +149,7 @@ TEST_F(ThumbnailerTest, thumbnail_song)
 
     QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
     request->download();
-    ASSERT_TRUE(spy.wait(15000));
+    ASSERT_TRUE(spy.wait(20000));
     string thumb = request->thumbnail();
     ASSERT_NE("", thumb);
     Image img(thumb);

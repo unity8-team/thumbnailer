@@ -55,6 +55,27 @@ namespace thumbnailer
 namespace internal
 {
 
+bool is_network_error(QNetworkReply::NetworkError error)
+{
+    switch (error)
+    {
+        // add here all the cases that you consider as network errors
+    case QNetworkReply::HostNotFoundError:
+    case QNetworkReply::TemporaryNetworkFailureError:
+    case QNetworkReply::NetworkSessionFailedError:
+    case QNetworkReply::ProxyConnectionRefusedError:
+    case QNetworkReply::ProxyConnectionClosedError:
+    case QNetworkReply::ProxyNotFoundError:
+    case QNetworkReply::ProxyTimeoutError:
+    case QNetworkReply::UnknownNetworkError:
+            return true;
+            break;
+        default:
+            return false;
+            break;
+    }
+}
+
 class UbuntuServerArtReply : public ArtReply
 {
     Q_OBJECT
@@ -67,6 +88,7 @@ public:
         , error_(QNetworkReply::NoError)
         , url_string_(url)
         , succeeded_(false)
+        , is_network_error_(false)
     {
     }
 
@@ -112,6 +134,11 @@ public:
         return url_string_;
     }
 
+    bool network_error() const override
+    {
+        return is_network_error_;
+    }
+
 public Q_SLOTS:
     void download_finished()
     {
@@ -128,6 +155,7 @@ public Q_SLOTS:
         else
         {
             this->error_string_ = reply->errorString();
+            is_network_error_ = is_network_error(reply->error());
         }
         Q_EMIT finished();
         reply->deleteLater();
@@ -140,6 +168,7 @@ private:
     QByteArray data_;
     QString url_string_;
     bool succeeded_;
+    bool is_network_error_;
 };
 
 // helper methods to retrieve image urls
@@ -234,6 +263,11 @@ shared_ptr<ArtReply> UbuntuServerDownloader::download_url(QUrl const& url)
     connect(reply, &QNetworkReply::finished, art_reply.get(), &UbuntuServerArtReply::download_finished);
 
     return art_reply;
+}
+
+std::shared_ptr<QNetworkAccessManager> UbuntuServerDownloader::network_manager() const
+{
+    return network_manager_;
 }
 
 }  // namespace internal

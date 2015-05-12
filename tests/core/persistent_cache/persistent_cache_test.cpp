@@ -226,7 +226,7 @@ TEST(PersistentCache, IDCCache)
 
         EXPECT_TRUE(c->put(3, 0));
         EXPECT_TRUE(c->put(4, 0));
-        vector<int> keys = {{3}, {4}};
+        vector<int> keys = {3, 4};
         c->invalidate(keys);
         EXPECT_FALSE(c->contains_key(3));
         EXPECT_FALSE(c->contains_key(4));
@@ -536,7 +536,7 @@ TEST(PersistentCache, ISCCache)
 
         EXPECT_TRUE(c->put(3, string("0")));
         EXPECT_TRUE(c->put(4, string("0")));
-        vector<int> keys = {{3}, {4}};
+        vector<int> keys = {3, 4};
         c->invalidate(keys);
         EXPECT_FALSE(c->contains_key(3));
         EXPECT_FALSE(c->contains_key(4));
@@ -694,7 +694,7 @@ TEST(PersistentCache, IDSCache)
 
         EXPECT_TRUE(c->put(3, 0));
         EXPECT_TRUE(c->put(4, 0));
-        vector<int> keys = {{3}, {4}};
+        vector<int> keys = {3, 4};
         c->invalidate(keys);
         EXPECT_FALSE(c->contains_key(3));
         EXPECT_FALSE(c->contains_key(4));
@@ -1168,7 +1168,7 @@ TEST(PersistentCache, ISSCache)
 
         EXPECT_TRUE(c->put(3, string("0")));
         EXPECT_TRUE(c->put(4, string("0")));
-        vector<int> keys = {{3}, {4}};
+        vector<int> keys = {3, 4};
         c->invalidate(keys);
         EXPECT_FALSE(c->contains_key(3));
         EXPECT_FALSE(c->contains_key(4));

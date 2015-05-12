@@ -47,19 +47,17 @@ TestCase {
     }
 
     function loadAlbumArt(artist, album) {
-        var url = ("image://albumart/artist=" +
+        load("image://albumart/artist=" +
                    encodeURIComponent(artist) +
                    "&album=" +
                    encodeURIComponent(album));
-        load(url);
     }
 
     function loadArtistArt(artist, album) {
-        var url = ("image://artistart/artist=" +
+        load("image://artistart/artist=" +
                    encodeURIComponent(artist) +
                    "&album=" +
                    encodeURIComponent(album));
-        load(url);
     }
 
     function load(url) {

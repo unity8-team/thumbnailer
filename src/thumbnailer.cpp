@@ -24,7 +24,6 @@
 #include <internal/file_io.h>
 #include <internal/gobj_memory.h>
 #include <internal/image.h>
-#include <internal/lastfmdownloader.h>
 #include <internal/make_directories.h>
 #include <internal/raii.h>
 #include <internal/safe_strerror.h>
@@ -37,8 +36,9 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
+#pragma GCC diagnostic ignored "-Wold-style-cast"
 #include <gio/gio.h>
-#pragma GCC diagnostic push
+#pragma GCC diagnostic pop
 
 #include <iostream>
 #include <fcntl.h>
@@ -64,23 +64,14 @@ public:
     core::PersistentStringCache::UPtr full_size_cache_;  // Small cache of full (original) size images.
     core::PersistentStringCache::UPtr thumbnail_cache_;  // Large cache of scaled images.
     core::PersistentStringCache::UPtr failure_cache_;    // Cache for failed attempts (value is always empty).
-    shared_ptr<ArtDownloader> downloader_;
+    unique_ptr<ArtDownloader> downloader_;
 
     ThumbnailerPrivate();
 };
 
 ThumbnailerPrivate::ThumbnailerPrivate()
+    : downloader_(new UbuntuServerDownloader())
 {
-    char const* artservice = getenv("THUMBNAILER_ART_PROVIDER");
-    if (artservice && strcmp(artservice, "lastfm") == 0)
-    {
-        downloader_.reset(new LastFMDownloader());
-    }
-    else
-    {
-        downloader_.reset(new UbuntuServerDownloader());
-    }
-
     string xdg_base = g_get_user_cache_dir();
     if (xdg_base == "")
     {
