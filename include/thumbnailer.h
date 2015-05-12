@@ -35,8 +35,8 @@ public:
     ThumbnailRequest() = default;
     virtual ~ThumbnailRequest() = default;
 
-    // Returns empty string if the thumbnail data needs to be
-    // downloaded to complete request.  If this happens, call
+    // Returns the empty string if the thumbnail data needs to be
+    // downloaded to complete the request. If this happens, call
     // download() and wait for downloadFinished signal to fire, then
     // call thumbnail() again.
     virtual std::string thumbnail() = 0;
