@@ -32,6 +32,7 @@
 #define BAD_IMAGE TESTDATADIR "/bad_image.jpg"
 #define RGB_IMAGE TESTDATADIR "/RGB.png"
 #define BIG_IMAGE TESTDATADIR "/big.jpg"
+#define EMPTY_IMAGE TESTDATADIR "/empty"
 
 #define TEST_VIDEO TESTDATADIR "/testvideo.ogg"
 #define TEST_SONG TESTDATADIR "/testsong.ogg"
@@ -47,6 +48,10 @@ protected:
         setenv("XDG_CACHE_HOME", tempdir->path().toUtf8().data(), true);
     }
 
+    string tempdir_path() const {
+        return tempdir->path().toStdString();
+    }
+
     virtual void TearDown() override {
         tempdir.reset();
     }
@@ -60,6 +65,15 @@ TEST_F(ThumbnailerTest, basic)
     string thumb;
     Image img;
 
+    thumb = tn.get_thumbnail(EMPTY_IMAGE, QSize())->thumbnail();
+    EXPECT_EQ("", thumb);
+
+    thumb = tn.get_thumbnail(TEST_IMAGE, QSize())->thumbnail();
+    img = Image(thumb);
+    EXPECT_EQ(640, img.width());
+    EXPECT_EQ(480, img.height());
+    
+    // Again, for coverage. This time the thumbnail comes from the cache.
     thumb = tn.get_thumbnail(TEST_IMAGE, QSize())->thumbnail();
     img = Image(thumb);
     EXPECT_EQ(640, img.width());

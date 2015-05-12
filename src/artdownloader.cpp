@@ -29,7 +29,7 @@ ArtDownloader::ArtDownloader(QObject* parent)
 {
 }
 
-void ArtDownloader::assert_valid_url(QUrl const& url)
+void ArtDownloader::assert_valid_url(QUrl const& url) const
 {
     if (!url.isValid())
     {
