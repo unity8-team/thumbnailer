@@ -41,6 +41,9 @@ public:
     Reader() = default;
     virtual ~Reader() = default;
 
+    Reader(const Reader&) = delete;
+    Reader& operator=(Reader&) = delete;
+
     // Returns true if (data, length) have been set to a segment of data
     virtual bool read(unsigned char const** data, size_t* length) = 0;
     virtual void rewind() = 0;
@@ -245,6 +248,18 @@ void maybe_scale_image(GdkPixbufLoader *loader, int width, int height, void *use
 
 Image::Image(string const& data, QSize requested_size)
 {
+    BufferReader reader(reinterpret_cast<unsigned char const*>(&data[0]), data.size());
+    load(reader, requested_size);
+}
+
+Image::Image(int fd, QSize requested_size)
+{
+    FdReader reader(fd);
+    load(reader, requested_size);
+}
+
+void Image::load(Reader& reader, QSize requested_size)
+{
     // Try to load EXIF data for orientation information and embedded
     // thumbnail.
     ExifLoaderPtr el(exif_loader_new(), do_exif_loader_close);
@@ -252,7 +267,16 @@ Image::Image(string const& data, QSize requested_size)
     {
         throw runtime_error("Image(): could not create ExifLoader"); // LCOV_EXCL_LINE
     }
-    exif_loader_write(el.get(), const_cast<unsigned char*>(reinterpret_cast<unsigned char const*>(&data[0])), data.size());
+
+    unsigned char const* data = nullptr;
+    size_t length = 0;
+    while (reader.read(&data, &length)) {
+        if (!exif_loader_write(el.get(), const_cast<unsigned char*>(data), length))
+        {
+            break;
+        }
+    }
+    reader.rewind();
     ExifDataPtr exif(exif_loader_get_data(el.get()), do_exif_data_unref);
 
     int orientation = 1;
@@ -287,8 +311,8 @@ Image::Image(string const& data, QSize requested_size)
         {
             try
             {
-                auto reader = BufferReader(exif->data, exif->size);
-                pixbuf_ = load_image(reader,
+                BufferReader thumbnail(exif->data, exif->size);
+                pixbuf_ = load_image(thumbnail,
                                      G_CALLBACK(maybe_scale_thumbnail),
                                      &unrotated_requested_size);
             }
@@ -306,7 +330,6 @@ Image::Image(string const& data, QSize requested_size)
     }
 
     if (!pixbuf_) {
-        auto reader = BufferReader(reinterpret_cast<unsigned char const*>(&data[0]), data.size());
         pixbuf_ = load_image(reader, G_CALLBACK(maybe_scale_image),
                              &unrotated_requested_size);
     }
