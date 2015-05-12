@@ -59,14 +59,14 @@ public:
         switch(download_type)
         {
         case UbuntuAlbum:
-            reply = downloader_ubuntu_.download_album("u2", "joshua tree");
+            reply = downloader_ubuntu_.download_album("u2", "joshua tree", 10000);
             if (reply)
             {
                 map_active_downloads_[reply.get()] = UbuntuAlbum;
             }
             break;
         case UbuntuArtist:
-            reply = downloader_ubuntu_.download_artist("u2", "joshua tree");
+            reply = downloader_ubuntu_.download_artist("u2", "joshua tree", 10000);
             if (reply)
             {
                 map_active_downloads_[reply.get()] = UbuntuArtist;

@@ -27,8 +27,9 @@
 #include <internal/ubuntuserverdownloader.h>
 
 #include <QNetworkReply>
-#include <QUrlQuery>
 #include <QThread>
+#include <QTimer>
+#include <QUrlQuery>
 
 #include <cassert>
 
@@ -77,10 +78,11 @@ bool is_network_error(QNetworkReply::NetworkError error)
 class UbuntuServerArtReply : public ArtReply
 {
     Q_OBJECT
+
 public:
     Q_DISABLE_COPY(UbuntuServerArtReply)
 
-    UbuntuServerArtReply(QString const& url, QNetworkReply* reply, QObject* parent = nullptr)
+    UbuntuServerArtReply(QString const& url, QNetworkReply* reply, int timeout_ms, QObject* parent = nullptr)
         : ArtReply(parent)
         , is_running_(false)
         , error_(QNetworkReply::NoError)
@@ -90,9 +92,10 @@ public:
         , reply_(reply)
     {
         assert(reply_);
+        timer_.setSingleShot(true);
+        connect(&timer_, &QTimer::timeout, this, &UbuntuServerArtReply::timeout);
+        timer_.start(timeout_ms);
     }
-
-    virtual ~UbuntuServerArtReply() = default;
 
     bool succeeded() const override
     {
@@ -137,14 +140,11 @@ public:
         return is_network_error_;
     }
 
-    void abort() override
-    {
-        reply_->abort();
-    }
-
 public Q_SLOTS:
     void download_finished()
     {
+        timer_.stop();
+
         QNetworkReply* reply = static_cast<QNetworkReply*>(sender());
         assert(reply);
 
@@ -164,6 +164,11 @@ public Q_SLOTS:
         reply->deleteLater();
     }
 
+    void timeout()
+    {
+        reply_->abort();
+    }
+
 private:
     bool is_running_;
     QString error_string_;
@@ -173,6 +178,7 @@ private:
     bool succeeded_;
     bool is_network_error_;
     QNetworkReply* reply_;
+    QTimer timer_;
 };
 
 // helper methods to retrieve image urls
@@ -249,21 +255,21 @@ void UbuntuServerDownloader::set_api_key()
     }
 }
 
-shared_ptr<ArtReply> UbuntuServerDownloader::download_album(QString const& artist, QString const& album)
+shared_ptr<ArtReply> UbuntuServerDownloader::download_album(QString const& artist, QString const& album, int timeout_ms)
 {
-    return download_url(get_album_art_url(artist, album, api_key_));
+    return download_url(get_album_art_url(artist, album, api_key_), timeout_ms);
 }
 
-shared_ptr<ArtReply> UbuntuServerDownloader::download_artist(QString const& artist, QString const& album)
+shared_ptr<ArtReply> UbuntuServerDownloader::download_artist(QString const& artist, QString const& album, int timeout_ms)
 {
-    return download_url(get_artist_art_url(artist, album, api_key_));
+    return download_url(get_artist_art_url(artist, album, api_key_), timeout_ms);
 }
 
-shared_ptr<ArtReply> UbuntuServerDownloader::download_url(QUrl const& url)
+shared_ptr<ArtReply> UbuntuServerDownloader::download_url(QUrl const& url, int timeout_ms)
 {
     assert_valid_url(url);
     QNetworkReply* reply = network_manager_->get(QNetworkRequest(url));
-    std::shared_ptr<UbuntuServerArtReply> art_reply(new UbuntuServerArtReply(url.toString(), reply, this));
+    std::shared_ptr<UbuntuServerArtReply> art_reply(new UbuntuServerArtReply(url.toString(), reply, timeout_ms, this));
     connect(reply, &QNetworkReply::finished, art_reply.get(), &UbuntuServerArtReply::download_finished);
 
     return art_reply;

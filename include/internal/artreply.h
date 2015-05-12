@@ -45,8 +45,6 @@ public:
     virtual QString url_string() const = 0;
     virtual bool network_error() const = 0;
 
-    virtual void abort() = 0;
-
 Q_SIGNALS:
     void finished();
 

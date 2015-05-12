@@ -44,8 +44,8 @@ public:
     explicit UbuntuServerDownloader(QObject* parent = nullptr);
     virtual ~UbuntuServerDownloader() = default;
 
-    std::shared_ptr<ArtReply> download_album(QString const& artist, QString const& album) override;
-    std::shared_ptr<ArtReply> download_artist(QString const& artist, QString const& album) override;
+    std::shared_ptr<ArtReply> download_album(QString const& artist, QString const& album, int timeout_ms) override;
+    std::shared_ptr<ArtReply> download_artist(QString const& artist, QString const& album, int timeout_ms) override;
 
     // NOTE: this method is just used for testing purposes.
     // We need to expose the internal QNetworkAccessManager in order to
@@ -54,7 +54,7 @@ public:
     std::shared_ptr<QNetworkAccessManager> network_manager() const;
 private:
     void set_api_key();
-    std::shared_ptr<ArtReply> download_url(QUrl const& url);
+    std::shared_ptr<ArtReply> download_url(QUrl const& url, int timeout_ms);
 
     QString api_key_;
     std::shared_ptr<QNetworkAccessManager> network_manager_;

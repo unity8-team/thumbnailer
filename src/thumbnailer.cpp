@@ -155,17 +155,13 @@ public:
                  string const& artist,
                  string const& album,
                  QSize const& requested_size);
-    virtual ~AlbumRequest();
 protected:
     ImageData fetch() override;
     void download(std::chrono::milliseconds timeout) override;
-private Q_SLOTS:
-    void timeout();
 private:
     string artist_;
     string album_;
     shared_ptr<ArtReply> artreply_;
-    QTimer timer_;
 };
 
 class ArtistRequest : public RequestBase {
@@ -175,17 +171,13 @@ public:
                   string const& artist,
                   string const& album,
                   QSize const& requested_size);
-    virtual ~ArtistRequest();
 protected:
     ImageData fetch() override;
     void download(std::chrono::milliseconds timeout) override;
-private Q_SLOTS:
-    void timeout();
 private:
     string artist_;
     string album_;
     shared_ptr<ArtReply> artreply_;
-    QTimer timer_;
 };
 }
 
@@ -418,11 +410,6 @@ AlbumRequest::AlbumRequest(shared_ptr<ThumbnailerPrivate> const& p,
 {
 }
 
-AlbumRequest::~AlbumRequest()
-{
-    timer_.stop();
-}
-
 RequestBase::ImageData AlbumRequest::fetch() {
     if (artreply_)
     {
@@ -448,17 +435,11 @@ RequestBase::ImageData AlbumRequest::fetch() {
 }
 
 void AlbumRequest::download(chrono::milliseconds timeout) {
-    artreply_ = p_->downloader_->download_album(QString::fromStdString(artist_), QString::fromStdString(album_));
+    artreply_ = p_->downloader_->download_album(QString::fromStdString(artist_),
+                                                QString::fromStdString(album_),
+                                                timeout.count());
     connect(artreply_.get(), &ArtReply::finished,
             this, &AlbumRequest::downloadFinished, Qt::DirectConnection);
-    timer_.setSingleShot(true);
-    connect(&timer_, &QTimer::timeout, this, &AlbumRequest::timeout);
-    timer_.start(timeout.count());
-}
-
-void AlbumRequest::timeout()
-{
-    artreply_->abort();
 }
 
 ArtistRequest::ArtistRequest(shared_ptr<ThumbnailerPrivate> const& p,
@@ -469,11 +450,6 @@ ArtistRequest::ArtistRequest(shared_ptr<ThumbnailerPrivate> const& p,
     , artist_(artist)
     , album_(album)
 {
-}
-
-ArtistRequest::~ArtistRequest()
-{
-    timer_.stop();
 }
 
 RequestBase::ImageData ArtistRequest::fetch() {
@@ -501,17 +477,11 @@ RequestBase::ImageData ArtistRequest::fetch() {
 }
 
 void ArtistRequest::download(chrono::milliseconds timeout) {
-    artreply_ = p_->downloader_->download_artist(QString::fromStdString(artist_), QString::fromStdString(album_));
+    artreply_ = p_->downloader_->download_artist(QString::fromStdString(artist_),
+                                                 QString::fromStdString(album_),
+                                                 timeout.count());
     connect(artreply_.get(), &ArtReply::finished,
             this, &ThumbnailRequest::downloadFinished, Qt::DirectConnection);
-    timer_.setSingleShot(true);
-    connect(&timer_, &QTimer::timeout, this, &ArtistRequest::timeout);
-    timer_.start(timeout.count());
-}
-
-void ArtistRequest::timeout()
-{
-    artreply_->abort();
 }
 
 Thumbnailer::Thumbnailer()
