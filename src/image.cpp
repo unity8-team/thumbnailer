@@ -17,6 +17,7 @@
  */
 
 #include <internal/image.h>
+#include <internal/safe_strerror.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"
@@ -26,13 +27,84 @@
 #include <libexif/exif-loader.h>
 
 #include <memory>
+#include <stdexcept>
 #include <cassert>
 #include <cmath>
+#include <unistd.h>
 
 using namespace std;
+using namespace unity::thumbnailer::internal;
+
+class Image::Reader
+{
+public:
+    Reader() = default;
+    virtual ~Reader() = default;
+
+    // Returns true if (data, length) have been set to a segment of data
+    virtual bool read(unsigned char const** data, size_t* length);
+    virtual void rewind();
+};
 
 namespace
 {
+
+class BufferReader : public Image::Reader
+{
+public:
+    BufferReader(unsigned char* const data, size_t length)
+        : data_(data), length_(length) {}
+
+    bool read(unsigned char const** data, size_t* length) override
+    {
+        if (first_read)
+        {
+            *data = data_;
+            *length = length_;
+            first_read = false;
+            return true;
+        }
+        return false;
+    }
+
+    void rewind() override
+    {
+        first_read = true;
+    }
+
+private:
+    unsigned char* const data_;
+    size_t length_;
+    bool first_read = true;
+};
+
+class FdReader : public Image::Reader
+{
+public:
+    FdReader(int fd) : fd_(fd) {}
+
+    bool read(unsigned char const** data, size_t* length) override
+    {
+        ssize_t n_read = ::read(fd_, buffer_, sizeof(buffer_));
+        if (n_read < 0)
+        {
+            throw runtime_error("FdReader::read() failed: " + safe_strerror(errno));
+        }
+        *data = buffer_;
+        *length = n_read;
+        return n_read > 0;
+    }
+
+    void rewind() override
+    {
+        if (lseek(fd_, 0, SEEK_SET) < 0) {
+            throw runtime_error("FdReader::rewind() failed: " + safe_strerror(errno));
+        }
+    }
+private:
+    int fd_;
+    unsigned char buffer_[64*1024];
+};
 
 auto do_loader_close = [](GdkPixbufLoader* loader)
 {

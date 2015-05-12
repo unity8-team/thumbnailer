@@ -27,7 +27,9 @@
 class Image
 {
 public:
-    // Default constructor does nothing. Must be followed by load() before calling any other member function.
+    class Reader;
+
+    // Default constructor does nothing.
     Image() = default;
 
     // Loads internal pixbuf with provided image data. The orientation
@@ -53,5 +55,8 @@ public:
 private:
     typedef struct _GdkPixbuf GdkPixbuf;
     typedef unique_gobj<GdkPixbuf> PixbufPtr;
+
+    Image(Reader& reader, QSize requested_size);
+
     PixbufPtr pixbuf_;
 };
