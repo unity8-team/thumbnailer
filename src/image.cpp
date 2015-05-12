@@ -42,8 +42,8 @@ public:
     virtual ~Reader() = default;
 
     // Returns true if (data, length) have been set to a segment of data
-    virtual bool read(unsigned char const** data, size_t* length);
-    virtual void rewind();
+    virtual bool read(unsigned char const** data, size_t* length) = 0;
+    virtual void rewind() = 0;
 };
 
 namespace
@@ -52,7 +52,7 @@ namespace
 class BufferReader : public Image::Reader
 {
 public:
-    BufferReader(unsigned char* const data, size_t length)
+    BufferReader(unsigned char const* data, size_t length)
         : data_(data), length_(length) {}
 
     bool read(unsigned char const** data, size_t* length) override
@@ -73,8 +73,8 @@ public:
     }
 
 private:
-    unsigned char* const data_;
-    size_t length_;
+    unsigned char const* const data_;
+    size_t const length_;
     bool first_read = true;
 };
 
@@ -134,7 +134,7 @@ auto do_exif_data_unref = [](ExifData* data)
 };
 typedef unique_ptr<ExifData, decltype(do_exif_data_unref)> ExifDataPtr;
 
-unique_gobj<GdkPixbuf> load_image(unsigned char const *data, size_t length,
+unique_gobj<GdkPixbuf> load_image(Image::Reader& reader,
                                   GCallback size_prepared_cb, void *user_data)
 {
     LoaderPtr loader(gdk_pixbuf_loader_new(), do_loader_close);
@@ -144,14 +144,19 @@ unique_gobj<GdkPixbuf> load_image(unsigned char const *data, size_t length,
     }
 
     g_signal_connect(loader.get(), "size-prepared", size_prepared_cb, user_data);
+    unsigned char const* data = nullptr;
+    size_t length = 0;
     GError* err = nullptr;
-    if (!gdk_pixbuf_loader_write(loader.get(), data, length, &err))
+    while (reader.read(&data, &length))
     {
-        // LCOV_EXCL_START
-        string msg = string("load_image(): cannot write to pixbuf loader: ") + err->message;
-        g_error_free(err);
-        throw runtime_error(msg);
-        // LCOV_EXCL_STOP
+        if (!gdk_pixbuf_loader_write(loader.get(), data, length, &err))
+        {
+            // LCOV_EXCL_START
+            string msg = string("load_image(): cannot write to pixbuf loader: ") + err->message;
+            g_error_free(err);
+            throw runtime_error(msg);
+            // LCOV_EXCL_STOP
+        }
     }
     if (!gdk_pixbuf_loader_close(loader.get(), &err))
     {
@@ -282,7 +287,8 @@ Image::Image(string const& data, QSize requested_size)
         {
             try
             {
-                pixbuf_ = load_image(exif->data, exif->size,
+                auto reader = BufferReader(exif->data, exif->size);
+                pixbuf_ = load_image(reader,
                                      G_CALLBACK(maybe_scale_thumbnail),
                                      &unrotated_requested_size);
             }
@@ -300,9 +306,9 @@ Image::Image(string const& data, QSize requested_size)
     }
 
     if (!pixbuf_) {
-        pixbuf_ = load_image(
-            reinterpret_cast<unsigned char const*>(&data[0]), data.size(),
-            G_CALLBACK(maybe_scale_image), &unrotated_requested_size);
+        auto reader = BufferReader(reinterpret_cast<unsigned char const*>(&data[0]), data.size());
+        pixbuf_ = load_image(reader, G_CALLBACK(maybe_scale_image),
+                             &unrotated_requested_size);
     }
 
     // Correct the image orientation, if needed
