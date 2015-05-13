@@ -20,14 +20,20 @@
 
 #include <boost/algorithm/string.hpp>
 #include <gtest/gtest.h>
+#include <sys/types.h>
+#include <fcntl.h>
+
 #include <internal/file_io.h>
+#include <internal/raii.h>
 #include <testsetup.h>
 
 #define TESTIMAGE TESTDATADIR "/orientation-1.jpg"
 #define JPEGIMAGE TESTBINDIR "/saved_image.jpg"
 #define BADIMAGE TESTDATADIR "/bad_image.jpg"
+#define BIGIMAGE TESTDATADIR "/big.jpg"
 
 using namespace std;
+using namespace unity::thumbnailer::internal;
 
 TEST(Image, basic)
 {
@@ -151,4 +157,27 @@ TEST(Image, exceptions)
             EXPECT_TRUE(boost::starts_with(msg, "load_image(): cannot close pixbuf loader: ")) << msg;
         }
     }
+}
+
+TEST(Image, load_fd)
+{
+    FdPtr fd(open(TESTIMAGE, O_RDONLY), do_close);
+    ASSERT_GT(fd.get(), 0);
+
+    Image img(fd.get());
+    EXPECT_EQ(640, img.width());
+    EXPECT_EQ(480, img.height());
+}
+
+TEST(Image, load_fd_big_image)
+{
+    FdPtr fd(open(BIGIMAGE, O_RDONLY), do_close);
+    ASSERT_GT(fd.get(), 0);
+
+    // This image is significantly larger than the buffer used to read
+    // the file, so multiple read() calls will be needed to fully
+    // consume the image.
+    Image img(fd.get());
+    EXPECT_EQ(2731, img.width());
+    EXPECT_EQ(2048, img.height());
 }
