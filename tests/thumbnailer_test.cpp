@@ -132,6 +132,34 @@ TEST_F(ThumbnailerTest, basic)
     EXPECT_EQ(2048, img.height());
 }
 
+TEST_F(ThumbnailerTest, bad_fd)
+{
+    Thumbnailer tn;
+
+    // Invalid file descriptor
+    try
+    {
+        tn.get_thumbnail(TEST_IMAGE, -1, QSize());
+    }
+    catch (std::exception const& e)
+    {
+        string msg = e.what();
+        EXPECT_TRUE(boost::contains(msg, ": Could not stat file descriptor:")) << msg;
+    }
+
+    // File descriptor for wrong file
+    FdPtr fd(open(TEST_VIDEO, O_RDONLY), do_close);
+    try
+    {
+        tn.get_thumbnail(TEST_IMAGE, fd.get(), QSize());
+    }
+    catch (std::exception const& e)
+    {
+        string msg = e.what();
+        EXPECT_TRUE(boost::contains(msg, ": file descriptor does not refer to file ")) << msg;
+    }
+}
+
 TEST_F(ThumbnailerTest, thumbnail_video)
 {
     Thumbnailer tn;
