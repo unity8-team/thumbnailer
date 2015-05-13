@@ -58,7 +58,7 @@ enum class Location
     local, remote
 };
 
-}
+}  // namespace
 
 class ThumbnailerPrivate
 {
@@ -105,14 +105,14 @@ ThumbnailerPrivate::ThumbnailerPrivate()
 
 namespace
 {
+
 class RequestBase : public ThumbnailRequest {
     Q_OBJECT
 public:
     virtual ~RequestBase() = default;
     string thumbnail() override;
-protected:
     enum class FetchStatus {
-        NeedsDownload, Downloaded, NotFound, Error
+        needs_download, downloaded, not_found, no_network, error
     };
     enum class CachePolicy
     {
@@ -126,6 +126,7 @@ protected:
         Location location;
     };
 
+protected:
     RequestBase(shared_ptr<ThumbnailerPrivate> const& p, string const& key, QSize const& requested_size);
     virtual ImageData fetch() = 0;
 
@@ -179,7 +180,8 @@ private:
     string album_;
     shared_ptr<ArtReply> artreply_;
 };
-}
+
+}  // namespace
 
 RequestBase::RequestBase(shared_ptr<ThumbnailerPrivate> const& p, string const& key, QSize const& requested_size) :
     p_(p), key_(key), requested_size_(requested_size)
@@ -241,19 +243,19 @@ string RequestBase::thumbnail()
         auto image_data = fetch();
         switch (image_data.status)
         {
-            case FetchStatus::Downloaded:  // Success, we'll return the thumbnail below.
+            case FetchStatus::downloaded:  // Success, we'll return the thumbnail below.
                 break;
-            case FetchStatus::NeedsDownload:  // Caller will call download().
+            case FetchStatus::needs_download:  // Caller will call download().
                 return "";
-            case FetchStatus::NotFound:
+            case FetchStatus::no_network:  // Network down, try again next time.
+                return "";
+            case FetchStatus::not_found:
             {
                 // Authoritative answer that artwork does not exist.
                 // For local files, we don't set an expiry time because, if the file is
                 // changed (say, such that artwork is added), the file's key will change too.
                 // For remote files, we try again after one week.
                 // TODO: Make interval configurable.
-                // TODO: If the network is down, we don't want to add an
-                //       entry to the failure cache, but try again ASAP.
                 chrono::time_point<std::chrono::steady_clock> later;  // Infinite expiry time
                 if (image_data.location == Location::remote)
                 {
@@ -262,7 +264,7 @@ string RequestBase::thumbnail()
                 p_->failure_cache_->put(key_, "", later);
                 return "";
             }
-            case FetchStatus::Error:
+            case FetchStatus::error:
             {
                 // Some non-authoritative failure, such as the server not responding,
                 // or an out-of-process codec crashing.
@@ -270,8 +272,6 @@ string RequestBase::thumbnail()
                 // changed, (say, its permissions change), the file's key will change too.
                 // For remote files, we try again after two hours.
                 // TODO: Make interval configurable.
-                // TODO: If the network is down, we don't want to add an
-                //       entry to the failure cache, but try again ASAP.
                 chrono::time_point<std::chrono::steady_clock> later;  // Infinite expiry time
                 if (image_data.location == Location::remote)
                 {
@@ -348,10 +348,10 @@ RequestBase::ImageData LocalThumbnailRequest::fetch() {
     {
         // The image data has been extracted via vs-thumb
         if (screenshotter_->success()) {
-            return ImageData{FetchStatus::Downloaded, screenshotter_->data(), CachePolicy::cache_fullsize, Location::local};
+            return ImageData{FetchStatus::downloaded, screenshotter_->data(), CachePolicy::cache_fullsize, Location::local};
         } else {
             cerr << "Failed to get thumbnail: " << screenshotter_->error();
-            return {FetchStatus::Error, "", CachePolicy::dont_cache_fullsize, Location::local};
+            return {FetchStatus::error, "", CachePolicy::dont_cache_fullsize, Location::local};
         }
     }
 
@@ -359,7 +359,7 @@ RequestBase::ImageData LocalThumbnailRequest::fetch() {
     unique_gobj<GFile> file(g_file_new_for_path(filename_.c_str()));
     if (!file)
     {
-        return {FetchStatus::Error, "", CachePolicy::dont_cache_fullsize, Location::local};
+        return {FetchStatus::error, "", CachePolicy::dont_cache_fullsize, Location::local};
     }
 
     unique_gobj<GFileInfo> info(g_file_query_info(file.get(), G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE,
@@ -368,14 +368,14 @@ RequestBase::ImageData LocalThumbnailRequest::fetch() {
                                                   /* error */ NULL));      // TODO: need decent error reporting
     if (!info)
     {
-        return {FetchStatus::Error, "", CachePolicy::dont_cache_fullsize, Location::local};
+        return {FetchStatus::error, "", CachePolicy::dont_cache_fullsize, Location::local};
     }
 
     string content_type = g_file_info_get_attribute_string(info.get(), G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE);
     cerr << "content type: " << content_type << endl;
     if (content_type.empty())
     {
-        return {FetchStatus::Error, "", CachePolicy::dont_cache_fullsize, Location::local};
+        return {FetchStatus::error, "", CachePolicy::dont_cache_fullsize, Location::local};
     }
 
     // Call the appropriate image extractor and return the image data as JPEG (not scaled).
@@ -384,13 +384,13 @@ RequestBase::ImageData LocalThumbnailRequest::fetch() {
 
     if (content_type.find("audio/") == 0 || content_type.find("video/") == 0)
     {
-        return ImageData{FetchStatus::NeedsDownload, "", CachePolicy::cache_fullsize, Location::local};
+        return ImageData{FetchStatus::needs_download, "", CachePolicy::cache_fullsize, Location::local};
     }
     if (content_type.find("image/") == 0)
     {
-        return ImageData{FetchStatus::Downloaded, read_file(filename_), CachePolicy::dont_cache_fullsize, Location::local};
+        return ImageData{FetchStatus::downloaded, read_file(filename_), CachePolicy::dont_cache_fullsize, Location::local};
     }
-    return ImageData{FetchStatus::NotFound, "", CachePolicy::dont_cache_fullsize, Location::local};
+    return ImageData{FetchStatus::not_found, "", CachePolicy::dont_cache_fullsize, Location::local};
 }
 
 void LocalThumbnailRequest::download(std::chrono::milliseconds timeout) {
@@ -410,31 +410,58 @@ AlbumRequest::AlbumRequest(shared_ptr<ThumbnailerPrivate> const& p,
 {
 }
 
-RequestBase::ImageData AlbumRequest::fetch() {
-    if (artreply_)
+namespace
+{
+
+// Logic for AlbumRequest::fetch() and ArtistRquest::fetch() is the same,
+// so we use this helper function for both.
+
+RequestBase::ImageData common_fetch(shared_ptr<ArtReply> const& artreply)
+{
+    if (!artreply)
     {
-        if (artreply_->succeeded())
-        {
-            auto raw_data = artreply_->data();
-            return ImageData{FetchStatus::Downloaded,
-                    string(raw_data.data(), raw_data.size()), CachePolicy::cache_fullsize, Location::remote};
-        }
-        else if (artreply_->not_found_error())
-        {
-            return ImageData{FetchStatus::NotFound, "", CachePolicy::cache_fullsize, Location::remote};
-        }
-        else
-        {
-            return ImageData{FetchStatus::Error, "", CachePolicy::cache_fullsize, Location::remote};
-        }
+        return RequestBase::ImageData{RequestBase::FetchStatus::needs_download,
+                                      "",
+                                      RequestBase::CachePolicy::cache_fullsize,
+                                      Location::remote};
     }
-    else
+    if (artreply->succeeded())
     {
-        return ImageData{FetchStatus::NeedsDownload, "", CachePolicy::cache_fullsize, Location::remote};
+        auto raw_data = artreply->data();
+        return RequestBase::ImageData{RequestBase::FetchStatus::downloaded,
+                                      string(raw_data.data(), raw_data.size()),
+                                      RequestBase::CachePolicy::cache_fullsize,
+                                      Location::remote};
     }
+    if (artreply->not_found_error())
+    {
+        return RequestBase::ImageData{RequestBase::FetchStatus::not_found,
+                                      "",
+                                      RequestBase::CachePolicy::cache_fullsize,
+                                      Location::remote};
+    }
+    if (artreply->network_down())
+    {
+        return RequestBase::ImageData{RequestBase::FetchStatus::no_network,
+                                      "",
+                                      RequestBase::CachePolicy::cache_fullsize,
+                                      Location::remote};
+    }
+    return RequestBase::ImageData{RequestBase::FetchStatus::error,
+                                  "",
+                                  RequestBase::CachePolicy::cache_fullsize,
+                                  Location::remote};
 }
 
-void AlbumRequest::download(chrono::milliseconds timeout) {
+}  // namespace
+
+RequestBase::ImageData AlbumRequest::fetch()
+{
+    return common_fetch(artreply_);
+}
+
+void AlbumRequest::download(chrono::milliseconds timeout)
+{
     artreply_ = p_->downloader_->download_album(QString::fromStdString(artist_),
                                                 QString::fromStdString(album_),
                                                 timeout);
@@ -452,28 +479,9 @@ ArtistRequest::ArtistRequest(shared_ptr<ThumbnailerPrivate> const& p,
 {
 }
 
-RequestBase::ImageData ArtistRequest::fetch() {
-    if (artreply_)
-    {
-        if (artreply_->succeeded())
-        {
-            auto raw_data = artreply_->data();
-            return ImageData{FetchStatus::Downloaded,
-                    string(raw_data.data(), raw_data.size()), CachePolicy::cache_fullsize, Location::remote};
-        }
-        else if (artreply_->not_found_error())
-        {
-            return ImageData{FetchStatus::NotFound, "", CachePolicy::cache_fullsize, Location::remote};
-        }
-        else
-        {
-            return ImageData{FetchStatus::Error, "", CachePolicy::cache_fullsize, Location::remote};
-        }
-    }
-    else
-    {
-        return ImageData{FetchStatus::NeedsDownload, "", CachePolicy::cache_fullsize, Location::remote};
-    }
+RequestBase::ImageData ArtistRequest::fetch()
+{
+    return common_fetch(artreply_);
 }
 
 void ArtistRequest::download(chrono::milliseconds timeout) {
