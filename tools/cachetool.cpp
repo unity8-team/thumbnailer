@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
     }
     std::string ifilename(argv[1]);
     FdPtr fd(open(ifilename.c_str(), O_RDONLY), do_close);
-    std::string ofilename = t.get_thumbnail(ifilename, QDBusUnixFileDescriptor(fd.get()), QSize(256, 256))->thumbnail();
+    std::string ofilename = t.get_thumbnail(ifilename, fd.get(), QSize(256, 256))->thumbnail();
     if(ofilename.empty())
         printf("Thumbnail could not be generated.\n");
     else

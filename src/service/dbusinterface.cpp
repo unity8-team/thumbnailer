@@ -83,7 +83,7 @@ QDBusUnixFileDescriptor DBusInterface::GetThumbnail(const QString &filename, con
     try
     {
         request = p->thumbnailer->get_thumbnail(
-            filename.toStdString(), filename_fd, requestedSize);
+            filename.toStdString(), filename_fd.fileDescriptor(), requestedSize);
     }
     catch (const exception& e)
     {

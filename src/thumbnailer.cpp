@@ -145,7 +145,7 @@ protected:
 class LocalThumbnailRequest : public RequestBase {
     Q_OBJECT
 public:
-    LocalThumbnailRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& filename, QDBusUnixFileDescriptor const& filename_fd, QSize const& requested_size);
+    LocalThumbnailRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& filename, int filename_fd, QSize const& requested_size);
 protected:
     ImageData fetch(QSize const& size_hint) override;
     void download() override;
@@ -317,7 +317,7 @@ string RequestBase::thumbnail()
     return jpeg;
 }
 
-LocalThumbnailRequest::LocalThumbnailRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& filename, QDBusUnixFileDescriptor const& filename_fd, QSize const& requested_size)
+LocalThumbnailRequest::LocalThumbnailRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& filename, int filename_fd, QSize const& requested_size)
     : RequestBase(p, "", requested_size), filename_(filename), fd_(-1, do_close)
 {
     filename_ = boost::filesystem::canonical(filename).native();
@@ -333,7 +333,7 @@ LocalThumbnailRequest::LocalThumbnailRequest(shared_ptr<ThumbnailerPrivate> cons
         throw runtime_error("LocalThumbnailRequest(): Could not stat " +
                             filename_ + ": " + safe_strerror(errno));
     }
-    if (fstat(filename_fd.fileDescriptor(), &client_stat) < 0)
+    if (fstat(filename_fd, &client_stat) < 0)
     {
         throw runtime_error("LocalThumbnailRequest(): Could not stat file descriptor: " + safe_strerror(errno));
     }
@@ -500,7 +500,7 @@ Thumbnailer::Thumbnailer()
 
 Thumbnailer::~Thumbnailer() = default;
 
-unique_ptr<ThumbnailRequest> Thumbnailer::get_thumbnail(string const& filename, QDBusUnixFileDescriptor const& filename_fd, QSize const &requested_size)
+unique_ptr<ThumbnailRequest> Thumbnailer::get_thumbnail(string const& filename, int filename_fd, QSize const &requested_size)
 {
     assert(!filename.empty());
 
