@@ -16,9 +16,15 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#include<thumbnailer.h>
-#include<cstdio>
-#include<stdexcept>
+#include <thumbnailer.h>
+#include <internal/raii.h>
+
+#include <cstdio>
+#include <stdexcept>
+#include <sys/types.h>
+#include <fcntl.h>
+
+using namespace unity::thumbnailer::internal;
 
 int main(int argc, char **argv) {
     Thumbnailer t;
@@ -27,7 +33,8 @@ int main(int argc, char **argv) {
         return 1;
     }
     std::string ifilename(argv[1]);
-    std::string ofilename = t.get_thumbnail(ifilename, QSize(256, 256))->thumbnail();
+    FdPtr fd(open(ifilename.c_str(), O_RDONLY), do_close);
+    std::string ofilename = t.get_thumbnail(ifilename, QDBusUnixFileDescriptor(fd.get()), QSize(256, 256))->thumbnail();
     if(ofilename.empty())
         printf("Thumbnail could not be generated.\n");
     else

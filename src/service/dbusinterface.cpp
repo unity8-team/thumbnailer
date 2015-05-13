@@ -100,7 +100,7 @@ QDBusUnixFileDescriptor DBusInterface::GetThumbnail(const QString &filename, con
 
     // FIXME: check that the thumbnail was produced for fd_stat
     auto request = p->thumbnailer->get_thumbnail(
-        filename.toStdString(), requestedSize);
+        filename.toStdString(), filename_fd, requestedSize);
     queueRequest(new Handler(connection(), message(),
                              p->check_thread_pool, p->create_thread_pool,
                              std::move(request)));

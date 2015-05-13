@@ -471,7 +471,7 @@ Thumbnailer::Thumbnailer()
 
 Thumbnailer::~Thumbnailer() = default;
 
-unique_ptr<ThumbnailRequest> Thumbnailer::get_thumbnail(string const& filename, QSize const &requested_size)
+unique_ptr<ThumbnailRequest> Thumbnailer::get_thumbnail(string const& filename, QDBusUnixFileDescriptor const& /*filename_fd*/, QSize const &requested_size)
 {
     assert(!filename.empty());
 

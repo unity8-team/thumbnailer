@@ -20,13 +20,18 @@
 
 #include <internal/file_io.h>
 #include <internal/image.h>
+#include <internal/raii.h>
 #include <testsetup.h>
 
 #include <boost/algorithm/string.hpp>
 #include <gtest/gtest.h>
 #include <QCoreApplication>
+#include <QDBusUnixFileDescriptor>
 #include <QSignalSpy>
 #include <QTemporaryDir>
+
+#include <sys/types.h>
+#include <fcntl.h>
 
 #define TEST_IMAGE TESTDATADIR "/orientation-1.jpg"
 #define BAD_IMAGE TESTDATADIR "/bad_image.jpg"
@@ -38,6 +43,7 @@
 #define TEST_SONG TESTDATADIR "/testsong.ogg"
 
 using namespace std;
+using namespace unity::thumbnailer::internal;
 
 class ThumbnailerTest : public ::testing::Test
 {
@@ -64,39 +70,43 @@ TEST_F(ThumbnailerTest, basic)
     Thumbnailer tn;
     string thumb;
     Image img;
+    FdPtr fd(-1, do_close);
 
-    thumb = tn.get_thumbnail(EMPTY_IMAGE, QSize())->thumbnail();
+    fd.reset(open(EMPTY_IMAGE, O_RDONLY));
+    thumb = tn.get_thumbnail(EMPTY_IMAGE, QDBusUnixFileDescriptor(fd.get()), QSize())->thumbnail();
     EXPECT_EQ("", thumb);
 
-    thumb = tn.get_thumbnail(TEST_IMAGE, QSize())->thumbnail();
+    fd.reset(open(TEST_IMAGE, O_RDONLY));
+    thumb = tn.get_thumbnail(TEST_IMAGE, QDBusUnixFileDescriptor(fd.get()), QSize())->thumbnail();
     img = Image(thumb);
     EXPECT_EQ(640, img.width());
     EXPECT_EQ(480, img.height());
     
     // Again, for coverage. This time the thumbnail comes from the cache.
-    thumb = tn.get_thumbnail(TEST_IMAGE, QSize())->thumbnail();
+    thumb = tn.get_thumbnail(TEST_IMAGE, QDBusUnixFileDescriptor(fd.get()), QSize())->thumbnail();
     img = Image(thumb);
     EXPECT_EQ(640, img.width());
     EXPECT_EQ(480, img.height());
 
-    thumb = tn.get_thumbnail(TEST_IMAGE, QSize(160, 160))->thumbnail();
+    thumb = tn.get_thumbnail(TEST_IMAGE, QDBusUnixFileDescriptor(fd.get()), QSize(160, 160))->thumbnail();
     img = Image(thumb);
     EXPECT_EQ(160, img.width());
     EXPECT_EQ(120, img.height());
 
-    thumb = tn.get_thumbnail(TEST_IMAGE, QSize(1000, 1000))->thumbnail();  // Will not up-scale
+    thumb = tn.get_thumbnail(TEST_IMAGE, QDBusUnixFileDescriptor(fd.get()), QSize(1000, 1000))->thumbnail();  // Will not up-scale
     img = Image(thumb);
     EXPECT_EQ(640, img.width());
     EXPECT_EQ(480, img.height());
 
-    thumb = tn.get_thumbnail(TEST_IMAGE, QSize(100, 100))->thumbnail();  // From EXIF data
+    thumb = tn.get_thumbnail(TEST_IMAGE, QDBusUnixFileDescriptor(fd.get()), QSize(100, 100))->thumbnail();  // From EXIF data
     img = Image(thumb);
     EXPECT_EQ(100, img.width());
     EXPECT_EQ(75, img.height());
 
+    fd.reset(open(BAD_IMAGE, O_RDONLY));
     try
     {
-        tn.get_thumbnail(BAD_IMAGE, QSize())->thumbnail();
+        tn.get_thumbnail(BAD_IMAGE, QDBusUnixFileDescriptor(fd.get()), QSize())->thumbnail();
     }
     catch (std::exception const& e)
     {
@@ -104,18 +114,20 @@ TEST_F(ThumbnailerTest, basic)
         EXPECT_TRUE(boost::starts_with(msg, "load_image(): cannot close pixbuf loader: ")) << msg;
     }
 
-    thumb = tn.get_thumbnail(RGB_IMAGE, QSize(48, 48))->thumbnail();
+    fd.reset(open(RGB_IMAGE, O_RDONLY));
+    thumb = tn.get_thumbnail(RGB_IMAGE, QDBusUnixFileDescriptor(fd.get()), QSize(48, 48))->thumbnail();
     cout << "thumb size: " << thumb.size() << endl;
     img = Image(thumb);
     EXPECT_EQ(48, img.width());
     EXPECT_EQ(48, img.height());
 
-    thumb = tn.get_thumbnail(BIG_IMAGE, QSize())->thumbnail();  // > 1920, so will be trimmed down
+    fd.reset(open(BIG_IMAGE, O_RDONLY));
+    thumb = tn.get_thumbnail(BIG_IMAGE, QDBusUnixFileDescriptor(fd.get()), QSize())->thumbnail();  // > 1920, so will be trimmed down
     img = Image(thumb);
     EXPECT_EQ(1920, img.width());
     EXPECT_EQ(1439, img.height());
 
-    thumb = tn.get_thumbnail(BIG_IMAGE, QSize(0, 0))->thumbnail();  // unconstrained, so will not be trimmed down
+    thumb = tn.get_thumbnail(BIG_IMAGE, QDBusUnixFileDescriptor(fd.get()), QSize(0, 0))->thumbnail();  // unconstrained, so will not be trimmed down
     img = Image(thumb);
     EXPECT_EQ(2731, img.width());
     EXPECT_EQ(2048, img.height());
@@ -124,7 +136,8 @@ TEST_F(ThumbnailerTest, basic)
 TEST_F(ThumbnailerTest, thumbnail_video)
 {
     Thumbnailer tn;
-    auto request = tn.get_thumbnail(TEST_VIDEO, QSize());
+    FdPtr fd(open(TEST_SONG, O_RDONLY), do_close);
+    auto request = tn.get_thumbnail(TEST_VIDEO, QDBusUnixFileDescriptor(fd.get()), QSize());
     ASSERT_NE(nullptr, request.get());
     // Video thumbnails can not be produced immediately
     ASSERT_EQ("", request->thumbnail());
@@ -142,7 +155,8 @@ TEST_F(ThumbnailerTest, thumbnail_video)
 TEST_F(ThumbnailerTest, thumbnail_song)
 {
     Thumbnailer tn;
-    auto request = tn.get_thumbnail(TEST_SONG, QSize());
+    FdPtr fd(open(TEST_SONG, O_RDONLY), do_close);
+    auto request = tn.get_thumbnail(TEST_SONG, QDBusUnixFileDescriptor(fd.get()), QSize());
     ASSERT_NE(nullptr, request.get());
     // Audio thumbnails can not be produced immediately
     ASSERT_EQ("", request->thumbnail());

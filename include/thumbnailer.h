@@ -24,6 +24,7 @@
 #include <core/optional.h>
 #include <QObject>
 #include <QSize>
+#include <QDBusUnixFileDescriptor>
 
 class ThumbnailerPrivate;
 
@@ -71,7 +72,7 @@ public:
      * Return value is the thumbnail image as a string.
      * If the thumbnail could not be generated, an empty string is returned.
      */
-    std::unique_ptr<ThumbnailRequest> get_thumbnail(std::string const& filename, QSize const& requested_size);
+    std::unique_ptr<ThumbnailRequest> get_thumbnail(std::string const& filename, QDBusUnixFileDescriptor const& filename_fd, QSize const& requested_size);
 
     /**
      * Gets album art for the given artist an album.
