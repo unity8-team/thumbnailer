@@ -413,7 +413,7 @@ AlbumRequest::AlbumRequest(shared_ptr<ThumbnailerPrivate> const& p,
 namespace
 {
 
-// Logic for AlbumRequest::fetch() and ArtistRquest::fetch() is the same,
+// Logic for AlbumRequest::fetch() and ArtistRequest::fetch() is the same,
 // so we use this helper function for both.
 
 RequestBase::ImageData common_fetch(shared_ptr<ArtReply> const& artreply)
