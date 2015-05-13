@@ -65,11 +65,17 @@ protected:
 
 };
 
+// Time to wait for an expected signal to arrive. The wait()
+// calls on the spy should always report success before this.
+int const SIGNAL_WAIT_TIME = 5000;
+
+auto const DOWNLOAD_TIMEOUT = std::chrono::milliseconds(10000);
+
 TEST_F(TestDownloaderServer, test_download_album_url)
 {
     UbuntuServerDownloader downloader;
 
-    auto reply = downloader.download_album("sia", "fear");
+    auto reply = downloader.download_album("sia", "fear", DOWNLOAD_TIMEOUT);
     ASSERT_NE(reply, nullptr);
 
     QUrl check_url(reply->url_string());
@@ -85,7 +91,7 @@ TEST_F(TestDownloaderServer, test_download_artist_url)
 {
     UbuntuServerDownloader downloader;
 
-    auto reply = downloader.download_artist("sia", "fear");
+    auto reply = downloader.download_artist("sia", "fear", DOWNLOAD_TIMEOUT);
     ASSERT_NE(reply, nullptr);
 
     QUrl check_url(reply->url_string());
@@ -100,15 +106,11 @@ TEST_F(TestDownloaderServer, test_ok_album)
 {
     UbuntuServerDownloader downloader;
 
-    auto reply = downloader.download_album("sia", "fear");
+    auto reply = downloader.download_album("sia", "fear", DOWNLOAD_TIMEOUT);
     ASSERT_NE(reply, nullptr);
 
     QSignalSpy spy(reply.get(), &ArtReply::finished);
-
-    // we set a timeout of 5 seconds waiting for the signal to be emitted,
-    // which should never be reached
-    ASSERT_TRUE(spy.wait(5000));
-
+    ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     // check that we've got exactly one signal
     ASSERT_EQ(spy.count(), 1);
 
@@ -124,16 +126,14 @@ TEST_F(TestDownloaderServer, test_ok_artist)
 {
     UbuntuServerDownloader downloader;
 
-    auto reply = downloader.download_artist("sia", "fear");
+    auto reply = downloader.download_artist("sia", "fear", DOWNLOAD_TIMEOUT);
     ASSERT_NE(reply, nullptr);
 
     QSignalSpy spy(reply.get(), &ArtReply::finished);
-    // we set a timeout of 5 seconds waiting for the signal to be emitted,
-    // which should never be reached
-    ASSERT_TRUE(spy.wait(5000));
-
+    ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     // check that we've got exactly one signal
     ASSERT_EQ(spy.count(), 1);
+
     EXPECT_EQ(reply->succeeded(), true);
     EXPECT_EQ(reply->not_found_error(), false);
     EXPECT_EQ(reply->is_running(), false);
@@ -141,18 +141,33 @@ TEST_F(TestDownloaderServer, test_ok_artist)
     EXPECT_EQ(QString(reply->data()), QString("SIA_FEAR_TEST_STRING_IMAGE"));
 }
 
+TEST_F(TestDownloaderServer, test_timeout)
+{
+    UbuntuServerDownloader downloader;
+
+    auto reply = downloader.download_artist("sleep", "4", std::chrono::milliseconds(1000));
+    ASSERT_NE(reply, nullptr);
+
+    QSignalSpy spy(reply.get(), &ArtReply::finished);
+    ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
+    // check that we've got exactly one signal
+    ASSERT_EQ(spy.count(), 1);
+
+    EXPECT_EQ(reply->succeeded(), false);
+    EXPECT_EQ(reply->not_found_error(), false);
+    EXPECT_EQ(reply->is_running(), false);
+    EXPECT_EQ(reply->network_error(), true);
+}
+
 TEST_F(TestDownloaderServer, test_not_found)
 {
     UbuntuServerDownloader downloader;
 
-    auto reply = downloader.download_album("test", "test");
+    auto reply = downloader.download_album("test", "test", DOWNLOAD_TIMEOUT);
     ASSERT_NE(reply, nullptr);
 
     QSignalSpy spy(reply.get(), &ArtReply::finished);
-    // we set a timeout of 5 seconds waiting for the signal to be emitted,
-    // which should never be reached
-    ASSERT_TRUE(spy.wait(5000));
-
+    ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     // check that we've got exactly one signal
     ASSERT_EQ(spy.count(), 1);
 
@@ -173,7 +188,7 @@ TEST_F(TestDownloaderServer, test_multiple_downloads)
     for (auto i = 0; i < NUM_DOWNLOADS; ++i)
     {
         QString download_id = QString("TEST_%1").arg(i);
-        auto reply = downloader.download_album("test_threads", download_id);
+        auto reply = downloader.download_album("test_threads", download_id, DOWNLOAD_TIMEOUT);
         ASSERT_NE(reply, nullptr);
         std::shared_ptr<QSignalSpy> spy(new QSignalSpy(reply.get(), &ArtReply::finished));
         replies.push_back(std::make_pair(reply, spy));
@@ -205,16 +220,14 @@ TEST_F(TestDownloaderServer, test_connection_error)
     // disable connection before executing any query
     network_manager->setNetworkAccessible(QNetworkAccessManager::NotAccessible);
 
-    auto reply = downloader.download_artist("sia", "fear");
+    auto reply = downloader.download_artist("sia", "fear", DOWNLOAD_TIMEOUT);
     ASSERT_NE(reply, nullptr);
 
     QSignalSpy spy(reply.get(), &ArtReply::finished);
-    // we set a timeout of 5 seconds waiting for the signal to be emitted,
-    // which should never be reached
-    ASSERT_TRUE(spy.wait(5000));
-
+    ASSERT_TRUE(spy.wait(SIGNAL_WAIT_TIME));
     // check that we've got exactly one signal
     ASSERT_EQ(spy.count(), 1);
+
     EXPECT_EQ(reply->succeeded(), false);
     EXPECT_EQ(reply->not_found_error(), false);
     EXPECT_EQ(reply->is_running(), false);

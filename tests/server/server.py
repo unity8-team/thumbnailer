@@ -18,10 +18,11 @@
 # Authored by: Xavi Garcia <xavi.garcia.mena@canonical.com>
 
 import os
-import tornado.httpserver
-import tornado.web
 import sys
+import time
+import tornado.httpserver
 import tornado.options
+import tornado.web
 
 tornado.options.parse_command_line()
 
@@ -57,6 +58,10 @@ class UbuntuAlbumImagesProvider(FileReaderProvider):
     def get(self):
         if self.get_argument('artist', None) == "test_threads":
             self.write("TEST_THREADS_TEST_%s" % self.get_argument('album', None ))
+        elif self.get_argument('artist', None) == "sleep":
+            seconds = int(self.get_argument('album', None))
+            time.sleep(seconds)
+            self.write("TEST_SLEEP_TEST_%s" % seconds)
         else:
             file = 'images/%s_%s_album' % (self.get_argument('artist', None ), self.get_argument('album', None ))
             self.read_file(file, False)
@@ -66,6 +71,10 @@ class UbuntuArtistImagesProvider(FileReaderProvider):
     def get(self):
         if self.get_argument('artist', None) == "test_threads":
             self.write("TEST_THREADS_TEST_%s" % self.get_argument('artist', None ))
+        elif self.get_argument('artist', None) == "sleep":
+            seconds = int(self.get_argument('album', None))
+            time.sleep(seconds)
+            self.write("TEST_SLEEP_TEST_%s" % seconds)
         else:
             file = 'images/%s_%s' % (self.get_argument('artist', None ), self.get_argument('album', None ))
             self.read_file(file, False)

@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <memory>
 #include <string>
 
@@ -40,7 +41,8 @@ public:
     // download() and wait for downloadFinished signal to fire, then
     // call thumbnail() again.
     virtual std::string thumbnail() = 0;
-    virtual void download() = 0;
+    // TODO: Timeout should be configurable?
+    virtual void download(std::chrono::milliseconds timeout = std::chrono::milliseconds(10000)) = 0;
 Q_SIGNALS:
     void downloadFinished();
 };
@@ -76,12 +78,16 @@ public:
     /**
      * Gets album art for the given artist an album.
      */
-    std::unique_ptr<ThumbnailRequest> get_album_art(std::string const& artist, std::string const& album, QSize const& requested_size);
+    std::unique_ptr<ThumbnailRequest> get_album_art(std::string const& artist,
+                                                    std::string const& album,
+                                                    QSize const& requested_size);
 
     /**
      * Gets artist art for the given artist and album.
      */
-    std::unique_ptr<ThumbnailRequest> get_artist_art(std::string const& artist, std::string const& album, QSize const& requested_size);
+    std::unique_ptr<ThumbnailRequest> get_artist_art(std::string const& artist,
+                                                     std::string const& album,
+                                                     QSize const& requested_size);
 
 private:
     std::shared_ptr<ThumbnailerPrivate> p_;

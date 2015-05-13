@@ -27,8 +27,9 @@
 #include <internal/ubuntuserverdownloader.h>
 
 #include <QNetworkReply>
-#include <QUrlQuery>
 #include <QThread>
+#include <QTimer>
+#include <QUrlQuery>
 
 #include <cassert>
 
@@ -60,39 +61,41 @@ bool is_network_error(QNetworkReply::NetworkError error)
     switch (error)
     {
         // add here all the cases that you consider as network errors
-    case QNetworkReply::HostNotFoundError:
-    case QNetworkReply::TemporaryNetworkFailureError:
-    case QNetworkReply::NetworkSessionFailedError:
-    case QNetworkReply::ProxyConnectionRefusedError:
-    case QNetworkReply::ProxyConnectionClosedError:
-    case QNetworkReply::ProxyNotFoundError:
-    case QNetworkReply::ProxyTimeoutError:
-    case QNetworkReply::UnknownNetworkError:
+        case QNetworkReply::HostNotFoundError:
+        case QNetworkReply::OperationCanceledError:
+        case QNetworkReply::TemporaryNetworkFailureError:
+        case QNetworkReply::NetworkSessionFailedError:
+        case QNetworkReply::ProxyConnectionRefusedError:
+        case QNetworkReply::ProxyConnectionClosedError:
+        case QNetworkReply::ProxyNotFoundError:
+        case QNetworkReply::ProxyTimeoutError:
+        case QNetworkReply::UnknownNetworkError:
             return true;
-            break;
         default:
             return false;
-            break;
     }
 }
 
 class UbuntuServerArtReply : public ArtReply
 {
     Q_OBJECT
+
 public:
     Q_DISABLE_COPY(UbuntuServerArtReply)
 
-    UbuntuServerArtReply(QString const& url, QObject* parent = nullptr)
+    UbuntuServerArtReply(QString const& url, QNetworkReply* reply, chrono::milliseconds timeout, QObject* parent = nullptr)
         : ArtReply(parent)
         , is_running_(false)
         , error_(QNetworkReply::NoError)
         , url_string_(url)
         , succeeded_(false)
         , is_network_error_(false)
+        , reply_(reply)
     {
+        assert(reply_);
+        connect(&timer_, &QTimer::timeout, this, &UbuntuServerArtReply::timeout);
+        timer_.start(timeout.count());
     }
-
-    virtual ~UbuntuServerArtReply() = default;
 
     bool succeeded() const override
     {
@@ -117,10 +120,8 @@ public:
             case QNetworkReply::ContentNotFoundError:
             case QNetworkReply::ContentGoneError:
                 return true;
-                break;
             default:
                 return false;
-                break;
         }
     }
 
@@ -142,23 +143,30 @@ public:
 public Q_SLOTS:
     void download_finished()
     {
+        timer_.stop();
+
         QNetworkReply* reply = static_cast<QNetworkReply*>(sender());
         assert(reply);
 
-        this->is_running_ = false;
-        this->error_ = reply->error();
-        if (!reply->error())
+        is_running_ = false;
+        error_ = reply->error();
+        if (error_)
         {
-            this->data_ = reply->readAll();
-            succeeded_ = true;
+            error_string_ = reply->errorString();
+            is_network_error_ = is_network_error(error_);
         }
         else
         {
-            this->error_string_ = reply->errorString();
-            is_network_error_ = is_network_error(reply->error());
+            data_ = reply->readAll();
+            succeeded_ = true;
         }
         Q_EMIT finished();
         reply->deleteLater();
+    }
+
+    void timeout()
+    {
+        reply_->abort();
     }
 
 private:
@@ -169,6 +177,8 @@ private:
     QString url_string_;
     bool succeeded_;
     bool is_network_error_;
+    QNetworkReply* reply_;
+    QTimer timer_;
 };
 
 // helper methods to retrieve image urls
@@ -235,31 +245,35 @@ void UbuntuServerDownloader::set_api_key()
         if (!status)
         {
             // TODO do something with the error
-            qCritical() << "Failed to get API key";
+            qCritical() << "Failed to get API key";  // LCOV_EXCL_LINE
         }
     }
     else
     {
         // TODO do something with the error
-        qCritical() << "The schema " << THUMBNAILER_SCHEMA << " is missing";
+        qCritical() << "The schema " << THUMBNAILER_SCHEMA << " is missing";  // LCOV_EXCL_LINE
     }
 }
 
-shared_ptr<ArtReply> UbuntuServerDownloader::download_album(QString const& artist, QString const& album)
+shared_ptr<ArtReply> UbuntuServerDownloader::download_album(QString const& artist,
+                                                            QString const& album,
+                                                            chrono::milliseconds timeout)
 {
-    return download_url(get_album_art_url(artist, album, api_key_));
+    return download_url(get_album_art_url(artist, album, api_key_), timeout);
 }
 
-shared_ptr<ArtReply> UbuntuServerDownloader::download_artist(QString const& artist, QString const& album)
+shared_ptr<ArtReply> UbuntuServerDownloader::download_artist(QString const& artist,
+                                                             QString const& album,
+                                                             chrono::milliseconds timeout)
 {
-    return download_url(get_artist_art_url(artist, album, api_key_));
+    return download_url(get_artist_art_url(artist, album, api_key_), timeout);
 }
 
-shared_ptr<ArtReply> UbuntuServerDownloader::download_url(QUrl const& url)
+shared_ptr<ArtReply> UbuntuServerDownloader::download_url(QUrl const& url, chrono::milliseconds timeout)
 {
     assert_valid_url(url);
-    std::shared_ptr<UbuntuServerArtReply> art_reply(new UbuntuServerArtReply(url.toString(), this));
     QNetworkReply* reply = network_manager_->get(QNetworkRequest(url));
+    std::shared_ptr<UbuntuServerArtReply> art_reply(new UbuntuServerArtReply(url.toString(), reply, timeout, this));
     connect(reply, &QNetworkReply::finished, art_reply.get(), &UbuntuServerArtReply::download_finished);
 
     return art_reply;
