@@ -24,9 +24,6 @@
 
 #include <map>
 #include <sstream>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 
 #include <QDBusConnection>
 #include <QDBusMessage>
@@ -81,26 +78,18 @@ QDBusUnixFileDescriptor DBusInterface::GetArtistArt(const QString &artist, const
 QDBusUnixFileDescriptor DBusInterface::GetThumbnail(const QString &filename, const QDBusUnixFileDescriptor &filename_fd, const QSize &requestedSize) {
     qDebug() << "Create thumbnail for" << filename << "at size" << requestedSize;
 
-    struct stat filename_stat, fd_stat;
-    if (stat(filename.toUtf8(), &filename_stat) < 0) {
-        sendErrorReply(ART_ERROR, "DBusInterface::GetThumbnail(): Could not stat " +
-                       filename + ": " + QString::fromStdString(safe_strerror(errno)));
-        return QDBusUnixFileDescriptor();
-    }
-    if (fstat(filename_fd.fileDescriptor(), &fd_stat) < 0) {
-        sendErrorReply(ART_ERROR, "DBusInterface::GetThumbnail(): Could not stat file descriptor: " + QString::fromStdString(safe_strerror(errno)));
-        return QDBusUnixFileDescriptor();
-    }
-    if (filename_stat.st_dev != fd_stat.st_dev ||
-        filename_stat.st_ino != fd_stat.st_ino) {
-        sendErrorReply(ART_ERROR, "DBusInterface::GetThumbnail(): " + filename
-                       + " refers to a different file than the file descriptor");
-        return QDBusUnixFileDescriptor();
-    }
-
     // FIXME: check that the thumbnail was produced for fd_stat
-    auto request = p->thumbnailer->get_thumbnail(
-        filename.toStdString(), filename_fd, requestedSize);
+    std::unique_ptr<ThumbnailRequest> request;
+    try
+    {
+        request = p->thumbnailer->get_thumbnail(
+            filename.toStdString(), filename_fd, requestedSize);
+    }
+    catch (const exception& e)
+    {
+        sendErrorReply(ART_ERROR, e.what());
+        return QDBusUnixFileDescriptor();
+    }
     queueRequest(new Handler(connection(), message(),
                              p->check_thread_pool, p->create_thread_pool,
                              std::move(request)));

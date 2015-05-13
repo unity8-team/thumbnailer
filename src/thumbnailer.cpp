@@ -128,8 +128,6 @@ protected:
     virtual ImageData fetch() = 0;
 
     shared_ptr<ThumbnailerPrivate> p_;
-
-private:
     string key_;
     QSize const requested_size_;
 };
@@ -137,12 +135,13 @@ private:
 class LocalThumbnailRequest : public RequestBase {
     Q_OBJECT
 public:
-    LocalThumbnailRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& filename, QSize const& requested_size);
+    LocalThumbnailRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& filename, QDBusUnixFileDescriptor const& filename_fd, QSize const& requested_size);
 protected:
     ImageData fetch() override;
     void download() override;
 private:
     string filename_;
+    FdPtr fd_;
     unique_ptr<VideoScreenshotter> screenshotter_;
 };
 
@@ -302,37 +301,48 @@ string RequestBase::thumbnail()
     return jpeg;
 }
 
-static string local_key(string const& filename)
+LocalThumbnailRequest::LocalThumbnailRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& filename, QDBusUnixFileDescriptor const& filename_fd, QSize const& requested_size)
+    : RequestBase(p, "", requested_size), filename_(filename), fd_(-1, do_close)
 {
-    auto path = boost::filesystem::canonical(filename);
-
-    struct stat st;
-    if (stat(path.native().c_str(), &st) == -1)
+    filename_ = boost::filesystem::canonical(filename).native();
+    fd_.reset(open(filename_.c_str(), O_RDONLY | O_CLOEXEC));
+    if (fd_.get() < 0)
     {
-        throw runtime_error("local_key(): cannot stat " + path.native() + ", errno = " + to_string(errno));
+        throw runtime_error("LocalThumbnailRequest(): Could not open "
+                            + filename_ + ": " + safe_strerror(errno));
+    }
+    struct stat our_stat, client_stat;
+    if (fstat(fd_.get(), &our_stat) < 0)
+    {
+        throw runtime_error("LocalThumbnailRequest(): Could not stat " +
+                            filename_ + ": " + safe_strerror(errno));
+    }
+    if (fstat(filename_fd.fileDescriptor(), &client_stat) < 0)
+    {
+        throw runtime_error("LocalThumbnailRequest(): Could not stat file descriptor: " + safe_strerror(errno));
+    }
+    if (our_stat.st_dev != client_stat.st_dev ||
+        our_stat.st_ino != client_stat.st_ino)
+    {
+        throw runtime_error("LocalThumbnailRequest(): file descriptor does not refer to file " + filename_);
     }
 
-    // The full cache key for the file is the concatenation of path name, device, inode, modification time,
-    // and inode modification time (because permissions may change).
-    // If the file exists with the same path on different removable media, or the file was modified since
-    // we last cached it, the key will be different. There is no point in trying to remove such stale entries
-    // from the cache. Instead, we just let the normal eviction mechanism take care of them (because stale
-    // thumbnails due to file removal or file update are rare).
-    string key = path.native();
-    key += '\0';
-    key += to_string(st.st_dev);
-    key += '\0';
-    key += to_string(st.st_ino);
-    key += '\0';
-    key += to_string(st.st_mtim.tv_sec) + "." + to_string(st.st_mtim.tv_nsec);
-    key += '\0';
-    key += to_string(st.st_ctim.tv_sec) + "." + to_string(st.st_ctim.tv_nsec);
-    return key;
-}
-
-LocalThumbnailRequest::LocalThumbnailRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& filename, QSize const& requested_size)
-    : RequestBase(p, local_key(filename), requested_size), filename_(filename)
-{
+    // The full cache key for the file is the concatenation of path
+    // name, inode, modification time, and inode modification time
+    // (because permissions may change).  If the file exists with the
+    // same path on different removable media, or the file was
+    // modified since we last cached it, the key will be
+    // different. There is no point in trying to remove such stale
+    // entries from the cache. Instead, we just let the normal
+    // eviction mechanism take care of them (because stale thumbnails
+    // due to file removal or file update are rare).
+    key_ = filename_;
+    key_ += '\0';
+    key_ += to_string(our_stat.st_ino);
+    key_ += '\0';
+    key_ += to_string(our_stat.st_mtim.tv_sec) + "." + to_string(our_stat.st_mtim.tv_nsec);
+    key_ += '\0';
+    key_ += to_string(our_stat.st_ctim.tv_sec) + "." + to_string(our_stat.st_ctim.tv_nsec);
 }
 
 RequestBase::ImageData LocalThumbnailRequest::fetch() {
@@ -471,12 +481,12 @@ Thumbnailer::Thumbnailer()
 
 Thumbnailer::~Thumbnailer() = default;
 
-unique_ptr<ThumbnailRequest> Thumbnailer::get_thumbnail(string const& filename, QDBusUnixFileDescriptor const& /*filename_fd*/, QSize const &requested_size)
+unique_ptr<ThumbnailRequest> Thumbnailer::get_thumbnail(string const& filename, QDBusUnixFileDescriptor const& filename_fd, QSize const &requested_size)
 {
     assert(!filename.empty());
 
     return unique_ptr<ThumbnailRequest>(
-        new LocalThumbnailRequest(p_, filename, requested_size));
+        new LocalThumbnailRequest(p_, filename, filename_fd, requested_size));
 }
 
 unique_ptr<ThumbnailRequest> Thumbnailer::get_album_art(string const& artist, string const& album, QSize const &requested_size)
