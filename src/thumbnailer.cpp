@@ -119,13 +119,23 @@ protected:
     struct ImageData
     {
         FetchStatus status;
-        string data;
+        Image image;
         CachePolicy cache_policy;
         Location location;
+
+        ImageData(Image const& image, CachePolicy policy, Location location)
+            : status(FetchStatus::Downloaded)
+            , image(image)
+            , cache_policy(policy)
+            , location(location) {}
+        ImageData(FetchStatus status, Location location)
+            : status(status)
+            , cache_policy(CachePolicy::dont_cache_fullsize)
+            , location(location) {}
     };
 
     RequestBase(shared_ptr<ThumbnailerPrivate> const& p, string const& key, QSize const& requested_size);
-    virtual ImageData fetch() = 0;
+    virtual ImageData fetch(QSize const& size_hint) = 0;
 
     shared_ptr<ThumbnailerPrivate> p_;
     string key_;
@@ -137,7 +147,7 @@ class LocalThumbnailRequest : public RequestBase {
 public:
     LocalThumbnailRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& filename, QDBusUnixFileDescriptor const& filename_fd, QSize const& requested_size);
 protected:
-    ImageData fetch() override;
+    ImageData fetch(QSize const& size_hint) override;
     void download() override;
 private:
     string filename_;
@@ -150,7 +160,7 @@ class AlbumRequest : public RequestBase {
 public:
     AlbumRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& artist, string const& album, QSize const& requested_size);
 protected:
-    ImageData fetch() override;
+    ImageData fetch(QSize const& size_hint) override;
     void download() override;
 private:
     string artist_;
@@ -163,7 +173,7 @@ class ArtistRequest : public RequestBase {
 public:
     ArtistRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& artist, string const& album, QSize const& requested_size);
 protected:
-    ImageData fetch() override;
+    ImageData fetch(QSize const& size_hint) override;
     void download() override;
 private:
     string artist_;
@@ -221,7 +231,12 @@ string RequestBase::thumbnail()
 
     // Don't have the thumbnail yet, see if we have the original image around.
     auto full_size = p_->full_size_cache_->get(key_);
-    if (!full_size)
+    Image scaled_image;
+    if (full_size)
+    {
+        scaled_image = Image(*full_size, target_size);
+    }
+    else
     {
         // Try and download or read the artwork, provided that we don't
         // have this image in the failure cache.
@@ -229,7 +244,7 @@ string RequestBase::thumbnail()
         {
             return "";
         }
-        auto image_data = fetch();
+        auto image_data = fetch(target_size);
         switch (image_data.status)
         {
             case FetchStatus::Downloaded:  // Success, we'll return the thumbnail below.
@@ -282,20 +297,21 @@ string RequestBase::thumbnail()
         // artwork a second time.
         if (image_data.cache_policy == CachePolicy::cache_fullsize)
         {
-            Image full_size_image(image_data.data, target_size);
+            Image full_size_image = image_data.image;
             auto w = full_size_image.width();
             auto h = full_size_image.height();
             if (max(w, h) > MAX_SIZE)
             {
                 // Don't put ridiculously large images into the full-size cache.
-                full_size_image = Image(image_data.data, QSize(MAX_SIZE, MAX_SIZE));
+                full_size_image = full_size_image.scale(QSize(MAX_SIZE, MAX_SIZE));
             }
             p_->full_size_cache_->put(key_, full_size_image.to_jpeg());
         }
-        full_size = move(image_data.data);
+        // If the image is already within the target dimensions, this
+        // will be a no-op.
+        scaled_image = image_data.image.scale(target_size);
     }
 
-    Image scaled_image(*full_size, target_size);
     string jpeg = scaled_image.to_jpeg();
     p_->thumbnail_cache_->put(sized_key, jpeg);
     return jpeg;
@@ -345,15 +361,15 @@ LocalThumbnailRequest::LocalThumbnailRequest(shared_ptr<ThumbnailerPrivate> cons
     key_ += to_string(our_stat.st_ctim.tv_sec) + "." + to_string(our_stat.st_ctim.tv_nsec);
 }
 
-RequestBase::ImageData LocalThumbnailRequest::fetch() {
+RequestBase::ImageData LocalThumbnailRequest::fetch(QSize const& size_hint) {
     if (screenshotter_)
     {
         // The image data has been extracted via vs-thumb
         if (screenshotter_->success()) {
-            return ImageData{FetchStatus::Downloaded, screenshotter_->data(), CachePolicy::cache_fullsize, Location::local};
+            return ImageData(Image(screenshotter_->data()), CachePolicy::cache_fullsize, Location::local);
         } else {
             cerr << "Failed to get thumbnail: " << screenshotter_->error();
-            return {FetchStatus::Error, "", CachePolicy::dont_cache_fullsize, Location::local};
+            return ImageData(FetchStatus::Error, Location::local);
         }
     }
 
@@ -361,7 +377,7 @@ RequestBase::ImageData LocalThumbnailRequest::fetch() {
     unique_gobj<GFile> file(g_file_new_for_path(filename_.c_str()));
     if (!file)
     {
-        return {FetchStatus::Error, "", CachePolicy::dont_cache_fullsize, Location::local};
+        return ImageData(FetchStatus::Error, Location::local);
     }
 
     unique_gobj<GFileInfo> info(g_file_query_info(file.get(), G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE,
@@ -370,14 +386,14 @@ RequestBase::ImageData LocalThumbnailRequest::fetch() {
                                                   /* error */ NULL));      // TODO: need decent error reporting
     if (!info)
     {
-        return {FetchStatus::Error, "", CachePolicy::dont_cache_fullsize, Location::local};
+        return ImageData(FetchStatus::Error, Location::local);
     }
 
     string content_type = g_file_info_get_attribute_string(info.get(), G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE);
     cerr << "content type: " << content_type << endl;
     if (content_type.empty())
     {
-        return {FetchStatus::Error, "", CachePolicy::dont_cache_fullsize, Location::local};
+        return ImageData(FetchStatus::Error, Location::local);
     }
 
     // Call the appropriate image extractor and return the image data as JPEG (not scaled).
@@ -386,13 +402,14 @@ RequestBase::ImageData LocalThumbnailRequest::fetch() {
 
     if (content_type.find("audio/") == 0 || content_type.find("video/") == 0)
     {
-        return ImageData{FetchStatus::NeedsDownload, "", CachePolicy::cache_fullsize, Location::local};
+        return ImageData(FetchStatus::NeedsDownload, Location::local);
     }
     if (content_type.find("image/") == 0)
     {
-        return ImageData{FetchStatus::Downloaded, read_file(filename_), CachePolicy::dont_cache_fullsize, Location::local};
+        Image scaled(fd_.get(), size_hint);
+        return ImageData(scaled, CachePolicy::dont_cache_fullsize, Location::local);
     }
-    return ImageData{FetchStatus::NotFound, "", CachePolicy::dont_cache_fullsize, Location::local};
+    return ImageData(FetchStatus::NotFound, Location::local);
 }
 
 void LocalThumbnailRequest::download() {
@@ -408,27 +425,28 @@ AlbumRequest::AlbumRequest(shared_ptr<ThumbnailerPrivate> const& p, string const
 {
 }
 
-RequestBase::ImageData AlbumRequest::fetch() {
+RequestBase::ImageData AlbumRequest::fetch(QSize const& /*size_hint*/) {
     if (artreply_)
     {
         if (artreply_->succeeded())
         {
             auto raw_data = artreply_->data();
-            return ImageData{FetchStatus::Downloaded,
-                    string(raw_data.data(), raw_data.size()), CachePolicy::cache_fullsize, Location::remote};
+            Image full_size(string(raw_data.data(), raw_data.size()));
+            return ImageData(full_size, CachePolicy::cache_fullsize,
+                             Location::remote);
         }
         else if (artreply_->not_found_error())
         {
-            return ImageData{FetchStatus::NotFound, "", CachePolicy::cache_fullsize, Location::remote};
+            return ImageData(FetchStatus::NotFound, Location::remote);
         }
         else
         {
-            return ImageData{FetchStatus::Error, "", CachePolicy::cache_fullsize, Location::remote};
+            return ImageData(FetchStatus::Error, Location::remote);
         }
     }
     else
     {
-        return ImageData{FetchStatus::NeedsDownload, "", CachePolicy::cache_fullsize, Location::remote};
+        return ImageData(FetchStatus::NeedsDownload, Location::remote);
     }
 }
 
@@ -444,27 +462,28 @@ ArtistRequest::ArtistRequest(shared_ptr<ThumbnailerPrivate> const& p, string con
 {
 }
 
-RequestBase::ImageData ArtistRequest::fetch() {
+RequestBase::ImageData ArtistRequest::fetch(QSize const& /*size_hint*/) {
     if (artreply_)
     {
         if (artreply_->succeeded())
         {
             auto raw_data = artreply_->data();
-            return ImageData{FetchStatus::Downloaded,
-                    string(raw_data.data(), raw_data.size()), CachePolicy::cache_fullsize, Location::remote};
+            Image full_size(string(raw_data.data(), raw_data.size()));
+            return ImageData(full_size, CachePolicy::cache_fullsize,
+                             Location::remote);
         }
         else if (artreply_->not_found_error())
         {
-            return ImageData{FetchStatus::NotFound, "", CachePolicy::cache_fullsize, Location::remote};
+            return ImageData(FetchStatus::NotFound, Location::remote);
         }
         else
         {
-            return ImageData{FetchStatus::Error, "", CachePolicy::cache_fullsize, Location::remote};
+            return ImageData(FetchStatus::Error, Location::remote);
         }
     }
     else
     {
-        return ImageData{FetchStatus::NeedsDownload, "", CachePolicy::cache_fullsize, Location::remote};
+        return ImageData(FetchStatus::NeedsDownload, Location::remote);
     }
 }
 

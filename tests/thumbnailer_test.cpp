@@ -136,7 +136,7 @@ TEST_F(ThumbnailerTest, basic)
 TEST_F(ThumbnailerTest, thumbnail_video)
 {
     Thumbnailer tn;
-    FdPtr fd(open(TEST_SONG, O_RDONLY), do_close);
+    FdPtr fd(open(TEST_VIDEO, O_RDONLY), do_close);
     auto request = tn.get_thumbnail(TEST_VIDEO, QDBusUnixFileDescriptor(fd.get()), QSize());
     ASSERT_NE(nullptr, request.get());
     // Video thumbnails can not be produced immediately
