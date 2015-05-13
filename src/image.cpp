@@ -272,7 +272,7 @@ Image::Image(string const& data, QSize requested_size)
     default:
         // Impossible, according the spec. Rather than throwing or some such,
         // we do nothing and return the EXIF image without any adjustment.
-        break;
+        break;  // LCOV_EXCL_LINE
     }
 }
 

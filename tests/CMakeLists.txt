@@ -38,6 +38,10 @@ add_executable(image image.cpp)
 target_link_libraries(image thumbnailer core gtest)
 add_test(image image)
 
+add_executable(safe_strerror_test safe_strerror_test.cpp)
+target_link_libraries(safe_strerror_test thumbnailer core gtest)
+add_test(safe_strerror_test safe_strerror_test)
+
 add_executable(thumbnailer_test thumbnailer_test.cpp)
 target_link_libraries(thumbnailer_test thumbnailer core gtest)
 add_test(thumbnailer_test thumbnailer_test)
