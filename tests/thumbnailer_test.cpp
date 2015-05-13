@@ -80,7 +80,7 @@ TEST_F(ThumbnailerTest, basic)
     img = Image(thumb);
     EXPECT_EQ(640, img.width());
     EXPECT_EQ(480, img.height());
-    
+
     // Again, for coverage. This time the thumbnail comes from the cache.
     thumb = tn.get_thumbnail(TEST_IMAGE, fd.get(), QSize())->thumbnail();
     img = Image(thumb);
@@ -158,6 +158,26 @@ TEST_F(ThumbnailerTest, bad_fd)
         string msg = e.what();
         EXPECT_TRUE(boost::contains(msg, ": file descriptor does not refer to file ")) << msg;
     }
+}
+
+TEST_F(ThumbnailerTest, replace_photo)
+{
+    string testfile = tempdir_path() + "/foo.jpg";
+    ASSERT_EQ(0, link(TEST_IMAGE, testfile.c_str()));
+
+    Thumbnailer tn;
+    FdPtr fd(open(testfile.c_str(), O_RDONLY), do_close);
+    auto request = tn.get_thumbnail(testfile, fd.get(), QSize());
+
+    // Replace test image with a different file with different
+    // dimensions so we can tell which one is thumbnailed.
+    ASSERT_EQ(0, unlink(testfile.c_str()));
+    ASSERT_EQ(0, link(BIG_IMAGE, testfile.c_str()));
+
+    string data = request->thumbnail();
+    Image img(data);
+    EXPECT_EQ(640, img.width());
+    EXPECT_EQ(480, img.height());
 }
 
 TEST_F(ThumbnailerTest, thumbnail_video)
