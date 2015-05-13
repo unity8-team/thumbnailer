@@ -25,7 +25,6 @@
 #include <QTemporaryFile>
 #include <QTimer>
 
-#include <chrono>
 #include <stdexcept>
 
 using namespace std;
@@ -54,7 +53,6 @@ VideoScreenshotter::VideoScreenshotter(string const& filename, chrono::milliseco
 {
     p->process.setStandardInputFile(QProcess::nullDevice());
     p->process.setProcessChannelMode(QProcess::ForwardedChannels);
-    p->timer.setSingleShot(true);
     connect(&p->process, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this, &VideoScreenshotter::processFinished);
     connect(&p->timer, &QTimer::timeout, this, &VideoScreenshotter::timeout);
 }

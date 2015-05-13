@@ -62,6 +62,7 @@ bool is_network_error(QNetworkReply::NetworkError error)
     {
         // add here all the cases that you consider as network errors
         case QNetworkReply::HostNotFoundError:
+        case QNetworkReply::OperationCanceledError:
         case QNetworkReply::TemporaryNetworkFailureError:
         case QNetworkReply::NetworkSessionFailedError:
         case QNetworkReply::ProxyConnectionRefusedError:
@@ -82,7 +83,7 @@ class UbuntuServerArtReply : public ArtReply
 public:
     Q_DISABLE_COPY(UbuntuServerArtReply)
 
-    UbuntuServerArtReply(QString const& url, QNetworkReply* reply, int timeout_ms, QObject* parent = nullptr)
+    UbuntuServerArtReply(QString const& url, QNetworkReply* reply, chrono::milliseconds timeout, QObject* parent = nullptr)
         : ArtReply(parent)
         , is_running_(false)
         , error_(QNetworkReply::NoError)
@@ -92,9 +93,8 @@ public:
         , reply_(reply)
     {
         assert(reply_);
-        timer_.setSingleShot(true);
         connect(&timer_, &QTimer::timeout, this, &UbuntuServerArtReply::timeout);
-        timer_.start(timeout_ms);
+        timer_.start(timeout.count());
     }
 
     bool succeeded() const override
@@ -255,21 +255,25 @@ void UbuntuServerDownloader::set_api_key()
     }
 }
 
-shared_ptr<ArtReply> UbuntuServerDownloader::download_album(QString const& artist, QString const& album, int timeout_ms)
+shared_ptr<ArtReply> UbuntuServerDownloader::download_album(QString const& artist,
+                                                            QString const& album,
+                                                            chrono::milliseconds timeout)
 {
-    return download_url(get_album_art_url(artist, album, api_key_), timeout_ms);
+    return download_url(get_album_art_url(artist, album, api_key_), timeout);
 }
 
-shared_ptr<ArtReply> UbuntuServerDownloader::download_artist(QString const& artist, QString const& album, int timeout_ms)
+shared_ptr<ArtReply> UbuntuServerDownloader::download_artist(QString const& artist,
+                                                             QString const& album,
+                                                             chrono::milliseconds timeout)
 {
-    return download_url(get_artist_art_url(artist, album, api_key_), timeout_ms);
+    return download_url(get_artist_art_url(artist, album, api_key_), timeout);
 }
 
-shared_ptr<ArtReply> UbuntuServerDownloader::download_url(QUrl const& url, int timeout_ms)
+shared_ptr<ArtReply> UbuntuServerDownloader::download_url(QUrl const& url, chrono::milliseconds timeout)
 {
     assert_valid_url(url);
     QNetworkReply* reply = network_manager_->get(QNetworkRequest(url));
-    std::shared_ptr<UbuntuServerArtReply> art_reply(new UbuntuServerArtReply(url.toString(), reply, timeout_ms, this));
+    std::shared_ptr<UbuntuServerArtReply> art_reply(new UbuntuServerArtReply(url.toString(), reply, timeout, this));
     connect(reply, &QNetworkReply::finished, art_reply.get(), &UbuntuServerArtReply::download_finished);
 
     return art_reply;

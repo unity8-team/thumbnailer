@@ -437,7 +437,7 @@ RequestBase::ImageData AlbumRequest::fetch() {
 void AlbumRequest::download(chrono::milliseconds timeout) {
     artreply_ = p_->downloader_->download_album(QString::fromStdString(artist_),
                                                 QString::fromStdString(album_),
-                                                timeout.count());
+                                                timeout);
     connect(artreply_.get(), &ArtReply::finished,
             this, &AlbumRequest::downloadFinished, Qt::DirectConnection);
 }
@@ -479,7 +479,7 @@ RequestBase::ImageData ArtistRequest::fetch() {
 void ArtistRequest::download(chrono::milliseconds timeout) {
     artreply_ = p_->downloader_->download_artist(QString::fromStdString(artist_),
                                                  QString::fromStdString(album_),
-                                                 timeout.count());
+                                                 timeout);
     connect(artreply_.get(), &ArtReply::finished,
             this, &ThumbnailRequest::downloadFinished, Qt::DirectConnection);
 }

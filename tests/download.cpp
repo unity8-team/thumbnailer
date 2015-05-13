@@ -69,7 +69,7 @@ protected:
 // calls on the spy should always report success before this.
 int const SIGNAL_WAIT_TIME = 5000;
 
-int const DOWNLOAD_TIMEOUT = 10000;
+auto const DOWNLOAD_TIMEOUT = std::chrono::milliseconds(10000);
 
 TEST_F(TestDownloaderServer, test_download_album_url)
 {
@@ -145,7 +145,7 @@ TEST_F(TestDownloaderServer, test_timeout)
 {
     UbuntuServerDownloader downloader;
 
-    auto reply = downloader.download_artist("sleep", "4", 1000);
+    auto reply = downloader.download_artist("sleep", "4", std::chrono::milliseconds(1000));
     ASSERT_NE(reply, nullptr);
 
     QSignalSpy spy(reply.get(), &ArtReply::finished);
@@ -156,7 +156,7 @@ TEST_F(TestDownloaderServer, test_timeout)
     EXPECT_EQ(reply->succeeded(), false);
     EXPECT_EQ(reply->not_found_error(), false);
     EXPECT_EQ(reply->is_running(), false);
-    EXPECT_EQ(reply->network_error(), false);
+    EXPECT_EQ(reply->network_error(), true);
 }
 
 TEST_F(TestDownloaderServer, test_not_found)
