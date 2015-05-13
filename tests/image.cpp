@@ -62,20 +62,40 @@ TEST(Image, basic)
         EXPECT_EQ(640, i3.width());
         EXPECT_EQ(480, i3.height());
 
-        // Load to fit in bounding box
-        Image i4(data, QSize(320, 320));
-        EXPECT_EQ(320, i4.width());
-        EXPECT_EQ(240, i4.height());
+        {
+            // Load to fit in bounding box
+            Image i(data, QSize(320, 320));
+            EXPECT_EQ(320, i.width());
+            EXPECT_EQ(240, i.height());
+        }
 
-        // Load to fit width
-        Image i5(data, QSize(320, 0));
-        EXPECT_EQ(320, i5.width());
-        EXPECT_EQ(240, i5.height());
+        {
+            // Load to fit width
+            Image i(data, QSize(320, 0));
+            EXPECT_EQ(320, i.width());
+            EXPECT_EQ(240, i.height());
+        }
 
-        // Load to fit height
-        Image i6(data, QSize(0, 240));
-        EXPECT_EQ(320, i6.width());
-        EXPECT_EQ(240, i6.height());
+        {
+            // Load to fit height
+            Image i(data, QSize(0, 240));
+            EXPECT_EQ(320, i.width());
+            EXPECT_EQ(240, i.height());
+        }
+
+        {
+            // Try to up-scale width.
+            Image i(data, QSize(700, 0));
+            EXPECT_EQ(640, i.width());
+            EXPECT_EQ(480, i.height());
+        }
+
+        {
+            // Try to up-scale height.
+            Image i(data, QSize(0, 5000));
+            EXPECT_EQ(640, i.width());
+            EXPECT_EQ(480, i.height());
+        }
     }
 }
 
@@ -98,14 +118,70 @@ TEST(Image, save_jpeg)
 
 TEST(Image, use_exif_thumbnail)
 {
-    string data = read_file(TESTIMAGE);
-    Image img(data, QSize(160, 160));
-    EXPECT_EQ(160, img.width());
-    EXPECT_EQ(120, img.height());
-    EXPECT_EQ(0xFE8081, img.pixel(0, 0));
-    EXPECT_EQ(0xFFFF80, img.pixel(159, 0));
-    EXPECT_EQ(0x81FF81, img.pixel(159, 119));
-    EXPECT_EQ(0x807FFE, img.pixel(0, 119));
+    {
+        string data = read_file(TESTIMAGE);
+        Image img(data, QSize(160, 160));
+
+        EXPECT_EQ(160, img.width());
+        EXPECT_EQ(120, img.height());
+        EXPECT_EQ(0xFE8081, img.pixel(0, 0));
+        EXPECT_EQ(0xFFFF80, img.pixel(159, 0));
+        EXPECT_EQ(0x81FF81, img.pixel(159, 119));
+        EXPECT_EQ(0x807FFE, img.pixel(0, 119));
+    }
+
+    {
+        // Again, but with only width specified.
+        string data = read_file(TESTIMAGE);
+        Image img(data, QSize(160, 0));
+
+        EXPECT_EQ(160, img.width());
+        EXPECT_EQ(120, img.height());
+        EXPECT_EQ(0xFE8081, img.pixel(0, 0));
+        EXPECT_EQ(0xFFFF80, img.pixel(159, 0));
+        EXPECT_EQ(0x81FF81, img.pixel(159, 119));
+        EXPECT_EQ(0x807FFE, img.pixel(0, 119));
+    }
+
+    {
+        // Again, but with only height specified.
+        string data = read_file(TESTIMAGE);
+        Image img(data, QSize(0, 120));
+
+        EXPECT_EQ(160, img.width());
+        EXPECT_EQ(120, img.height());
+        EXPECT_EQ(0xFE8081, img.pixel(0, 0));
+        EXPECT_EQ(0xFFFF80, img.pixel(159, 0));
+        EXPECT_EQ(0x81FF81, img.pixel(159, 119));
+        EXPECT_EQ(0x807FFE, img.pixel(0, 119));
+    }
+
+    {
+        // Again, but asking for something smaller than the EXIF thumbnail.
+        string data = read_file(TESTIMAGE);
+        Image img(data, QSize(80, 0));
+
+        EXPECT_EQ(80, img.width());
+        EXPECT_EQ(60, img.height());
+        EXPECT_EQ(0xFE8081, img.pixel(0, 0));
+        EXPECT_EQ(0xFFFF80, img.pixel(79, 0));
+        EXPECT_EQ(0x81FF81, img.pixel(79, 59));
+        EXPECT_EQ(0x807FFE, img.pixel(0, 59));
+    }
+
+    {
+        // Again, asking for something larger than the EXIF thumbnail,
+        // but smaller than the full image.
+        string data = read_file(TESTIMAGE);
+        Image img(data, QSize(200, 200));
+
+        EXPECT_EQ(200, img.width());
+        EXPECT_EQ(150, img.height());
+        EXPECT_EQ(0xFE0000, img.pixel(0, 0));
+        EXPECT_EQ(0xFFFF00, img.pixel(199, 0));
+        EXPECT_EQ(0x00FF01, img.pixel(199, 149));
+        EXPECT_EQ(0x0000FE, img.pixel(0, 149));
+    }
 }
 
 TEST(Image, orientation)
@@ -155,6 +231,51 @@ TEST(Image, exceptions)
         {
             string msg = e.what();
             EXPECT_TRUE(boost::starts_with(msg, "load_image(): cannot close pixbuf loader: ")) << msg;
+        }
+    }
+
+    {
+        string data = read_file(TESTIMAGE);
+        Image i(data);
+
+        try
+        {
+            i.pixel(-1, 0);
+            FAIL();
+        }
+        catch (std::exception const& e)
+        {
+            EXPECT_STREQ("Image::pixel(): invalid x coordinate: -1", e.what());
+        }
+
+        try
+        {
+            i.pixel(0, -1);
+            FAIL();
+        }
+        catch (std::exception const& e)
+        {
+            EXPECT_STREQ("Image::pixel(): invalid y coordinate: -1", e.what());
+        }
+
+        try
+        {
+            i.pixel(640, 0);
+            FAIL();
+        }
+        catch (std::exception const& e)
+        {
+            EXPECT_STREQ("Image::pixel(): invalid x coordinate: 640", e.what());
+        }
+
+        try
+        {
+            i.pixel(0, 480);
+            FAIL();
+        }
+        catch (std::exception const& e)
+        {
+            EXPECT_STREQ("Image::pixel(): invalid y coordinate: 480", e.what());
         }
     }
 }
