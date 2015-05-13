@@ -170,7 +170,7 @@ TEST_F(ThumbnailerTest, thumbnail_video)
     ASSERT_EQ("", request->thumbnail());
 
     QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
-    request->download();
+    request->download(chrono::milliseconds(15000));
     ASSERT_TRUE(spy.wait(20000));
     string thumb = request->thumbnail();
     ASSERT_NE("", thumb);
@@ -189,7 +189,7 @@ TEST_F(ThumbnailerTest, thumbnail_song)
     ASSERT_EQ("", request->thumbnail());
 
     QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
-    request->download();
+    request->download(chrono::milliseconds(15000));
     ASSERT_TRUE(spy.wait(20000));
     string thumb = request->thumbnail();
     ASSERT_NE("", thumb);

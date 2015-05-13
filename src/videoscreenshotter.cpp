@@ -32,6 +32,7 @@ using namespace std;
 struct VideoScreenshotterPrivate
 {
     string filename;
+    int timeout_ms;
     bool success = false;
     string error;
     string data;
@@ -40,15 +41,18 @@ struct VideoScreenshotterPrivate
     QTimer timer;
     QTemporaryFile tmpfile;
 
-    VideoScreenshotterPrivate(string const& filename) : filename(filename) {}
+    VideoScreenshotterPrivate(string const& filename, chrono::milliseconds timeout)
+        : filename(filename)
+        , timeout_ms(timeout.count())
+    {
+    }
 };
 
-VideoScreenshotter::VideoScreenshotter(string const& filename)
-    : p(new VideoScreenshotterPrivate(filename))
+VideoScreenshotter::VideoScreenshotter(string const& filename, chrono::milliseconds timeout)
+    : p(new VideoScreenshotterPrivate(filename, timeout))
 {
     p->process.setStandardInputFile(QProcess::nullDevice());
     p->process.setProcessChannelMode(QProcess::ForwardedChannels);
-    p->timer.setSingleShot(true);
     connect(&p->process, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this, &VideoScreenshotter::processFinished);
     connect(&p->timer, &QTimer::timeout, this, &VideoScreenshotter::timeout);
 }

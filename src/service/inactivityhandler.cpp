@@ -51,7 +51,6 @@ int get_env_inactivity_time(int default_value)
 }
 
 InactivityHandler::InactivityHandler(DBusInterface & iface) : QObject(&iface) {
-    timer_.setSingleShot(true);
     timer_.setInterval(get_env_inactivity_time(MAX_INACTIVITY_TIME));
 
     // connect dbus interface inactivity signals to the QTimer start and stop
