@@ -168,6 +168,8 @@ TEST_F(ThumbnailerTest, replace_photo)
     Thumbnailer tn;
     FdPtr fd(open(testfile.c_str(), O_RDONLY), do_close);
     auto request = tn.get_thumbnail(testfile, fd.get(), QSize());
+    // The client FD isn't needed any more, so close it.
+    fd.reset(-1);
 
     // Replace test image with a different file with different
     // dimensions so we can tell which one is thumbnailed.
