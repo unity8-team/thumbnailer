@@ -78,7 +78,6 @@ QDBusUnixFileDescriptor DBusInterface::GetArtistArt(const QString &artist, const
 QDBusUnixFileDescriptor DBusInterface::GetThumbnail(const QString &filename, const QDBusUnixFileDescriptor &filename_fd, const QSize &requestedSize) {
     qDebug() << "Create thumbnail for" << filename << "at size" << requestedSize;
 
-    // FIXME: check that the thumbnail was produced for fd_stat
     std::unique_ptr<ThumbnailRequest> request;
     try
     {
