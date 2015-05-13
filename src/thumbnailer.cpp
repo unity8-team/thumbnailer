@@ -433,7 +433,7 @@ AlbumRequest::AlbumRequest(shared_ptr<ThumbnailerPrivate> const& p,
                            string const& artist,
                            string const& album,
                            QSize const& requested_size)
-    : RequestBase(p, artist + '\0' + album, requested_size)
+    : RequestBase(p, artist + '\0' + album + '\0' + "album", requested_size)
     , artist_(artist)
     , album_(album)
 {
@@ -476,7 +476,7 @@ ArtistRequest::ArtistRequest(shared_ptr<ThumbnailerPrivate> const& p,
                              string const& artist,
                              string const& album,
                              QSize const& requested_size)
-    : RequestBase(p, artist + '\0' + album, requested_size)
+    : RequestBase(p, artist + '\0' + album + '\0' + "artist", requested_size)
     , artist_(artist)
     , album_(album)
 {
