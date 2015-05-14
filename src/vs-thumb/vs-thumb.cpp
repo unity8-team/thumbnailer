@@ -35,23 +35,18 @@ using namespace std;
 
 namespace {
 
-bool extract_video(const std::string &uri, const std::string &ofname) {
+bool extract_thumbnail(const std::string &uri, const std::string &ofname) {
     ThumbnailExtractor extractor;
 
     extractor.set_uri(uri);
-    if (!extractor.extract_video_frame()) {
-        return false;
-    }
-    extractor.save_screenshot(ofname);
-    return true;
-}
-
-bool extract_audio(const std::string &uri, const std::string &ofname) {
-    ThumbnailExtractor extractor;
-
-    extractor.set_uri(uri);
-    if (!extractor.extract_audio_cover_art()) {
-        return false;
+    if (extractor.has_video()) {
+        if (!extractor.extract_video_frame()) {
+            return false;
+        }
+    } else {
+        if (!extractor.extract_audio_cover_art()) {
+            return false;
+        }
     }
     extractor.save_screenshot(ofname);
     return true;
@@ -80,32 +75,11 @@ int main(int argc, char **argv) {
         g_file_get_uri(file.get()), g_free);
     std::string uri(c_uri.get());
 
-    std::unique_ptr<GFileInfo, void(*)(void *)> info(
-            g_file_query_info(file.get(), G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
-                G_FILE_QUERY_INFO_NONE, /* cancellable */ NULL, /* error */NULL),
-            g_object_unref);
-    if(!info) {
-        return 1;
-    }
-
-    std::string content_type(g_file_info_get_content_type(info.get()));
-
-    if (content_type.find("audio/") == 0) {
-        try {
-            success = extract_audio(uri, outfile);
-        } catch(runtime_error &e) {
-            printf("Error creating thumbnail: %s\n", e.what());
-            return 2;
-        }
-    }
-
-    if (content_type.find("video/") == 0) {
-        try {
-            success = extract_video(uri, outfile);
-        } catch(runtime_error &e) {
-            printf("Error creating thumbnail: %s\n", e.what());
-            return 2;
-        }
+    try {
+        success = extract_thumbnail(uri, outfile);
+    } catch(runtime_error &e) {
+        printf("Error creating thumbnail: %s\n", e.what());
+        return 2;
     }
 
     if(success) {
