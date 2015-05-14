@@ -91,7 +91,7 @@ public:
         ssize_t n_read = ::read(fd_, buffer_, sizeof(buffer_));
         if (n_read < 0)
         {
-            throw runtime_error("FdReader::read() failed: " + safe_strerror(errno));
+            throw runtime_error("FdReader::read() failed: " + safe_strerror(errno));  // LCOV_EXCL_LINE
         }
         *data = buffer_;
         *length = n_read;
@@ -101,7 +101,7 @@ public:
     void rewind() override
     {
         if (lseek(fd_, 0, SEEK_SET) < 0) {
-            throw runtime_error("FdReader::rewind() failed: " + safe_strerror(errno));
+            throw runtime_error("FdReader::rewind() failed: " + safe_strerror(errno));  // LCOV_EXCL_LINE
         }
     }
 private:
@@ -163,18 +163,16 @@ unique_gobj<GdkPixbuf> load_image(Image::Reader& reader,
     }
     if (!gdk_pixbuf_loader_close(loader.get(), &err))
     {
-        // LCOV_EXCL_START
         string msg = string("load_image(): cannot close pixbuf loader: ") + err->message;
         g_error_free(err);
         throw runtime_error(msg);
-        // LCOV_EXCL_STOP
     }
 
     // get_pixbuf() may return NULL (e.g. if we stopped loading the image), 
     unique_gobj<GdkPixbuf> pixbuf(gdk_pixbuf_loader_get_pixbuf(loader.get()));
     if (!pixbuf)
     {
-        throw runtime_error("load_image(): cannot create pixbuf");
+        throw runtime_error("load_image(): cannot create pixbuf");  // LCOV_EXCL_LINE
     }
     // gdk_pixbuf_loader_get_pixbuf() returns a borrowed reference
     g_object_ref(pixbuf.get());
@@ -320,12 +318,6 @@ void Image::load(Reader& reader, QSize requested_size)
             {
                 // Nothing: we'll try to load the main image.
             }
-            // maybe_scale_thumbnail asks for a 0x0 image if the
-            // thumbnail is not appropriate.
-            if (pixbuf_ && (gdk_pixbuf_get_width(pixbuf_.get()) == 0 ||
-                            gdk_pixbuf_get_height(pixbuf_.get()) == 0)) {
-                pixbuf_.reset();
-            }
         }
     }
 
@@ -373,7 +365,7 @@ void Image::load(Reader& reader, QSize requested_size)
     default:
         // Impossible, according the spec. Rather than throwing or some such,
         // we do nothing and return the EXIF image without any adjustment.
-        break;
+        break;  // LCOV_EXCL_LINE
     }
 }
 
