@@ -421,8 +421,6 @@ RequestBase::ImageData LocalThumbnailRequest::fetch(QSize const& size_hint) {
 }
 
 void LocalThumbnailRequest::download(std::chrono::milliseconds timeout) {
-    // FIXME: vs-thumb should be thumbnailing from fd_ rather than
-    // re-opening the file.
     screenshotter_.reset(new VideoScreenshotter(fd_.get(), timeout));
     connect(screenshotter_.get(), &VideoScreenshotter::finished,
             this, &LocalThumbnailRequest::downloadFinished, Qt::DirectConnection);
