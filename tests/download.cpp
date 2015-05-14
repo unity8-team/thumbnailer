@@ -117,7 +117,7 @@ TEST_F(TestDownloaderServer, test_ok_album)
     EXPECT_EQ(reply->succeeded(), true);
     EXPECT_EQ(reply->not_found_error(), false);
     EXPECT_EQ(reply->is_running(), false);
-    EXPECT_EQ(reply->network_error(), false);
+    EXPECT_EQ(reply->network_down(), false);
     // Finally check the content of the file downloaded
     EXPECT_EQ(QString(reply->data()), QString("SIA_FEAR_TEST_STRING_IMAGE_ALBUM"));
 }
@@ -137,7 +137,7 @@ TEST_F(TestDownloaderServer, test_ok_artist)
     EXPECT_EQ(reply->succeeded(), true);
     EXPECT_EQ(reply->not_found_error(), false);
     EXPECT_EQ(reply->is_running(), false);
-    EXPECT_EQ(reply->network_error(), false);
+    EXPECT_EQ(reply->network_down(), false);
     EXPECT_EQ(QString(reply->data()), QString("SIA_FEAR_TEST_STRING_IMAGE"));
 }
 
@@ -156,7 +156,7 @@ TEST_F(TestDownloaderServer, test_timeout)
     EXPECT_EQ(reply->succeeded(), false);
     EXPECT_EQ(reply->not_found_error(), false);
     EXPECT_EQ(reply->is_running(), false);
-    EXPECT_EQ(reply->network_error(), true);
+    EXPECT_EQ(reply->network_down(), true);
 }
 
 TEST_F(TestDownloaderServer, test_not_found)
@@ -174,7 +174,7 @@ TEST_F(TestDownloaderServer, test_not_found)
     EXPECT_EQ(reply->succeeded(), false);
     EXPECT_EQ(reply->not_found_error(), true);
     EXPECT_EQ(reply->is_running(), false);
-    EXPECT_EQ(reply->network_error(), false);
+    EXPECT_EQ(reply->network_down(), false);
     EXPECT_TRUE(reply->error_string().endsWith("server replied: Not Found"));
 }
 
@@ -205,7 +205,7 @@ TEST_F(TestDownloaderServer, test_multiple_downloads)
         EXPECT_EQ(replies[i].first->succeeded(), true);
         EXPECT_EQ(replies[i].first->not_found_error(), false);
         EXPECT_EQ(replies[i].first->is_running(), false);
-        EXPECT_EQ(replies[i].first->network_error(), false);
+        EXPECT_EQ(replies[i].first->network_down(), false);
         // Finally check the content of the file downloaded
         EXPECT_EQ(QString(replies[i].first->data()), QString("TEST_THREADS_TEST_TEST_%1").arg(i));
     }
@@ -231,7 +231,7 @@ TEST_F(TestDownloaderServer, test_connection_error)
     EXPECT_EQ(reply->succeeded(), false);
     EXPECT_EQ(reply->not_found_error(), false);
     EXPECT_EQ(reply->is_running(), false);
-    EXPECT_EQ(reply->network_error(), true);
+    EXPECT_EQ(reply->network_down(), true);
 }
 
 int main(int argc, char** argv)
