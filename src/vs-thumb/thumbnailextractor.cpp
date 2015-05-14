@@ -64,7 +64,7 @@ void change_state(GstElement *element, GstState state) {
 
     // We're in the async case here, so pop messages off the bus until
     // it is done.
-    unique_gobj<GstBus> bus(gst_element_get_bus(element));
+    gobj_ptr<GstBus> bus(gst_element_get_bus(element));
     while (true) {
         std::unique_ptr<GstMessage, decltype(&gst_message_unref)> message(
             gst_bus_timed_pop_filtered(
@@ -132,7 +132,7 @@ private:
 }
 
 struct ThumbnailExtractor::Private {
-    unique_gobj<GstElement> playbin;
+    gobj_ptr<GstElement> playbin;
     gint64 duration = -1;
 
     std::unique_ptr<GstSample, decltype(&gst_sample_unref)> sample {
@@ -311,7 +311,7 @@ void ThumbnailExtractor::save_screenshot(const std::string &filename) {
     // Construct a pixbuf from the sample
     fprintf(stderr, "Creating pixbuf from sample\n");
     BufferMap buffermap;
-    unique_gobj<GdkPixbuf> image;
+    gobj_ptr<GdkPixbuf> image;
     if (p->sample_raw) {
         GstCaps *sample_caps = gst_sample_get_caps(p->sample.get());
         if (!sample_caps) {
@@ -331,7 +331,7 @@ void ThumbnailExtractor::save_screenshot(const std::string &filename) {
                         FALSE, 8, width, height, GST_ROUND_UP_4(width *3),
                         nullptr, nullptr));
     } else {
-        unique_gobj<GdkPixbufLoader> loader(gdk_pixbuf_loader_new());
+        gobj_ptr<GdkPixbufLoader> loader(gdk_pixbuf_loader_new());
 
         buffermap.map(gst_sample_get_buffer(p->sample.get()));
         GError *error = nullptr;

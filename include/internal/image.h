@@ -61,7 +61,7 @@ public:
 
 private:
     typedef struct _GdkPixbuf GdkPixbuf;
-    typedef unique_gobj<GdkPixbuf> PixbufPtr;
+    typedef gobj_ptr<GdkPixbuf> PixbufPtr;
 
     void load(Reader& reader, QSize requested_size);
 

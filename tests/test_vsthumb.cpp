@@ -75,9 +75,9 @@ std::string filename_to_uri(const std::string &filename) {
     return uri.get();
 }
 
-unique_gobj<GdkPixbuf> load_image(const std::string &filename) {
+gobj_ptr<GdkPixbuf> load_image(const std::string &filename) {
     GError *error = nullptr;
-    unique_gobj<GdkPixbuf> image(
+    gobj_ptr<GdkPixbuf> image(
         gdk_pixbuf_new_from_file(filename.c_str(), &error));
     if (error) {
         std::string message(error->message);

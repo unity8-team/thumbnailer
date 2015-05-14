@@ -26,22 +26,22 @@
 
 using namespace std;
 
-TEST(Unique_gobj, trivial) {
-    unique_gobj<GdkPixbuf> basic(gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480));
+TEST(Gobj_ptr, trivial) {
+    gobj_ptr<GdkPixbuf> basic(gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480));
     ASSERT_TRUE(bool(basic));
     ASSERT_TRUE(gdk_pixbuf_get_width(basic.get()) == 640);
     ASSERT_TRUE(gdk_pixbuf_get_height(basic.get()) == 480);
 }
 
-TEST(Unique_gobj, compare) {
+TEST(Gobj_ptr, compare) {
     GdkPixbuf *pb1 = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
     GdkPixbuf *pb2 = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
     if(pb1 > pb2) {
         std::swap(pb1, pb2);
     }
     ASSERT_TRUE(pb1 < pb2);
-    unique_gobj<GdkPixbuf> u1(pb1);
-    unique_gobj<GdkPixbuf> u2(pb2);
+    gobj_ptr<GdkPixbuf> u1(pb1);
+    gobj_ptr<GdkPixbuf> u2(pb2);
 
     ASSERT_TRUE(!(u1 == nullptr));
     ASSERT_TRUE(u1 != nullptr);
@@ -57,20 +57,20 @@ TEST(Unique_gobj, compare) {
 
 // This is its own thing due to need to avoid double release.
 
-TEST(Unique_gobj, equality) {
+TEST(Gobj_ptr, equality) {
     GdkPixbuf *pb = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
-    unique_gobj<GdkPixbuf> u1(pb);
+    gobj_ptr<GdkPixbuf> u1(pb);
     g_object_ref(G_OBJECT(pb));
-    unique_gobj<GdkPixbuf> u2(pb);
+    gobj_ptr<GdkPixbuf> u2(pb);
     ASSERT_TRUE(u1 == u2);
     ASSERT_TRUE(u2 == u1);
     ASSERT_TRUE(!(u1 != u2));
     ASSERT_TRUE(!(u2 != u1));
 }
 
-TEST(Unique_gobj, release) {
+TEST(Gobj_ptr, release) {
     GdkPixbuf *pb = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
-    unique_gobj<GdkPixbuf> u(pb);
+    gobj_ptr<GdkPixbuf> u(pb);
     ASSERT_TRUE(u != nullptr);
     ASSERT_TRUE(u.get() != nullptr);
     ASSERT_TRUE(pb == u.release());
@@ -81,12 +81,12 @@ TEST(Unique_gobj, release) {
 
 void sub_func(GdkPixbuf *pb) {
     ASSERT_TRUE(G_OBJECT(pb)->ref_count == 2);
-    unique_gobj<GdkPixbuf> u(pb);
+    gobj_ptr<GdkPixbuf> u(pb);
     ASSERT_TRUE(G_OBJECT(pb)->ref_count == 2);
     // Now it dies and refcount is reduced.
 }
 
-TEST(Unique_gobj, refcount) {
+TEST(Gobj_ptr, refcount) {
     GdkPixbuf *pb = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
     ASSERT_TRUE(G_OBJECT(pb)->ref_count == 1);
     g_object_ref(G_OBJECT(pb));
@@ -95,11 +95,11 @@ TEST(Unique_gobj, refcount) {
     g_object_unref(G_OBJECT(pb));
 }
 
-TEST(Unique_gobj, swap) {
+TEST(Gobj_ptr, swap) {
     GdkPixbuf *pb1 = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
     GdkPixbuf *pb2 = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
-    unique_gobj<GdkPixbuf> u1(pb1);
-    unique_gobj<GdkPixbuf> u2(pb2);
+    gobj_ptr<GdkPixbuf> u1(pb1);
+    gobj_ptr<GdkPixbuf> u2(pb2);
 
     u1.swap(u2);
     ASSERT_TRUE(u1.get() == pb2);
@@ -110,12 +110,12 @@ TEST(Unique_gobj, swap) {
     ASSERT_TRUE(u2.get() == pb2);
 }
 
-TEST(Unique_gobj, floating) {
+TEST(Gobj_ptr, floating) {
     GdkPixbuf *pb = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
     bool got_exception = false;
     g_object_force_floating(G_OBJECT(pb));
     try {
-        unique_gobj<GdkPixbuf> u(pb);
+        gobj_ptr<GdkPixbuf> u(pb);
     } catch(const invalid_argument &c) {
         got_exception = true;
     }
@@ -123,12 +123,12 @@ TEST(Unique_gobj, floating) {
     ASSERT_TRUE(got_exception);
 }
 
-TEST(Unique_gobj, move) {
+TEST(Gobj_ptr, move) {
     GdkPixbuf *pb1 = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
     GdkPixbuf *pb2 = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
     g_object_ref(G_OBJECT(pb1));
-    unique_gobj<GdkPixbuf> u1(pb1);
-    unique_gobj<GdkPixbuf> u2(pb2);
+    gobj_ptr<GdkPixbuf> u1(pb1);
+    gobj_ptr<GdkPixbuf> u2(pb2);
     u1 = std::move(u2);
     ASSERT_TRUE(u1.get() == pb2);
     ASSERT_TRUE(!u2);
@@ -136,12 +136,12 @@ TEST(Unique_gobj, move) {
     g_object_unref(G_OBJECT(pb1));
 }
 
-TEST(Unique_gobj, null) {
+TEST(Gobj_ptr, null) {
     GdkPixbuf *pb1 = NULL;
     GdkPixbuf *pb3 = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
-    unique_gobj<GdkPixbuf> u1(pb1);
-    unique_gobj<GdkPixbuf> u2(nullptr);
-    unique_gobj<GdkPixbuf> u3(pb3);
+    gobj_ptr<GdkPixbuf> u1(pb1);
+    gobj_ptr<GdkPixbuf> u2(nullptr);
+    gobj_ptr<GdkPixbuf> u3(pb3);
 
     ASSERT_TRUE(!u1);
     ASSERT_TRUE(!u2);
@@ -149,10 +149,10 @@ TEST(Unique_gobj, null) {
     ASSERT_TRUE(!u3);
 }
 
-TEST(Unique_gobj, reset) {
+TEST(Gobj_ptr, reset) {
     GdkPixbuf *pb1 = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
     GdkPixbuf *pb2 = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 640, 480);
-    unique_gobj<GdkPixbuf> u(pb1);
+    gobj_ptr<GdkPixbuf> u(pb1);
 
     u.reset(pb2);
     ASSERT_TRUE(u.get() == pb2);
@@ -160,12 +160,12 @@ TEST(Unique_gobj, reset) {
     ASSERT_TRUE(!u);
 }
 
-TEST(Unique_gobj, sizeoftest) {
-    ASSERT_TRUE(sizeof(GdkPixbuf*) == sizeof(unique_gobj<GdkPixbuf>));
+TEST(Gobj_ptr, sizeoftest) {
+    ASSERT_TRUE(sizeof(GdkPixbuf*) == sizeof(gobj_ptr<GdkPixbuf>));
 }
 
-TEST(Unique_gobj, deleter) {
-    unique_gobj<GdkPixbuf> u1;
+TEST(Gobj_ptr, deleter) {
+    gobj_ptr<GdkPixbuf> u1;
     ASSERT_TRUE(u1.get_deleter() == g_object_unref);
 }
 

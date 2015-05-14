@@ -382,16 +382,16 @@ RequestBase::ImageData LocalThumbnailRequest::fetch(QSize const& size_hint) {
     }
 
     // Work out content type.
-    unique_gobj<GFile> file(g_file_new_for_path(filename_.c_str()));
+    gobj_ptr<GFile> file(g_file_new_for_path(filename_.c_str()));
     if (!file)
     {
         return ImageData(FetchStatus::error, Location::local);
     }
 
-    unique_gobj<GFileInfo> info(g_file_query_info(file.get(), G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE,
-                                                  G_FILE_QUERY_INFO_NONE,
-                                                  /* cancellable */ NULL,
-                                                  /* error */ NULL));      // TODO: need decent error reporting
+    gobj_ptr<GFileInfo> info(g_file_query_info(file.get(), G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE,
+                                               G_FILE_QUERY_INFO_NONE,
+                                               /* cancellable */ NULL,
+                                               /* error */ NULL));      // TODO: need decent error reporting
     if (!info)
     {
         return ImageData(FetchStatus::error, Location::local);
