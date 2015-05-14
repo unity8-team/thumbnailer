@@ -196,7 +196,7 @@ TEST_F(DBusTest, thumbnail_no_such_file) {
         QSize(256, 256));
     EXPECT_FALSE(reply.isValid());
     auto message = reply.error().message().toStdString();
-    EXPECT_TRUE(boost::starts_with(message, "DBusInterface::GetThumbnail(): Could not stat ")) << message;
+    EXPECT_TRUE(boost::contains(message, " No such file or directory: ")) << message;
 }
 
 TEST_F(DBusTest, thumbnail_wrong_fd_fails) {
@@ -212,7 +212,7 @@ TEST_F(DBusTest, thumbnail_wrong_fd_fails) {
         QSize(256, 256));
     EXPECT_FALSE(reply.isValid());
     auto message = reply.error().message().toStdString();
-    EXPECT_TRUE(boost::ends_with(message, " refers to a different file than the file descriptor"));
+    EXPECT_TRUE(boost::contains(message, " file descriptor does not refer to file ")) << message;
 }
 
 TEST_F(DBusTest, test_inactivity_exit) {
