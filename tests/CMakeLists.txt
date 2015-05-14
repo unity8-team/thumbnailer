@@ -60,9 +60,9 @@ pkg_check_modules(GOBJ_DEPS REQUIRED gobject-2.0)
 
 include_directories(${GOBJ_DEPS_INCLUDE_DIRS})
 
-add_executable(unique_gobj unique_gobj.cpp)
-target_link_libraries(unique_gobj ${GOBJ_DEPS_LDFLAGS} ${IMG_DEPS_LDFLAGS} gtest)
-add_test(unique_gobj unique_gobj)
+add_executable(gobj_ptr gobj_ptr.cpp)
+target_link_libraries(gobj_ptr ${GOBJ_DEPS_LDFLAGS} gtest)
+add_test(gobj_ptr gobj_ptr)
 
 add_executable(test_vsthumb
   test_vsthumb.cpp

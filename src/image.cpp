@@ -137,8 +137,8 @@ auto do_exif_data_unref = [](ExifData* data)
 };
 typedef unique_ptr<ExifData, decltype(do_exif_data_unref)> ExifDataPtr;
 
-unique_gobj<GdkPixbuf> load_image(Image::Reader& reader,
-                                  GCallback size_prepared_cb, void *user_data)
+gobj_ptr<GdkPixbuf> load_image(Image::Reader& reader,
+                               GCallback size_prepared_cb, void *user_data)
 {
     LoaderPtr loader(gdk_pixbuf_loader_new(), do_loader_close);
     if (!loader.get())
@@ -169,7 +169,7 @@ unique_gobj<GdkPixbuf> load_image(Image::Reader& reader,
     }
 
     // get_pixbuf() may return NULL (e.g. if we stopped loading the image), 
-    unique_gobj<GdkPixbuf> pixbuf(gdk_pixbuf_loader_get_pixbuf(loader.get()));
+    gobj_ptr<GdkPixbuf> pixbuf(gdk_pixbuf_loader_get_pixbuf(loader.get()));
     if (!pixbuf)
     {
         throw runtime_error("load_image(): cannot create pixbuf");  // LCOV_EXCL_LINE
