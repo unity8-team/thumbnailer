@@ -29,7 +29,7 @@ struct VideoScreenshotterPrivate;
 class VideoScreenshotter final : public QObject {
     Q_OBJECT
 public:
-    VideoScreenshotter(const std::string &filename, std::chrono::milliseconds timeout);
+    VideoScreenshotter(int fd, std::chrono::milliseconds timeout);
     ~VideoScreenshotter();
 
     VideoScreenshotter(const VideoScreenshotter &t) = delete;

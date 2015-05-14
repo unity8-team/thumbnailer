@@ -126,6 +126,7 @@ TEST_F(ExtractorTest, extract_theora) {
     ThumbnailExtractor extractor;
     std::string outfile = tempdir + "/out.jpg";
     extractor.set_uri(filename_to_uri(THEORA_TEST_FILE));
+    ASSERT_TRUE(extractor.has_video());
     ASSERT_TRUE(extractor.extract_video_frame());
     extractor.save_screenshot(outfile);
 
@@ -143,6 +144,7 @@ TEST_F(ExtractorTest, extract_mp4) {
     ThumbnailExtractor extractor;
     std::string outfile = tempdir + "/out.jpg";
     extractor.set_uri(filename_to_uri(MP4_LANDSCAPE_TEST_FILE));
+    ASSERT_TRUE(extractor.has_video());
     ASSERT_TRUE(extractor.extract_video_frame());
     extractor.save_screenshot(outfile);
 
@@ -173,6 +175,7 @@ TEST_F(ExtractorTest, extract_vorbis_cover_art) {
 
     std::string outfile = tempdir + "/out.jpg";
     extractor.set_uri(filename_to_uri(VORBIS_TEST_FILE));
+    ASSERT_FALSE(extractor.has_video());
     ASSERT_TRUE(extractor.extract_audio_cover_art());
     extractor.save_screenshot(outfile);
 

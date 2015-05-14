@@ -201,6 +201,33 @@ TEST_F(ThumbnailerTest, thumbnail_video)
     EXPECT_EQ(1080, img.height());
 }
 
+TEST_F(ThumbnailerTest, replace_video)
+{
+    string testfile = tempdir_path() + "/foo.ogv";
+    ASSERT_EQ(0, link(TEST_VIDEO, testfile.c_str()));
+
+    Thumbnailer tn;
+    FdPtr fd(open(testfile.c_str(), O_RDONLY | O_CLOEXEC), do_close);
+    auto request = tn.get_thumbnail(testfile, fd.get(), QSize());
+    // The client FD isn't needed any more, so close it.
+    fd.reset(-1);
+
+    // Replace test image with a different file with different
+    // dimensions so we can tell which one is thumbnailed.
+    ASSERT_EQ(0, unlink(testfile.c_str()));
+    ASSERT_EQ(0, link(BIG_IMAGE, testfile.c_str()));
+
+    ASSERT_EQ("", request->thumbnail());
+    QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
+    request->download(chrono::milliseconds(15000));
+    ASSERT_TRUE(spy.wait(20000));
+
+    string data = request->thumbnail();
+    Image img(data);
+    EXPECT_EQ(1920, img.width());
+    EXPECT_EQ(1080, img.height());
+}
+
 TEST_F(ThumbnailerTest, thumbnail_song)
 {
     Thumbnailer tn;
