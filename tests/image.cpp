@@ -20,14 +20,20 @@
 
 #include <boost/algorithm/string.hpp>
 #include <gtest/gtest.h>
+#include <sys/types.h>
+#include <fcntl.h>
+
 #include <internal/file_io.h>
+#include <internal/raii.h>
 #include <testsetup.h>
 
 #define TESTIMAGE TESTDATADIR "/orientation-1.jpg"
 #define JPEGIMAGE TESTBINDIR "/saved_image.jpg"
 #define BADIMAGE TESTDATADIR "/bad_image.jpg"
+#define BIGIMAGE TESTDATADIR "/big.jpg"
 
 using namespace std;
+using namespace unity::thumbnailer::internal;
 
 TEST(Image, basic)
 {
@@ -71,6 +77,38 @@ TEST(Image, basic)
         EXPECT_EQ(320, i6.width());
         EXPECT_EQ(240, i6.height());
     }
+}
+
+TEST(Image, scale)
+{
+    string data = read_file(TESTIMAGE);
+    Image img(data);
+    EXPECT_EQ(640, img.width());
+    EXPECT_EQ(480, img.height());
+
+    Image scaled = img.scale(QSize(400, 400));
+    EXPECT_EQ(400, scaled.width());
+    EXPECT_EQ(300, scaled.height());
+
+    // A large requested size results in no scaling
+    scaled = img.scale(QSize(1000, 1000));
+    EXPECT_EQ(640, scaled.width());
+    EXPECT_EQ(480, scaled.height());
+
+    // Aspect ratio maintained
+    scaled = img.scale(QSize(1000, 240));
+    EXPECT_EQ(320, scaled.width());
+    EXPECT_EQ(240, scaled.height());
+
+    // Scale to width
+    scaled = img.scale(QSize(400, 0));
+    EXPECT_EQ(400, scaled.width());
+    EXPECT_EQ(300, scaled.height());
+
+    // Scale to height
+    scaled = img.scale(QSize(0, 300));
+    EXPECT_EQ(400, scaled.width());
+    EXPECT_EQ(300, scaled.height());
 }
 
 TEST(Image, save_jpeg)
@@ -151,4 +189,27 @@ TEST(Image, exceptions)
             EXPECT_TRUE(boost::starts_with(msg, "load_image(): cannot close pixbuf loader: ")) << msg;
         }
     }
+}
+
+TEST(Image, load_fd)
+{
+    FdPtr fd(open(TESTIMAGE, O_RDONLY), do_close);
+    ASSERT_GT(fd.get(), 0);
+
+    Image img(fd.get());
+    EXPECT_EQ(640, img.width());
+    EXPECT_EQ(480, img.height());
+}
+
+TEST(Image, load_fd_big_image)
+{
+    FdPtr fd(open(BIGIMAGE, O_RDONLY), do_close);
+    ASSERT_GT(fd.get(), 0);
+
+    // This image is significantly larger than the buffer used to read
+    // the file, so multiple read() calls will be needed to fully
+    // consume the image.
+    Image img(fd.get());
+    EXPECT_EQ(2731, img.width());
+    EXPECT_EQ(2048, img.height());
 }

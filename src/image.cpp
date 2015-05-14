@@ -17,6 +17,7 @@
  */
 
 #include <internal/image.h>
+#include <internal/safe_strerror.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"
@@ -26,13 +27,87 @@
 #include <libexif/exif-loader.h>
 
 #include <memory>
+#include <stdexcept>
 #include <cassert>
 #include <cmath>
+#include <unistd.h>
 
 using namespace std;
+using namespace unity::thumbnailer::internal;
+
+class Image::Reader
+{
+public:
+    Reader() = default;
+    virtual ~Reader() = default;
+
+    Reader(const Reader&) = delete;
+    Reader& operator=(Reader&) = delete;
+
+    // Returns true if (data, length) have been set to a segment of data
+    virtual bool read(unsigned char const** data, size_t* length) = 0;
+    virtual void rewind() = 0;
+};
 
 namespace
 {
+
+class BufferReader : public Image::Reader
+{
+public:
+    BufferReader(unsigned char const* data, size_t length)
+        : data_(data), length_(length) {}
+
+    bool read(unsigned char const** data, size_t* length) override
+    {
+        if (first_read)
+        {
+            *data = data_;
+            *length = length_;
+            first_read = false;
+            return true;
+        }
+        return false;
+    }
+
+    void rewind() override
+    {
+        first_read = true;
+    }
+
+private:
+    unsigned char const* const data_;
+    size_t const length_;
+    bool first_read = true;
+};
+
+class FdReader : public Image::Reader
+{
+public:
+    FdReader(int fd) : fd_(fd) {}
+
+    bool read(unsigned char const** data, size_t* length) override
+    {
+        ssize_t n_read = ::read(fd_, buffer_, sizeof(buffer_));
+        if (n_read < 0)
+        {
+            throw runtime_error("FdReader::read() failed: " + safe_strerror(errno));
+        }
+        *data = buffer_;
+        *length = n_read;
+        return n_read > 0;
+    }
+
+    void rewind() override
+    {
+        if (lseek(fd_, 0, SEEK_SET) < 0) {
+            throw runtime_error("FdReader::rewind() failed: " + safe_strerror(errno));
+        }
+    }
+private:
+    int fd_;
+    unsigned char buffer_[64*1024];
+};
 
 auto do_loader_close = [](GdkPixbufLoader* loader)
 {
@@ -62,7 +137,7 @@ auto do_exif_data_unref = [](ExifData* data)
 };
 typedef unique_ptr<ExifData, decltype(do_exif_data_unref)> ExifDataPtr;
 
-unique_gobj<GdkPixbuf> load_image(unsigned char const *data, size_t length,
+unique_gobj<GdkPixbuf> load_image(Image::Reader& reader,
                                   GCallback size_prepared_cb, void *user_data)
 {
     LoaderPtr loader(gdk_pixbuf_loader_new(), do_loader_close);
@@ -72,14 +147,19 @@ unique_gobj<GdkPixbuf> load_image(unsigned char const *data, size_t length,
     }
 
     g_signal_connect(loader.get(), "size-prepared", size_prepared_cb, user_data);
+    unsigned char const* data = nullptr;
+    size_t length = 0;
     GError* err = nullptr;
-    if (!gdk_pixbuf_loader_write(loader.get(), data, length, &err))
+    while (reader.read(&data, &length))
     {
-        // LCOV_EXCL_START
-        string msg = string("load_image(): cannot write to pixbuf loader: ") + err->message;
-        g_error_free(err);
-        throw runtime_error(msg);
-        // LCOV_EXCL_STOP
+        if (!gdk_pixbuf_loader_write(loader.get(), data, length, &err))
+        {
+            // LCOV_EXCL_START
+            string msg = string("load_image(): cannot write to pixbuf loader: ") + err->message;
+            g_error_free(err);
+            throw runtime_error(msg);
+            // LCOV_EXCL_STOP
+        }
     }
     if (!gdk_pixbuf_loader_close(loader.get(), &err))
     {
@@ -168,6 +248,18 @@ void maybe_scale_image(GdkPixbufLoader *loader, int width, int height, void *use
 
 Image::Image(string const& data, QSize requested_size)
 {
+    BufferReader reader(reinterpret_cast<unsigned char const*>(&data[0]), data.size());
+    load(reader, requested_size);
+}
+
+Image::Image(int fd, QSize requested_size)
+{
+    FdReader reader(fd);
+    load(reader, requested_size);
+}
+
+void Image::load(Reader& reader, QSize requested_size)
+{
     // Try to load EXIF data for orientation information and embedded
     // thumbnail.
     ExifLoaderPtr el(exif_loader_new(), do_exif_loader_close);
@@ -175,7 +267,16 @@ Image::Image(string const& data, QSize requested_size)
     {
         throw runtime_error("Image(): could not create ExifLoader"); // LCOV_EXCL_LINE
     }
-    exif_loader_write(el.get(), const_cast<unsigned char*>(reinterpret_cast<unsigned char const*>(&data[0])), data.size());
+
+    unsigned char const* data = nullptr;
+    size_t length = 0;
+    while (reader.read(&data, &length)) {
+        if (!exif_loader_write(el.get(), const_cast<unsigned char*>(data), length))
+        {
+            break;
+        }
+    }
+    reader.rewind();
     ExifDataPtr exif(exif_loader_get_data(el.get()), do_exif_data_unref);
 
     int orientation = 1;
@@ -210,7 +311,8 @@ Image::Image(string const& data, QSize requested_size)
         {
             try
             {
-                pixbuf_ = load_image(exif->data, exif->size,
+                BufferReader thumbnail(exif->data, exif->size);
+                pixbuf_ = load_image(thumbnail,
                                      G_CALLBACK(maybe_scale_thumbnail),
                                      &unrotated_requested_size);
             }
@@ -228,9 +330,8 @@ Image::Image(string const& data, QSize requested_size)
     }
 
     if (!pixbuf_) {
-        pixbuf_ = load_image(
-            reinterpret_cast<unsigned char const*>(&data[0]), data.size(),
-            G_CALLBACK(maybe_scale_image), &unrotated_requested_size);
+        pixbuf_ = load_image(reader, G_CALLBACK(maybe_scale_image),
+                             &unrotated_requested_size);
     }
 
     // Correct the image orientation, if needed
@@ -320,6 +421,44 @@ int Image::pixel(int x, int y) const
 
     unsigned char* p = data + y * rowstride + x * n_channels;
     return p[0] << 16 | p[1] << 8 | p[2];
+}
+
+Image Image::scale(QSize requested_size) const
+{
+    assert(pixbuf_);
+    if (!requested_size.isValid())
+    {
+        return *this;
+    }
+
+    QSize scaled_size(width(), height());
+    if (requested_size.width() == 0)
+    {
+        requested_size.setWidth(scaled_size.width());
+    }
+    if (requested_size.height() == 0)
+    {
+        requested_size.setHeight(scaled_size.height());
+    }
+    // If the image fits within the requested size, return it as is.
+    if (width() <= requested_size.width() &&
+        height() <= requested_size.height())
+    {
+        return *this;
+    }
+
+    scaled_size.scale(requested_size, Qt::KeepAspectRatio);
+    Image scaled;
+    scaled.pixbuf_.reset(
+        gdk_pixbuf_scale_simple(pixbuf_.get(),
+                                scaled_size.width(),
+                                scaled_size.height(),
+                                GDK_INTERP_BILINEAR));
+    if (!scaled.pixbuf_)
+    {
+        throw runtime_error("Image::scale(): could not create scaled image");
+    }
+    return scaled;
 }
 
 string Image::to_jpeg() const

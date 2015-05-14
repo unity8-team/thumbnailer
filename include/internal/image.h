@@ -27,15 +27,20 @@
 class Image
 {
 public:
-    // Default constructor does nothing. Must be followed by load() before calling any other member function.
+    class Reader;
+
+    // Default constructor does nothing.
     Image() = default;
 
-    // Loads internal pixbuf with provided image data. The orientation
-    // is as described by the EXIF specification. 1 means "already in correct orientation".
+    // Loads internal pixbuf with provided image data to fit within
+    // the dimensions of the requested size.  The image will be
+    // rotated if required by the EXIF metadata.
     Image(std::string const& data, QSize requested_size = QSize());
 
-    Image(Image const&) = delete;
-    Image& operator=(Image const&) = delete;
+    Image(int fd, QSize requested_size = QSize());
+
+    Image(Image const&) = default;
+    Image& operator=(Image const&) = default;
     Image(Image&&) = default;
     Image& operator=(Image &&) = default;
 
@@ -46,6 +51,10 @@ public:
     //  r << 16 | g << 8 | b
     int pixel(int x, int y) const;
 
+    // Return a scaled version of the image that fits within the given
+    // requested size.
+    Image scale(QSize requested_size) const;
+
     // Returns image as JPEG data.
     std::string to_jpeg() const;
 
@@ -53,5 +62,8 @@ public:
 private:
     typedef struct _GdkPixbuf GdkPixbuf;
     typedef unique_gobj<GdkPixbuf> PixbufPtr;
+
+    void load(Reader& reader, QSize requested_size);
+
     PixbufPtr pixbuf_;
 };
