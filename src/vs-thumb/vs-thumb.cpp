@@ -33,18 +33,42 @@
 
 using namespace std;
 
-namespace {
+namespace
+{
 
-bool extract_thumbnail(const std::string &uri, const std::string &ofname) {
+string command_line_arg_to_uri(string const& arg)
+{
+    unique_ptr<GFile, decltype(&g_object_unref)> file(
+            g_file_new_for_commandline_arg(arg.c_str()), g_object_unref);
+    if(!file) {
+        throw runtime_error("Could not create parse argument as file");
+    }
+    char *c_uri = g_file_get_uri(file.get());
+    if (!c_uri)
+    {
+        throw runtime_error("Could not convert to uri");
+    }
+    string uri(c_uri);
+    g_free(c_uri);
+    return uri;
+}
+
+bool extract_thumbnail(string const& uri, string const& ofname)
+{
     ThumbnailExtractor extractor;
 
     extractor.set_uri(uri);
-    if (extractor.has_video()) {
-        if (!extractor.extract_video_frame()) {
+    if (extractor.has_video())
+    {
+        if (!extractor.extract_video_frame())
+        {
             return false;
         }
-    } else {
-        if (!extractor.extract_audio_cover_art()) {
+    }
+    else
+    {
+        if (!extractor.extract_audio_cover_art())
+        {
             return false;
         }
     }
@@ -54,36 +78,37 @@ bool extract_thumbnail(const std::string &uri, const std::string &ofname) {
 
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     gst_init(&argc, &argv);
-    if(argc != 3) {
-        printf("%s <source file> <output file>\n", argv[0]);
+    if(argc != 3)
+    {
+        fprintf(stderr, "%s <source file> <output file>\n", argv[0]);
         return 1;
     }
-    string infile(argv[1]);
+    string uri;
     string outfile(argv[2]);
     bool success = false;
 
-    // Determine file type.
-    std::unique_ptr<GFile, void(*)(void *)> file(
-            g_file_new_for_commandline_arg(infile.c_str()), g_object_unref);
-    if(!file) {
+    try
+    {
+        uri = command_line_arg_to_uri(argv[1]);
+    }
+    catch (exception const& e)
+    {
+        fprintf(stderr, "Error parsing \"%s\": %s\n", argv[1], e.what());
         return 1;
     }
 
-    std::unique_ptr<char, void(*)(void *)> c_uri(
-        g_file_get_uri(file.get()), g_free);
-    std::string uri(c_uri.get());
-
-    try {
+    try
+    {
         success = extract_thumbnail(uri, outfile);
-    } catch(runtime_error &e) {
-        printf("Error creating thumbnail: %s\n", e.what());
+    }
+    catch(runtime_error const& e)
+    {
+        fprintf(stderr, "Error creating thumbnail: %s\n", e.what());
         return 2;
     }
 
-    if(success) {
-        return 0;
-    }
-    return 1;
+    return success ? 0 : 1;
 }

@@ -35,7 +35,7 @@ using namespace std;
 
 string read_file(string const& filename)
 {
-    int fd = open(filename.c_str(), O_RDONLY);
+    int fd = open(filename.c_str(), O_RDONLY | O_CLOEXEC);
     if (fd == -1)
     {
         throw runtime_error("read_file(): cannot open \"" + filename + "\": " + safe_strerror(errno));
