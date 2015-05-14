@@ -29,6 +29,7 @@ public:
 
     void reset();
     void set_uri(const std::string &uri);
+    bool has_video();
     bool extract_video_frame();
     bool extract_audio_cover_art();
     void save_screenshot(const std::string &filename);

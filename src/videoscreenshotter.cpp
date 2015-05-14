@@ -20,18 +20,22 @@
 #include <internal/videoscreenshotter.h>
 #include <internal/config.h>
 #include <internal/file_io.h>
+#include <internal/raii.h>
+#include <internal/safe_strerror.h>
 
 #include <QProcess>
 #include <QTemporaryFile>
 #include <QTimer>
 
 #include <stdexcept>
+#include <unistd.h>
 
 using namespace std;
+using namespace unity::thumbnailer::internal;
 
 struct VideoScreenshotterPrivate
 {
-    string filename;
+    FdPtr fd;
     int timeout_ms;
     bool success = false;
     string error;
@@ -41,16 +45,21 @@ struct VideoScreenshotterPrivate
     QTimer timer;
     QTemporaryFile tmpfile;
 
-    VideoScreenshotterPrivate(string const& filename, chrono::milliseconds timeout)
-        : filename(filename)
+    VideoScreenshotterPrivate(int fd, chrono::milliseconds timeout)
+        : fd(fd, do_close)
         , timeout_ms(timeout.count())
     {
     }
 };
 
-VideoScreenshotter::VideoScreenshotter(string const& filename, chrono::milliseconds timeout)
-    : p(new VideoScreenshotterPrivate(filename, timeout))
+VideoScreenshotter::VideoScreenshotter(int fd, chrono::milliseconds timeout)
+    : p(new VideoScreenshotterPrivate(dup(fd), timeout))
 {
+    if (p->fd.get() < 0)
+    {
+        throw runtime_error("VideoScreenshotter(): could not duplicate fd: " + safe_strerror(errno));
+    }
+
     p->process.setStandardInputFile(QProcess::nullDevice());
     p->process.setProcessChannelMode(QProcess::ForwardedChannels);
     connect(&p->process, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this, &VideoScreenshotter::processFinished);
@@ -70,8 +79,9 @@ void VideoScreenshotter::extract()
     if (!p->tmpfile.open()) {
         throw runtime_error("VideoScreenshotter::extract: unable to open temporary file");
     }
+    /* Our duplicated file descriptor does not have the FD_CLOEXEC flag set */
     p->process.start(exe_path,
-                     {QString::fromStdString(p->filename), p->tmpfile.fileName()});
+                     {QString("fd://%1").arg(p->fd.get()), p->tmpfile.fileName()});
     // Set a watchdog timer in case vs-thumb doesn't finish in time.
     p->timer.start(15000);
 }

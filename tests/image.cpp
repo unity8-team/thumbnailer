@@ -99,6 +99,38 @@ TEST(Image, basic)
     }
 }
 
+TEST(Image, scale)
+{
+    string data = read_file(TESTIMAGE);
+    Image img(data);
+    EXPECT_EQ(640, img.width());
+    EXPECT_EQ(480, img.height());
+
+    Image scaled = img.scale(QSize(400, 400));
+    EXPECT_EQ(400, scaled.width());
+    EXPECT_EQ(300, scaled.height());
+
+    // A large requested size results in no scaling
+    scaled = img.scale(QSize(1000, 1000));
+    EXPECT_EQ(640, scaled.width());
+    EXPECT_EQ(480, scaled.height());
+
+    // Aspect ratio maintained
+    scaled = img.scale(QSize(1000, 240));
+    EXPECT_EQ(320, scaled.width());
+    EXPECT_EQ(240, scaled.height());
+
+    // Scale to width
+    scaled = img.scale(QSize(400, 0));
+    EXPECT_EQ(400, scaled.width());
+    EXPECT_EQ(300, scaled.height());
+
+    // Scale to height
+    scaled = img.scale(QSize(0, 300));
+    EXPECT_EQ(400, scaled.width());
+    EXPECT_EQ(300, scaled.height());
+}
+
 TEST(Image, save_jpeg)
 {
     string data = read_file(TESTIMAGE);

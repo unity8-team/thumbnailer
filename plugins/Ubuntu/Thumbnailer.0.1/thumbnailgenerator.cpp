@@ -60,7 +60,7 @@ QImage ThumbnailGenerator::requestImage(const QString &id, QSize *realSize,
      * cases we don't want to do that for performance reasons, so this
      * is the only way around the issue for now. */
     QString src_path = QUrl(id).path();
-    int fd = open(src_path.toUtf8().data(), O_RDONLY);
+    int fd = open(src_path.toUtf8().constData(), O_RDONLY | O_CLOEXEC);
     if (fd < 0) {
         qDebug() << "Thumbnail generator failed: " << strerror(errno);
         return getFallbackImage(id, realSize, requestedSize);

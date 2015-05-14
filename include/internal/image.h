@@ -39,8 +39,8 @@ public:
 
     Image(int fd, QSize requested_size = QSize());
 
-    Image(Image const&) = delete;
-    Image& operator=(Image const&) = delete;
+    Image(Image const&) = default;
+    Image& operator=(Image const&) = default;
     Image(Image&&) = default;
     Image& operator=(Image &&) = default;
 
@@ -50,6 +50,10 @@ public:
     // Return the pixel value at the (x,y) coordinates as an integer:
     //  r << 16 | g << 8 | b
     int pixel(int x, int y) const;
+
+    // Return a scaled version of the image that fits within the given
+    // requested size.
+    Image scale(QSize requested_size) const;
 
     // Returns image as JPEG data.
     std::string to_jpeg() const;

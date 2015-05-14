@@ -415,6 +415,44 @@ int Image::pixel(int x, int y) const
     return p[0] << 16 | p[1] << 8 | p[2];
 }
 
+Image Image::scale(QSize requested_size) const
+{
+    assert(pixbuf_);
+    if (!requested_size.isValid())
+    {
+        return *this;
+    }
+
+    QSize scaled_size(width(), height());
+    if (requested_size.width() == 0)
+    {
+        requested_size.setWidth(scaled_size.width());
+    }
+    if (requested_size.height() == 0)
+    {
+        requested_size.setHeight(scaled_size.height());
+    }
+    // If the image fits within the requested size, return it as is.
+    if (width() <= requested_size.width() &&
+        height() <= requested_size.height())
+    {
+        return *this;
+    }
+
+    scaled_size.scale(requested_size, Qt::KeepAspectRatio);
+    Image scaled;
+    scaled.pixbuf_.reset(
+        gdk_pixbuf_scale_simple(pixbuf_.get(),
+                                scaled_size.width(),
+                                scaled_size.height(),
+                                GDK_INTERP_BILINEAR));
+    if (!scaled.pixbuf_)
+    {
+        throw runtime_error("Image::scale(): could not create scaled image");
+    }
+    return scaled;
+}
+
 string Image::to_jpeg() const
 {
     assert(pixbuf_);

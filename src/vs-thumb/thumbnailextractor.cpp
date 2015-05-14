@@ -208,6 +208,12 @@ void ThumbnailExtractor::set_uri(const std::string &uri) {
     }
 }
 
+bool ThumbnailExtractor::has_video() {
+    int n_video = 0;
+    g_object_get(p->playbin.get(), "n-video", &n_video, nullptr);
+    return n_video > 0;
+}
+
 bool ThumbnailExtractor::extract_video_frame() {
     gint64 seek_point = 10 * GST_SECOND;
     if (p->duration >= 0) {
