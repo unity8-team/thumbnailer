@@ -1,5 +1,6 @@
 
 #include <internal/raii.h>
+#include "thumbnailerinterface.h"
 
 #include <memory>
 #include <stdexcept>
@@ -133,7 +134,9 @@ protected:
         dbusTestRunner->registerService(dbusService);
         dbusTestRunner->startServices();
 
-        iface.reset(new QDBusInterface(BUS_NAME, BUS_PATH, THUMBNAILER_IFACE, dbusTestRunner->sessionConnection()));
+        iface.reset(
+            new ThumbnailerInterface(BUS_NAME, BUS_PATH,
+                                     dbusTestRunner->sessionConnection()));
     }
 
     virtual void TearDown() override
@@ -155,7 +158,7 @@ protected:
 
     std::unique_ptr<QTemporaryDir> tempdir;
     std::unique_ptr<QtDBusTest::DBusTestRunner> dbusTestRunner;
-    std::unique_ptr<QDBusInterface> iface;
+    std::unique_ptr<ThumbnailerInterface> iface;
     QSharedPointer<QtDBusTest::QProcessDBusService> dbusService;
     QProcess fake_downloader_server_;
     QString apiroot_;
@@ -163,7 +166,8 @@ protected:
 
 TEST_F(DBusTest, get_album_art)
 {
-    QDBusReply<QDBusUnixFileDescriptor> reply = iface->call("GetAlbumArt", "metallica", "load", QSize(24, 24));
+    QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetAlbumArt(
+        "metallica", "load", QSize(24, 24));
     assert_no_error(reply);
     auto pixbuf = read_image(reply.value());
     EXPECT_EQ(24, gdk_pixbuf_get_width(pixbuf.get()));
@@ -172,7 +176,8 @@ TEST_F(DBusTest, get_album_art)
 
 TEST_F(DBusTest, get_artist_art)
 {
-    QDBusReply<QDBusUnixFileDescriptor> reply = iface->call("GetArtistArt", "metallica", "load", QSize(24, 24));
+    QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetArtistArt(
+        "metallica", "load", QSize(24, 24));
     assert_no_error(reply);
     auto pixbuf = read_image(reply.value());
     EXPECT_EQ(24, gdk_pixbuf_get_width(pixbuf.get()));
@@ -185,8 +190,8 @@ TEST_F(DBusTest, thumbnail_image)
     FdPtr fd(open(filename, O_RDONLY), do_close);
     ASSERT_GE(fd.get(), 0);
 
-    QDBusReply<QDBusUnixFileDescriptor> reply =
-        iface->call("GetThumbnail", filename, QVariant::fromValue(QDBusUnixFileDescriptor(fd.get())), QSize(256, 256));
+    QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetThumbnail(
+        filename, QDBusUnixFileDescriptor(fd.get()), QSize(256, 256));
     assert_no_error(reply);
 
     auto pixbuf = read_image(reply.value());
@@ -202,8 +207,8 @@ TEST_F(DBusTest, thumbnail_no_such_file)
     FdPtr fd(open(filename2, O_RDONLY), do_close);
     ASSERT_GE(fd.get(), 0);
 
-    QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
-        "GetThumbnail", no_such_file, QVariant::fromValue(QDBusUnixFileDescriptor(fd.get())), QSize(256, 256));
+    QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetThumbnail(
+        no_such_file, QDBusUnixFileDescriptor(fd.get()), QSize(256, 256));
     EXPECT_FALSE(reply.isValid());
     auto message = reply.error().message().toStdString();
     EXPECT_TRUE(boost::contains(message, " No such file or directory: ")) << message;
@@ -217,8 +222,8 @@ TEST_F(DBusTest, thumbnail_wrong_fd_fails)
     FdPtr fd(open(filename2, O_RDONLY), do_close);
     ASSERT_GE(fd.get(), 0);
 
-    QDBusReply<QDBusUnixFileDescriptor> reply =
-        iface->call("GetThumbnail", filename1, QVariant::fromValue(QDBusUnixFileDescriptor(fd.get())), QSize(256, 256));
+    QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetThumbnail(
+        filename1, QDBusUnixFileDescriptor(fd.get()), QSize(256, 256));
     EXPECT_FALSE(reply.isValid());
     auto message = reply.error().message().toStdString();
     EXPECT_TRUE(boost::contains(message, " file descriptor does not refer to file ")) << message;
@@ -235,8 +240,8 @@ TEST_F(DBusTest, test_inactivity_exit)
                         static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished));
 
     // start a query
-    QDBusReply<QDBusUnixFileDescriptor> reply =
-        iface->call("GetThumbnail", filename, QVariant::fromValue(QDBusUnixFileDescriptor(fd.get())), QSize(256, 256));
+    QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetThumbnail(
+        filename, QDBusUnixFileDescriptor(fd.get()), QSize(256, 256));
     assert_no_error(reply);
 
     // wait for 5 seconds... (default)
