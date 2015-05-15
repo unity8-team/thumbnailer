@@ -33,6 +33,15 @@
 
 #include <internal/gobj_memory.h>
 
+namespace unity
+{
+
+namespace thumbnailer
+{
+
+namespace internal
+{
+
 namespace
 {
 
@@ -146,7 +155,8 @@ private:
     std::unique_ptr<GstBuffer, decltype(&gst_buffer_unref)> buffer;
     GstMapInfo info;
 };
-}
+
+}  // namespace
 
 struct ThumbnailExtractor::Private
 {
@@ -404,5 +414,11 @@ void ThumbnailExtractor::save_screenshot(const std::string& filename)
     }
     fprintf(stderr, "Done.\n");
 }
+
+}  // namespace internal
+
+}  // namespace thumbnailer
+
+}  // namespace unity
 
 #pragma GCC diagnostic pop

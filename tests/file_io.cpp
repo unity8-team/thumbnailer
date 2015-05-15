@@ -23,6 +23,7 @@
 #include <testsetup.h>
 
 using namespace std;
+using namespace unity::thumbnailer::internal;
 
 TEST(file_io, read_write)
 {

@@ -36,6 +36,8 @@
 #include <internal/gobj_memory.h>
 #include "../src/vs-thumb/thumbnailextractor.h"
 
+using namespace unity::thumbnailer::internal;
+
 const char THEORA_TEST_FILE[] = TESTDATADIR "/testvideo.ogg";
 const char MP4_LANDSCAPE_TEST_FILE[] = TESTDATADIR "/gegl-landscape.mp4";
 const char MP4_PORTRAIT_TEST_FILE[] = TESTDATADIR "/gegl-portrait.mp4";

@@ -32,6 +32,7 @@
 #include "thumbnailextractor.h"
 
 using namespace std;
+using namespace unity::thumbnailer::internal;
 
 namespace
 {
