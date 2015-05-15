@@ -19,16 +19,17 @@
 
 #include "dbusinterface.h"
 #include "handler.h"
-#include <thumbnailer.h>
-#include <internal/safe_strerror.h>
 
-#include <map>
-#include <sstream>
+#include <internal/safe_strerror.h>
+#include <internal/thumbnailer.h>
 
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <QDebug>
 #include <QThreadPool>
+
+#include <map>
+#include <sstream>
 
 using namespace std;
 using namespace unity::thumbnailer::internal;

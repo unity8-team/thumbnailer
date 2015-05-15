@@ -18,15 +18,26 @@
 
 #pragma once
 
+#include <internal/artdownloader.h>
+
+#include <core/persistent_string_cache.h>
+#include <QObject>
+#include <QSize>
+
 #include <chrono>
 #include <memory>
 #include <string>
 
-#include <core/optional.h>
-#include <QObject>
-#include <QSize>
+namespace unity
+{
 
-class ThumbnailerPrivate;
+namespace thumbnailer
+{
+
+namespace internal
+{
+
+class RequestBase;
 
 class ThumbnailRequest : public QObject {
     Q_OBJECT
@@ -90,5 +101,21 @@ public:
                                                      QSize const& requested_size);
 
 private:
-    std::shared_ptr<ThumbnailerPrivate> p_;
+    ArtDownloader* downloader() const
+    {
+        return downloader_.get();
+    }
+
+    core::PersistentStringCache::UPtr full_size_cache_;  // Small cache of full (original) size images.
+    core::PersistentStringCache::UPtr thumbnail_cache_;  // Large cache of scaled images.
+    core::PersistentStringCache::UPtr failure_cache_;    // Cache for failed attempts (value is always empty).
+    std::unique_ptr<ArtDownloader> downloader_;
+
+    friend class RequestBase;
 };
+
+}  // namespace internal
+
+}  // namespace thumbnailer
+
+}  // namespace unity

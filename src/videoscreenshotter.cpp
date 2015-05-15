@@ -23,47 +23,27 @@
 #include <internal/raii.h>
 #include <internal/safe_strerror.h>
 
-#include <QProcess>
-#include <QTemporaryFile>
-#include <QTimer>
-
-#include <stdexcept>
 #include <unistd.h>
 
 using namespace std;
 using namespace unity::thumbnailer::internal;
 
-struct VideoScreenshotterPrivate
-{
-    FdPtr fd;
-    int timeout_ms;
-    bool success = false;
-    string error;
-    string data;
-
-    QProcess process;
-    QTimer timer;
-    QTemporaryFile tmpfile;
-
-    VideoScreenshotterPrivate(int fd, chrono::milliseconds timeout)
-        : fd(fd, do_close)
-        , timeout_ms(timeout.count())
-    {
-    }
-};
-
 VideoScreenshotter::VideoScreenshotter(int fd, chrono::milliseconds timeout)
-    : p(new VideoScreenshotterPrivate(dup(fd), timeout))
+    : fd_(dup(fd), do_close)
+    , timeout_ms_(timeout.count())
 {
-    if (p->fd.get() < 0)
+    if (fd_.get() < 0)
     {
         throw runtime_error("VideoScreenshotter(): could not duplicate fd: " + safe_strerror(errno));
     }
 
-    p->process.setStandardInputFile(QProcess::nullDevice());
-    p->process.setProcessChannelMode(QProcess::ForwardedChannels);
-    connect(&p->process, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this, &VideoScreenshotter::processFinished);
-    connect(&p->timer, &QTimer::timeout, this, &VideoScreenshotter::timeout);
+    process_.setStandardInputFile(QProcess::nullDevice());
+    process_.setProcessChannelMode(QProcess::ForwardedChannels);
+    connect(&process_,
+            static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
+            this,
+            &VideoScreenshotter::processFinished);
+    connect(&timer_, &QTimer::timeout, this, &VideoScreenshotter::timeout);
 }
 
 VideoScreenshotter::~VideoScreenshotter() = default;
@@ -76,28 +56,26 @@ void VideoScreenshotter::extract()
     QString exe_path = utildir ? utildir : SHARE_PRIV_ABS;
     exe_path += "/vs-thumb";
 
-    if (!p->tmpfile.open()) {
+    if (!tmpfile_.open()) {
         throw runtime_error("VideoScreenshotter::extract: unable to open temporary file");
     }
     /* Our duplicated file descriptor does not have the FD_CLOEXEC flag set */
-    p->process.start(exe_path,
-                     {QString("fd://%1").arg(p->fd.get()), p->tmpfile.fileName()});
+    process_.start(exe_path, {QString("fd://%1").arg(fd_.get()), tmpfile_.fileName()});
     // Set a watchdog timer in case vs-thumb doesn't finish in time.
-    p->timer.start(15000);
+    timer_.start(15000);
 }
 
 bool VideoScreenshotter::success()
 {
-    return p->process.exitStatus() == QProcess::NormalExit &&
-        p->process.exitCode() == 0;
+    return process_.exitStatus() == QProcess::NormalExit && process_.exitCode() == 0;
 }
 
 string VideoScreenshotter::error()
 {
-    switch (p->process.exitStatus())
+    switch (process_.exitStatus())
     {
     case QProcess::NormalExit:
-        switch (p->process.exitCode())
+        switch (process_.exitCode())
         {
         case 0:
             return "";
@@ -106,7 +84,8 @@ string VideoScreenshotter::error()
         case 2:
             return "Video extractor pipeline failed";
         default:
-            return string("Unknown error when trying to extract video screenshot, return value was ") + to_string(p->process.exitCode());
+            return string("Unknown error when trying to extract video screenshot, return value was ") +
+                          to_string(process_.exitCode());
         }
     case QProcess::CrashExit:
         return "vs-thumb subprocess crashed";
@@ -117,20 +96,20 @@ string VideoScreenshotter::error()
 
 string VideoScreenshotter::data()
 {
-    return read_file(p->tmpfile.fileName().toStdString());
+    return read_file(tmpfile_.fileName().toStdString());
 }
 
 
 void VideoScreenshotter::processFinished()
 {
-    p->timer.stop();
+    timer_.stop();
     Q_EMIT finished();
 }
 
 void VideoScreenshotter::timeout()
 {
-    if (p->process.state() != QProcess::NotRunning)
+    if (process_.state() != QProcess::NotRunning)
     {
-        p->process.kill();
+        process_.kill();
     }
 }

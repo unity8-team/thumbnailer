@@ -448,7 +448,7 @@ Image Image::scale(QSize requested_size) const
                                 GDK_INTERP_BILINEAR));
     if (!scaled.pixbuf_)
     {
-        throw runtime_error("Image::scale(): could not create scaled image");
+        throw runtime_error("Image::scale(): could not create scaled image");  // LCOV_EXCL_LINE
     }
     return scaled;
 }

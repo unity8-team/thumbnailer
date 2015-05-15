@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <thumbnailer.h>
+#include <internal/thumbnailer.h>
 
 #include <memory>
 #include <string>
@@ -44,7 +44,7 @@ public:
     Handler(const QDBusConnection &bus, const QDBusMessage &message,
             std::shared_ptr<QThreadPool> check_pool,
             std::shared_ptr<QThreadPool> create_pool,
-            std::unique_ptr<ThumbnailRequest> &&request);
+            std::unique_ptr<internal::ThumbnailRequest> &&request);
     ~Handler();
 
     Handler(const Handler&) = delete;
