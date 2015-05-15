@@ -77,12 +77,13 @@ ThumbnailerPrivate::ThumbnailerPrivate()
     string xdg_base = g_get_user_cache_dir();
     if (xdg_base == "")
     {
+        // LCOV_EXCL_START
         string s("Thumbnailer(): Could not determine cache dir.");
         throw runtime_error(s);
+        // LCOV_EXCL_STOP
     }
 
     string cache_dir = xdg_base + "/unity-thumbnailer";
-    cerr << "cachedir: " << cache_dir << endl;
     make_directories(cache_dir, 0700);
 
     try
@@ -97,9 +98,7 @@ ThumbnailerPrivate::ThumbnailerPrivate()
     }
     catch (std::exception const& e)
     {
-        string s("Thumbnailer(): Cannot instantiate cache: ");
-        s += e.what();
-        throw runtime_error(s);
+        throw runtime_error(string("Thumbnailer(): Cannot instantiate cache: ") + e.what());
     }
 }
 
@@ -292,6 +291,7 @@ string RequestBase::thumbnail()
                     later = chrono::steady_clock::now() + chrono::hours(2);  // Two hours before we try again.
                 }
                 p_->failure_cache_->put(key_, "", later);
+                // TODO: need to throw here, this is a real error.
                 return "";
             }
             default:
@@ -338,8 +338,10 @@ LocalThumbnailRequest::LocalThumbnailRequest(shared_ptr<ThumbnailerPrivate> cons
     struct stat our_stat, client_stat;
     if (fstat(fd_.get(), &our_stat) < 0)
     {
+        // LCOV_EXCL_START
         throw runtime_error("LocalThumbnailRequest(): Could not stat " +
                             filename_ + ": " + safe_strerror(errno));
+        // LCOV_EXCL_STOP
     }
     if (fstat(filename_fd, &client_stat) < 0)
     {
@@ -377,6 +379,8 @@ RequestBase::ImageData LocalThumbnailRequest::fetch(QSize const& size_hint) {
             return ImageData(Image(screenshotter_->data()), CachePolicy::cache_fullsize, Location::local);
         } else {
             cerr << "Failed to get thumbnail: " << screenshotter_->error();
+            // TODO: Probably should return the error details to the caller. Throw instead
+            // of storing an error status? Should log the error too, or possibly log from inside vs-thumb.
             return ImageData(FetchStatus::error, Location::local);
         }
     }
@@ -398,7 +402,6 @@ RequestBase::ImageData LocalThumbnailRequest::fetch(QSize const& size_hint) {
     }
 
     string content_type = g_file_info_get_attribute_string(info.get(), G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE);
-    cerr << "content type: " << content_type << endl;
     if (content_type.empty())
     {
         return ImageData(FetchStatus::error, Location::local);

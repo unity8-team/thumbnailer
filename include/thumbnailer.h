@@ -18,13 +18,13 @@
 
 #pragma once
 
-#include <chrono>
-#include <memory>
-#include <string>
-
 #include <core/optional.h>
 #include <QObject>
 #include <QSize>
+
+#include <chrono>
+#include <memory>
+#include <string>
 
 class ThumbnailerPrivate;
 
