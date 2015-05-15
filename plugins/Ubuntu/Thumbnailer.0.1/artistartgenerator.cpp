@@ -29,37 +29,44 @@
 #include <QDBusUnixFileDescriptor>
 #include <QDBusReply>
 
-namespace {
+namespace
+{
 const char DEFAULT_ARTIST_ART[] = "/usr/share/thumbnailer/icons/album_missing.png";
 
 const char BUS_NAME[] = "com.canonical.Thumbnailer";
 const char BUS_PATH[] = "/com/canonical/Thumbnailer";
-
 }
 
-namespace unity {
-namespace thumbnailer {
-namespace qml {
+namespace unity
+{
+namespace thumbnailer
+{
+namespace qml
+{
 
 ArtistArtGenerator::ArtistArtGenerator()
     : QQuickAsyncImageProvider()
 {
 }
 
-QQuickImageResponse *ArtistArtGenerator::requestImageResponse(const QString &id, const QSize &requestedSize)
+QQuickImageResponse* ArtistArtGenerator::requestImageResponse(const QString& id, const QSize& requestedSize)
 {
-    ThumbnailerImageResponse *response = new ThumbnailerImageResponse(id, requestedSize, DEFAULT_ARTIST_ART, DEFAULT_ARTIST_ART);
+    ThumbnailerImageResponse* response = new ThumbnailerImageResponse(
+        ThumbnailerImageResponse::Download, id, requestedSize, DEFAULT_ARTIST_ART, DEFAULT_ARTIST_ART);
 
     QUrlQuery query(id);
-    if (!query.hasQueryItem("artist") || !query.hasQueryItem("album")) {
+    if (!query.hasQueryItem("artist") || !query.hasQueryItem("album"))
+    {
         qWarning() << "Invalid albumart uri:" << id;
         response->finish_later_with_default_image();
         return response;
     }
 
-    if (!connection) {
+    if (!connection)
+    {
         // Create them here and not them on the constrcutor so they belong to the proper thread
-        connection.reset(new QDBusConnection(QDBusConnection::connectToBus(QDBusConnection::SessionBus, "album_art_generator_dbus_connection")));
+        connection.reset(new QDBusConnection(
+            QDBusConnection::connectToBus(QDBusConnection::SessionBus, "album_art_generator_dbus_connection")));
         iface.reset(new ThumbnailerInterface(BUS_NAME, BUS_PATH, *connection));
     }
 
@@ -69,10 +76,10 @@ QQuickImageResponse *ArtistArtGenerator::requestImageResponse(const QString &id,
     // perform dbus call
     auto reply = iface->GetArtistArt(artist, album, requestedSize);
     auto watcher = new QDBusPendingCallWatcher(reply);
-    QObject::connect(watcher, &QDBusPendingCallWatcher::finished, response, &ThumbnailerImageResponse::dbus_call_finished);
+    QObject::connect(
+        watcher, &QDBusPendingCallWatcher::finished, response, &ThumbnailerImageResponse::dbus_call_finished);
     return response;
 }
-
 }
 }
 }

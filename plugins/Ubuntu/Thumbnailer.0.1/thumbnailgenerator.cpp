@@ -34,26 +34,32 @@
 #include <QDBusUnixFileDescriptor>
 #include <QDBusReply>
 
-namespace {
-const char *DEFAULT_VIDEO_ART = "/usr/share/thumbnailer/icons/video_missing.png";
-const char *DEFAULT_ALBUM_ART = "/usr/share/thumbnailer/icons/album_missing.png";
+namespace
+{
+const char* DEFAULT_VIDEO_ART = "/usr/share/thumbnailer/icons/video_missing.png";
+const char* DEFAULT_ALBUM_ART = "/usr/share/thumbnailer/icons/album_missing.png";
 
 const char BUS_NAME[] = "com.canonical.Thumbnailer";
 const char BUS_PATH[] = "/com/canonical/Thumbnailer";
 }
 
-namespace unity {
-namespace thumbnailer {
-namespace qml {
+namespace unity
+{
+namespace thumbnailer
+{
+namespace qml
+{
 
-ThumbnailGenerator::ThumbnailGenerator() : QQuickAsyncImageProvider() {
-
+ThumbnailGenerator::ThumbnailGenerator()
+    : QQuickAsyncImageProvider()
+{
 }
 
-QQuickImageResponse *ThumbnailGenerator::requestImageResponse(const QString &id, const QSize &requestedSize)
+QQuickImageResponse* ThumbnailGenerator::requestImageResponse(const QString& id, const QSize& requestedSize)
 {
     qDebug() << "THUMBNAIL" << id;
-    ThumbnailerImageResponse *response = new ThumbnailerImageResponse(id, requestedSize, DEFAULT_VIDEO_ART, DEFAULT_ALBUM_ART);
+    ThumbnailerImageResponse* response = new ThumbnailerImageResponse(
+        ThumbnailerImageResponse::Thumbnail, id, requestedSize, DEFAULT_VIDEO_ART, DEFAULT_ALBUM_ART);
 
     /* Allow appending a query string (e.g. ?something=timestamp)
      * to the id and then ignore it.
@@ -66,7 +72,8 @@ QQuickImageResponse *ThumbnailGenerator::requestImageResponse(const QString &id,
      * is the only way around the issue for now. */
     QString src_path = QUrl(id).path();
     int fd = open(src_path.toUtf8().constData(), O_RDONLY | O_CLOEXEC);
-    if (fd < 0) {
+    if (fd < 0)
+    {
         qDebug() << "Thumbnail generator failed: " << strerror(errno);
         response->finish_later_with_default_image();
         return response;
@@ -74,18 +81,20 @@ QQuickImageResponse *ThumbnailGenerator::requestImageResponse(const QString &id,
     QDBusUnixFileDescriptor unix_fd(fd);
     close(fd);
 
-    if (!connection) {
+    if (!connection)
+    {
         // Create them here and not them on the constrcutor so they belong to the proper thread
-        connection.reset(new QDBusConnection(QDBusConnection::connectToBus(QDBusConnection::SessionBus, "thumbnail_generator_dbus_connection")));
+        connection.reset(new QDBusConnection(
+            QDBusConnection::connectToBus(QDBusConnection::SessionBus, "thumbnail_generator_dbus_connection")));
         iface.reset(new ThumbnailerInterface(BUS_NAME, BUS_PATH, *connection));
     }
 
     auto reply = iface->GetThumbnail(src_path, unix_fd, requestedSize);
     auto watcher = new QDBusPendingCallWatcher(reply);
-    QObject::connect(watcher, &QDBusPendingCallWatcher::finished, response, &ThumbnailerImageResponse::dbus_call_finished);
+    QObject::connect(
+        watcher, &QDBusPendingCallWatcher::finished, response, &ThumbnailerImageResponse::dbus_call_finished);
     return response;
 }
-
 }
 }
 }

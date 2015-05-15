@@ -43,7 +43,8 @@ public:
         : QEvent(QEvent::User){};
 };
 
-ThumbnailerImageResponse::ThumbnailerImageResponse(QString const& id,
+ThumbnailerImageResponse::ThumbnailerImageResponse(ResponseType type,
+                                                   QString const& id,
                                                    QSize const& requested_size,
                                                    QString const& default_video_image,
                                                    QString const& default_audio_image)
@@ -52,6 +53,7 @@ ThumbnailerImageResponse::ThumbnailerImageResponse(QString const& id,
     , texture_(nullptr)
     , default_video_image_(default_video_image)
     , default_audio_image_(default_audio_image)
+    , type_(type)
 {
 }
 
@@ -62,16 +64,19 @@ QQuickTextureFactory* ThumbnailerImageResponse::textureFactory() const
 
 void ThumbnailerImageResponse::set_default_image()
 {
-    QMimeDatabase db;
-    QMimeType mime = db.mimeTypeForFile(id_);
     QImage result;
-    if (mime.name().contains("audio"))
+
+    switch(type_)
     {
+    case Download:
+        // we are only downloading images for audio files
         result.load(default_audio_image_);
-    }
-    else if (mime.name().contains("video"))
-    {
-        result.load(default_video_image_);
+        break;
+    case Thumbnail:
+        result.load(return_default_image_based_on_mime());
+        break;
+    default:
+        abort();  // LCOV_EXCL_LINE  // Impossible
     }
     texture_.reset(QQuickTextureFactory::textureFactoryForImage(result));
 }
@@ -94,7 +99,6 @@ bool ThumbnailerImageResponse::event(QEvent* event)
 
 void ThumbnailerImageResponse::dbus_call_finished(QDBusPendingCallWatcher* watcher)
 {
-    qDebug() << "ThumbnailGeneratorImageResponse::dbus_call_finished()";
     QDBusPendingReply<QDBusUnixFileDescriptor> reply = *watcher;
     if (!reply.isValid())
     {
@@ -123,6 +127,22 @@ void ThumbnailerImageResponse::dbus_call_finished(QDBusPendingCallWatcher* watch
 
     set_default_image();
     Q_EMIT finished();
+}
+
+QString ThumbnailerImageResponse::return_default_image_based_on_mime()
+{
+    QMimeDatabase db;
+    QMimeType mime = db.mimeTypeForFile(id_);
+
+    if (mime.name().contains("audio"))
+    {
+        return default_audio_image_;
+    }
+    else if (mime.name().contains("video"))
+    {
+        return default_video_image_;
+    }
+    return default_audio_image_;
 }
 
 }  // namespace qml

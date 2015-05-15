@@ -24,11 +24,14 @@
 
 #include <memory>
 
-namespace unity {
-namespace thumbnailer {
-namespace qml {
+namespace unity
+{
+namespace thumbnailer
+{
+namespace qml
+{
 
-class AlbumArtGenerator: public QQuickAsyncImageProvider
+class AlbumArtGenerator : public QQuickAsyncImageProvider
 {
 private:
     std::unique_ptr<QDBusConnection> connection;
@@ -36,9 +39,8 @@ private:
 
 public:
     AlbumArtGenerator();
-    QQuickImageResponse *requestImageResponse(const QString &id, const QSize &requestedSize) override;
+    QQuickImageResponse* requestImageResponse(const QString& id, const QSize& requestedSize) override;
 };
-
 }
 }
 }

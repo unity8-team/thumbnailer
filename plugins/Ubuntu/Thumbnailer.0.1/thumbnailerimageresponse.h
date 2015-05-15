@@ -37,11 +37,20 @@ class ThumbnailerImageResponse : public QQuickImageResponse
     Q_OBJECT
 public:
     Q_DISABLE_COPY(ThumbnailerImageResponse)
-    ThumbnailerImageResponse(QString const& id,
+    enum ResponseType
+    {
+        Download,
+        Thumbnail
+    };
+
+    ThumbnailerImageResponse(ResponseType type,
+                             QString const& id,
                              QSize const& requested_size,
                              QString const& default_video_image,
                              QString const& default_audio_image);
     ~ThumbnailerImageResponse() = default;
+
+
 
     QQuickTextureFactory* textureFactory() const;
     void set_default_image();
@@ -54,11 +63,13 @@ public Q_SLOTS:
     void dbus_call_finished(QDBusPendingCallWatcher* watcher);
 
 private:
+    QString return_default_image_based_on_mime();
     QString id_;
     QSize requested_size_;
     std::unique_ptr<QQuickTextureFactory> texture_;
     QString default_video_image_;
     QString default_audio_image_;
+    ResponseType type_;
 };
 
 }  // namespace qml
