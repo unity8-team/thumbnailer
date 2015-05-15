@@ -21,44 +21,62 @@
 #include "artistartgenerator.h"
 #include "thumbnailgenerator.h"
 
-namespace unity {
-namespace thumbnailer {
-namespace qml {
+namespace unity
+{
+namespace thumbnailer
+{
+namespace qml
+{
 
-void ThumbnailerPlugin::registerTypes(const char *uri) {
-    qmlRegisterTypeNotAvailable(
-        uri, 0, 1, "__ThumbnailerIgnoreMe",
-        "Ignore this: QML plugins must contain at least one type");
+void ThumbnailerPlugin::registerTypes(const char* uri)
+{
+    qmlRegisterTypeNotAvailable(uri, 0, 1, "__ThumbnailerIgnoreMe",
+                                "Ignore this: QML plugins must contain at least one type");
 }
 
-void ThumbnailerPlugin::initializeEngine(QQmlEngine *engine, const char *uri) {
+void ThumbnailerPlugin::initializeEngine(QQmlEngine* engine, const char* uri)
+{
     QQmlExtensionPlugin::initializeEngine(engine, uri);
 
-    try {
+    try
+    {
         engine->addImageProvider("albumart", new AlbumArtGenerator());
-    } catch (const std::exception &e) {
+    }
+    catch (const std::exception& e)
+    {
         qWarning() << "Failed to register albumart image provider:" << e.what();
-    } catch (...) {
+    }
+    catch (...)
+    {
         qWarning() << "Failed to register albumart image provider.";
     }
 
-    try {
+    try
+    {
         engine->addImageProvider("artistart", new ArtistArtGenerator());
-    } catch (const std::exception &e) {
+    }
+    catch (const std::exception& e)
+    {
         qWarning() << "Failed to register artistart image provider:" << e.what();
-    } catch (...) {
+    }
+    catch (...)
+    {
         qWarning() << "Failed to register artistart image provider.";
     }
 
-    try {
+    try
+    {
         engine->addImageProvider("thumbnailer", new ThumbnailGenerator());
-    } catch (const std::exception &e) {
+    }
+    catch (const std::exception& e)
+    {
         qWarning() << "Failed to register thumbnailer image provider:" << e.what();
-    } catch (...) {
+    }
+    catch (...)
+    {
         qWarning() << "Failed to register thumbnailer image provider.";
     }
 }
-
 }
 }
 }

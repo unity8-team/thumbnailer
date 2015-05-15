@@ -18,10 +18,11 @@
 
 #pragma once
 
-#include<string>
+#include <string>
 
-class HttpDownloader {
+class HttpDownloader
+{
 public:
-    virtual std::string download(const std::string &url) = 0;
-    virtual ~HttpDownloader() {};
+    virtual std::string download(const std::string& url) = 0;
+    virtual ~HttpDownloader(){};
 };

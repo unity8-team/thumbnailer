@@ -42,7 +42,7 @@ public:
     Image(Image const&) = default;
     Image& operator=(Image const&) = default;
     Image(Image&&) = default;
-    Image& operator=(Image &&) = default;
+    Image& operator=(Image&&) = default;
 
     int width() const;
     int height() const;
@@ -57,7 +57,6 @@ public:
 
     // Returns image as JPEG data.
     std::string to_jpeg() const;
-
 
 private:
     typedef struct _GdkPixbuf GdkPixbuf;

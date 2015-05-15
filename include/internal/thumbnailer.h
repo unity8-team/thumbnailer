@@ -39,7 +39,8 @@ namespace internal
 
 class RequestBase;
 
-class ThumbnailRequest : public QObject {
+class ThumbnailRequest : public QObject
+{
     Q_OBJECT
 public:
     Q_DISABLE_COPY(ThumbnailRequest)
@@ -84,7 +85,9 @@ public:
      * Return value is the thumbnail image as a string.
      * If the thumbnail could not be generated, an empty string is returned.
      */
-    std::unique_ptr<ThumbnailRequest> get_thumbnail(std::string const& filename, int filename_fd, QSize const& requested_size);
+    std::unique_ptr<ThumbnailRequest> get_thumbnail(std::string const& filename,
+                                                    int filename_fd,
+                                                    QSize const& requested_size);
 
     /**
      * Gets album art for the given artist an album.

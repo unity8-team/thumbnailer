@@ -30,14 +30,15 @@
 
 struct VideoScreenshotterPrivate;
 
-class VideoScreenshotter final : public QObject {
+class VideoScreenshotter final : public QObject
+{
     Q_OBJECT
 public:
     VideoScreenshotter(int fd, std::chrono::milliseconds timeout);
     ~VideoScreenshotter();
 
-    VideoScreenshotter(const VideoScreenshotter &t) = delete;
-    VideoScreenshotter & operator=(const VideoScreenshotter &t) = delete;
+    VideoScreenshotter(const VideoScreenshotter& t) = delete;
+    VideoScreenshotter& operator=(const VideoScreenshotter& t) = delete;
 
     void extract();
     bool success();
@@ -52,7 +53,7 @@ private Q_SLOTS:
     void timeout();
 
 private:
-    unity::util::ResourcePtr<int, void(*)(int)> fd_;
+    unity::util::ResourcePtr<int, void (*)(int)> fd_;
     int timeout_ms_;
     bool success_ = false;
     std::string error_;

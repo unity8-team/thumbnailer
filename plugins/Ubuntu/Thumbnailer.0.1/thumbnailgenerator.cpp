@@ -31,25 +31,29 @@
 #include <QDBusUnixFileDescriptor>
 #include <QDBusReply>
 
-namespace {
-const char *DEFAULT_VIDEO_ART = "/usr/share/thumbnailer/icons/video_missing.png";
-const char *DEFAULT_ALBUM_ART = "/usr/share/thumbnailer/icons/album_missing.png";
+namespace
+{
+const char* DEFAULT_VIDEO_ART = "/usr/share/thumbnailer/icons/video_missing.png";
+const char* DEFAULT_ALBUM_ART = "/usr/share/thumbnailer/icons/album_missing.png";
 
 const char BUS_NAME[] = "com.canonical.Thumbnailer";
 const char BUS_PATH[] = "/com/canonical/Thumbnailer";
 }
 
-namespace unity {
-namespace thumbnailer {
-namespace qml {
+namespace unity
+{
+namespace thumbnailer
+{
+namespace qml
+{
 
-ThumbnailGenerator::ThumbnailGenerator() : QQuickImageProvider(QQuickImageProvider::Image,
-        QQmlImageProviderBase::ForceAsynchronousImageLoading) {
-
+ThumbnailGenerator::ThumbnailGenerator()
+    : QQuickImageProvider(QQuickImageProvider::Image, QQmlImageProviderBase::ForceAsynchronousImageLoading)
+{
 }
 
-QImage ThumbnailGenerator::requestImage(const QString &id, QSize *realSize,
-        const QSize &requestedSize) {
+QImage ThumbnailGenerator::requestImage(const QString& id, QSize* realSize, const QSize& requestedSize)
+{
     /* Allow appending a query string (e.g. ?something=timestamp)
      * to the id and then ignore it.
      * This is workaround to force reloading a thumbnail when it has
@@ -61,53 +65,63 @@ QImage ThumbnailGenerator::requestImage(const QString &id, QSize *realSize,
      * is the only way around the issue for now. */
     QString src_path = QUrl(id).path();
     int fd = open(src_path.toUtf8().constData(), O_RDONLY | O_CLOEXEC);
-    if (fd < 0) {
+    if (fd < 0)
+    {
         qDebug() << "Thumbnail generator failed: " << strerror(errno);
         return getFallbackImage(id, realSize, requestedSize);
     }
     QDBusUnixFileDescriptor unix_fd(fd);
     close(fd);
 
-    if (!connection) {
+    if (!connection)
+    {
         // Create them here and not them on the constrcutor so they belong to the proper thread
-        connection.reset(new QDBusConnection(QDBusConnection::connectToBus(QDBusConnection::SessionBus, "thumbnail_generator_dbus_connection")));
+        connection.reset(new QDBusConnection(
+            QDBusConnection::connectToBus(QDBusConnection::SessionBus, "thumbnail_generator_dbus_connection")));
         iface.reset(new ThumbnailerInterface(BUS_NAME, BUS_PATH, *connection));
     }
 
     auto reply = iface->GetThumbnail(src_path, unix_fd, requestedSize);
     reply.waitForFinished();
-    if (!reply.isValid()) {
+    if (!reply.isValid())
+    {
         qWarning() << "D-Bus error: " << reply.error().message();
         return getFallbackImage(id, realSize, requestedSize);
     }
 
-    try {
-        return imageFromFd(reply.value().fileDescriptor(),
-                           realSize, requestedSize);
-    } catch (const std::exception &e) {
+    try
+    {
+        return imageFromFd(reply.value().fileDescriptor(), realSize, requestedSize);
+    }
+    catch (const std::exception& e)
+    {
         qWarning() << "Album art loader failed: " << e.what();
-    } catch (...) {
+    }
+    catch (...)
+    {
         qWarning() << "Unknown error when generating image.";
     }
 
     return getFallbackImage(id, realSize, requestedSize);
 }
 
-QImage ThumbnailGenerator::getFallbackImage(const QString &id, QSize *size,
-        const QSize &requestedSize) {
+QImage ThumbnailGenerator::getFallbackImage(const QString& id, QSize* size, const QSize& requestedSize)
+{
     Q_UNUSED(requestedSize);
     QMimeDatabase db;
     QMimeType mime = db.mimeTypeForFile(id);
     QImage result;
-    if(mime.name().contains("audio")) {
+    if (mime.name().contains("audio"))
+    {
         result.load(DEFAULT_ALBUM_ART);
-    } else if(mime.name().contains("video")) {
+    }
+    else if (mime.name().contains("video"))
+    {
         result.load(DEFAULT_VIDEO_ART);
     }
     *size = result.size();
     return result;
 }
-
 }
 }
 }

@@ -41,21 +41,30 @@ const char MP4_LANDSCAPE_TEST_FILE[] = TESTDATADIR "/gegl-landscape.mp4";
 const char MP4_PORTRAIT_TEST_FILE[] = TESTDATADIR "/gegl-portrait.mp4";
 const char VORBIS_TEST_FILE[] = TESTDATADIR "/testsong.ogg";
 
-class ExtractorTest : public ::testing::Test {
+class ExtractorTest : public ::testing::Test
+{
 protected:
-    ExtractorTest() {}
-    virtual ~ExtractorTest() {}
+    ExtractorTest()
+    {
+    }
+    virtual ~ExtractorTest()
+    {
+    }
 
-    virtual void SetUp() override {
+    virtual void SetUp() override
+    {
         tempdir = "./vsthumb-test.XXXXXX";
-        if (mkdtemp(const_cast<char*>(tempdir.data())) == nullptr) {
+        if (mkdtemp(const_cast<char*>(tempdir.data())) == nullptr)
+        {
             tempdir = "";
             throw std::runtime_error("Could not create temporary directory");
         }
     }
 
-    virtual void TearDown() override {
-        if (!tempdir.empty()) {
+    virtual void TearDown() override
+    {
+        if (!tempdir.empty())
+        {
             std::string cmd = "rm -rf \"" + tempdir + "\"";
             ASSERT_EQ(system(cmd.c_str()), 0);
         }
@@ -64,22 +73,23 @@ protected:
     std::string tempdir;
 };
 
-std::string filename_to_uri(const std::string &filename) {
-    std::unique_ptr<GFile, void(*)(void *)> file(
-        g_file_new_for_path(filename.c_str()), g_object_unref);
-    if (!file) {
+std::string filename_to_uri(const std::string& filename)
+{
+    std::unique_ptr<GFile, void (*)(void*)> file(g_file_new_for_path(filename.c_str()), g_object_unref);
+    if (!file)
+    {
         throw std::runtime_error("Could not create GFile");
     }
-    std::unique_ptr<char, void(*)(void*)> uri(
-        g_file_get_uri(file.get()), g_free);
+    std::unique_ptr<char, void (*)(void*)> uri(g_file_get_uri(file.get()), g_free);
     return uri.get();
 }
 
-gobj_ptr<GdkPixbuf> load_image(const std::string &filename) {
-    GError *error = nullptr;
-    gobj_ptr<GdkPixbuf> image(
-        gdk_pixbuf_new_from_file(filename.c_str(), &error));
-    if (error) {
+gobj_ptr<GdkPixbuf> load_image(const std::string& filename)
+{
+    GError* error = nullptr;
+    gobj_ptr<GdkPixbuf> image(gdk_pixbuf_new_from_file(filename.c_str(), &error));
+    if (error)
+    {
         std::string message(error->message);
         g_error_free(error);
         throw std::runtime_error(message);
@@ -87,26 +97,32 @@ gobj_ptr<GdkPixbuf> load_image(const std::string &filename) {
     return std::move(image);
 }
 
-bool supports_decoder(const std::string &format) {
+bool supports_decoder(const std::string& format)
+{
     static std::set<std::string> formats;
 
-    if (formats.empty()) {
+    if (formats.empty())
+    {
         std::unique_ptr<GList, decltype(&gst_plugin_feature_list_free)> decoders(
-            gst_element_factory_list_get_elements(
-                GST_ELEMENT_FACTORY_TYPE_DECODER, GST_RANK_NONE),
+            gst_element_factory_list_get_elements(GST_ELEMENT_FACTORY_TYPE_DECODER, GST_RANK_NONE),
             gst_plugin_feature_list_free);
-        for (const GList *l = decoders.get(); l != nullptr; l = l->next) {
+        for (const GList* l = decoders.get(); l != nullptr; l = l->next)
+        {
             const auto factory = static_cast<GstElementFactory*>(l->data);
 
-            const GList *templates = gst_element_factory_get_static_pad_templates(factory);
-            for (const GList *l = templates; l != nullptr; l = l->next) {
+            const GList* templates = gst_element_factory_get_static_pad_templates(factory);
+            for (const GList* l = templates; l != nullptr; l = l->next)
+            {
                 const auto t = static_cast<GstStaticPadTemplate*>(l->data);
                 if (t->direction != GST_PAD_SINK)
+                {
                     continue;
+                }
 
-                std::unique_ptr<GstCaps, decltype(&gst_caps_unref)> caps(
-                    gst_static_caps_get(&t->static_caps), gst_caps_unref);
-                for (unsigned int i = 0; i < gst_caps_get_size(caps.get()); i++) {
+                std::unique_ptr<GstCaps, decltype(&gst_caps_unref)> caps(gst_static_caps_get(&t->static_caps),
+                                                                         gst_caps_unref);
+                for (unsigned int i = 0; i < gst_caps_get_size(caps.get()); i++)
+                {
                     const auto structure = gst_caps_get_structure(caps.get(), i);
                     formats.emplace(gst_structure_get_name(structure));
                 }
@@ -117,8 +133,10 @@ bool supports_decoder(const std::string &format) {
     return formats.find(format) != formats.end();
 }
 
-TEST_F(ExtractorTest, extract_theora) {
-    if (!supports_decoder("video/x-theora")) {
+TEST_F(ExtractorTest, extract_theora)
+{
+    if (!supports_decoder("video/x-theora"))
+    {
         fprintf(stderr, "No support for theora decoder\n");
         return;
     }
@@ -135,8 +153,10 @@ TEST_F(ExtractorTest, extract_theora) {
     EXPECT_EQ(gdk_pixbuf_get_height(image.get()), 1080);
 }
 
-TEST_F(ExtractorTest, extract_mp4) {
-    if (!supports_decoder("video/x-h264")) {
+TEST_F(ExtractorTest, extract_mp4)
+{
+    if (!supports_decoder("video/x-h264"))
+    {
         fprintf(stderr, "No support for H.264 decoder\n");
         return;
     }
@@ -153,8 +173,10 @@ TEST_F(ExtractorTest, extract_mp4) {
     EXPECT_EQ(gdk_pixbuf_get_height(image.get()), 1080);
 }
 
-TEST_F(ExtractorTest, extract_mp4_rotation) {
-    if (!supports_decoder("video/x-h264")) {
+TEST_F(ExtractorTest, extract_mp4_rotation)
+{
+    if (!supports_decoder("video/x-h264"))
+    {
         fprintf(stderr, "No support for H.264 decoder\n");
         return;
     }
@@ -170,7 +192,8 @@ TEST_F(ExtractorTest, extract_mp4_rotation) {
     EXPECT_EQ(gdk_pixbuf_get_height(image.get()), 1280);
 }
 
-TEST_F(ExtractorTest, extract_vorbis_cover_art) {
+TEST_F(ExtractorTest, extract_vorbis_cover_art)
+{
     ThumbnailExtractor extractor;
 
     std::string outfile = tempdir + "/out.jpg";
@@ -184,12 +207,14 @@ TEST_F(ExtractorTest, extract_vorbis_cover_art) {
     EXPECT_EQ(gdk_pixbuf_get_height(image.get()), 200);
 }
 
-TEST_F(ExtractorTest, file_not_found) {
+TEST_F(ExtractorTest, file_not_found)
+{
     ThumbnailExtractor extractor;
     EXPECT_THROW(extractor.set_uri(filename_to_uri(TESTDATADIR "/no-such-file.ogv")), std::runtime_error);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
     ::testing::InitGoogleTest(&argc, argv);
     gst_init(&argc, &argv);
     return RUN_ALL_TESTS();

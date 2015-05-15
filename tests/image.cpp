@@ -223,7 +223,8 @@ TEST(Image, use_exif_thumbnail)
 
 TEST(Image, orientation)
 {
-    for (int i = 1; i <= 8; i++) {
+    for (int i = 1; i <= 8; i++)
+    {
         auto filename = string(TESTDATADIR "/orientation-") + to_string(i) + ".jpg";
         string data = read_file(filename);
         Image img(data);

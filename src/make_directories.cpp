@@ -16,7 +16,6 @@
  * Authored by: MichiHenning <michi@canonical.com>
  */
 
-
 #include <internal/make_directories.h>
 
 #pragma GCC diagnostic push

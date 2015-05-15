@@ -45,7 +45,8 @@ string read_file(string const& filename)
     struct stat st;
     if (fstat(fd_ptr.get(), &st) == -1)
     {
-        throw runtime_error("read_file(): cannot fstat \"" + filename + "\": " + safe_strerror(errno)); // LCOV_EXCL_LINE
+        throw runtime_error("read_file(): cannot fstat \"" + filename + "\": " +
+                            safe_strerror(errno));  // LCOV_EXCL_LINE
     }
 
     string contents;
@@ -54,11 +55,12 @@ string read_file(string const& filename)
     int rc = read(fd_ptr.get(), &contents[0], st.st_size);
     if (rc == -1)
     {
-        throw runtime_error("read_file(): cannot read from \"" + filename + "\": " + safe_strerror(errno)); // LCOV_EXCL_LINE
+        throw runtime_error("read_file(): cannot read from \"" + filename + "\": " +
+                            safe_strerror(errno));  // LCOV_EXCL_LINE
     }
     if (rc != st.st_size)
     {
-        throw runtime_error("read_file(): short read for \"" + filename + "\""); // LCOV_EXCL_LINE
+        throw runtime_error("read_file(): short read for \"" + filename + "\"");  // LCOV_EXCL_LINE
     }
 
     return contents;
@@ -66,7 +68,7 @@ string read_file(string const& filename)
 
 namespace
 {
-    
+
 static string tmp_dir = []
 {
     char const* dirp = getenv("TMPDIR");
@@ -99,11 +101,12 @@ void write_file(string const& filename, string const& contents)
         int rc = write(fd_ptr.get(), &contents[0], contents.size());
         if (rc == -1)
         {
-            throw runtime_error("write_file(): cannot write to \"" + filename + "\": " + safe_strerror(errno)); // LCOV_EXCL_LINE
+            throw runtime_error("write_file(): cannot write to \"" + filename + "\": " +
+                                safe_strerror(errno));  // LCOV_EXCL_LINE
         }
         if (string::size_type(rc) != contents.size())
         {
-            throw runtime_error("write_file(): short write for \"" + filename + "\""); // LCOV_EXCL_LINE
+            throw runtime_error("write_file(): short write for \"" + filename + "\"");  // LCOV_EXCL_LINE
         }
     }  // Close tmp file
 
@@ -111,7 +114,8 @@ void write_file(string const& filename, string const& contents)
     {
         // LCOV_EXCL_START
         unlink(tmp_path.c_str());
-        throw runtime_error("write_file(): cannot rename " + tmp_path + " to " + filename + ": " + safe_strerror(errno));
+        throw runtime_error("write_file(): cannot rename " + tmp_path + " to " + filename + ": " +
+                            safe_strerror(errno));
         // LCOV_EXCL_STOP
     }
 }

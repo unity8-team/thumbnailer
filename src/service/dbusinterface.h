@@ -29,25 +29,31 @@
 #include <QSize>
 #include <QString>
 
-namespace unity {
-namespace thumbnailer {
-namespace service {
+namespace unity
+{
+namespace thumbnailer
+{
+namespace service
+{
 
 struct DBusInterfacePrivate;
 
-class DBusInterface : public QObject, protected QDBusContext {
+class DBusInterface : public QObject, protected QDBusContext
+{
     Q_OBJECT
 public:
-    explicit DBusInterface(QObject *parent=nullptr);
+    explicit DBusInterface(QObject* parent = nullptr);
     ~DBusInterface();
 
     DBusInterface(const DBusInterface&) = delete;
     DBusInterface& operator=(DBusInterface&) = delete;
 
 public Q_SLOTS:
-    QDBusUnixFileDescriptor GetAlbumArt(const QString &artist, const QString &album, const QSize &requestedSize);
-    QDBusUnixFileDescriptor GetArtistArt(const QString &artist, const QString &album, const QSize &requestedSize);
-    QDBusUnixFileDescriptor GetThumbnail(const QString &filename, const QDBusUnixFileDescriptor &filename_fd, const QSize &requestedSize);
+    QDBusUnixFileDescriptor GetAlbumArt(const QString& artist, const QString& album, const QSize& requestedSize);
+    QDBusUnixFileDescriptor GetArtistArt(const QString& artist, const QString& album, const QSize& requestedSize);
+    QDBusUnixFileDescriptor GetThumbnail(const QString& filename,
+                                         const QDBusUnixFileDescriptor& filename_fd,
+                                         const QSize& requestedSize);
 
 private:
     void queueRequest(Handler* handler);
@@ -62,7 +68,6 @@ Q_SIGNALS:
 private:
     std::unique_ptr<DBusInterfacePrivate> p;
 };
-
 }
 }
 }

@@ -41,7 +41,9 @@ public:
         UbuntuArtist
     };
 
-    TestDownload(QObject *parent=nullptr) : QObject(parent), downloads_to_wait_(0)
+    TestDownload(QObject* parent = nullptr)
+        : QObject(parent)
+        , downloads_to_wait_(0)
     {
     }
 
@@ -56,25 +58,25 @@ public:
         downloads_to_wait_++;
 
         std::shared_ptr<ArtReply> reply;
-        switch(download_type)
+        switch (download_type)
         {
-        case UbuntuAlbum:
-            reply = downloader_ubuntu_.download_album("u2", "joshua tree", chrono::milliseconds(10000));
-            if (reply)
-            {
-                map_active_downloads_[reply.get()] = UbuntuAlbum;
-            }
-            break;
-        case UbuntuArtist:
-            reply = downloader_ubuntu_.download_artist("u2", "joshua tree", chrono::milliseconds(10000));
-            if (reply)
-            {
-                map_active_downloads_[reply.get()] = UbuntuArtist;
-            }
-            break;
-        default:
-            abort();  // Impossible
-            break;
+            case UbuntuAlbum:
+                reply = downloader_ubuntu_.download_album("u2", "joshua tree", chrono::milliseconds(10000));
+                if (reply)
+                {
+                    map_active_downloads_[reply.get()] = UbuntuAlbum;
+                }
+                break;
+            case UbuntuArtist:
+                reply = downloader_ubuntu_.download_artist("u2", "joshua tree", chrono::milliseconds(10000));
+                if (reply)
+                {
+                    map_active_downloads_[reply.get()] = UbuntuArtist;
+                }
+                break;
+            default:
+                abort();  // Impossible
+                break;
         }
         if (reply)
         {
@@ -85,7 +87,7 @@ public:
 public Q_SLOTS:
     void download_finished()
     {
-        ArtReply * reply = static_cast<ArtReply*>(sender());
+        ArtReply* reply = static_cast<ArtReply*>(sender());
         if (reply->succeeded())
         {
             qDebug() << "FINISH: " << reply->url_string();
@@ -93,8 +95,8 @@ public Q_SLOTS:
             if (iter != map_active_downloads_.end())
             {
                 QString filename = QString("/tmp/test_thumnailer_%1%2")
-                                                .arg(getTypeName((*iter).second))
-                                                .arg(getTypeExtension((*iter).second));
+                                       .arg(getTypeName((*iter).second))
+                                       .arg(getTypeExtension((*iter).second));
                 QFile file(filename);
                 if (!file.open(QIODevice::WriteOnly))
                 {
@@ -123,47 +125,45 @@ private:
     QString getTypeName(DownloadType type)
     {
         QString ret = "";
-        switch(type)
+        switch (type)
         {
-        case UbuntuAlbum:
-            ret = "UbuntuAlbum";
-            break;
-        case UbuntuArtist:
-            ret = "UbuntuArtist";
-            break;
-        default:
-            abort();  // Impossible
-            break;
+            case UbuntuAlbum:
+                ret = "UbuntuAlbum";
+                break;
+            case UbuntuArtist:
+                ret = "UbuntuArtist";
+                break;
+            default:
+                abort();  // Impossible
+                break;
         }
         return ret;
     }
-
 
     QString getTypeExtension(DownloadType type)
     {
         QString ret = "";
-        switch(type)
+        switch (type)
         {
-        case UbuntuAlbum:
-            ret = ".jpg";
-            break;
-        case UbuntuArtist:
-            ret = ".jpg";
-            break;
-        default:
-            abort();  // Impossible
-            break;
+            case UbuntuAlbum:
+                ret = ".jpg";
+                break;
+            case UbuntuArtist:
+                ret = ".jpg";
+                break;
+            default:
+                abort();  // Impossible
+                break;
         }
         return ret;
     }
 
-    std::map<ArtReply *, DownloadType> map_active_downloads_;
+    std::map<ArtReply*, DownloadType> map_active_downloads_;
     UbuntuServerDownloader downloader_ubuntu_;
     int downloads_to_wait_;
 };
 
-
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
     QCoreApplication app(argc, argv);
 

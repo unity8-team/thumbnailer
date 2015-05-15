@@ -16,17 +16,17 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#include<cstdio>
-#include<string>
-#include<memory>
-#include<stdexcept>
+#include <cstdio>
+#include <string>
+#include <memory>
+#include <stdexcept>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"
 #pragma GCC diagnostic ignored "-Wcast-qual"
 #pragma GCC diagnostic ignored "-Wcast-align"
-#include<gst/gst.h>
-#include<gio/gio.h>
-#include<glib.h>
+#include <gst/gst.h>
+#include <gio/gio.h>
+#include <glib.h>
 #pragma GCC diagnostic pop
 
 #include "thumbnailextractor.h"
@@ -38,12 +38,12 @@ namespace
 
 string command_line_arg_to_uri(string const& arg)
 {
-    unique_ptr<GFile, decltype(&g_object_unref)> file(
-            g_file_new_for_commandline_arg(arg.c_str()), g_object_unref);
-    if(!file) {
+    unique_ptr<GFile, decltype(&g_object_unref)> file(g_file_new_for_commandline_arg(arg.c_str()), g_object_unref);
+    if (!file)
+    {
         throw runtime_error("Could not create parse argument as file");
     }
-    char *c_uri = g_file_get_uri(file.get());
+    char* c_uri = g_file_get_uri(file.get());
     if (!c_uri)
     {
         throw runtime_error("Could not convert to uri");
@@ -75,13 +75,12 @@ bool extract_thumbnail(string const& uri, string const& ofname)
     extractor.save_screenshot(ofname);
     return true;
 }
-
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
     gst_init(&argc, &argv);
-    if(argc != 3)
+    if (argc != 3)
     {
         fprintf(stderr, "%s <source file> <output file>\n", argv[0]);
         return 1;
@@ -104,7 +103,7 @@ int main(int argc, char **argv)
     {
         success = extract_thumbnail(uri, outfile);
     }
-    catch(runtime_error const& e)
+    catch (runtime_error const& e)
     {
         fprintf(stderr, "Error creating thumbnail: %s\n", e.what());
         return 2;

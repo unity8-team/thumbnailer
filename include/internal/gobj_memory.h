@@ -18,12 +18,12 @@
 
 #pragma once
 
-#include<stdexcept>
+#include <stdexcept>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"
 #pragma GCC diagnostic ignored "-Wcast-qual"
-#include<glib-object.h>
+#include <glib-object.h>
 
 /**
  * This class is meant for automatically managing the lifetime of C objects derived
@@ -47,71 +47,149 @@
  * a floating gobject into a gobj_ptr will throw an invalid_argument exception. To
  * prevent accidental memory leaks, the floating gobject is unreffed in this case.
  */
-template<typename T>
-class gobj_ptr final {
+template <typename T>
+class gobj_ptr final
+{
 private:
-  T* u;
+    T* u;
 
-  void validate_float(T *t) {
-      if(t != nullptr && g_object_is_floating(G_OBJECT(t))) {
-          throw std::invalid_argument("Tried to add a floating gobject into a gobj_ptr.");
-      }
-  }
+    void validate_float(T* t)
+    {
+        if (t != nullptr && g_object_is_floating(G_OBJECT(t)))
+        {
+            throw std::invalid_argument("Tried to add a floating gobject into a gobj_ptr.");
+        }
+    }
 
 public:
-  typedef T element_type;
-  typedef T* pointer;
-  typedef decltype(g_object_unref) deleter_type;
+    typedef T element_type;
+    typedef T* pointer;
+    typedef decltype(g_object_unref) deleter_type;
 
-  constexpr gobj_ptr() noexcept : u(nullptr) {}
-  explicit gobj_ptr(T *t) : u(t) {
-      // What should we do if validate throws? Unreffing unknown objs
-      // is dodgy but not unreffing runs the risk of
-      // memory leaks. Currently unrefs as u is destroyed
-      // when this exception is thrown.
-      validate_float(t);
-  }
-  constexpr gobj_ptr(std::nullptr_t) noexcept : u(nullptr) {};
-  gobj_ptr(gobj_ptr &&o) noexcept { u = o.u; o.u = nullptr; }
-  gobj_ptr(const gobj_ptr &o) : u(nullptr) { *this = o; }
-  gobj_ptr& operator=(const gobj_ptr &o) {
-      if (o.u != nullptr) {
-          g_object_ref(o.u);
-      }
-      reset(o.u);
-      return *this;
-  }
-  ~gobj_ptr() { reset(); }
+    constexpr gobj_ptr() noexcept : u(nullptr)
+    {
+    }
+    explicit gobj_ptr(T* t)
+        : u(t)
+    {
+        // What should we do if validate throws? Unreffing unknown objs
+        // is dodgy but not unreffing runs the risk of
+        // memory leaks. Currently unrefs as u is destroyed
+        // when this exception is thrown.
+        validate_float(t);
+    }
+    constexpr gobj_ptr(std::nullptr_t) noexcept : u(nullptr){};
+    gobj_ptr(gobj_ptr&& o) noexcept
+    {
+        u = o.u;
+        o.u = nullptr;
+    }
+    gobj_ptr(const gobj_ptr& o)
+        : u(nullptr)
+    {
+        *this = o;
+    }
+    gobj_ptr& operator=(const gobj_ptr& o)
+    {
+        if (o.u != nullptr)
+        {
+            g_object_ref(o.u);
+        }
+        reset(o.u);
+        return *this;
+    }
+    ~gobj_ptr()
+    {
+        reset();
+    }
 
-  deleter_type& get_deleter() noexcept { return g_object_unref; }
-  deleter_type& get_deleter() const noexcept { return g_object_unref; }
+    deleter_type& get_deleter() noexcept
+    {
+        return g_object_unref;
+    }
+    deleter_type& get_deleter() const noexcept
+    {
+        return g_object_unref;
+    }
 
-  void swap(gobj_ptr<T> &o) noexcept { T*tmp = u; u = o.u; o.u = tmp; }
-  void reset(pointer p = pointer()) {
-      if(u!=nullptr) {
-          g_object_unref(G_OBJECT(u));
-          u = nullptr;
-      }
-      // Same throw dilemma as in pointer constructor.
-      u = p;
-      validate_float(p);
-  }
+    void swap(gobj_ptr<T>& o) noexcept
+    {
+        T* tmp = u;
+        u = o.u;
+        o.u = tmp;
+    }
+    void reset(pointer p = pointer())
+    {
+        if (u != nullptr)
+        {
+            g_object_unref(G_OBJECT(u));
+            u = nullptr;
+        }
+        // Same throw dilemma as in pointer constructor.
+        u = p;
+        validate_float(p);
+    }
 
-  T* release() noexcept { T* r = u; u=nullptr; return r; }
-  T* get() const noexcept { return u; }
+    T* release() noexcept
+    {
+        T* r = u;
+        u = nullptr;
+        return r;
+    }
+    T* get() const noexcept
+    {
+        return u;
+    }
 
-  T& operator*() const { return *u; }
-  T* operator->() const noexcept { return u; }
-  explicit operator bool() const noexcept { return u != nullptr; }
+    T& operator*() const
+    {
+        return *u;
+    }
+    T* operator->() const noexcept
+    {
+        return u;
+    }
+    explicit operator bool() const noexcept
+    {
+        return u != nullptr;
+    }
 
-  gobj_ptr& operator=(gobj_ptr &&o) noexcept { reset(); u = o.u; o.u = nullptr; return *this; }
-  gobj_ptr& operator=(std::nullptr_t) noexcept { reset(); return *this; }
-  bool operator==(const gobj_ptr<T> &o) const noexcept { return u == o.u; }
-  bool operator!=(const gobj_ptr<T> &o) const noexcept { return u != o.u; }
-  bool operator<(const gobj_ptr<T> &o) const noexcept { return u < o.u; }
-  bool operator<=(const gobj_ptr<T> &o) const noexcept { return u <= o.u; }
-  bool operator>(const gobj_ptr<T> &o) const noexcept { return u > o.u; }
-  bool operator>=(const gobj_ptr<T> &o) const noexcept { return u >= o.u; }
+    gobj_ptr& operator=(gobj_ptr&& o) noexcept
+    {
+        reset();
+        u = o.u;
+        o.u = nullptr;
+        return *this;
+    }
+    gobj_ptr& operator=(std::nullptr_t) noexcept
+    {
+        reset();
+        return *this;
+    }
+    bool operator==(const gobj_ptr<T>& o) const noexcept
+    {
+        return u == o.u;
+    }
+    bool operator!=(const gobj_ptr<T>& o) const noexcept
+    {
+        return u != o.u;
+    }
+    bool operator<(const gobj_ptr<T>& o) const noexcept
+    {
+        return u < o.u;
+    }
+    bool operator<=(const gobj_ptr<T>& o) const noexcept
+    {
+        return u <= o.u;
+    }
+    bool operator>(const gobj_ptr<T>& o) const noexcept
+    {
+        return u > o.u;
+    }
+    bool operator>=(const gobj_ptr<T>& o) const noexcept
+    {
+        return u >= o.u;
+    }
 };
 
 #pragma GCC diagnostic pop

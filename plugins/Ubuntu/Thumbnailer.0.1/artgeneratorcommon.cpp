@@ -22,27 +22,33 @@
 #include <QFile>
 #include <QImageReader>
 
-namespace unity {
-namespace thumbnailer {
-namespace qml {
+namespace unity
+{
+namespace thumbnailer
+{
+namespace qml
+{
 
-QImage imageFromFd(int fd, QSize *realSize, const QSize &requestedSize)
+QImage imageFromFd(int fd, QSize* realSize, const QSize& requestedSize)
 {
     QFile file;
     file.open(fd, QIODevice::ReadOnly);
     QImageReader reader;
     reader.setDevice(&file);
     QSize imageSize = reader.size();
-    if (requestedSize.isValid()) {
+    if (requestedSize.isValid())
+    {
         QSize validRequestedSize = requestedSize;
-        if (validRequestedSize.width() == 0) {
+        if (validRequestedSize.width() == 0)
+        {
             validRequestedSize.setWidth(imageSize.width());
         }
-        if (validRequestedSize.height() == 0) {
+        if (validRequestedSize.height() == 0)
+        {
             validRequestedSize.setHeight(imageSize.height());
         }
-        if (imageSize.width() > validRequestedSize.width() ||
-            imageSize.height() > validRequestedSize.height()) {
+        if (imageSize.width() > validRequestedSize.width() || imageSize.height() > validRequestedSize.height())
+        {
             imageSize.scale(validRequestedSize, Qt::KeepAspectRatio);
             reader.setScaledSize(imageSize);
         }
@@ -51,7 +57,6 @@ QImage imageFromFd(int fd, QSize *realSize, const QSize &requestedSize)
     *realSize = image.size();
     return image;
 }
-
 }
 }
 }
