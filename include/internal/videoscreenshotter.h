@@ -22,6 +22,7 @@
 #include <QProcess>
 #include <QTemporaryFile>
 #include <QTimer>
+#include <unity/util/ResourcePtr.h>
 
 #include <chrono>
 #include <memory>
@@ -51,9 +52,7 @@ private Q_SLOTS:
     void timeout();
 
 private:
-    // Can't use FdPtr for fd_ because gcc generates a bogus unsuppressable warning:
-    // http://stackoverflow.com/questions/11534265/do-non-local-c11-lambdas-live-in-anonymous-namespaces
-    int fd_;
+    unity::util::ResourcePtr<int, void(*)(int)> fd_;
     int timeout_ms_;
     bool success_ = false;
     std::string error_;

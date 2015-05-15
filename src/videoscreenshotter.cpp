@@ -20,6 +20,7 @@
 #include <internal/videoscreenshotter.h>
 #include <internal/config.h>
 #include <internal/file_io.h>
+#include <internal/raii.h>
 #include <internal/safe_strerror.h>
 
 #include <unistd.h>
@@ -28,10 +29,10 @@ using namespace std;
 using namespace unity::thumbnailer::internal;
 
 VideoScreenshotter::VideoScreenshotter(int fd, chrono::milliseconds timeout)
-    : fd_(dup(fd))
+    : fd_(dup(fd), do_close)
     , timeout_ms_(timeout.count())
 {
-    if (fd_ < 0)
+    if (fd_.get() < 0)
     {
         throw runtime_error("VideoScreenshotter(): could not duplicate fd: " + safe_strerror(errno));
     }
@@ -45,10 +46,7 @@ VideoScreenshotter::VideoScreenshotter(int fd, chrono::milliseconds timeout)
     connect(&timer_, &QTimer::timeout, this, &VideoScreenshotter::timeout);
 }
 
-VideoScreenshotter::~VideoScreenshotter()
-{
-    close(fd_);  // Not great, should really be RAII. (See comment in header.)
-}
+VideoScreenshotter::~VideoScreenshotter() = default;
 
 void VideoScreenshotter::extract()
 {
@@ -62,7 +60,7 @@ void VideoScreenshotter::extract()
         throw runtime_error("VideoScreenshotter::extract: unable to open temporary file");
     }
     /* Our duplicated file descriptor does not have the FD_CLOEXEC flag set */
-    process_.start(exe_path, {QString("fd://%1").arg(fd_), tmpfile_.fileName()});
+    process_.start(exe_path, {QString("fd://%1").arg(fd_.get()), tmpfile_.fileName()});
     // Set a watchdog timer in case vs-thumb doesn't finish in time.
     timer_.start(15000);
 }
