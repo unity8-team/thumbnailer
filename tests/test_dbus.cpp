@@ -1,8 +1,9 @@
 
+#include <internal/image.h>
 #include <internal/raii.h>
+#include "thumbnailerinterface.h"
 
 #include <memory>
-#include <stdexcept>
 #include <string>
 #include <cstdlib>
 #include <sys/types.h>
@@ -13,14 +14,8 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <gtest/gtest.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-#pragma GCC diagnostic ignored "-Wcast-qual"
-#include <gdk-pixbuf/gdk-pixbuf.h>
-#pragma GCC diagnostic pop
 #include <libqtdbustest/DBusTestRunner.h>
 #include <libqtdbustest/QProcessDBusService.h>
-#include <unity/util/ResourcePtr.h>
 
 #include <QSignalSpy>
 #include <QProcess>
@@ -32,9 +27,6 @@ using namespace unity::thumbnailer::internal;
 
 static const char BUS_NAME[] = "com.canonical.Thumbnailer";
 static const char BUS_PATH[] = "/com/canonical/Thumbnailer";
-static const char THUMBNAILER_IFACE[] = "com.canonical.Thumbnailer";
-
-typedef std::unique_ptr<GdkPixbuf, decltype(&g_object_unref)> PixbufPtr;
 
 template <typename T>
 void assert_no_error(const QDBusReply<T>& reply)
@@ -46,54 +38,6 @@ void assert_no_error(const QDBusReply<T>& reply)
         message = error.name() + ": " + error.message();
     }
     ASSERT_TRUE(reply.isValid()) << message.toUtf8().constData();
-}
-
-PixbufPtr read_image(const QDBusUnixFileDescriptor& unix_fd)
-{
-    auto close_loader = [](GdkPixbufLoader* loader)
-    {
-        if (loader)
-        {
-            gdk_pixbuf_loader_close(loader, nullptr);
-            g_object_unref(loader);
-        }
-    };
-    std::unique_ptr<GdkPixbufLoader, decltype(close_loader)> loader(gdk_pixbuf_loader_new(), close_loader);
-    if (!loader)
-    {
-        throw std::runtime_error("read_image: could not create pixbuf loader");
-    }
-
-    unsigned char buffer[4096];
-    ssize_t n_read;
-    GError* error = nullptr;
-    while ((n_read = read(unix_fd.fileDescriptor(), buffer, sizeof(buffer))) > 0)
-    {
-        if (!gdk_pixbuf_loader_write(loader.get(), buffer, n_read, &error))
-        {
-            std::string message("read_image: error writing to loader: ");
-            message += error->message;
-            g_error_free(error);
-            throw std::runtime_error(message);
-        }
-    }
-    if (n_read < 0)
-    {
-        throw std::runtime_error("read_image: error reading from file descriptor");
-    }
-    if (!gdk_pixbuf_loader_close(loader.get(), &error))
-    {
-        std::string message("read_image: error closing loader: ");
-        message += error->message;
-        g_error_free(error);
-        throw std::runtime_error(message);
-    }
-    GdkPixbuf* pixbuf = gdk_pixbuf_loader_get_pixbuf(loader.get());
-    if (!pixbuf)
-    {
-        throw std::runtime_error("read_image: could not create pixbuf");
-    }
-    return PixbufPtr(static_cast<GdkPixbuf*>(g_object_ref(pixbuf)), g_object_unref);
 }
 
 class DBusTest : public ::testing::Test
@@ -133,7 +77,9 @@ protected:
         dbusTestRunner->registerService(dbusService);
         dbusTestRunner->startServices();
 
-        iface.reset(new QDBusInterface(BUS_NAME, BUS_PATH, THUMBNAILER_IFACE, dbusTestRunner->sessionConnection()));
+        iface.reset(
+            new ThumbnailerInterface(BUS_NAME, BUS_PATH,
+                                     dbusTestRunner->sessionConnection()));
     }
 
     virtual void TearDown() override
@@ -155,7 +101,7 @@ protected:
 
     std::unique_ptr<QTemporaryDir> tempdir;
     std::unique_ptr<QtDBusTest::DBusTestRunner> dbusTestRunner;
-    std::unique_ptr<QDBusInterface> iface;
+    std::unique_ptr<ThumbnailerInterface> iface;
     QSharedPointer<QtDBusTest::QProcessDBusService> dbusService;
     QProcess fake_downloader_server_;
     QString apiroot_;
@@ -163,20 +109,22 @@ protected:
 
 TEST_F(DBusTest, get_album_art)
 {
-    QDBusReply<QDBusUnixFileDescriptor> reply = iface->call("GetAlbumArt", "metallica", "load", QSize(24, 24));
+    QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetAlbumArt(
+        "metallica", "load", QSize(24, 24));
     assert_no_error(reply);
-    auto pixbuf = read_image(reply.value());
-    EXPECT_EQ(24, gdk_pixbuf_get_width(pixbuf.get()));
-    EXPECT_EQ(24, gdk_pixbuf_get_height(pixbuf.get()));
+    Image image(reply.value().fileDescriptor());
+    EXPECT_EQ(24, image.width());
+    EXPECT_EQ(24, image.width());
 }
 
 TEST_F(DBusTest, get_artist_art)
 {
-    QDBusReply<QDBusUnixFileDescriptor> reply = iface->call("GetArtistArt", "metallica", "load", QSize(24, 24));
+    QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetArtistArt(
+        "metallica", "load", QSize(24, 24));
     assert_no_error(reply);
-    auto pixbuf = read_image(reply.value());
-    EXPECT_EQ(24, gdk_pixbuf_get_width(pixbuf.get()));
-    EXPECT_EQ(24, gdk_pixbuf_get_height(pixbuf.get()));
+    Image image(reply.value().fileDescriptor());
+    EXPECT_EQ(24, image.width());
+    EXPECT_EQ(24, image.width());
 }
 
 TEST_F(DBusTest, thumbnail_image)
@@ -185,13 +133,13 @@ TEST_F(DBusTest, thumbnail_image)
     FdPtr fd(open(filename, O_RDONLY), do_close);
     ASSERT_GE(fd.get(), 0);
 
-    QDBusReply<QDBusUnixFileDescriptor> reply =
-        iface->call("GetThumbnail", filename, QVariant::fromValue(QDBusUnixFileDescriptor(fd.get())), QSize(256, 256));
+    QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetThumbnail(
+        filename, QDBusUnixFileDescriptor(fd.get()), QSize(256, 256));
     assert_no_error(reply);
 
-    auto pixbuf = read_image(reply.value());
-    EXPECT_EQ(256, gdk_pixbuf_get_width(pixbuf.get()));
-    EXPECT_EQ(160, gdk_pixbuf_get_height(pixbuf.get()));
+    Image image(reply.value().fileDescriptor());
+    EXPECT_EQ(256, image.width());
+    EXPECT_EQ(160, image.height());
 }
 
 TEST_F(DBusTest, thumbnail_no_such_file)
@@ -202,8 +150,8 @@ TEST_F(DBusTest, thumbnail_no_such_file)
     FdPtr fd(open(filename2, O_RDONLY), do_close);
     ASSERT_GE(fd.get(), 0);
 
-    QDBusReply<QDBusUnixFileDescriptor> reply = iface->call(
-        "GetThumbnail", no_such_file, QVariant::fromValue(QDBusUnixFileDescriptor(fd.get())), QSize(256, 256));
+    QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetThumbnail(
+        no_such_file, QDBusUnixFileDescriptor(fd.get()), QSize(256, 256));
     EXPECT_FALSE(reply.isValid());
     auto message = reply.error().message().toStdString();
     EXPECT_TRUE(boost::contains(message, " No such file or directory: ")) << message;
@@ -217,8 +165,8 @@ TEST_F(DBusTest, thumbnail_wrong_fd_fails)
     FdPtr fd(open(filename2, O_RDONLY), do_close);
     ASSERT_GE(fd.get(), 0);
 
-    QDBusReply<QDBusUnixFileDescriptor> reply =
-        iface->call("GetThumbnail", filename1, QVariant::fromValue(QDBusUnixFileDescriptor(fd.get())), QSize(256, 256));
+    QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetThumbnail(
+        filename1, QDBusUnixFileDescriptor(fd.get()), QSize(256, 256));
     EXPECT_FALSE(reply.isValid());
     auto message = reply.error().message().toStdString();
     EXPECT_TRUE(boost::contains(message, " file descriptor does not refer to file ")) << message;
@@ -235,8 +183,8 @@ TEST_F(DBusTest, test_inactivity_exit)
                         static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished));
 
     // start a query
-    QDBusReply<QDBusUnixFileDescriptor> reply =
-        iface->call("GetThumbnail", filename, QVariant::fromValue(QDBusUnixFileDescriptor(fd.get())), QSize(256, 256));
+    QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetThumbnail(
+        filename, QDBusUnixFileDescriptor(fd.get()), QSize(256, 256));
     assert_no_error(reply);
 
     // wait for 5 seconds... (default)
