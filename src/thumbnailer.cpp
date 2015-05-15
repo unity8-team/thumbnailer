@@ -18,7 +18,7 @@
  *              James Henstridge <james.henstridge@canonical.com>
  */
 
-#include <thumbnailer.h>
+#include <internal/thumbnailer.h>
 
 #include <internal/artreply.h>
 #include <internal/file_io.h>
@@ -48,7 +48,15 @@
 #include <sys/stat.h>
 
 using namespace std;
-using namespace unity::thumbnailer::internal;
+
+namespace unity
+{
+
+namespace thumbnailer
+{
+
+namespace internal
+{
 
 namespace
 {
@@ -546,5 +554,11 @@ unique_ptr<ThumbnailRequest> Thumbnailer::get_artist_art(string const& artist,
     return unique_ptr<ThumbnailRequest>(
         new ArtistRequest(p_, artist, album, requested_size));
 }
+
+}  // namespace internal
+
+}  // namespace thumbnailer
+
+}  // namespace unity
 
 #include "thumbnailer.moc"

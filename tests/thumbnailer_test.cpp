@@ -16,7 +16,7 @@
  * Authored by: Michi Henning <michi.henning@canonical.com>
  */
 
-#include <thumbnailer.h>
+#include <internal/thumbnailer.h>
 
 #include <internal/file_io.h>
 #include <internal/image.h>

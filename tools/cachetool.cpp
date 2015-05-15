@@ -16,8 +16,8 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#include <thumbnailer.h>
 #include <internal/raii.h>
+#include <internal/thumbnailer.h>
 
 #include <cstdio>
 #include <stdexcept>

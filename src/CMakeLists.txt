@@ -13,7 +13,7 @@ ${CMAKE_SOURCE_DIR}/include/internal/artdownloader.h
 ${CMAKE_SOURCE_DIR}/include/internal/ubuntuserverdownloader.h
 ${CMAKE_SOURCE_DIR}/include/internal/artreply.h
 ${CMAKE_SOURCE_DIR}/include/internal/videoscreenshotter.h
-${CMAKE_SOURCE_DIR}/include/thumbnailer.h
+${CMAKE_SOURCE_DIR}/include/internal/thumbnailer.h
 )
 qt5_use_modules(thumbnailer Core)
 
@@ -31,4 +31,3 @@ target_link_libraries(thumbnailer
 
 add_subdirectory(service)
 add_subdirectory(vs-thumb)
-

@@ -26,6 +26,15 @@
 #include <memory>
 #include <string>
 
+namespace unity
+{
+
+namespace thumbnailer
+{
+
+namespace internal
+{
+
 class ThumbnailerPrivate;
 
 class ThumbnailRequest : public QObject {
@@ -92,3 +101,9 @@ public:
 private:
     std::shared_ptr<ThumbnailerPrivate> p_;
 };
+
+}  // namespace internal
+
+}  // namespace thumbnailer
+
+}  // namespace unity
