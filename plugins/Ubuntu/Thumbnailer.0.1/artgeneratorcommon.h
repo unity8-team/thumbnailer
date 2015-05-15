@@ -21,12 +21,14 @@
 #include <QString>
 #include <QImage>
 
-namespace unity {
-namespace thumbnailer {
-namespace qml {
+namespace unity
+{
+namespace thumbnailer
+{
+namespace qml
+{
 
-QImage imageFromFd(int fd, QSize *realSize, const QSize &requestedSize);
-
+QImage imageFromFd(int fd, QSize* realSize, const QSize& requestedSize);
 }
 }
 }

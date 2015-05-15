@@ -39,9 +39,7 @@ VideoScreenshotter::VideoScreenshotter(int fd, chrono::milliseconds timeout)
 
     process_.setStandardInputFile(QProcess::nullDevice());
     process_.setProcessChannelMode(QProcess::ForwardedChannels);
-    connect(&process_,
-            static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
-            this,
+    connect(&process_, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
             &VideoScreenshotter::processFinished);
     connect(&timer_, &QTimer::timeout, this, &VideoScreenshotter::timeout);
 }
@@ -52,11 +50,12 @@ void VideoScreenshotter::extract()
 {
     // Gstreamer video pipelines are unstable so we need to run an
     // external helper library.
-    char *utildir = getenv("TN_UTILDIR");
+    char* utildir = getenv("TN_UTILDIR");
     QString exe_path = utildir ? utildir : SHARE_PRIV_ABS;
     exe_path += "/vs-thumb";
 
-    if (!tmpfile_.open()) {
+    if (!tmpfile_.open())
+    {
         throw runtime_error("VideoScreenshotter::extract: unable to open temporary file");
     }
     /* Our duplicated file descriptor does not have the FD_CLOEXEC flag set */
@@ -74,23 +73,23 @@ string VideoScreenshotter::error()
 {
     switch (process_.exitStatus())
     {
-    case QProcess::NormalExit:
-        switch (process_.exitCode())
-        {
-        case 0:
-            return "";
-        case 1:
-            return "Could not extract screenshot";
-        case 2:
-            return "Video extractor pipeline failed";
+        case QProcess::NormalExit:
+            switch (process_.exitCode())
+            {
+                case 0:
+                    return "";
+                case 1:
+                    return "Could not extract screenshot";
+                case 2:
+                    return "Video extractor pipeline failed";
+                default:
+                    return string("Unknown error when trying to extract video screenshot, return value was ") +
+                           to_string(process_.exitCode());
+            }
+        case QProcess::CrashExit:
+            return "vs-thumb subprocess crashed";
         default:
-            return string("Unknown error when trying to extract video screenshot, return value was ") +
-                          to_string(process_.exitCode());
-        }
-    case QProcess::CrashExit:
-        return "vs-thumb subprocess crashed";
-    default:
-        abort(); // Impossible
+            abort();  // Impossible
     }
 }
 
@@ -98,7 +97,6 @@ string VideoScreenshotter::data()
 {
     return read_file(tmpfile_.fileName().toStdString());
 }
-
 
 void VideoScreenshotter::processFinished()
 {

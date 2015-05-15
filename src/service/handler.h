@@ -32,19 +32,24 @@
 
 class QThreadPool;
 
-namespace unity {
-namespace thumbnailer {
-namespace service {
+namespace unity
+{
+namespace thumbnailer
+{
+namespace service
+{
 
 struct HandlerPrivate;
 
-class Handler : public QObject {
+class Handler : public QObject
+{
     Q_OBJECT
 public:
-    Handler(const QDBusConnection &bus, const QDBusMessage &message,
+    Handler(const QDBusConnection& bus,
+            const QDBusMessage& message,
             std::shared_ptr<QThreadPool> check_pool,
             std::shared_ptr<QThreadPool> create_pool,
-            std::unique_ptr<internal::ThumbnailRequest> &&request);
+            std::unique_ptr<internal::ThumbnailRequest>&& request);
     ~Handler();
 
     Handler(const Handler&) = delete;
@@ -61,14 +66,13 @@ Q_SIGNALS:
     void finished();
 
 private:
-    void sendThumbnail(const QDBusUnixFileDescriptor &unix_fd);
-    void sendError(const QString &error);
+    void sendThumbnail(const QDBusUnixFileDescriptor& unix_fd);
+    void sendError(const QString& error);
     QDBusUnixFileDescriptor check();
     QDBusUnixFileDescriptor create();
 
     std::unique_ptr<HandlerPrivate> p;
 };
-
 }
 }
 }

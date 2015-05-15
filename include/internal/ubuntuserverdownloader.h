@@ -56,6 +56,7 @@ public:
     // set the networkAccessible accessible and test the code
     // that manages error disconnected situations
     std::shared_ptr<QNetworkAccessManager> network_manager() const;
+
 private:
     void set_api_key();
     std::shared_ptr<ArtReply> download_url(QUrl const& url, std::chrono::milliseconds timeout);

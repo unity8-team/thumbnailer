@@ -63,22 +63,30 @@ namespace
 
 enum class Location
 {
-    local, remote
+    local,
+    remote
 };
 
 }  // namespace
 
-class RequestBase : public ThumbnailRequest {
+class RequestBase : public ThumbnailRequest
+{
     Q_OBJECT
 public:
     virtual ~RequestBase() = default;
     string thumbnail() override;
-    enum class FetchStatus {
-        needs_download, downloaded, not_found, no_network, error
+    enum class FetchStatus
+    {
+        needs_download,
+        downloaded,
+        not_found,
+        no_network,
+        error
     };
     enum class CachePolicy
     {
-        cache_fullsize, dont_cache_fullsize
+        cache_fullsize,
+        dont_cache_fullsize
     };
     struct ImageData
     {
@@ -91,11 +99,15 @@ public:
             : status(FetchStatus::downloaded)
             , image(image)
             , cache_policy(policy)
-            , location(location) {}
+            , location(location)
+        {
+        }
         ImageData(FetchStatus status, Location location)
             : status(status)
             , cache_policy(CachePolicy::dont_cache_fullsize)
-            , location(location) {}
+            , location(location)
+        {
+        }
     };
 
 protected:
@@ -115,48 +127,51 @@ protected:
 namespace
 {
 
-class LocalThumbnailRequest : public RequestBase {
+class LocalThumbnailRequest : public RequestBase
+{
     Q_OBJECT
 public:
     LocalThumbnailRequest(Thumbnailer* thumbnailer,
                           string const& filename,
                           int filename_fd,
                           QSize const& requested_size);
+
 protected:
     ImageData fetch(QSize const& size_hint) override;
     void download(std::chrono::milliseconds timeout) override;
+
 private:
     string filename_;
     FdPtr fd_;
     unique_ptr<VideoScreenshotter> screenshotter_;
 };
 
-class AlbumRequest : public RequestBase {
+class AlbumRequest : public RequestBase
+{
     Q_OBJECT
 public:
-    AlbumRequest(Thumbnailer* thumbnailer,
-                 string const& artist,
-                 string const& album,
-                 QSize const& requested_size);
+    AlbumRequest(Thumbnailer* thumbnailer, string const& artist, string const& album, QSize const& requested_size);
+
 protected:
     ImageData fetch(QSize const& size_hint) override;
     void download(std::chrono::milliseconds timeout) override;
+
 private:
     string artist_;
     string album_;
     shared_ptr<ArtReply> artreply_;
 };
 
-class ArtistRequest : public RequestBase {
+class ArtistRequest : public RequestBase
+{
     Q_OBJECT
 public:
-    ArtistRequest(Thumbnailer* thumbnailer,
-                  string const& artist,
-                  string const& album,
-                  QSize const& requested_size);
+    ArtistRequest(Thumbnailer* thumbnailer, string const& artist, string const& album, QSize const& requested_size);
+
 protected:
     ImageData fetch(QSize const& size_hint) override;
     void download(std::chrono::milliseconds timeout) override;
+
 private:
     string artist_;
     string album_;
@@ -305,29 +320,28 @@ LocalThumbnailRequest::LocalThumbnailRequest(Thumbnailer* thumbnailer,
                                              string const& filename,
                                              int filename_fd,
                                              QSize const& requested_size)
-    : RequestBase(thumbnailer, "", requested_size), filename_(filename), fd_(-1, do_close)
+    : RequestBase(thumbnailer, "", requested_size)
+    , filename_(filename)
+    , fd_(-1, do_close)
 {
     filename_ = boost::filesystem::canonical(filename).native();
     fd_.reset(open(filename_.c_str(), O_RDONLY | O_CLOEXEC));
     if (fd_.get() < 0)
     {
-        throw runtime_error("LocalThumbnailRequest(): Could not open "
-                            + filename_ + ": " + safe_strerror(errno));
+        throw runtime_error("LocalThumbnailRequest(): Could not open " + filename_ + ": " + safe_strerror(errno));
     }
     struct stat our_stat, client_stat;
     if (fstat(fd_.get(), &our_stat) < 0)
     {
         // LCOV_EXCL_START
-        throw runtime_error("LocalThumbnailRequest(): Could not stat " +
-                            filename_ + ": " + safe_strerror(errno));
+        throw runtime_error("LocalThumbnailRequest(): Could not stat " + filename_ + ": " + safe_strerror(errno));
         // LCOV_EXCL_STOP
     }
     if (fstat(filename_fd, &client_stat) < 0)
     {
         throw runtime_error("LocalThumbnailRequest(): Could not stat file descriptor: " + safe_strerror(errno));
     }
-    if (our_stat.st_dev != client_stat.st_dev ||
-        our_stat.st_ino != client_stat.st_ino)
+    if (our_stat.st_dev != client_stat.st_dev || our_stat.st_ino != client_stat.st_ino)
     {
         throw runtime_error("LocalThumbnailRequest(): file descriptor does not refer to file " + filename_);
     }
@@ -350,13 +364,17 @@ LocalThumbnailRequest::LocalThumbnailRequest(Thumbnailer* thumbnailer,
     key_ += to_string(our_stat.st_ctim.tv_sec) + "." + to_string(our_stat.st_ctim.tv_nsec);
 }
 
-RequestBase::ImageData LocalThumbnailRequest::fetch(QSize const& size_hint) {
+RequestBase::ImageData LocalThumbnailRequest::fetch(QSize const& size_hint)
+{
     if (screenshotter_)
     {
         // The image data has been extracted via vs-thumb
-        if (screenshotter_->success()) {
+        if (screenshotter_->success())
+        {
             return ImageData(Image(screenshotter_->data()), CachePolicy::cache_fullsize, Location::local);
-        } else {
+        }
+        else
+        {
             cerr << "Failed to get thumbnail: " << screenshotter_->error();
             // TODO: Probably should return the error details to the caller. Throw instead
             // of storing an error status? Should log the error too, or possibly log from inside vs-thumb.
@@ -374,7 +392,7 @@ RequestBase::ImageData LocalThumbnailRequest::fetch(QSize const& size_hint) {
     gobj_ptr<GFileInfo> info(g_file_query_info(file.get(), G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE,
                                                G_FILE_QUERY_INFO_NONE,
                                                /* cancellable */ NULL,
-                                               /* error */ NULL));      // TODO: need decent error reporting
+                                               /* error */ NULL));  // TODO: need decent error reporting
     if (!info)
     {
         return ImageData(FetchStatus::error, Location::local);
@@ -402,10 +420,11 @@ RequestBase::ImageData LocalThumbnailRequest::fetch(QSize const& size_hint) {
     return ImageData(FetchStatus::not_found, Location::local);
 }
 
-void LocalThumbnailRequest::download(std::chrono::milliseconds timeout) {
+void LocalThumbnailRequest::download(std::chrono::milliseconds timeout)
+{
     screenshotter_.reset(new VideoScreenshotter(fd_.get(), timeout));
-    connect(screenshotter_.get(), &VideoScreenshotter::finished,
-            this, &LocalThumbnailRequest::downloadFinished, Qt::DirectConnection);
+    connect(screenshotter_.get(), &VideoScreenshotter::finished, this, &LocalThumbnailRequest::downloadFinished,
+            Qt::DirectConnection);
     screenshotter_->extract();
 }
 
@@ -435,9 +454,7 @@ RequestBase::ImageData common_fetch(shared_ptr<ArtReply> const& artreply)
     {
         auto raw_data = artreply->data();
         Image full_size(string(raw_data.data(), raw_data.size()));
-        return RequestBase::ImageData(full_size,
-                                      RequestBase::CachePolicy::cache_fullsize,
-                                      Location::remote);
+        return RequestBase::ImageData(full_size, RequestBase::CachePolicy::cache_fullsize, Location::remote);
     }
     if (artreply->not_found_error())
     {
@@ -459,11 +476,8 @@ RequestBase::ImageData AlbumRequest::fetch(QSize const& /*size_hint*/)
 
 void AlbumRequest::download(chrono::milliseconds timeout)
 {
-    artreply_ = downloader()->download_album(QString::fromStdString(artist_),
-                                             QString::fromStdString(album_),
-                                             timeout);
-    connect(artreply_.get(), &ArtReply::finished,
-            this, &AlbumRequest::downloadFinished, Qt::DirectConnection);
+    artreply_ = downloader()->download_album(QString::fromStdString(artist_), QString::fromStdString(album_), timeout);
+    connect(artreply_.get(), &ArtReply::finished, this, &AlbumRequest::downloadFinished, Qt::DirectConnection);
 }
 
 ArtistRequest::ArtistRequest(Thumbnailer* thumbnailer,
@@ -481,12 +495,10 @@ RequestBase::ImageData ArtistRequest::fetch(QSize const& /*size_hint*/)
     return common_fetch(artreply_);
 }
 
-void ArtistRequest::download(chrono::milliseconds timeout) {
-    artreply_ = downloader()->download_artist(QString::fromStdString(artist_),
-                                              QString::fromStdString(album_),
-                                              timeout);
-    connect(artreply_.get(), &ArtReply::finished,
-            this, &ThumbnailRequest::downloadFinished, Qt::DirectConnection);
+void ArtistRequest::download(chrono::milliseconds timeout)
+{
+    artreply_ = downloader()->download_artist(QString::fromStdString(artist_), QString::fromStdString(album_), timeout);
+    connect(artreply_.get(), &ArtReply::finished, this, &ThumbnailRequest::downloadFinished, Qt::DirectConnection);
 }
 
 Thumbnailer::Thumbnailer()
@@ -522,34 +534,33 @@ Thumbnailer::Thumbnailer()
 
 Thumbnailer::~Thumbnailer() = default;
 
-unique_ptr<ThumbnailRequest> Thumbnailer::get_thumbnail(string const& filename, int filename_fd, QSize const &requested_size)
+unique_ptr<ThumbnailRequest> Thumbnailer::get_thumbnail(string const& filename,
+                                                        int filename_fd,
+                                                        QSize const& requested_size)
 {
     assert(!filename.empty());
 
-    return unique_ptr<ThumbnailRequest>(
-        new LocalThumbnailRequest(this, filename, filename_fd, requested_size));
+    return unique_ptr<ThumbnailRequest>(new LocalThumbnailRequest(this, filename, filename_fd, requested_size));
 }
 
 unique_ptr<ThumbnailRequest> Thumbnailer::get_album_art(string const& artist,
                                                         string const& album,
-                                                        QSize const &requested_size)
+                                                        QSize const& requested_size)
 {
     assert(artist.empty() || !album.empty());
     assert(album.empty() || !artist.empty());
 
-    return unique_ptr<ThumbnailRequest>(
-        new AlbumRequest(this, artist, album, requested_size));
+    return unique_ptr<ThumbnailRequest>(new AlbumRequest(this, artist, album, requested_size));
 }
 
 unique_ptr<ThumbnailRequest> Thumbnailer::get_artist_art(string const& artist,
                                                          string const& album,
-                                                         QSize const &requested_size)
+                                                         QSize const& requested_size)
 {
     assert(artist.empty() || !album.empty());
     assert(album.empty() || !artist.empty());
 
-    return unique_ptr<ThumbnailRequest>(
-        new ArtistRequest(this, artist, album, requested_size));
+    return unique_ptr<ThumbnailRequest>(new ArtistRequest(this, artist, album, requested_size));
 }
 
 }  // namespace internal

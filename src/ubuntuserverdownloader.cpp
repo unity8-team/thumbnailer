@@ -83,7 +83,10 @@ class UbuntuServerArtReply : public ArtReply
 public:
     Q_DISABLE_COPY(UbuntuServerArtReply)
 
-    UbuntuServerArtReply(QString const& url, QNetworkReply* reply, chrono::milliseconds timeout, QObject* parent = nullptr)
+    UbuntuServerArtReply(QString const& url,
+                         QNetworkReply* reply,
+                         chrono::milliseconds timeout,
+                         QObject* parent = nullptr)
         : ArtReply(parent)
         , is_running_(false)
         , error_(QNetworkReply::NoError)

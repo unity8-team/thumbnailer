@@ -34,69 +34,78 @@
 using namespace std;
 using namespace unity::thumbnailer::internal;
 
-namespace {
+namespace
+{
 const char ART_ERROR[] = "com.canonical.Thumbnailer.Error.Failed";
 }
 
-namespace unity {
-namespace thumbnailer {
-namespace service {
+namespace unity
+{
+namespace thumbnailer
+{
+namespace service
+{
 
-struct DBusInterfacePrivate {
+struct DBusInterfacePrivate
+{
     std::shared_ptr<Thumbnailer> thumbnailer = std::make_shared<Thumbnailer>();
-    std::map<Handler*,std::unique_ptr<Handler>> requests;
+    std::map<Handler*, std::unique_ptr<Handler>> requests;
     std::shared_ptr<QThreadPool> check_thread_pool = std::make_shared<QThreadPool>();
     std::shared_ptr<QThreadPool> create_thread_pool = std::make_shared<QThreadPool>();
 };
 
-DBusInterface::DBusInterface(QObject *parent)
-    : QObject(parent), p(new DBusInterfacePrivate) {
+DBusInterface::DBusInterface(QObject* parent)
+    : QObject(parent)
+    , p(new DBusInterfacePrivate)
+{
 }
 
-DBusInterface::~DBusInterface() {
+DBusInterface::~DBusInterface()
+{
 }
 
-QDBusUnixFileDescriptor DBusInterface::GetAlbumArt(const QString &artist, const QString &album, const QSize &requestedSize) {
+QDBusUnixFileDescriptor DBusInterface::GetAlbumArt(const QString& artist,
+                                                   const QString& album,
+                                                   const QSize& requestedSize)
+{
     qDebug() << "Look up cover art for" << artist << "/" << album << "at size" << requestedSize;
-    auto request = p->thumbnailer->get_album_art(
-        artist.toStdString(), album.toStdString(), requestedSize);
-    queueRequest(new Handler(connection(), message(),
-                             p->check_thread_pool, p->create_thread_pool,
-                             std::move(request)));
+    auto request = p->thumbnailer->get_album_art(artist.toStdString(), album.toStdString(), requestedSize);
+    queueRequest(new Handler(connection(), message(), p->check_thread_pool, p->create_thread_pool, std::move(request)));
     return QDBusUnixFileDescriptor();
 }
 
-QDBusUnixFileDescriptor DBusInterface::GetArtistArt(const QString &artist, const QString &album, const QSize &requestedSize) {
+QDBusUnixFileDescriptor DBusInterface::GetArtistArt(const QString& artist,
+                                                    const QString& album,
+                                                    const QSize& requestedSize)
+{
     qDebug() << "Look up artist art for" << artist << "/" << album << "at size" << requestedSize;
-    auto request = p->thumbnailer->get_artist_art(
-        artist.toStdString(), album.toStdString(), requestedSize);
-    queueRequest(new Handler(connection(), message(),
-                             p->check_thread_pool, p->create_thread_pool,
-                             std::move(request)));
+    auto request = p->thumbnailer->get_artist_art(artist.toStdString(), album.toStdString(), requestedSize);
+    queueRequest(new Handler(connection(), message(), p->check_thread_pool, p->create_thread_pool, std::move(request)));
     return QDBusUnixFileDescriptor();
 }
 
-QDBusUnixFileDescriptor DBusInterface::GetThumbnail(const QString &filename, const QDBusUnixFileDescriptor &filename_fd, const QSize &requestedSize) {
+QDBusUnixFileDescriptor DBusInterface::GetThumbnail(const QString& filename,
+                                                    const QDBusUnixFileDescriptor& filename_fd,
+                                                    const QSize& requestedSize)
+{
     qDebug() << "Create thumbnail for" << filename << "at size" << requestedSize;
 
     std::unique_ptr<ThumbnailRequest> request;
     try
     {
-        request = p->thumbnailer->get_thumbnail(
-            filename.toStdString(), filename_fd.fileDescriptor(), requestedSize);
+        request = p->thumbnailer->get_thumbnail(filename.toStdString(), filename_fd.fileDescriptor(), requestedSize);
     }
     catch (const exception& e)
     {
         sendErrorReply(ART_ERROR, e.what());
         return QDBusUnixFileDescriptor();
     }
-    queueRequest(new Handler(connection(), message(),
-                             p->check_thread_pool, p->create_thread_pool,
-                             std::move(request)));
+    queueRequest(new Handler(connection(), message(), p->check_thread_pool, p->create_thread_pool, std::move(request)));
     return QDBusUnixFileDescriptor();
 }
 
-void DBusInterface::queueRequest(Handler *handler) {
+void DBusInterface::queueRequest(Handler* handler)
+{
     p->requests.emplace(handler, std::unique_ptr<Handler>(handler));
     Q_EMIT endInactivity();
     connect(handler, &Handler::finished, this, &DBusInterface::requestFinished);
@@ -104,22 +113,26 @@ void DBusInterface::queueRequest(Handler *handler) {
     handler->begin();
 }
 
-void DBusInterface::requestFinished() {
-    Handler *handler = static_cast<Handler*>(sender());
-    try {
-        auto &h = p->requests.at(handler);
+void DBusInterface::requestFinished()
+{
+    Handler* handler = static_cast<Handler*>(sender());
+    try
+    {
+        auto& h = p->requests.at(handler);
         h.release();
         p->requests.erase(handler);
-    } catch (const std::out_of_range &e) {
+    }
+    catch (const std::out_of_range& e)
+    {
         qWarning() << "finished() called on unknown handler" << handler;
     }
-    if (p->requests.empty()) {
+    if (p->requests.empty())
+    {
         Q_EMIT startInactivity();
     }
     // Queue deletion of handler when we re-enter the event loop.
     handler->deleteLater();
 }
-
 }
 }
 }

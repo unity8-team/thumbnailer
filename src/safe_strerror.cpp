@@ -53,20 +53,20 @@ std::string safe_strerror(int errnum)
         // LCOV_EXCL_START
         case ERANGE:
         {
-            return "buffer size of " + std::to_string(sizeof(buf)) + " is too small for strerror_r(), errnum = "
-                   + std::to_string(errnum);
+            return "buffer size of " + std::to_string(sizeof(buf)) + " is too small for strerror_r(), errnum = " +
+                   std::to_string(errnum);
         }
         default:
         {
-            return "impossible return value " + std::to_string(rc) + " from strerror_r(), errnum = "
-                   + std::to_string(errnum);
+            return "impossible return value " + std::to_string(rc) + " from strerror_r(), errnum = " +
+                   std::to_string(errnum);
         }
-        // LCOV_EXCL_STOP
+            // LCOV_EXCL_STOP
     }
 }
 
-} // namespace internal
+}  // namespace internal
 
-} // namespace thumbnailer
+}  // namespace thumbnailer
 
-} // namespace unity
+}  // namespace unity
