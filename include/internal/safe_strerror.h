@@ -31,8 +31,8 @@ namespace internal
 
 std::string safe_strerror(int errnum);
 
-} // namespace internal
+}  // namespace internal
 
-} // namespace thumbnailer
+}  // namespace thumbnailer
 
-} // namespace unity
+}  // namespace unity

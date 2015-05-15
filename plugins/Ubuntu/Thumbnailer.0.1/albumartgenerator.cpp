@@ -48,11 +48,11 @@ AlbumArtGenerator::AlbumArtGenerator()
 {
 }
 
+
 QQuickImageResponse* AlbumArtGenerator::requestImageResponse(const QString& id, const QSize& requestedSize)
 {
     ThumbnailerImageResponse* response = new ThumbnailerImageResponse(
         ThumbnailerImageResponse::Download, id, requestedSize, DEFAULT_ALBUM_ART, DEFAULT_ALBUM_ART);
-
     QUrlQuery query(id);
     if (!query.hasQueryItem("artist") || !query.hasQueryItem("album"))
     {

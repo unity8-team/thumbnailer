@@ -20,9 +20,12 @@
 
 #include <QtQml>
 
-namespace unity {
-namespace thumbnailer {
-namespace qml {
+namespace unity
+{
+namespace thumbnailer
+{
+namespace qml
+{
 
 class ThumbnailerPlugin : public QQmlExtensionPlugin
 {
@@ -30,10 +33,9 @@ class ThumbnailerPlugin : public QQmlExtensionPlugin
     Q_PLUGIN_METADATA(IID "org.qt-project.Qt.QQmlExtensionInterface")
 
 public:
-    virtual void registerTypes(const char *uri) override;
-    virtual void initializeEngine(QQmlEngine *engine, const char *uri) override;
+    virtual void registerTypes(const char* uri) override;
+    virtual void initializeEngine(QQmlEngine* engine, const char* uri) override;
 };
-
 }
 }
 }

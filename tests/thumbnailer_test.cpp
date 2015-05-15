@@ -16,7 +16,7 @@
  * Authored by: Michi Henning <michi.henning@canonical.com>
  */
 
-#include <thumbnailer.h>
+#include <internal/thumbnailer.h>
 
 #include <internal/file_io.h>
 #include <internal/image.h>
@@ -24,6 +24,7 @@
 #include <testsetup.h>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 #include <gtest/gtest.h>
 #include <QCoreApplication>
 #include <QSignalSpy>
@@ -44,25 +45,35 @@
 using namespace std;
 using namespace unity::thumbnailer::internal;
 
+// The thumbnailer uses g_get_user_cache_dir() to get the cache dir, and
+// glib remembers that value, so changing XDG_CACHE_HOME later has no effect.
+
+static auto set_tempdir = []()
+{
+    auto dir = new QTemporaryDir(TESTBINDIR "/thumbnailer-test.XXXXXX");
+    setenv("XDG_CACHE_HOME", dir->path().toUtf8().data(), true);
+    return dir;
+};
+static unique_ptr<QTemporaryDir> tempdir(set_tempdir());
+
 class ThumbnailerTest : public ::testing::Test
 {
 protected:
-    virtual void SetUp() override {
-        tempdir.reset(new QTemporaryDir(TESTBINDIR "/thumbnailer-test.XXXXXX"));
-        ASSERT_TRUE(tempdir->isValid());
-        setenv("XDG_CACHE_HOME", tempdir->path().toUtf8().data(), true);
+    virtual void SetUp() override
+    {
+        mkdir(tempdir_path().c_str(), 0700);
     }
 
-    string tempdir_path() const {
-        return tempdir->path().toStdString();
+    virtual void TearDown() override
+    {
+        boost::filesystem::remove_all(tempdir_path());
     }
 
-    virtual void TearDown() override {
-        tempdir.reset();
+    static string tempdir_path()
+    {
+        return tempdir->path().toUtf8().data();
     }
-    unique_ptr<QTemporaryDir> tempdir;
 };
-
 
 TEST_F(ThumbnailerTest, basic)
 {
@@ -71,6 +82,11 @@ TEST_F(ThumbnailerTest, basic)
     Image img;
     FdPtr fd(-1, do_close);
 
+    fd.reset(open(EMPTY_IMAGE, O_RDONLY));
+    thumb = tn.get_thumbnail(EMPTY_IMAGE, fd.get(), QSize())->thumbnail();
+    EXPECT_EQ("", thumb);
+
+    // Again, this time we get the answer from the failure cache.
     fd.reset(open(EMPTY_IMAGE, O_RDONLY));
     thumb = tn.get_thumbnail(EMPTY_IMAGE, fd.get(), QSize())->thumbnail();
     EXPECT_EQ("", thumb);
@@ -115,7 +131,6 @@ TEST_F(ThumbnailerTest, basic)
 
     fd.reset(open(RGB_IMAGE, O_RDONLY));
     thumb = tn.get_thumbnail(RGB_IMAGE, fd.get(), QSize(48, 48))->thumbnail();
-    cout << "thumb size: " << thumb.size() << endl;
     img = Image(thumb);
     EXPECT_EQ(48, img.width());
     EXPECT_EQ(48, img.height());
@@ -126,7 +141,8 @@ TEST_F(ThumbnailerTest, basic)
     EXPECT_EQ(1920, img.width());
     EXPECT_EQ(1439, img.height());
 
-    thumb = tn.get_thumbnail(BIG_IMAGE, fd.get(), QSize(0, 0))->thumbnail();  // unconstrained, so will not be trimmed down
+    thumb =
+        tn.get_thumbnail(BIG_IMAGE, fd.get(), QSize(0, 0))->thumbnail();  // unconstrained, so will not be trimmed down
     img = Image(thumb);
     EXPECT_EQ(2731, img.width());
     EXPECT_EQ(2048, img.height());
@@ -188,23 +204,47 @@ TEST_F(ThumbnailerTest, thumbnail_video)
     FdPtr fd(open(TEST_VIDEO, O_RDONLY), do_close);
     auto request = tn.get_thumbnail(TEST_VIDEO, fd.get(), QSize());
     ASSERT_NE(nullptr, request.get());
-    // Video thumbnails can not be produced immediately
+    // Video thumbnails cannot be produced immediately
     ASSERT_EQ("", request->thumbnail());
 
     QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
     request->download(chrono::milliseconds(15000));
     ASSERT_TRUE(spy.wait(20000));
-    string thumb = request->thumbnail();
-    ASSERT_NE("", thumb);
-    Image img(thumb);
-    EXPECT_EQ(1920, img.width());
-    EXPECT_EQ(1080, img.height());
+    {
+        string thumb = request->thumbnail();
+        ASSERT_NE("", thumb);
+        Image img(thumb);
+        EXPECT_EQ(1920, img.width());
+        EXPECT_EQ(1080, img.height());
+    }
+
+    {
+        // Fetch the thumbnail again with the same size.
+        // That causes it to come from the thumbnail cache.
+        auto request = tn.get_thumbnail(TEST_VIDEO, fd.get(), QSize());
+        string thumb = request->thumbnail();
+        ASSERT_NE("", thumb);
+        Image img(thumb);
+        EXPECT_EQ(1920, img.width());
+        EXPECT_EQ(1080, img.height());
+    }
+
+    {
+        // Fetch the thumbnail again with a different size.
+        // That causes it to be scaled from the thumbnail cache.
+        auto request = tn.get_thumbnail(TEST_VIDEO, fd.get(), QSize(500, 500));
+        string thumb = request->thumbnail();
+        ASSERT_NE("", thumb);
+        Image img(thumb);
+        EXPECT_EQ(500, img.width());
+        EXPECT_EQ(281, img.height());
+    }
 }
 
 TEST_F(ThumbnailerTest, replace_video)
 {
     string testfile = tempdir_path() + "/foo.ogv";
-    ASSERT_EQ(0, link(TEST_VIDEO, testfile.c_str()));
+    ASSERT_EQ(0, link(TEST_VIDEO, testfile.c_str())) << strerror(errno);
 
     Thumbnailer tn;
     FdPtr fd(open(testfile.c_str(), O_RDONLY | O_CLOEXEC), do_close);
@@ -234,7 +274,7 @@ TEST_F(ThumbnailerTest, thumbnail_song)
     FdPtr fd(open(TEST_SONG, O_RDONLY), do_close);
     auto request = tn.get_thumbnail(TEST_SONG, fd.get(), QSize());
     ASSERT_NE(nullptr, request.get());
-    // Audio thumbnails can not be produced immediately
+    // Audio thumbnails cannot be produced immediately
     ASSERT_EQ("", request->thumbnail());
 
     QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
@@ -245,6 +285,25 @@ TEST_F(ThumbnailerTest, thumbnail_song)
     Image img(thumb);
     EXPECT_EQ(200, img.width());
     EXPECT_EQ(200, img.height());
+}
+
+TEST_F(ThumbnailerTest, exceptions)
+{
+    string const cache_dir = tempdir_path();
+    ASSERT_EQ(0, chmod(cache_dir.c_str(), 0000));
+    try
+    {
+        Thumbnailer tn;
+        FAIL();
+    }
+    catch (runtime_error const& e)
+    {
+        ASSERT_EQ(0, chmod(cache_dir.c_str(), 0700));
+        string msg = e.what();
+        string exp = "Thumbnailer(): Cannot instantiate cache: PersistentStringCache: cannot open or create cache: ";
+        EXPECT_EQ(0, msg.compare(0, exp.length(), exp)) << msg;
+    }
+    ASSERT_EQ(0, chmod(cache_dir.c_str(), 0700));
 }
 
 int main(int argc, char** argv)

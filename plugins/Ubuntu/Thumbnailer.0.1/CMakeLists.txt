@@ -1,8 +1,6 @@
 
 set(QML_PLUGIN_DIR "${CMAKE_INSTALL_LIBDIR}/qt5/qml/Ubuntu/Thumbnailer.0.1")
 
-include_directories(. ${CMAKE_CURRENT_BINARY_DIR})
-
 set(dbusinterface_xml "${CMAKE_SOURCE_DIR}/src/service/dbusinterface.xml")
 set_source_files_properties(${dbusinterface_xml} PROPERTIES
   CLASSNAME ThumbnailerInterface)

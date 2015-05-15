@@ -56,7 +56,10 @@ class BufferReader : public Image::Reader
 {
 public:
     BufferReader(unsigned char const* data, size_t length)
-        : data_(data), length_(length) {}
+        : data_(data)
+        , length_(length)
+    {
+    }
 
     bool read(unsigned char const** data, size_t* length) override
     {
@@ -84,7 +87,10 @@ private:
 class FdReader : public Image::Reader
 {
 public:
-    FdReader(int fd) : fd_(fd) {}
+    FdReader(int fd)
+        : fd_(fd)
+    {
+    }
 
     bool read(unsigned char const** data, size_t* length) override
     {
@@ -100,13 +106,15 @@ public:
 
     void rewind() override
     {
-        if (lseek(fd_, 0, SEEK_SET) < 0) {
+        if (lseek(fd_, 0, SEEK_SET) < 0)
+        {
             throw runtime_error("FdReader::rewind() failed: " + safe_strerror(errno));  // LCOV_EXCL_LINE
         }
     }
+
 private:
     int fd_;
-    unsigned char buffer_[64*1024];
+    unsigned char buffer_[64 * 1024];
 };
 
 auto do_loader_close = [](GdkPixbufLoader* loader)
@@ -137,8 +145,7 @@ auto do_exif_data_unref = [](ExifData* data)
 };
 typedef unique_ptr<ExifData, decltype(do_exif_data_unref)> ExifDataPtr;
 
-gobj_ptr<GdkPixbuf> load_image(Image::Reader& reader,
-                               GCallback size_prepared_cb, void *user_data)
+gobj_ptr<GdkPixbuf> load_image(Image::Reader& reader, GCallback size_prepared_cb, void* user_data)
 {
     LoaderPtr loader(gdk_pixbuf_loader_new(), do_loader_close);
     if (!loader.get())
@@ -168,7 +175,7 @@ gobj_ptr<GdkPixbuf> load_image(Image::Reader& reader,
         throw runtime_error(msg);
     }
 
-    // get_pixbuf() may return NULL (e.g. if we stopped loading the image), 
+    // get_pixbuf() may return NULL (e.g. if we stopped loading the image),
     gobj_ptr<GdkPixbuf> pixbuf(gdk_pixbuf_loader_get_pixbuf(loader.get()));
     if (!pixbuf)
     {
@@ -179,7 +186,7 @@ gobj_ptr<GdkPixbuf> load_image(Image::Reader& reader,
     return pixbuf;
 }
 
-void maybe_scale_thumbnail(GdkPixbufLoader *loader, int width, int height, void *user_data)
+void maybe_scale_thumbnail(GdkPixbufLoader* loader, int width, int height, void* user_data)
 {
     QSize requested_size = *reinterpret_cast<QSize*>(user_data);
 
@@ -206,12 +213,11 @@ void maybe_scale_thumbnail(GdkPixbufLoader *loader, int width, int height, void 
     image_size.scale(requested_size, Qt::KeepAspectRatio);
     if (image_size.width() != width || image_size.height() != height)
     {
-        gdk_pixbuf_loader_set_size(loader, image_size.width(),
-                                   image_size.height());
+        gdk_pixbuf_loader_set_size(loader, image_size.width(), image_size.height());
     }
 }
 
-void maybe_scale_image(GdkPixbufLoader *loader, int width, int height, void *user_data)
+void maybe_scale_image(GdkPixbufLoader* loader, int width, int height, void* user_data)
 {
     QSize requested_size = *reinterpret_cast<QSize*>(user_data);
 
@@ -263,12 +269,13 @@ void Image::load(Reader& reader, QSize requested_size)
     ExifLoaderPtr el(exif_loader_new(), do_exif_loader_close);
     if (!el.get())
     {
-        throw runtime_error("Image(): could not create ExifLoader"); // LCOV_EXCL_LINE
+        throw runtime_error("Image(): could not create ExifLoader");  // LCOV_EXCL_LINE
     }
 
     unsigned char const* data = nullptr;
     size_t length = 0;
-    while (reader.read(&data, &length)) {
+    while (reader.read(&data, &length))
+    {
         if (!exif_loader_write(el.get(), const_cast<unsigned char*>(data), length))
         {
             break;
@@ -283,7 +290,7 @@ void Image::load(Reader& reader, QSize requested_size)
     {
         // Record the image orientation, if it is available
         ExifByteOrder order = exif_data_get_byte_order(exif.get());
-        ExifEntry *e = exif_data_get_entry(exif.get(), EXIF_TAG_ORIENTATION);
+        ExifEntry* e = exif_data_get_entry(exif.get(), EXIF_TAG_ORIENTATION);
         if (e)
         {
             exif_entry_fix(e);
@@ -292,14 +299,14 @@ void Image::load(Reader& reader, QSize requested_size)
                 orientation = exif_get_short(e->data, order);
                 switch (orientation)
                 {
-                case 5: // Rotate 90 clockwise and horizontal mirror image
-                case 6: // Rotate 90 clockwise
-                case 7: // Rotate 90 anti-clockwise and horizontal mirror image
-                case 8: // Rotate 90 anti-clockwise
-                    unrotated_requested_size.transpose();
-                    break;
-                default:
-                    break;
+                    case 5:  // Rotate 90 clockwise and horizontal mirror image
+                    case 6:  // Rotate 90 clockwise
+                    case 7:  // Rotate 90 anti-clockwise and horizontal mirror image
+                    case 8:  // Rotate 90 anti-clockwise
+                        unrotated_requested_size.transpose();
+                        break;
+                    default:
+                        break;
                 }
             }
         }
@@ -310,9 +317,7 @@ void Image::load(Reader& reader, QSize requested_size)
             try
             {
                 BufferReader thumbnail(exif->data, exif->size);
-                pixbuf_ = load_image(thumbnail,
-                                     G_CALLBACK(maybe_scale_thumbnail),
-                                     &unrotated_requested_size);
+                pixbuf_ = load_image(thumbnail, G_CALLBACK(maybe_scale_thumbnail), &unrotated_requested_size);
             }
             catch (const runtime_error& e)
             {
@@ -321,51 +326,51 @@ void Image::load(Reader& reader, QSize requested_size)
         }
     }
 
-    if (!pixbuf_) {
-        pixbuf_ = load_image(reader, G_CALLBACK(maybe_scale_image),
-                             &unrotated_requested_size);
+    if (!pixbuf_)
+    {
+        pixbuf_ = load_image(reader, G_CALLBACK(maybe_scale_image), &unrotated_requested_size);
     }
 
     // Correct the image orientation, if needed
     switch (orientation)
     {
-    case 1:
-        // Already in correct orientation
-        break;
-    case 2:
-        // Horizontal mirror image
-        pixbuf_.reset(gdk_pixbuf_flip(pixbuf_.get(), true));
-        break;
-    case 3:
-        // Rotate 180
-        pixbuf_.reset(gdk_pixbuf_rotate_simple(pixbuf_.get(), GDK_PIXBUF_ROTATE_UPSIDEDOWN));
-        break;
-    case 4:
-        // Vertical mirror image.
-        pixbuf_.reset(gdk_pixbuf_flip(pixbuf_.get(), false));
-        break;
-    case 5:
-        // Rotate 90 clockwise and horizontal mirror image
-        pixbuf_.reset(gdk_pixbuf_rotate_simple(pixbuf_.get(), GDK_PIXBUF_ROTATE_CLOCKWISE));
-        pixbuf_.reset(gdk_pixbuf_flip(pixbuf_.get(), true));
-        break;
-    case 6:
-        // Rotate 90 clockwise
-        pixbuf_.reset(gdk_pixbuf_rotate_simple(pixbuf_.get(), GDK_PIXBUF_ROTATE_CLOCKWISE));
-        break;
-    case 7:
-        // Rotate 90 anti-clockwise and horizontal mirror image
-        pixbuf_.reset(gdk_pixbuf_rotate_simple(pixbuf_.get(), GDK_PIXBUF_ROTATE_COUNTERCLOCKWISE));
-        pixbuf_.reset(gdk_pixbuf_flip(pixbuf_.get(), true));
-        break;
-    case 8:
-        // Rotate 90 anti-clockwise
-        pixbuf_.reset(gdk_pixbuf_rotate_simple(pixbuf_.get(), GDK_PIXBUF_ROTATE_COUNTERCLOCKWISE));
-        break;
-    default:
-        // Impossible, according the spec. Rather than throwing or some such,
-        // we do nothing and return the EXIF image without any adjustment.
-        break;  // LCOV_EXCL_LINE
+        case 1:
+            // Already in correct orientation
+            break;
+        case 2:
+            // Horizontal mirror image
+            pixbuf_.reset(gdk_pixbuf_flip(pixbuf_.get(), true));
+            break;
+        case 3:
+            // Rotate 180
+            pixbuf_.reset(gdk_pixbuf_rotate_simple(pixbuf_.get(), GDK_PIXBUF_ROTATE_UPSIDEDOWN));
+            break;
+        case 4:
+            // Vertical mirror image.
+            pixbuf_.reset(gdk_pixbuf_flip(pixbuf_.get(), false));
+            break;
+        case 5:
+            // Rotate 90 clockwise and horizontal mirror image
+            pixbuf_.reset(gdk_pixbuf_rotate_simple(pixbuf_.get(), GDK_PIXBUF_ROTATE_CLOCKWISE));
+            pixbuf_.reset(gdk_pixbuf_flip(pixbuf_.get(), true));
+            break;
+        case 6:
+            // Rotate 90 clockwise
+            pixbuf_.reset(gdk_pixbuf_rotate_simple(pixbuf_.get(), GDK_PIXBUF_ROTATE_CLOCKWISE));
+            break;
+        case 7:
+            // Rotate 90 anti-clockwise and horizontal mirror image
+            pixbuf_.reset(gdk_pixbuf_rotate_simple(pixbuf_.get(), GDK_PIXBUF_ROTATE_COUNTERCLOCKWISE));
+            pixbuf_.reset(gdk_pixbuf_flip(pixbuf_.get(), true));
+            break;
+        case 8:
+            // Rotate 90 anti-clockwise
+            pixbuf_.reset(gdk_pixbuf_rotate_simple(pixbuf_.get(), GDK_PIXBUF_ROTATE_COUNTERCLOCKWISE));
+            break;
+        default:
+            // Impossible, according the spec. Rather than throwing or some such,
+            // we do nothing and return the EXIF image without any adjustment.
+            break;  // LCOV_EXCL_LINE
     }
 }
 
@@ -433,8 +438,7 @@ Image Image::scale(QSize requested_size) const
         requested_size.setHeight(scaled_size.height());
     }
     // If the image fits within the requested size, return it as is.
-    if (width() <= requested_size.width() &&
-        height() <= requested_size.height())
+    if (width() <= requested_size.width() && height() <= requested_size.height())
     {
         return *this;
     }
@@ -442,13 +446,10 @@ Image Image::scale(QSize requested_size) const
     scaled_size.scale(requested_size, Qt::KeepAspectRatio);
     Image scaled;
     scaled.pixbuf_.reset(
-        gdk_pixbuf_scale_simple(pixbuf_.get(),
-                                scaled_size.width(),
-                                scaled_size.height(),
-                                GDK_INTERP_BILINEAR));
+        gdk_pixbuf_scale_simple(pixbuf_.get(), scaled_size.width(), scaled_size.height(), GDK_INTERP_BILINEAR));
     if (!scaled.pixbuf_)
     {
-        throw runtime_error("Image::scale(): could not create scaled image");
+        throw runtime_error("Image::scale(): could not create scaled image");  // LCOV_EXCL_LINE
     }
     return scaled;
 }

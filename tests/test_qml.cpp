@@ -13,13 +13,13 @@
 
 #include <testsetup.h>
 
-
 static const char BUS_NAME[] = "com.canonical.Thumbnailer";
 
 class TestFixture
 {
 public:
-    TestFixture() {
+    TestFixture()
+    {
         // start fake server
         fake_downloader_server_.setProcessChannelMode(QProcess::ForwardedErrorChannel);
         fake_downloader_server_.start("/usr/bin/python3", QStringList() << FAKE_DOWNLOADER_SERVER);
@@ -34,16 +34,13 @@ public:
         setenv("XDG_CACHE_HOME", cachedir->path().toUtf8().data(), true);
 
         dbusTestRunner.reset(new QtDBusTest::DBusTestRunner());
-        dbusTestRunner->registerService(
-            QtDBusTest::DBusServicePtr(
-                new QtDBusTest::QProcessDBusService(
-                    BUS_NAME, QDBusConnection::SessionBus,
-                    TESTBINDIR "/../src/service/thumbnailer-service",
-                    QStringList())));
+        dbusTestRunner->registerService(QtDBusTest::DBusServicePtr(new QtDBusTest::QProcessDBusService(
+            BUS_NAME, QDBusConnection::SessionBus, TESTBINDIR "/../src/service/thumbnailer-service", QStringList())));
         dbusTestRunner->startServices();
     }
 
-    ~TestFixture() {
+    ~TestFixture()
+    {
         dbusTestRunner.reset();
         cachedir.reset();
 
@@ -62,7 +59,7 @@ private:
 };
 
 // Expose static test configuration to QML
-QJSValue make_test_config(QQmlEngine *, QJSEngine *scriptEngine)
+QJSValue make_test_config(QQmlEngine*, QJSEngine* scriptEngine)
 {
     QJSValue config = scriptEngine->newObject();
     config.setProperty("sourceDir", TESTSRCDIR);
@@ -71,7 +68,7 @@ QJSValue make_test_config(QQmlEngine *, QJSEngine *scriptEngine)
     return config;
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
     QGuiApplication app(argc, argv);
 

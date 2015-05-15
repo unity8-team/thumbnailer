@@ -19,21 +19,33 @@
 
 #pragma once
 
+#include <QProcess>
+#include <QTemporaryFile>
+#include <QTimer>
+#include <unity/util/ResourcePtr.h>
+
 #include <chrono>
 #include <memory>
 #include <string>
-#include <QObject>
 
-struct VideoScreenshotterPrivate;
+namespace unity
+{
 
-class VideoScreenshotter final : public QObject {
+namespace thumbnailer
+{
+
+namespace internal
+{
+
+class VideoScreenshotter final : public QObject
+{
     Q_OBJECT
 public:
     VideoScreenshotter(int fd, std::chrono::milliseconds timeout);
     ~VideoScreenshotter();
 
-    VideoScreenshotter(const VideoScreenshotter &t) = delete;
-    VideoScreenshotter & operator=(const VideoScreenshotter &t) = delete;
+    VideoScreenshotter(const VideoScreenshotter& t) = delete;
+    VideoScreenshotter& operator=(const VideoScreenshotter& t) = delete;
 
     void extract();
     bool success();
@@ -48,5 +60,19 @@ private Q_SLOTS:
     void timeout();
 
 private:
-    std::unique_ptr<VideoScreenshotterPrivate> p;
+    unity::util::ResourcePtr<int, void (*)(int)> fd_;
+    int timeout_ms_;
+    bool success_ = false;
+    std::string error_;
+    std::string data_;
+
+    QProcess process_;
+    QTimer timer_;
+    QTemporaryFile tmpfile_;
 };
+
+}  // namespace internal
+
+}  // namespace thumbnailer
+
+}  // namespace unity

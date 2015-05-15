@@ -24,6 +24,17 @@
 
 #include <string>
 
+struct _GdkPixbuf;
+
+namespace unity
+{
+
+namespace thumbnailer
+{
+
+namespace internal
+{
+
 class Image
 {
 public:
@@ -42,7 +53,7 @@ public:
     Image(Image const&) = default;
     Image& operator=(Image const&) = default;
     Image(Image&&) = default;
-    Image& operator=(Image &&) = default;
+    Image& operator=(Image&&) = default;
 
     int width() const;
     int height() const;
@@ -58,12 +69,17 @@ public:
     // Returns image as JPEG data.
     std::string to_jpeg() const;
 
-
 private:
-    typedef struct _GdkPixbuf GdkPixbuf;
-    typedef gobj_ptr<GdkPixbuf> PixbufPtr;
+    //typedef struct ::_GdkPixbuf GdkPixbuf;
+    //typedef gobj_ptr<GdkPixbuf> PixbufPtr;
 
     void load(Reader& reader, QSize requested_size);
 
-    PixbufPtr pixbuf_;
+    gobj_ptr<struct _GdkPixbuf> pixbuf_;
 };
+
+}  // namespace internal
+
+}  // namespace thumbnailer
+
+}  // namespace unity
