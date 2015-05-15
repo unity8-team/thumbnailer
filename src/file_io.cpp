@@ -28,8 +28,16 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
-using namespace unity::thumbnailer::internal;
 using namespace std;
+
+namespace unity
+{
+
+namespace thumbnailer
+{
+
+namespace internal
+{
 
 // Read entire file and return contents as a string.
 
@@ -134,3 +142,9 @@ string create_tmp_filename()
     close(fd);
     return tmp_path;
 }
+
+}  // namespace internal
+
+}  // namespace thumbnailer
+
+}  // namespace unity

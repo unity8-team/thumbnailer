@@ -28,7 +28,14 @@
 #include <memory>
 #include <string>
 
-struct VideoScreenshotterPrivate;
+namespace unity
+{
+
+namespace thumbnailer
+{
+
+namespace internal
+{
 
 class VideoScreenshotter final : public QObject
 {
@@ -63,3 +70,9 @@ private:
     QTimer timer_;
     QTemporaryFile tmpfile_;
 };
+
+}  // namespace internal
+
+}  // namespace thumbnailer
+
+}  // namespace unity

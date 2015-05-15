@@ -25,6 +25,15 @@
 #pragma GCC diagnostic ignored "-Wcast-qual"
 #include <glib-object.h>
 
+namespace unity
+{
+
+namespace thumbnailer
+{
+
+namespace internal
+{
+
 /**
  * This class is meant for automatically managing the lifetime of C objects derived
  * from gobject. Its API perfectly mirrors the API of unique_ptr except that you
@@ -191,5 +200,11 @@ public:
         return u >= o.u;
     }
 };
+
+}  // namespace internal
+
+}  // namespace thumbnailer
+
+}  // namespace unity
 
 #pragma GCC diagnostic pop

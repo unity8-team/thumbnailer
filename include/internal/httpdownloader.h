@@ -20,9 +20,24 @@
 
 #include <string>
 
+namespace unity
+{
+
+namespace thumbnailer
+{
+
+namespace internal
+{
+
 class HttpDownloader
 {
 public:
     virtual std::string download(const std::string& url) = 0;
     virtual ~HttpDownloader(){};
 };
+
+}  // namespace internal
+
+}  // namespace thumbnailer
+
+}  // namespace unity

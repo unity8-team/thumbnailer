@@ -24,6 +24,17 @@
 
 #include <string>
 
+struct _GdkPixbuf;
+
+namespace unity
+{
+
+namespace thumbnailer
+{
+
+namespace internal
+{
+
 class Image
 {
 public:
@@ -59,10 +70,16 @@ public:
     std::string to_jpeg() const;
 
 private:
-    typedef struct _GdkPixbuf GdkPixbuf;
-    typedef gobj_ptr<GdkPixbuf> PixbufPtr;
+    //typedef struct ::_GdkPixbuf GdkPixbuf;
+    //typedef gobj_ptr<GdkPixbuf> PixbufPtr;
 
     void load(Reader& reader, QSize requested_size);
 
-    PixbufPtr pixbuf_;
+    gobj_ptr<struct _GdkPixbuf> pixbuf_;
 };
+
+}  // namespace internal
+
+}  // namespace thumbnailer
+
+}  // namespace unity

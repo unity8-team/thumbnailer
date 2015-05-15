@@ -21,6 +21,15 @@
 #include <memory>
 #include <string>
 
+namespace unity
+{
+
+namespace thumbnailer
+{
+
+namespace internal
+{
+
 class ThumbnailExtractor final
 {
     struct Private;
@@ -39,3 +48,9 @@ public:
 private:
     std::unique_ptr<Private> p;
 };
+
+}  // namespace internal
+
+}  // namespace thumbnailer
+
+}  // namespace unity
