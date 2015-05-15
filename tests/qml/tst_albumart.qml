@@ -20,4 +20,20 @@ Fixture {
         comparePixel(0, 479, "#0000FE");
         comparePixel(639, 479, "#00FF01");
     }
+
+    function test_artistart_not_found() {
+        loadArtistArt("beck2", "odelay")
+        compare(size.width, 96);
+        compare(size.height, 96);
+        comparePixel(35, 60, "#ffffff");
+        comparePixel(60, 35, "#ffffff");
+    }
+
+    function test_albumart_not_found() {
+        loadAlbumArt("beck2", "odelay")
+        compare(size.width, 96);
+        compare(size.height, 96);
+        comparePixel(35, 60, "#ffffff");
+        comparePixel(60, 35, "#ffffff");
+    }
 }
