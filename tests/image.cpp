@@ -110,6 +110,11 @@ TEST(Image, scale)
     EXPECT_EQ(400, scaled.width());
     EXPECT_EQ(300, scaled.height());
 
+    // Invalid size doesn't change the image
+    scaled = img.scale(QSize());
+    EXPECT_EQ(640, img.width());
+    EXPECT_EQ(480, img.height());
+
     // A large requested size results in no scaling
     scaled = img.scale(QSize(1000, 1000));
     EXPECT_EQ(640, scaled.width());
