@@ -68,51 +68,6 @@ enum class Location
 
 }  // namespace
 
-class ThumbnailerPrivate
-{
-public:
-    core::PersistentStringCache::UPtr full_size_cache_;  // Small cache of full (original) size images.
-    core::PersistentStringCache::UPtr thumbnail_cache_;  // Large cache of scaled images.
-    core::PersistentStringCache::UPtr failure_cache_;    // Cache for failed attempts (value is always empty).
-    unique_ptr<ArtDownloader> downloader_;
-
-    ThumbnailerPrivate();
-};
-
-ThumbnailerPrivate::ThumbnailerPrivate()
-    : downloader_(new UbuntuServerDownloader())
-{
-    string xdg_base = g_get_user_cache_dir();
-    if (xdg_base == "")
-    {
-        // LCOV_EXCL_START
-        string s("Thumbnailer(): Could not determine cache dir.");
-        throw runtime_error(s);
-        // LCOV_EXCL_STOP
-    }
-
-    string cache_dir = xdg_base + "/unity-thumbnailer";
-    make_directories(cache_dir, 0700);
-
-    try
-    {
-        // TODO: No good to hard-wire the cache size.
-        full_size_cache_ = core::PersistentStringCache::open(cache_dir + "/images", 50 * 1024 * 1024,
-                                                             core::CacheDiscardPolicy::lru_only);
-        thumbnail_cache_ = core::PersistentStringCache::open(cache_dir + "/thumbnails", 100 * 1024 * 1024,
-                                                             core::CacheDiscardPolicy::lru_only);
-        failure_cache_ = core::PersistentStringCache::open(cache_dir + "/failures", 2 * 1024 * 1024,
-                                                           core::CacheDiscardPolicy::lru_ttl);
-    }
-    catch (std::exception const& e)
-    {
-        throw runtime_error(string("Thumbnailer(): Cannot instantiate cache: ") + e.what());
-    }
-}
-
-namespace
-{
-
 class RequestBase : public ThumbnailRequest {
     Q_OBJECT
 public:
@@ -144,18 +99,29 @@ public:
     };
 
 protected:
-    RequestBase(shared_ptr<ThumbnailerPrivate> const& p, string const& key, QSize const& requested_size);
+    RequestBase(Thumbnailer* thumbnailer, string const& key, QSize const& requested_size);
     virtual ImageData fetch(QSize const& size_hint) = 0;
 
-    shared_ptr<ThumbnailerPrivate> p_;
+    ArtDownloader* downloader() const
+    {
+        return thumbnailer_->downloader_.get();
+    }
+
+    Thumbnailer const* thumbnailer_;
     string key_;
     QSize const requested_size_;
 };
 
+namespace
+{
+
 class LocalThumbnailRequest : public RequestBase {
     Q_OBJECT
 public:
-    LocalThumbnailRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& filename, int filename_fd, QSize const& requested_size);
+    LocalThumbnailRequest(Thumbnailer* thumbnailer,
+                          string const& filename,
+                          int filename_fd,
+                          QSize const& requested_size);
 protected:
     ImageData fetch(QSize const& size_hint) override;
     void download(std::chrono::milliseconds timeout) override;
@@ -168,7 +134,7 @@ private:
 class AlbumRequest : public RequestBase {
     Q_OBJECT
 public:
-    AlbumRequest(shared_ptr<ThumbnailerPrivate> const& p,
+    AlbumRequest(Thumbnailer* thumbnailer,
                  string const& artist,
                  string const& album,
                  QSize const& requested_size);
@@ -184,7 +150,7 @@ private:
 class ArtistRequest : public RequestBase {
     Q_OBJECT
 public:
-    ArtistRequest(shared_ptr<ThumbnailerPrivate> const& p,
+    ArtistRequest(Thumbnailer* thumbnailer,
                   string const& artist,
                   string const& album,
                   QSize const& requested_size);
@@ -199,8 +165,10 @@ private:
 
 }  // namespace
 
-RequestBase::RequestBase(shared_ptr<ThumbnailerPrivate> const& p, string const& key, QSize const& requested_size) :
-    p_(p), key_(key), requested_size_(requested_size)
+RequestBase::RequestBase(Thumbnailer* thumbnailer, string const& key, QSize const& requested_size)
+    : thumbnailer_(thumbnailer)
+    , key_(key)
+    , requested_size_(requested_size)
 {
 }
 
@@ -240,14 +208,14 @@ string RequestBase::thumbnail()
     sized_key += to_string(target_size.height());
 
     // Check if we have the thumbnail in the cache already.
-    auto thumbnail = p_->thumbnail_cache_->get(sized_key);
+    auto thumbnail = thumbnailer_->thumbnail_cache_->get(sized_key);
     if (thumbnail)
     {
         return *thumbnail;
     }
 
     // Don't have the thumbnail yet, see if we have the original image around.
-    auto full_size = p_->full_size_cache_->get(key_);
+    auto full_size = thumbnailer_->full_size_cache_->get(key_);
     Image scaled_image;
     if (full_size)
     {
@@ -257,7 +225,7 @@ string RequestBase::thumbnail()
     {
         // Try and download or read the artwork, provided that we don't
         // have this image in the failure cache.
-        if (p_->failure_cache_->contains_key(key_))
+        if (thumbnailer_->failure_cache_->contains_key(key_))
         {
             return "";
         }
@@ -282,7 +250,7 @@ string RequestBase::thumbnail()
                 {
                     later = chrono::steady_clock::now() + chrono::hours(24 * 7);  // One week
                 }
-                p_->failure_cache_->put(key_, "", later);
+                thumbnailer_->failure_cache_->put(key_, "", later);
                 return "";
             }
             case FetchStatus::error:
@@ -298,7 +266,7 @@ string RequestBase::thumbnail()
                 {
                     later = chrono::steady_clock::now() + chrono::hours(2);  // Two hours before we try again.
                 }
-                p_->failure_cache_->put(key_, "", later);
+                thumbnailer_->failure_cache_->put(key_, "", later);
                 // TODO: need to throw here, this is a real error.
                 return "";
             }
@@ -321,7 +289,7 @@ string RequestBase::thumbnail()
                 // Don't put ridiculously large images into the full-size cache.
                 full_size_image = full_size_image.scale(QSize(MAX_SIZE, MAX_SIZE));
             }
-            p_->full_size_cache_->put(key_, full_size_image.to_jpeg());
+            thumbnailer_->full_size_cache_->put(key_, full_size_image.to_jpeg());
         }
         // If the image is already within the target dimensions, this
         // will be a no-op.
@@ -329,12 +297,15 @@ string RequestBase::thumbnail()
     }
 
     string jpeg = scaled_image.to_jpeg();
-    p_->thumbnail_cache_->put(sized_key, jpeg);
+    thumbnailer_->thumbnail_cache_->put(sized_key, jpeg);
     return jpeg;
 }
 
-LocalThumbnailRequest::LocalThumbnailRequest(shared_ptr<ThumbnailerPrivate> const& p, string const& filename, int filename_fd, QSize const& requested_size)
-    : RequestBase(p, "", requested_size), filename_(filename), fd_(-1, do_close)
+LocalThumbnailRequest::LocalThumbnailRequest(Thumbnailer* thumbnailer,
+                                             string const& filename,
+                                             int filename_fd,
+                                             QSize const& requested_size)
+    : RequestBase(thumbnailer, "", requested_size), filename_(filename), fd_(-1, do_close)
 {
     filename_ = boost::filesystem::canonical(filename).native();
     fd_.reset(open(filename_.c_str(), O_RDONLY | O_CLOEXEC));
@@ -438,11 +409,11 @@ void LocalThumbnailRequest::download(std::chrono::milliseconds timeout) {
     screenshotter_->extract();
 }
 
-AlbumRequest::AlbumRequest(shared_ptr<ThumbnailerPrivate> const& p,
+AlbumRequest::AlbumRequest(Thumbnailer* thumbnailer,
                            string const& artist,
                            string const& album,
                            QSize const& requested_size)
-    : RequestBase(p, artist + '\0' + album + '\0' + "album", requested_size)
+    : RequestBase(thumbnailer, artist + '\0' + album + '\0' + "album", requested_size)
     , artist_(artist)
     , album_(album)
 {
@@ -488,18 +459,18 @@ RequestBase::ImageData AlbumRequest::fetch(QSize const& /*size_hint*/)
 
 void AlbumRequest::download(chrono::milliseconds timeout)
 {
-    artreply_ = p_->downloader_->download_album(QString::fromStdString(artist_),
-                                                QString::fromStdString(album_),
-                                                timeout);
+    artreply_ = downloader()->download_album(QString::fromStdString(artist_),
+                                             QString::fromStdString(album_),
+                                             timeout);
     connect(artreply_.get(), &ArtReply::finished,
             this, &AlbumRequest::downloadFinished, Qt::DirectConnection);
 }
 
-ArtistRequest::ArtistRequest(shared_ptr<ThumbnailerPrivate> const& p,
+ArtistRequest::ArtistRequest(Thumbnailer* thumbnailer,
                              string const& artist,
                              string const& album,
                              QSize const& requested_size)
-    : RequestBase(p, artist + '\0' + album + '\0' + "artist", requested_size)
+    : RequestBase(thumbnailer, artist + '\0' + album + '\0' + "artist", requested_size)
     , artist_(artist)
     , album_(album)
 {
@@ -511,16 +482,42 @@ RequestBase::ImageData ArtistRequest::fetch(QSize const& /*size_hint*/)
 }
 
 void ArtistRequest::download(chrono::milliseconds timeout) {
-    artreply_ = p_->downloader_->download_artist(QString::fromStdString(artist_),
-                                                 QString::fromStdString(album_),
-                                                 timeout);
+    artreply_ = downloader()->download_artist(QString::fromStdString(artist_),
+                                              QString::fromStdString(album_),
+                                              timeout);
     connect(artreply_.get(), &ArtReply::finished,
             this, &ThumbnailRequest::downloadFinished, Qt::DirectConnection);
 }
 
 Thumbnailer::Thumbnailer()
-    : p_(make_shared<ThumbnailerPrivate>())
+    : downloader_(new UbuntuServerDownloader())
 {
+    string xdg_base = g_get_user_cache_dir();
+    if (xdg_base == "")
+    {
+        // LCOV_EXCL_START
+        string s("Thumbnailer(): Could not determine cache dir.");
+        throw runtime_error(s);
+        // LCOV_EXCL_STOP
+    }
+
+    string cache_dir = xdg_base + "/unity-thumbnailer";
+    make_directories(cache_dir, 0700);
+
+    try
+    {
+        // TODO: No good to hard-wire the cache size.
+        full_size_cache_ = core::PersistentStringCache::open(cache_dir + "/images", 50 * 1024 * 1024,
+                                                             core::CacheDiscardPolicy::lru_only);
+        thumbnail_cache_ = core::PersistentStringCache::open(cache_dir + "/thumbnails", 100 * 1024 * 1024,
+                                                             core::CacheDiscardPolicy::lru_only);
+        failure_cache_ = core::PersistentStringCache::open(cache_dir + "/failures", 2 * 1024 * 1024,
+                                                           core::CacheDiscardPolicy::lru_ttl);
+    }
+    catch (std::exception const& e)
+    {
+        throw runtime_error(string("Thumbnailer(): Cannot instantiate cache: ") + e.what());
+    }
 }
 
 Thumbnailer::~Thumbnailer() = default;
@@ -530,7 +527,7 @@ unique_ptr<ThumbnailRequest> Thumbnailer::get_thumbnail(string const& filename, 
     assert(!filename.empty());
 
     return unique_ptr<ThumbnailRequest>(
-        new LocalThumbnailRequest(p_, filename, filename_fd, requested_size));
+        new LocalThumbnailRequest(this, filename, filename_fd, requested_size));
 }
 
 unique_ptr<ThumbnailRequest> Thumbnailer::get_album_art(string const& artist,
@@ -541,7 +538,7 @@ unique_ptr<ThumbnailRequest> Thumbnailer::get_album_art(string const& artist,
     assert(album.empty() || !artist.empty());
 
     return unique_ptr<ThumbnailRequest>(
-        new AlbumRequest(p_, artist, album, requested_size));
+        new AlbumRequest(this, artist, album, requested_size));
 }
 
 unique_ptr<ThumbnailRequest> Thumbnailer::get_artist_art(string const& artist,
@@ -552,7 +549,7 @@ unique_ptr<ThumbnailRequest> Thumbnailer::get_artist_art(string const& artist,
     assert(album.empty() || !artist.empty());
 
     return unique_ptr<ThumbnailRequest>(
-        new ArtistRequest(p_, artist, album, requested_size));
+        new ArtistRequest(this, artist, album, requested_size));
 }
 
 }  // namespace internal
