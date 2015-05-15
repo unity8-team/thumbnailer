@@ -24,6 +24,7 @@
 #include <testsetup.h>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 #include <gtest/gtest.h>
 #include <QCoreApplication>
 #include <QSignalSpy>
@@ -46,18 +47,35 @@ using namespace unity::thumbnailer::internal;
 
 // The thumbnailer uses g_get_user_cache_dir() to get the cache dir, and
 // glib remembers that value, so changing XDG_CACHE_HOME later has no effect.
-// So, we XDG_CACHE_HOME only once instead of using a test fixture.
 
-auto set_tempdir = []()
+static auto set_tempdir = []()
 {
     auto dir = new QTemporaryDir(TESTBINDIR "/thumbnailer-test.XXXXXX");
     setenv("XDG_CACHE_HOME", dir->path().toUtf8().data(), true);
     return dir;
 };
 static unique_ptr<QTemporaryDir> tempdir(set_tempdir());
-static string const tempdir_path = tempdir->path().toUtf8().data();
 
-TEST(ThumbnailerTest, basic)
+class ThumbnailerTest : public ::testing::Test
+{
+protected:
+    virtual void SetUp() override
+    {
+        mkdir(tempdir_path().c_str(), 0700);
+    }
+
+    virtual void TearDown() override
+    {
+        boost::filesystem::remove_all(tempdir_path());
+    }
+
+    static string tempdir_path()
+    {
+        return tempdir->path().toUtf8().data();
+    }
+};
+
+TEST_F(ThumbnailerTest, basic)
 {
     Thumbnailer tn;
     string thumb;
@@ -129,7 +147,7 @@ TEST(ThumbnailerTest, basic)
     EXPECT_EQ(2048, img.height());
 }
 
-TEST(ThumbnailerTest, bad_fd)
+TEST_F(ThumbnailerTest, bad_fd)
 {
     Thumbnailer tn;
 
@@ -157,9 +175,9 @@ TEST(ThumbnailerTest, bad_fd)
     }
 }
 
-TEST(ThumbnailerTest, replace_photo)
+TEST_F(ThumbnailerTest, replace_photo)
 {
-    string testfile = tempdir_path + "/foo.jpg";
+    string testfile = tempdir_path() + "/foo.jpg";
     ASSERT_EQ(0, link(TEST_IMAGE, testfile.c_str()));
 
     Thumbnailer tn;
@@ -179,7 +197,7 @@ TEST(ThumbnailerTest, replace_photo)
     EXPECT_EQ(480, img.height());
 }
 
-TEST(ThumbnailerTest, thumbnail_video)
+TEST_F(ThumbnailerTest, thumbnail_video)
 {
     Thumbnailer tn;
     FdPtr fd(open(TEST_VIDEO, O_RDONLY), do_close);
@@ -222,10 +240,10 @@ TEST(ThumbnailerTest, thumbnail_video)
     }
 }
 
-TEST(ThumbnailerTest, replace_video)
+TEST_F(ThumbnailerTest, replace_video)
 {
-    string testfile = tempdir_path + "/foo.ogv";
-    ASSERT_EQ(0, link(TEST_VIDEO, testfile.c_str()));
+    string testfile = tempdir_path() + "/foo.ogv";
+    ASSERT_EQ(0, link(TEST_VIDEO, testfile.c_str())) << strerror(errno);
 
     Thumbnailer tn;
     FdPtr fd(open(testfile.c_str(), O_RDONLY | O_CLOEXEC), do_close);
@@ -249,7 +267,7 @@ TEST(ThumbnailerTest, replace_video)
     EXPECT_EQ(1080, img.height());
 }
 
-TEST(ThumbnailerTest, thumbnail_song)
+TEST_F(ThumbnailerTest, thumbnail_song)
 {
     Thumbnailer tn;
     FdPtr fd(open(TEST_SONG, O_RDONLY), do_close);
@@ -268,9 +286,9 @@ TEST(ThumbnailerTest, thumbnail_song)
     EXPECT_EQ(200, img.height());
 }
 
-TEST(ThumbnailerTest, exceptions)
+TEST_F(ThumbnailerTest, exceptions)
 {
-    string const cache_dir = tempdir_path;
+    string const cache_dir = tempdir_path();
     ASSERT_EQ(0, chmod(cache_dir.c_str(), 0000));
     try
     {
