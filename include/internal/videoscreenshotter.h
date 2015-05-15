@@ -19,10 +19,13 @@
 
 #pragma once
 
+#include <QProcess>
+#include <QTemporaryFile>
+#include <QTimer>
+
 #include <chrono>
 #include <memory>
 #include <string>
-#include <QObject>
 
 struct VideoScreenshotterPrivate;
 
@@ -48,5 +51,15 @@ private Q_SLOTS:
     void timeout();
 
 private:
-    std::unique_ptr<VideoScreenshotterPrivate> p;
+    // Can't use FdPtr for fd_ because gcc generates a bogus unsuppressable warning:
+    // http://stackoverflow.com/questions/11534265/do-non-local-c11-lambdas-live-in-anonymous-namespaces
+    int fd_;
+    int timeout_ms_;
+    bool success_ = false;
+    std::string error_;
+    std::string data_;
+
+    QProcess process_;
+    QTimer timer_;
+    QTemporaryFile tmpfile_;
 };
