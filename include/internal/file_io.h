@@ -20,6 +20,15 @@
 
 #include <string>
 
+namespace unity
+{
+
+namespace thumbnailer
+{
+
+namespace internal
+{
+
 // Read entire file and return contents as a string.
 std::string read_file(std::string const& filename);
 
@@ -28,3 +37,9 @@ void write_file(std::string const& filename, std::string const& contents);
 
 // Return a temporary file name in TMPDIR.
 std::string create_tmp_filename();
+
+}  // namespace internal
+
+}  // namespace thumbnailer
+
+}  // namespace unity

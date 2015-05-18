@@ -16,23 +16,14 @@
  * Authored by: Michi Henning <michi.henning@canonical.com>
  */
 
-#pragma once
+#include <internal/safe_strerror.h>
+#include <gtest/gtest.h>
 
-#include <string>
+using namespace unity::thumbnailer::internal;
 
-namespace unity
+TEST(safe_strerror, safe_strerror)
 {
-
-namespace thumbnailer
-{
-
-namespace internal
-{
-
-std::string safe_strerror(int errnum);
-
-}  // namespace internal
-
-}  // namespace thumbnailer
-
-}  // namespace unity
+    EXPECT_EQ("Success", safe_strerror(0));
+    EXPECT_EQ("Operation not permitted", safe_strerror(1));
+    EXPECT_EQ("invalid error number 77777 for strerror_r()", safe_strerror(77777));
+}

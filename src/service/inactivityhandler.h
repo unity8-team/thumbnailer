@@ -23,24 +23,27 @@
 #include <QObject>
 #include <QTimer>
 
-namespace unity {
+namespace unity
+{
 
-namespace thumbnailer {
+namespace thumbnailer
+{
 
-namespace service {
+namespace service
+{
 
 class InactivityHandler : public QObject
 {
     Q_OBJECT
 public:
-    InactivityHandler(DBusInterface & iface);
+    InactivityHandler(DBusInterface& iface);
 
 private:
     QTimer timer_;
 };
 
-} // namespace service
+}  // namespace service
 
-} // namespace thumbnailer
+}  // namespace thumbnailer
 
-} // namespace unity
+}  // namespace unity

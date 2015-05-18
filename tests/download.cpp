@@ -62,7 +62,6 @@ protected:
     QString apiroot_;
     QString server_argv_;
     int number_of_errors_before_ok_;
-
 };
 
 // Time to wait for an expected signal to arrive. The wait()

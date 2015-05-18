@@ -16,8 +16,8 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#include <thumbnailer.h>
 #include <internal/raii.h>
+#include <internal/thumbnailer.h>
 
 #include <cstdio>
 #include <stdexcept>
@@ -26,18 +26,24 @@
 
 using namespace unity::thumbnailer::internal;
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
     Thumbnailer t;
-    if(argc != 2) {
+    if (argc != 2)
+    {
         printf("%s <file name>\n", argv[0]);
         return 1;
     }
     std::string ifilename(argv[1]);
     FdPtr fd(open(ifilename.c_str(), O_RDONLY), do_close);
     std::string ofilename = t.get_thumbnail(ifilename, fd.get(), QSize(256, 256))->thumbnail();
-    if(ofilename.empty())
+    if (ofilename.empty())
+    {
         printf("Thumbnail could not be generated.\n");
+    }
     else
+    {
         printf("Thumbnail file is %s.\n", ofilename.c_str());
+    }
     return 0;
 }

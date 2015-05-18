@@ -18,10 +18,26 @@
 
 #pragma once
 
-#include<string>
+#include <string>
 
-class HttpDownloader {
+namespace unity
+{
+
+namespace thumbnailer
+{
+
+namespace internal
+{
+
+class HttpDownloader
+{
 public:
-    virtual std::string download(const std::string &url) = 0;
-    virtual ~HttpDownloader() {};
+    virtual std::string download(const std::string& url) = 0;
+    virtual ~HttpDownloader(){};
 };
+
+}  // namespace internal
+
+}  // namespace thumbnailer
+
+}  // namespace unity

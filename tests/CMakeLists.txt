@@ -38,6 +38,10 @@ add_executable(image image.cpp)
 target_link_libraries(image thumbnailer core gtest)
 add_test(image image)
 
+add_executable(safe_strerror_test safe_strerror_test.cpp)
+target_link_libraries(safe_strerror_test thumbnailer core gtest)
+add_test(safe_strerror_test safe_strerror_test)
+
 add_executable(thumbnailer_test thumbnailer_test.cpp)
 target_link_libraries(thumbnailer_test thumbnailer core gtest)
 add_test(thumbnailer_test thumbnailer_test)
@@ -56,9 +60,9 @@ pkg_check_modules(GOBJ_DEPS REQUIRED gobject-2.0)
 
 include_directories(${GOBJ_DEPS_INCLUDE_DIRS})
 
-add_executable(unique_gobj unique_gobj.cpp)
-target_link_libraries(unique_gobj ${GOBJ_DEPS_LDFLAGS} ${IMG_DEPS_LDFLAGS} gtest)
-add_test(unique_gobj unique_gobj)
+add_executable(gobj_ptr gobj_ptr.cpp)
+target_link_libraries(gobj_ptr ${GOBJ_DEPS_LDFLAGS} gtest)
+add_test(gobj_ptr gobj_ptr)
 
 add_executable(test_vsthumb
   test_vsthumb.cpp
@@ -74,8 +78,17 @@ add_test(test_vsthumb test_vsthumb)
 pkg_check_modules(QTDBUSTEST_DEPS REQUIRED libqtdbustest-1)
 add_definitions(${QTDBUSTEST_DEPS_CFLAGS})
 
+set_source_files_properties(
+  "${CMAKE_SOURCE_DIR}/src/service/dbusinterface.xml" PROPERTIES
+  CLASSNAME ThumbnailerInterface)
+qt5_add_dbus_interface(
+  interface_files
+  "${CMAKE_SOURCE_DIR}/src/service/dbusinterface.xml"
+  thumbnailerinterface)
+
 add_executable(test_dbus
-  test_dbus.cpp)
+  test_dbus.cpp
+  ${interface_files})
 qt5_use_modules(test_dbus DBus Test)
 target_link_libraries(test_dbus
   thumbnailer

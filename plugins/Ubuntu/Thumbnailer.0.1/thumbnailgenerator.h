@@ -23,11 +23,14 @@
 #include <QQuickImageProvider>
 #include <thumbnailerinterface.h>
 
-namespace unity {
-namespace thumbnailer {
-namespace qml {
+namespace unity
+{
+namespace thumbnailer
+{
+namespace qml
+{
 
-class ThumbnailGenerator: public QQuickImageProvider
+class ThumbnailGenerator : public QQuickImageProvider
 {
 private:
     std::unique_ptr<QDBusConnection> connection;
@@ -35,15 +38,14 @@ private:
 
 public:
     ThumbnailGenerator();
-    ThumbnailGenerator(const ThumbnailGenerator &other) = delete;
-    const ThumbnailGenerator & operator=(const ThumbnailGenerator &other) = delete;
-    ThumbnailGenerator(ThumbnailGenerator &&other) = delete;
-    const ThumbnailGenerator & operator=(ThumbnailGenerator &&other) = delete;
+    ThumbnailGenerator(const ThumbnailGenerator& other) = delete;
+    const ThumbnailGenerator& operator=(const ThumbnailGenerator& other) = delete;
+    ThumbnailGenerator(ThumbnailGenerator&& other) = delete;
+    const ThumbnailGenerator& operator=(ThumbnailGenerator&& other) = delete;
 
-    QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize) override;
-    QImage getFallbackImage(const QString &id, QSize *size, const QSize &requestedSize);
+    QImage requestImage(const QString& id, QSize* size, const QSize& requestedSize) override;
+    QImage getFallbackImage(const QString& id, QSize* size, const QSize& requestedSize);
 };
-
 }
 }
 }

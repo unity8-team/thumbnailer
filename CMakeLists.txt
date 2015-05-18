@@ -97,6 +97,7 @@ pkg_check_modules(UNITY_API_DEPS REQUIRED libunity-api)
 include_directories(${GST_DEPS_INCLUDE_DIRS})
 include_directories(${GIO_DEPS_INCLUDE_DIRS})
 include_directories(${IMG_DEPS_INCLUDE_DIRS})
+include_directories(${UNITY_API_DEPS_INCLUDE_DIRS})
 include_directories(include)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 
@@ -120,10 +121,11 @@ enable_coverage_report(
         ${CMAKE_SOURCE_DIR}/tools/*
         ${CMAKE_BINARY_DIR}/*
     TESTS
+        cachetool
+        downloaderstest
         downloadtest
         file_io
         image
+        safe_strerror_test
         thumbnailer_test
-        cachetool
-        downloaderstest
 )

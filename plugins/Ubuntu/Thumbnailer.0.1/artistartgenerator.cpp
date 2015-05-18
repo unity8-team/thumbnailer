@@ -27,13 +27,15 @@
 #include <QDBusUnixFileDescriptor>
 #include <QDBusReply>
 
-namespace {
+namespace
+{
 const char DEFAULT_ARTIST_ART[] = "/usr/share/thumbnailer/icons/album_missing.png";
 
 const char BUS_NAME[] = "com.canonical.Thumbnailer";
 const char BUS_PATH[] = "/com/canonical/Thumbnailer";
 
-QImage fallbackImage(QSize *realSize) {
+QImage fallbackImage(QSize* realSize)
+{
     QImage fallback;
     fallback.load(DEFAULT_ARTIST_ART);
     *realSize = fallback.size();
@@ -41,26 +43,32 @@ QImage fallbackImage(QSize *realSize) {
 }
 }
 
-namespace unity {
-namespace thumbnailer {
-namespace qml {
+namespace unity
+{
+namespace thumbnailer
+{
+namespace qml
+{
 
 ArtistArtGenerator::ArtistArtGenerator()
     : QQuickImageProvider(QQuickImageProvider::Image, QQmlImageProviderBase::ForceAsynchronousImageLoading)
 {
 }
 
-QImage ArtistArtGenerator::requestImage(const QString &id, QSize *realSize,
-        const QSize &requestedSize) {
+QImage ArtistArtGenerator::requestImage(const QString& id, QSize* realSize, const QSize& requestedSize)
+{
     QUrlQuery query(id);
-    if (!query.hasQueryItem("artist") || !query.hasQueryItem("album")) {
+    if (!query.hasQueryItem("artist") || !query.hasQueryItem("album"))
+    {
         qWarning() << "Invalid artistart uri:" << id;
         return fallbackImage(realSize);
     }
 
-    if (!connection) {
+    if (!connection)
+    {
         // Create them here and not them on the constrcutor so they belong to the proper thread
-        connection.reset(new QDBusConnection(QDBusConnection::connectToBus(QDBusConnection::SessionBus, "artist_art_generator_dbus_connection")));
+        connection.reset(new QDBusConnection(
+            QDBusConnection::connectToBus(QDBusConnection::SessionBus, "artist_art_generator_dbus_connection")));
         iface.reset(new ThumbnailerInterface(BUS_NAME, BUS_PATH, *connection));
     }
 
@@ -70,23 +78,27 @@ QImage ArtistArtGenerator::requestImage(const QString &id, QSize *realSize,
     // perform dbus call
     auto reply = iface->GetArtistArt(artist, album, requestedSize);
     reply.waitForFinished();
-    if (!reply.isValid()) {
+    if (!reply.isValid())
+    {
         qWarning() << "D-Bus error: " << reply.error().message();
         return fallbackImage(realSize);
     }
 
-    try {
-        return imageFromFd(reply.value().fileDescriptor(),
-                           realSize, requestedSize);
-    } catch (const std::exception &e) {
+    try
+    {
+        return imageFromFd(reply.value().fileDescriptor(), realSize, requestedSize);
+    }
+    catch (const std::exception& e)
+    {
         qWarning() << "Artist art loader failed: " << e.what();
-    } catch (...) {
+    }
+    catch (...)
+    {
         qWarning() << "Unknown error when generating image.";
     }
 
     return fallbackImage(realSize);
 }
-
 }
 }
 }

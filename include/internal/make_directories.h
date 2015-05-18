@@ -21,9 +21,24 @@
 #include <string>
 #include <sys/stat.h>
 
+namespace unity
+{
+
+namespace thumbnailer
+{
+
+namespace internal
+{
+
 // Recursively create the directories in path, setting permissions to the specified mode
 // (regardless of the setting of umask). If one or more directories already exist, they
 // are left unchanged (including their permissions). If a directory cannot be created,
 // fail silently.
 
 void make_directories(std::string const& path_name, mode_t mode);
+
+}  // namespace internal
+
+}  // namespace thumbnailer
+
+}  // namespace unity
