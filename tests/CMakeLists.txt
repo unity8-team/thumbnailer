@@ -2,6 +2,7 @@ add_subdirectory(core)
 
 add_definitions(
   -DFAKE_DOWNLOADER_SERVER="${CMAKE_CURRENT_SOURCE_DIR}/server/server.py"
+  -DTHUMBNAILER_TEST_DEFAULT_IMAGE="${CMAKE_CURRENT_SOURCE_DIR}/media/orientation-8.jpg"
 )
 
 if (NOT DEFINED GTEST_ROOT)

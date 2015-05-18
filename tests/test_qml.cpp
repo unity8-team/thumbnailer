@@ -27,6 +27,8 @@ public:
         fake_downloader_server_.waitForReadyRead();
         QString port = QString::fromUtf8(fake_downloader_server_.readAllStandardOutput()).trimmed();
 
+        setenv("THUMBNAILER_TEST_DEFAULT_IMAGE", THUMBNAILER_TEST_DEFAULT_IMAGE, true);
+
         QString apiroot = QString("http://127.0.0.1:%1").arg(port);
         setenv("THUMBNAILER_UBUNTU_APIROOT", apiroot.toUtf8().constData(), true);
 

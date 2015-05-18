@@ -55,6 +55,11 @@ ThumbnailerImageResponse::ThumbnailerImageResponse(ResponseType type,
     , default_audio_image_(default_audio_image)
     , type_(type)
 {
+    char const* c_default_image = getenv("THUMBNAILER_TEST_DEFAULT_IMAGE");
+    if (c_default_image)
+    {
+        default_video_image_ = default_audio_image_ = QString(c_default_image);
+    }
 }
 
 QQuickTextureFactory* ThumbnailerImageResponse::textureFactory() const
