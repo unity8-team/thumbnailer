@@ -56,7 +56,7 @@ namespace thumbnailer
 namespace internal
 {
 
-bool is_network_error(QNetworkReply::NetworkError error)
+bool network_down_error(QNetworkReply::NetworkError error)
 {
     switch (error)
     {
@@ -89,7 +89,7 @@ public:
         , error_(QNetworkReply::NoError)
         , url_string_(url)
         , succeeded_(false)
-        , is_network_error_(false)
+        , network_down_error_(false)
         , reply_(reply)
     {
         assert(reply_);
@@ -135,9 +135,9 @@ public:
         return url_string_;
     }
 
-    bool network_error() const override
+    bool network_down() const override
     {
-        return is_network_error_;
+        return network_down_error_;
     }
 
 public Q_SLOTS:
@@ -153,7 +153,7 @@ public Q_SLOTS:
         if (error_)
         {
             error_string_ = reply->errorString();
-            is_network_error_ = is_network_error(error_);
+            network_down_error_ = network_down_error(error_);
         }
         else
         {
@@ -176,7 +176,7 @@ private:
     QByteArray data_;
     QString url_string_;
     bool succeeded_;
-    bool is_network_error_;
+    bool network_down_error_;
     QNetworkReply* reply_;
     QTimer timer_;
 };
