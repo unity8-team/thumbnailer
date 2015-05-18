@@ -21,22 +21,23 @@
 #include <internal/safe_strerror.h>
 #include <internal/raii.h>
 
+#include <QDebug>
+#include <QFuture>
+#include <QFutureWatcher>
+#include <QtConcurrent>
+#include <QThreadPool>
+#include <unity/Exception.h>
+
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <QtConcurrent>
-#include <QFuture>
-#include <QFutureWatcher>
-#include <QDebug>
-#include <QThreadPool>
-
 using namespace unity::thumbnailer::internal;
 
 namespace
 {
-const char ART_ERROR[] = "com.canonical.Thumbnailer.Error.Failed";
+char const ART_ERROR[] = "com.canonical.Thumbnailer.Error.Failed";
 
 struct FdOrError
 {
@@ -106,7 +107,7 @@ namespace service
 struct HandlerPrivate
 {
     QDBusConnection bus;
-    const QDBusMessage message;
+    QDBusMessage const message;
     std::shared_ptr<QThreadPool> check_pool;
     std::shared_ptr<QThreadPool> create_pool;
     std::unique_ptr<ThumbnailRequest> request;
@@ -115,8 +116,8 @@ struct HandlerPrivate
     QFutureWatcher<FdOrError> checkWatcher;
     QFutureWatcher<FdOrError> createWatcher;
 
-    HandlerPrivate(const QDBusConnection& bus,
-                   const QDBusMessage& message,
+    HandlerPrivate(QDBusConnection const& bus,
+                   QDBusMessage const& message,
                    std::shared_ptr<QThreadPool> check_pool,
                    std::shared_ptr<QThreadPool> create_pool,
                    std::unique_ptr<ThumbnailRequest>&& request)
@@ -129,8 +130,8 @@ struct HandlerPrivate
     }
 };
 
-Handler::Handler(const QDBusConnection& bus,
-                 const QDBusMessage& message,
+Handler::Handler(QDBusConnection const& bus,
+                 QDBusMessage const& message,
                  std::shared_ptr<QThreadPool> check_pool,
                  std::shared_ptr<QThreadPool> create_pool,
                  std::unique_ptr<ThumbnailRequest>&& request)
@@ -158,7 +159,11 @@ void Handler::begin()
         {
             return FdOrError{check(), nullptr};
         }
-        catch (const std::exception& e)
+        catch (unity::Exception const& e)
+        {
+            return FdOrError{QDBusUnixFileDescriptor(), QString(e.to_string().c_str())};
+        }
+        catch (std::exception const& e)
         {
             return FdOrError{QDBusUnixFileDescriptor(), e.what()};
         }
@@ -196,7 +201,12 @@ void Handler::checkFinished()
     {
         fd_error = p->checkWatcher.result();
     }
-    catch (const std::exception& e)
+    catch (unity::Exception const& e)
+    {
+        sendError(QString(e.to_string().c_str()));
+        return;
+    }
+    catch (std::exception const& e)
     {
         sendError(e.what());
         return;
@@ -231,7 +241,11 @@ void Handler::downloadFinished()
         {
             return FdOrError{create(), nullptr};
         }
-        catch (const std::exception& e)
+        catch (unity::Exception const& e)
+        {
+            return FdOrError{QDBusUnixFileDescriptor(), QString(e.to_string().c_str())};
+        }
+        catch (std::exception const& e)
         {
             return FdOrError{QDBusUnixFileDescriptor(), e.what()};
         }
@@ -266,7 +280,12 @@ void Handler::createFinished()
     {
         fd_error = p->createWatcher.result();
     }
-    catch (const std::exception& e)
+    catch (unity::Exception const& e)
+    {
+        sendError(QString(e.to_string().c_str()));
+        return;
+    }
+    catch (std::exception const& e)
     {
         sendError(e.what());
         return;
@@ -286,13 +305,13 @@ void Handler::createFinished()
     }
 }
 
-void Handler::sendThumbnail(const QDBusUnixFileDescriptor& unix_fd)
+void Handler::sendThumbnail(QDBusUnixFileDescriptor const& unix_fd)
 {
     p->bus.send(p->message.createReply(QVariant::fromValue(unix_fd)));
     Q_EMIT finished();
 }
 
-void Handler::sendError(const QString& error)
+void Handler::sendError(QString const& error)
 {
     p->bus.send(p->message.createErrorReply(ART_ERROR, error));
     Q_EMIT finished();

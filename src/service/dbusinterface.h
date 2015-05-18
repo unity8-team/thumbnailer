@@ -45,15 +45,15 @@ public:
     explicit DBusInterface(QObject* parent = nullptr);
     ~DBusInterface();
 
-    DBusInterface(const DBusInterface&) = delete;
+    DBusInterface(DBusInterface const&) = delete;
     DBusInterface& operator=(DBusInterface&) = delete;
 
 public Q_SLOTS:
-    QDBusUnixFileDescriptor GetAlbumArt(const QString& artist, const QString& album, const QSize& requestedSize);
-    QDBusUnixFileDescriptor GetArtistArt(const QString& artist, const QString& album, const QSize& requestedSize);
-    QDBusUnixFileDescriptor GetThumbnail(const QString& filename,
-                                         const QDBusUnixFileDescriptor& filename_fd,
-                                         const QSize& requestedSize);
+    QDBusUnixFileDescriptor GetAlbumArt(QString const& artist, QString const& album, QSize const& requestedSize);
+    QDBusUnixFileDescriptor GetArtistArt(QString const& artist, QString const& album, QSize const& requestedSize);
+    QDBusUnixFileDescriptor GetThumbnail(QString const& filename,
+                                         QDBusUnixFileDescriptor const& filename_fd,
+                                         QSize const& requestedSize);
 
 private:
     void queueRequest(Handler* handler);

@@ -26,7 +26,7 @@ target_link_libraries(thumbnailer
  ${GLIB_DEPS_LDFLAGS}
  ${GIO_DEPS_LDFLAGS}
  ${IMG_DEPS_LDFLAGS}
- # ${UNITY_API_DEPS_LDFLAGS}  # Commented out because, currently, we only use ResourcePtr, which is header-only.
+ ${UNITY_API_DEPS_LDFLAGS}
  )
 
 add_subdirectory(service)
