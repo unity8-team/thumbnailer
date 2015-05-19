@@ -24,35 +24,21 @@ import tornado.httpserver
 import tornado.options
 import tornado.web
 
-tornado.options.parse_command_line()
-
-global PORT
-PORT = ""
-
 class FileReaderProvider(tornado.web.RequestHandler):
     def initialize(self):
         self.extensions_map = {'jpeg': 'image/jpeg', 'jpg': 'image/jpeg', 'png': 'image/png', 'txt': 'text/plain', 'xml': 'application/xml'}
 
-    def read_file(self, path, replace_root):
-        extension = self.search_file_extension(path)
-        if extension != None:
-            file = os.path.join(os.path.dirname(__file__), "%s.%s" % (path, extension))
-            with open(file, 'rb') as fp:
-                content = fp.read()
-            if replace_root:
-                content = content.replace(b"DOWNLOAD_ROOT", "127.0.0.1:{}".format(PORT).encode("utf-8"))
-            self.set_header("Content-Type", self.extensions_map[extension])
-        else:
-            self.set_status(404)
-            content = "<html><body>404 ERROR</body></html>"
-        self.write(content)
+    def read_file(self, path):
+        for extension, content_type in self.extensions_map.items():
+            filename = os.path.join(os.path.dirname(__file__), "%s.%s" % (path, extension))
+            if os.path.isfile(filename):
+                self.set_header("Content-Type", content_type)
+                with open(filename, 'rb') as fp:
+                    self.write(fp.read())
+                return
 
-    def search_file_extension(self, file_base_name):
-        for extension in self.extensions_map.keys():
-            file = os.path.join(os.path.dirname(__file__), "%s.%s" % (file_base_name, extension))
-            if os.path.isfile(file):
-                return extension
-        return None
+        self.set_status(404)
+        self.write("<html><body>404 ERROR</body></html>")
 
 class UbuntuAlbumImagesProvider(FileReaderProvider):
     def get(self):
@@ -64,7 +50,7 @@ class UbuntuAlbumImagesProvider(FileReaderProvider):
             self.write("TEST_SLEEP_TEST_%s" % seconds)
         else:
             file = 'images/%s_%s_album' % (self.get_argument('artist', None ), self.get_argument('album', None ))
-            self.read_file(file, False)
+            self.read_file(file)
         self.finish()
 
 class UbuntuArtistImagesProvider(FileReaderProvider):
@@ -77,10 +63,11 @@ class UbuntuArtistImagesProvider(FileReaderProvider):
             self.write("TEST_SLEEP_TEST_%s" % seconds)
         else:
             file = 'images/%s_%s' % (self.get_argument('artist', None ), self.get_argument('album', None ))
-            self.read_file(file, False)
+            self.read_file(file)
         self.finish()
 
-def new_app():
+def main(argv):
+    tornado.options.parse_command_line(argv)
     application = tornado.web.Application([
         (r"/musicproxy/v1/album-art", UbuntuAlbumImagesProvider),
         (r"/musicproxy/v1/artist-art", UbuntuArtistImagesProvider)
@@ -89,13 +76,11 @@ def new_app():
     server = tornado.httpserver.HTTPServer(application)
     server.add_sockets(sockets)
 
-    global PORT
-    PORT = '%d' % sockets[0].getsockname()[1]
-    sys.stdout.write('%s\n' % PORT)
+    port = sockets[0].getsockname()[1]
+    sys.stdout.write('%d\n' % port)
     sys.stdout.flush()
 
-    return application
+    tornado.ioloop.IOLoop.instance().start()
 
 if __name__ == "__main__":
-    application = new_app()
-    tornado.ioloop.IOLoop.instance().start()
+    sys.exit(main(sys.argv))
