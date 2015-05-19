@@ -282,10 +282,10 @@ string RequestBase::thumbnail()
                     // changed (say, such that artwork is added), the file's key will change too.
                     // For remote files, we try again after one week.
                     // TODO: Make interval configurable.
-                    chrono::time_point<std::chrono::steady_clock> later;  // Infinite expiry time
+                    chrono::time_point<std::chrono::system_clock> later;  // Infinite expiry time
                     if (image_data.location == Location::remote)
                     {
-                        later = chrono::steady_clock::now() + chrono::hours(24 * 7);  // One week
+                        later = chrono::system_clock::now() + chrono::hours(24 * 7);  // One week
                     }
                     thumbnailer_->failure_cache_->put(key_, "", later);
                     return "";
@@ -298,10 +298,10 @@ string RequestBase::thumbnail()
                     // changed, (say, its permissions change), the file's key will change too.
                     // For remote files, we try again after two hours.
                     // TODO: Make interval configurable.
-                    chrono::time_point<std::chrono::steady_clock> later;  // Infinite expiry time
+                    chrono::time_point<std::chrono::system_clock> later;  // Infinite expiry time
                     if (image_data.location == Location::remote)
                     {
-                        later = chrono::steady_clock::now() + chrono::hours(2);  // Two hours before we try again.
+                        later = chrono::system_clock::now() + chrono::hours(2);  // Two hours before we try again.
                     }
                     thumbnailer_->failure_cache_->put(key_, "", later);
                     // TODO: That's really poor. Should store the error data so we can produce

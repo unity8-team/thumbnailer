@@ -115,21 +115,34 @@ QDBusUnixFileDescriptor DBusInterface::GetThumbnail(QString const& filename,
 namespace
 {
 
-QDateTime to_date_time(chrono::steady_clock::time_point tp)
+// Conversion is somewhat awkward because system_clock
+// is not guaranteed to use the same epoch as QDateTime.
+// (The C++ standard leaves the epoch time point undefined.)
+// We figure out the epoch for both clocks and adjust
+// if they differ by more than a day, to allow
+// for the (very unlikely) case of getting a SIGSTOP
+// in between the calls to retrieve the current time for each clock.
+// If we are suspended for more than a day at just that point,
+// that's too bad...
+
+using namespace std::chrono;
+
+static auto adjustment_ms = []
 {
-    // Conversion is somewhat awkward because steady_clock
-    // uses time since boot as the epoch, and system_clock
-    // is not guaranteed to use the same epoch as QDateTime.
-    // (The C++ standard leaves the epoch time point undefined.)
-    // We figure out the epoch for steady_clock and system
-    // clock, so we we can convert to milliseconds since
-    // the QDateTime epoch.
-    static auto steady_now = chrono::steady_clock::now();
-    static auto system_now = chrono::system_clock::now();
-    static QDateTime qdt(QDate::currentDate(), QTime::currentTime());
+    auto qt_msecs = QDateTime::currentMSecsSinceEpoch();
+    auto system_msecs = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    int64_t adjust_ms = 0;
+    auto diff_in_hours = duration_cast<hours>(milliseconds(abs(system_msecs - qt_msecs)));
+    if (diff_in_hours.count() > 24)
+    {
+        adjust_ms = system_msecs - qt_msecs;
+    }
+    return adjust_ms;
+}();
 
-
-    return QDateTime();
+QDateTime to_date_time(chrono::system_clock::time_point tp)
+{
+    return QDateTime::fromMSecsSinceEpoch(duration_cast<milliseconds>(tp.time_since_epoch()).count() - adjustment_ms);
 }
 
 QList<QVariant> to_list(core::PersistentCacheStats::Histogram const& histogram)
@@ -176,25 +189,6 @@ QVariantMap DBusInterface::Stats()
     m.insert("full_size_stats", to_variant_map(st.full_size_stats));
     m.insert("thumbnail_stats", to_variant_map(st.thumbnail_stats));
     m.insert("failure_stats", to_variant_map(st.failure_stats));
-#if 0
-    std::unique_ptr<ThumbnailRequest> request;
-    try
-    {
-        request = p->thumbnailer->get_thumbnail(filename.toStdString(), filename_fd.fileDescriptor(), requestedSize);
-    }
-    catch (unity::Exception const& e)
-    {
-        sendErrorReply(ART_ERROR, QString(e.to_string().c_str()));
-        return QDBusUnixFileDescriptor();
-    }
-    catch (exception const& e)
-    {
-        sendErrorReply(ART_ERROR, e.what());
-        return QDBusUnixFileDescriptor();
-    }
-    queueRequest(new Handler(connection(), message(), p->check_thread_pool, p->create_thread_pool, std::move(request)));
-    return QDBusUnixFileDescriptor();
-#endif
     return m;
 }
 
