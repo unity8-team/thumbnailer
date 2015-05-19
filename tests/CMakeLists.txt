@@ -1,10 +1,6 @@
 add_subdirectory(utils)
 add_subdirectory(core)
 
-add_definitions(
-  -DFAKE_DOWNLOADER_SERVER="${CMAKE_CURRENT_SOURCE_DIR}/server/server.py"
-)
-
 if (NOT DEFINED GTEST_ROOT)
     set(GTEST_ROOT /usr/src/gtest)
 endif()
@@ -50,7 +46,7 @@ qt5_use_modules(thumbnailer_test Test)
 
 add_executable(downloadtest download.cpp)
 
-target_link_libraries(downloadtest thumbnailer gtest)
+target_link_libraries(downloadtest thumbnailer testutils gtest)
 add_test(downloadtest downloadtest)
 set_property(TEST downloadtest PROPERTY ENVIRONMENT "GSETTINGS_SCHEMA_DIR=${CMAKE_BINARY_DIR}/data")
 qt5_use_modules(downloadtest Core Network Test)
@@ -94,7 +90,7 @@ qt5_use_modules(test_dbus DBus Test)
 target_link_libraries(test_dbus
   thumbnailer
   ${QTDBUSTEST_DEPS_LDFLAGS}
-  ${IMG_DEPS_LDFLAGS}
+  testutils
   gtest)
 add_test(test_dbus test_dbus)
 add_dependencies(test_dbus thumbnailer-service)
@@ -103,6 +99,6 @@ add_dependencies(test_dbus thumbnailer-service)
 add_executable(test_qml test_qml.cpp)
 qt5_use_modules(test_qml Qml DBus QuickTest)
 target_link_libraries(test_qml
-  ${QTDBUSTEST_DEPS_LDFLAGS})
+  ${QTDBUSTEST_DEPS_LDFLAGS} testutils)
 add_test(test_qml xvfb-run -a -s "-screen 0 800x600x24" ./test_qml -import ${CMAKE_BINARY_DIR}/plugins)
 add_dependencies(test_qml thumbnailer-service)

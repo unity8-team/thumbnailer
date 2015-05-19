@@ -8,7 +8,7 @@ public:
     ArtServer();
     ~ArtServer();
 
-    std::string apiroot();
+    std::string const& apiroot() const;
 
 private:
     QProcess server_;

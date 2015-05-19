@@ -18,12 +18,13 @@
 
 #include <internal/ubuntuserverdownloader.h>
 #include <internal/artreply.h>
+#include "utils/artserver.h"
 
 #include <gtest/gtest.h>
 
-#include <QProcess>
-#include <QtTest/QtTest>
-#include <QtTest/QSignalSpy>
+#include <QSignalSpy>
+#include <QUrl>
+#include <QUrlQuery>
 #include <QVector>
 
 #include <chrono>
@@ -37,31 +38,17 @@ class TestDownloaderServer : public ::testing::Test
 protected:
     void SetUp() override
     {
-        fake_downloader_server_.setProcessChannelMode(QProcess::ForwardedErrorChannel);
-        fake_downloader_server_.start("/usr/bin/python3", QStringList() << FAKE_DOWNLOADER_SERVER);
-        ASSERT_TRUE(fake_downloader_server_.waitForStarted()) << "Failed to launch " << FAKE_DOWNLOADER_SERVER;
-        ASSERT_GT(fake_downloader_server_.pid(), 0);
-        ASSERT_TRUE(fake_downloader_server_.waitForReadyRead());
-        QString port = QString::fromUtf8(fake_downloader_server_.readAllStandardOutput()).trimmed();
-
-        apiroot_ = QString("http://127.0.0.1:%1").arg(port);
-        setenv("THUMBNAILER_UBUNTU_APIROOT", apiroot_.toUtf8().constData(), true);
+        fake_art_server_.reset(new ArtServer());
+        apiroot_ = QString::fromStdString(fake_art_server_->apiroot());
     }
 
     void TearDown() override
     {
-        fake_downloader_server_.terminate();
-        if (!fake_downloader_server_.waitForFinished())
-        {
-            qCritical() << "Failed to terminate fake server";
-        }
-        unsetenv("THUMBNAILER_UBUNTU_APIROOT");
+        fake_art_server_.reset();
     }
 
-    QProcess fake_downloader_server_;
+    std::unique_ptr<ArtServer> fake_art_server_;
     QString apiroot_;
-    QString server_argv_;
-    int number_of_errors_before_ok_;
 };
 
 // Time to wait for an expected signal to arrive. The wait()

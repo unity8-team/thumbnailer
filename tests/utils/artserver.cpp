@@ -32,3 +32,8 @@ ArtServer::~ArtServer()
     }
     unsetenv("THUMBNAILER_UBUNTU_APIROOT");
 }
+
+std::string const& ArtServer::apiroot() const
+{
+    return apiroot_;
+}
