@@ -113,7 +113,7 @@ PersistentCacheStats PersistentStringCache::stats() const
 
 bool PersistentStringCache::put(string const& key,
                                 string const& value,
-                                chrono::time_point<chrono::steady_clock> expiry_time)
+                                chrono::time_point<chrono::system_clock> expiry_time)
 {
     return p_->put(key, value.data(), value.size(), nullptr, 0, expiry_time);
 }
@@ -121,7 +121,7 @@ bool PersistentStringCache::put(string const& key,
 bool PersistentStringCache::put(string const& key,
                                 char const* value,
                                 int64_t size,
-                                chrono::time_point<chrono::steady_clock> expiry_time)
+                                chrono::time_point<chrono::system_clock> expiry_time)
 {
     return p_->put(key, value, size, nullptr, 0, expiry_time);
 }
@@ -129,7 +129,7 @@ bool PersistentStringCache::put(string const& key,
 bool PersistentStringCache::put(string const& key,
                                 string const& value,
                                 string const& metadata,
-                                chrono::time_point<chrono::steady_clock> expiry_time)
+                                chrono::time_point<chrono::system_clock> expiry_time)
 {
     return p_->put(key, value.data(), value.size(), metadata.data(), metadata.size(), expiry_time);
 }
@@ -139,7 +139,7 @@ bool PersistentStringCache::put(string const& key,
                                 int64_t value_size,
                                 char const* metadata,
                                 int64_t metadata_size,
-                                chrono::time_point<chrono::steady_clock> expiry_time)
+                                chrono::time_point<chrono::system_clock> expiry_time)
 {
     return p_->put(key, value, value_size, metadata, metadata_size, expiry_time);
 }
@@ -204,7 +204,7 @@ void PersistentStringCache::invalidate()
     p_->invalidate();
 }
 
-bool PersistentStringCache::touch(string const& key, chrono::time_point<chrono::steady_clock> expiry_time)
+bool PersistentStringCache::touch(string const& key, chrono::time_point<chrono::system_clock> expiry_time)
 {
     return p_->touch(key, expiry_time);
 }
