@@ -147,15 +147,15 @@ TEST(PersistentStringCacheImpl, basic)
     EXPECT_EQ("newval", val);
 
     // Already-expired entries are not added.
-    EXPECT_FALSE(c.put("expired", "val", chrono::steady_clock::now() - chrono::seconds(1)));
+    EXPECT_FALSE(c.put("expired", "val", chrono::system_clock::now() - chrono::seconds(1)));
     EXPECT_FALSE(c.contains_key("expired"));
 
     // Non-expired entries are added.
-    EXPECT_TRUE(c.put("not expired", "val", chrono::steady_clock::now() + chrono::seconds(5)));
+    EXPECT_TRUE(c.put("not expired", "val", chrono::system_clock::now() + chrono::seconds(5)));
     EXPECT_TRUE(c.contains_key("not expired"));
 
     // Non-expired entries are refreshed.
-    EXPECT_TRUE(c.put("not expired", "val", chrono::steady_clock::now() + chrono::seconds(3)));
+    EXPECT_TRUE(c.put("not expired", "val", chrono::system_clock::now() + chrono::seconds(3)));
     EXPECT_TRUE(c.contains_key("not expired"));
 
     // Remove non-existent key
@@ -210,11 +210,11 @@ TEST(PersistentStringCacheImpl, basic)
     EXPECT_FALSE(c.touch("no_such_key"));
 
     // touch() with already-expired expiry time
-    auto expiry_time = chrono::steady_clock::now() - chrono::milliseconds(1);
+    auto expiry_time = chrono::system_clock::now() - chrono::milliseconds(1);
     EXPECT_FALSE(c.touch("x", expiry_time));
 
     // touch() with OK expiry time
-    expiry_time = chrono::steady_clock::now() + chrono::milliseconds(1000);
+    expiry_time = chrono::system_clock::now() + chrono::milliseconds(1000);
     EXPECT_TRUE(c.touch("x", expiry_time));
 }
 
@@ -314,11 +314,11 @@ TEST(PersistentStringCacheImpl, metadata)
         EXPECT_EQ("md", metadata);
         EXPECT_EQ(0, c.size_in_bytes());
 
-        auto now = chrono::steady_clock::now();
+        auto now = chrono::system_clock::now();
         auto later = now + chrono::milliseconds(200);
         metadata = "md";
         c.put("1", "a", &metadata, later);
-        while (chrono::steady_clock::now() <= later)
+        while (chrono::system_clock::now() <= later)
         {
             this_thread::sleep_for(chrono::milliseconds(5));
         }
@@ -343,11 +343,11 @@ TEST(PersistentStringCacheImpl, metadata)
         EXPECT_FALSE(c.put_metadata("no_such_key", "1"));
         EXPECT_EQ(2, c.size_in_bytes());
 
-        later = chrono::steady_clock::now() + chrono::milliseconds(200);
+        later = chrono::system_clock::now() + chrono::milliseconds(200);
         EXPECT_TRUE(c.put("1", "", later));      // Replace entry with expiring one.
         EXPECT_TRUE(c.put_metadata("1", "23"));  // Not expired yet, must work.
         EXPECT_EQ(3, c.size_in_bytes());
-        while (chrono::steady_clock::now() <= later)
+        while (chrono::system_clock::now() <= later)
         {
             this_thread::sleep_for(chrono::milliseconds(5));
         }
@@ -610,14 +610,14 @@ TEST(PersistentStringCacheImpl, trim_to)
 
         PersistentStringCacheImpl c(TEST_DB, 3 * 1024, CacheDiscardPolicy::lru_ttl);
 
-        auto now = chrono::steady_clock::now();
+        auto now = chrono::system_clock::now();
         auto later = now + chrono::milliseconds(100);
 
         string b(1023, 'x');
         c.put("a", b);         // 1024 bytes, don't expire
         c.put("b", b);         // 1024 bytes, don't expire
         c.put("c", b, later);  // 1024 bytes, expire
-        while (chrono::steady_clock::now() <= later)
+        while (chrono::system_clock::now() <= later)
         {
             this_thread::sleep_for(chrono::milliseconds(5));
         }
@@ -641,13 +641,13 @@ TEST(PersistentStringCacheImpl, trim_to)
 
         PersistentStringCacheImpl c(TEST_DB, 3 * 1024, CacheDiscardPolicy::lru_ttl);
 
-        auto now = chrono::steady_clock::now();
+        auto now = chrono::system_clock::now();
         auto later = now + chrono::milliseconds(100);
 
         string b(1023, 'x');
         c.put("a", b);         // 1024 bytes, don't expire
         c.put("b", b, later);  // 1024 bytes, expire
-        while (chrono::steady_clock::now() < later)
+        while (chrono::system_clock::now() < later)
         {
             this_thread::sleep_for(chrono::milliseconds(5));
         }
@@ -666,7 +666,7 @@ TEST(PersistentStringCacheImpl, trim_to)
 
         PersistentStringCacheImpl c(TEST_DB, 3 * 1024, CacheDiscardPolicy::lru_ttl);
 
-        auto now = chrono::steady_clock::now();
+        auto now = chrono::system_clock::now();
         auto later = now + chrono::milliseconds(100);
         auto much_later = now + chrono::milliseconds(200);
 
@@ -674,7 +674,7 @@ TEST(PersistentStringCacheImpl, trim_to)
         c.put("a", b, much_later);  // 1024 bytes, expire second
         c.put("b", b, later);       // 1024 bytes, expire first
         c.put("c", b);              // 1024 bytes, don't expire
-        while (chrono::steady_clock::now() < later)
+        while (chrono::system_clock::now() < later)
         {
             this_thread::sleep_for(chrono::milliseconds(5));
         }
@@ -692,7 +692,7 @@ TEST(PersistentStringCacheImpl, trim_to)
 
         PersistentStringCacheImpl c(TEST_DB, 3 * 1024, CacheDiscardPolicy::lru_ttl);
 
-        auto now = chrono::steady_clock::now();
+        auto now = chrono::system_clock::now();
         auto later = now + chrono::milliseconds(200);
 
         string b(1023, 'x');
@@ -764,7 +764,7 @@ TEST(PersistentStringCacheImpl, policy_get_and_contains)
     string out_val;
 
     // Check that retrieval of non-expired entry works irrespective of policy.
-    auto expiry_time = chrono::steady_clock::now() + chrono::milliseconds(200);
+    auto expiry_time = chrono::system_clock::now() + chrono::milliseconds(200);
     c.put("x", b, expiry_time);
     EXPECT_TRUE(c.get("x", out_val));
     EXPECT_EQ(b, out_val);
@@ -790,7 +790,7 @@ TEST(PersistentStringCacheImpl, policy_take_lru_ttl)
 
     string b(20, 'x');
 
-    auto expiry_time = chrono::steady_clock::now() + chrono::milliseconds(100);
+    auto expiry_time = chrono::system_clock::now() + chrono::milliseconds(100);
     c.put("x", b, expiry_time);
     EXPECT_EQ(21, c.size_in_bytes());
 
@@ -1160,7 +1160,7 @@ TEST(PersistentStringCacheImpl, exceptions)
         unlink_db(TEST_DB);
         PersistentStringCacheImpl c(TEST_DB, 1024, CacheDiscardPolicy::lru_only);
 
-        auto expiry_time = chrono::steady_clock::now() + chrono::milliseconds(1000);
+        auto expiry_time = chrono::system_clock::now() + chrono::milliseconds(1000);
         try
         {
             EXPECT_TRUE(c.put("x", "x"));
@@ -1787,9 +1787,9 @@ TEST(PersistentStringCacheImpl, event_handlers)
     map->clear();
     c.invalidate();
 
-    auto later = chrono::steady_clock::now() + chrono::milliseconds(50);
+    auto later = chrono::system_clock::now() + chrono::milliseconds(50);
     c.put(bad_key, "", later);
-    while (chrono::steady_clock::now() <= later)
+    while (chrono::system_clock::now() <= later)
     {
         this_thread::sleep_for(chrono::milliseconds(5));
     }
@@ -1805,7 +1805,7 @@ TEST(PersistentStringCacheImpl, event_handlers)
     event_maps[CacheEvent::invalidate].clear();
     event_maps[CacheEvent::miss].clear();
 
-    later = chrono::steady_clock::now() + chrono::milliseconds(50);
+    later = chrono::system_clock::now() + chrono::milliseconds(50);
     c.put(bad_key, "", later);
     this_thread::sleep_for(chrono::milliseconds(60));
     c.invalidate(bad_key);  // Already expired, so we must get an invalidate, but not a miss.
@@ -1823,12 +1823,12 @@ TEST(PersistentStringCacheImpl, event_handlers)
     map->clear();
 
     // Check evict_ttl
-    later = chrono::steady_clock::now() + chrono::milliseconds(100);
+    later = chrono::system_clock::now() + chrono::milliseconds(100);
     c.put("1", "", later);
     this_thread::sleep_for(chrono::milliseconds(10));
-    later = chrono::steady_clock::now() + chrono::milliseconds(100);
+    later = chrono::system_clock::now() + chrono::milliseconds(100);
     c.put("2", "", later);
-    while (chrono::steady_clock::now() <= later)
+    while (chrono::system_clock::now() <= later)
     {
         this_thread::sleep_for(chrono::milliseconds(5));
     }

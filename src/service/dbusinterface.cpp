@@ -118,14 +118,17 @@ namespace
 QDateTime to_date_time(chrono::steady_clock::time_point tp)
 {
     // Conversion is somewhat awkward because steady_clock
-    // uses a different epoch than system_clock, and
-    // system_clock is not guaranteed to use the same epoch
-    // as QDateTime. We figure out the epoch for steady_clock
-    // and system clock, so we we can convert to milliseconds
-    // since the QDateTime epoch.
+    // uses time since boot as the epoch, and system_clock
+    // is not guaranteed to use the same epoch as QDateTime.
+    // (The C++ standard leaves the epoch time point undefined.)
+    // We figure out the epoch for steady_clock and system
+    // clock, so we we can convert to milliseconds since
+    // the QDateTime epoch.
     static auto steady_now = chrono::steady_clock::now();
     static auto system_now = chrono::system_clock::now();
     static QDateTime qdt(QDate::currentDate(), QTime::currentTime());
+
+
     return QDateTime();
 }
 

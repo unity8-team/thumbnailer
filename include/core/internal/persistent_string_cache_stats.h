@@ -69,10 +69,10 @@ public:
     int64_t longest_miss_run_;
     int64_t ttl_evictions_;
     int64_t lru_evictions_;
-    std::chrono::steady_clock::time_point most_recent_hit_time_;
-    std::chrono::steady_clock::time_point most_recent_miss_time_;
-    std::chrono::steady_clock::time_point longest_hit_run_time_;
-    std::chrono::steady_clock::time_point longest_miss_run_time_;
+    std::chrono::system_clock::time_point most_recent_hit_time_;
+    std::chrono::system_clock::time_point most_recent_miss_time_;
+    std::chrono::system_clock::time_point longest_hit_run_time_;
+    std::chrono::system_clock::time_point longest_miss_run_time_;
     PersistentCacheStats::Histogram hist_;
 
     enum State
@@ -87,7 +87,7 @@ public:
     {
         ++hits_since_last_miss_;
         ++hits_;
-        most_recent_hit_time_ = std::chrono::steady_clock::now();
+        most_recent_hit_time_ = std::chrono::system_clock::now();
         misses_since_last_hit_ = 0;
         if (state_ != LastAccessWasHit)
         {
@@ -105,7 +105,7 @@ public:
     {
         ++misses_since_last_hit_;
         ++misses_;
-        most_recent_miss_time_ = std::chrono::steady_clock::now();
+        most_recent_miss_time_ = std::chrono::system_clock::now();
         hits_since_last_miss_ = 0;
         if (state_ != LastAccessWasMiss)
         {
@@ -146,10 +146,10 @@ public:
         longest_miss_run_ = 0;
         ttl_evictions_ = 0;
         lru_evictions_ = 0;
-        most_recent_hit_time_ = std::chrono::steady_clock::time_point();
-        most_recent_miss_time_ = std::chrono::steady_clock::time_point();
-        longest_hit_run_time_ = std::chrono::steady_clock::time_point();
-        longest_miss_run_time_ = std::chrono::steady_clock::time_point();
+        most_recent_hit_time_ = std::chrono::system_clock::time_point();
+        most_recent_miss_time_ = std::chrono::system_clock::time_point();
+        longest_hit_run_time_ = std::chrono::system_clock::time_point();
+        longest_miss_run_time_ = std::chrono::system_clock::time_point();
     }
 
 private:
