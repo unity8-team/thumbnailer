@@ -23,6 +23,9 @@
 
 #include <testsetup.h>
 
+// TODO: remove these
+#include <QDate>
+
 using namespace unity::thumbnailer::internal;
 
 static const char BUS_NAME[] = "com.canonical.Thumbnailer";
@@ -227,6 +230,14 @@ TEST(DBusTestBadIdle, env_variable_bad_value)
 
 int main(int argc, char** argv)
 {
+    auto steady_now = std::chrono::steady_clock::now();
+    std::cerr << "steady: " << std::chrono::duration_cast<std::chrono::milliseconds>(steady_now - std::chrono::time_point<std::chrono::steady_clock>()).count() << std::endl;
+    auto system_now = std::chrono::system_clock::now();
+    std::cerr << "sys: " << std::chrono::duration_cast<std::chrono::milliseconds>(system_now - std::chrono::time_point<std::chrono::system_clock>()).count() << std::endl;
+    QDate qd = QDate::currentDate();
+    QTime qt = QTime::currentTime();
+    QDateTime dt(qd, qt);
+    std::cerr << "qd: " << dt.toMSecsSinceEpoch() << std::endl;
     QCoreApplication app(argc, argv);
     setenv("TN_UTILDIR", TESTBINDIR "/../src/vs-thumb", true);
     ::testing::InitGoogleTest(&argc, argv);

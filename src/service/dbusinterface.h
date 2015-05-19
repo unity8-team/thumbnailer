@@ -54,6 +54,7 @@ public Q_SLOTS:
     QDBusUnixFileDescriptor GetThumbnail(QString const& filename,
                                          QDBusUnixFileDescriptor const& filename_fd,
                                          QSize const& requestedSize);
+    QVariantMap Stats();
 
 private:
     void queueRequest(Handler* handler);

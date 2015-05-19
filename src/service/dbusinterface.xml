@@ -24,5 +24,9 @@
       <annotation name="org.qtproject.QtDBus.QtTypeName.In2" value="QSize" />
       <annotation name="org.gtk.GDBus.C.UnixFD" value="true" />
     </method>
+    <method name="Stats">
+      <arg direction="out" type="a(suxxxxxxxxxxxttttau)" name="stats" />
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QVariantMap"/>
+    </method>
   </interface>
 </node>

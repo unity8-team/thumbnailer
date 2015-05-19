@@ -603,6 +603,11 @@ unique_ptr<ThumbnailRequest> Thumbnailer::get_artist_art(string const& artist,
     // LCOV_EXCL_STOP
 }
 
+Thumbnailer::CacheStats Thumbnailer::stats() const
+{
+    return CacheStats{full_size_cache_->stats(), thumbnail_cache_->stats(), failure_cache_->stats()};
+}
+
 }  // namespace internal
 
 }  // namespace thumbnailer
