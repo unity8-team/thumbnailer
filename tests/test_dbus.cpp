@@ -381,7 +381,7 @@ TEST_F(DBusTest, stats)
         CacheStats s = reply.value().failure_stats;
         EXPECT_EQ(1, s.size);
         EXPECT_EQ(0, s.hits);
-        EXPECT_EQ(1, s.misses);
+        EXPECT_EQ(4, s.misses);
     }
 
     // Get the same non-existent remote image again, so we get a hit.
