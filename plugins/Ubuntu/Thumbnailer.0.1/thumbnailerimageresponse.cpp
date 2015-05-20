@@ -36,70 +36,44 @@ namespace thumbnailer
 
 namespace qml
 {
-class FinishResponseEvent : public QEvent
-{
-public:
-    FinishResponseEvent()
-        : QEvent(QEvent::User){};
-};
 
-ThumbnailerImageResponse::ThumbnailerImageResponse(ResponseType type,
-                                                   QString const& id,
+ThumbnailerImageResponse::ThumbnailerImageResponse(QString const& id,
                                                    QSize const& requested_size,
-                                                   QString const& default_video_image,
-                                                   QString const& default_audio_image)
+                                                   QString const& default_image,
+                                                   QDBusPendingCallWatcher *watcher)
     : id_(id)
     , requested_size_(requested_size)
     , texture_(nullptr)
-    , default_video_image_(default_video_image)
-    , default_audio_image_(default_audio_image)
-    , type_(type)
+    , default_image_(default_image)
+    , watcher_(watcher)
 {
+    if (watcher_)
+    {
+        connect(watcher, &QDBusPendingCallWatcher::finished, this, &ThumbnailerImageResponse::dbus_call_finished);
+    }
     char const* c_default_image = getenv("THUMBNAILER_TEST_DEFAULT_IMAGE");
     if (c_default_image)
     {
-        default_video_image_ = default_audio_image_ = QString(c_default_image);
+        default_image_ = QString(c_default_image);
     }
 }
 
 QQuickTextureFactory* ThumbnailerImageResponse::textureFactory() const
 {
-    return texture_.get();
+    return texture_;
 }
 
 void ThumbnailerImageResponse::set_default_image()
 {
     QImage result;
-
-    switch(type_)
-    {
-    case Download:
-        // we are only downloading images for audio files
-        result.load(default_audio_image_);
-        break;
-    case Thumbnail:
-        result.load(return_default_image_based_on_mime());
-        break;
-    default:
-        abort();  // LCOV_EXCL_LINE  // Impossible
-    }
-    texture_.reset(QQuickTextureFactory::textureFactoryForImage(result));
+    result.load(default_image_);
+    texture_ = QQuickTextureFactory::textureFactoryForImage(result);
 }
 
 void ThumbnailerImageResponse::finish_later_with_default_image()
 {
-    QCoreApplication::postEvent(this, new FinishResponseEvent());
-}
-
-bool ThumbnailerImageResponse::event(QEvent* event)
-{
-    if (event->type() == QEvent::User)
-    {
-        set_default_image();
-        Q_EMIT finished();
-        return true;
-    }
-    return false;
+    set_default_image();
+    QMetaObject::invokeMethod(this, "finished", Qt::QueuedConnection);
 }
 
 void ThumbnailerImageResponse::dbus_call_finished(QDBusPendingCallWatcher* watcher)
@@ -117,7 +91,7 @@ void ThumbnailerImageResponse::dbus_call_finished(QDBusPendingCallWatcher* watch
     {
         QSize realSize;
         QImage image = imageFromFd(reply.value().fileDescriptor(), &realSize, requested_size_);
-        texture_.reset(QQuickTextureFactory::textureFactoryForImage(image));
+        texture_ = QQuickTextureFactory::textureFactoryForImage(image);
         Q_EMIT finished();
         return;
     }
@@ -132,22 +106,6 @@ void ThumbnailerImageResponse::dbus_call_finished(QDBusPendingCallWatcher* watch
 
     set_default_image();
     Q_EMIT finished();
-}
-
-QString ThumbnailerImageResponse::return_default_image_based_on_mime()
-{
-    QMimeDatabase db;
-    QMimeType mime = db.mimeTypeForFile(id_);
-
-    if (mime.name().contains("audio"))
-    {
-        return default_audio_image_;
-    }
-    else if (mime.name().contains("video"))
-    {
-        return default_video_image_;
-    }
-    return default_audio_image_;
 }
 
 }  // namespace qml

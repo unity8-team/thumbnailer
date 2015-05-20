@@ -43,11 +43,10 @@ public:
         Thumbnail
     };
 
-    ThumbnailerImageResponse(ResponseType type,
-                             QString const& id,
+    ThumbnailerImageResponse(QString const& id,
                              QSize const& requested_size,
-                             QString const& default_video_image,
-                             QString const& default_audio_image);
+                             QString const& default_image,
+                             QDBusPendingCallWatcher *watcher=nullptr);
     ~ThumbnailerImageResponse() = default;
 
 
@@ -56,9 +55,6 @@ public:
     void set_default_image();
     void finish_later_with_default_image();
 
-protected:
-    bool event(QEvent* event) override;
-
 public Q_SLOTS:
     void dbus_call_finished(QDBusPendingCallWatcher* watcher);
 
@@ -66,10 +62,9 @@ private:
     QString return_default_image_based_on_mime();
     QString id_;
     QSize requested_size_;
-    std::unique_ptr<QQuickTextureFactory> texture_;
-    QString default_video_image_;
-    QString default_audio_image_;
-    ResponseType type_;
+    QQuickTextureFactory * texture_;
+    QString default_image_;
+    std::unique_ptr<QDBusPendingCallWatcher> watcher_;
 };
 
 }  // namespace qml

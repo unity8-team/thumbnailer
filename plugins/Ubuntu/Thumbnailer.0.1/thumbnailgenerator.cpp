@@ -57,10 +57,6 @@ ThumbnailGenerator::ThumbnailGenerator()
 
 QQuickImageResponse* ThumbnailGenerator::requestImageResponse(const QString& id, const QSize& requestedSize)
 {
-    qDebug() << "THUMBNAIL" << id;
-    ThumbnailerImageResponse* response = new ThumbnailerImageResponse(
-        ThumbnailerImageResponse::Thumbnail, id, requestedSize, DEFAULT_VIDEO_ART, DEFAULT_ALBUM_ART);
-
     /* Allow appending a query string (e.g. ?something=timestamp)
      * to the id and then ignore it.
      * This is workaround to force reloading a thumbnail when it has
@@ -74,6 +70,7 @@ QQuickImageResponse* ThumbnailGenerator::requestImageResponse(const QString& id,
     int fd = open(src_path.toUtf8().constData(), O_RDONLY | O_CLOEXEC);
     if (fd < 0)
     {
+        auto response = new ThumbnailerImageResponse(id, requestedSize, return_default_image_based_on_mime(id));
         qDebug() << "Thumbnail generator failed: " << strerror(errno);
         response->finish_later_with_default_image();
         return response;
@@ -91,10 +88,26 @@ QQuickImageResponse* ThumbnailGenerator::requestImageResponse(const QString& id,
 
     auto reply = iface->GetThumbnail(src_path, unix_fd, requestedSize);
     auto watcher = new QDBusPendingCallWatcher(reply);
-    QObject::connect(
-        watcher, &QDBusPendingCallWatcher::finished, response, &ThumbnailerImageResponse::dbus_call_finished);
+    auto response = new ThumbnailerImageResponse(id, requestedSize, return_default_image_based_on_mime(id), watcher);
     return response;
 }
+
+QString ThumbnailGenerator::return_default_image_based_on_mime(QString const &id)
+{
+    QMimeDatabase db;
+    QMimeType mime = db.mimeTypeForFile(id);
+
+    if (mime.name().contains("audio"))
+    {
+        return DEFAULT_ALBUM_ART;
+    }
+    else if (mime.name().contains("video"))
+    {
+        return DEFAULT_VIDEO_ART;
+    }
+    return DEFAULT_ALBUM_ART;
+}
+
 }
 }
 }

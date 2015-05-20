@@ -51,11 +51,10 @@ AlbumArtGenerator::AlbumArtGenerator()
 
 QQuickImageResponse* AlbumArtGenerator::requestImageResponse(const QString& id, const QSize& requestedSize)
 {
-    ThumbnailerImageResponse* response = new ThumbnailerImageResponse(
-        ThumbnailerImageResponse::Download, id, requestedSize, DEFAULT_ALBUM_ART, DEFAULT_ALBUM_ART);
     QUrlQuery query(id);
     if (!query.hasQueryItem("artist") || !query.hasQueryItem("album"))
     {
+        auto response = new ThumbnailerImageResponse(id, requestedSize, DEFAULT_ALBUM_ART);
         qWarning() << "Invalid albumart uri:" << id;
         response->finish_later_with_default_image();
         return response;
@@ -75,8 +74,7 @@ QQuickImageResponse* AlbumArtGenerator::requestImageResponse(const QString& id, 
     // perform dbus call
     auto reply = iface->GetAlbumArt(artist, album, requestedSize);
     auto watcher = new QDBusPendingCallWatcher(reply);
-    QObject::connect(
-        watcher, &QDBusPendingCallWatcher::finished, response, &ThumbnailerImageResponse::dbus_call_finished);
+    auto response = new ThumbnailerImageResponse(id, requestedSize, DEFAULT_ALBUM_ART, watcher);
     return response;
 }
 }
