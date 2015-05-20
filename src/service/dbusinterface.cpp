@@ -27,7 +27,6 @@
 #include <QDBusMessage>
 #include <QDebug>
 #include <QThreadPool>
-#include <unity/Exception.h>
 
 #include <map>
 #include <sstream>
@@ -95,11 +94,6 @@ QDBusUnixFileDescriptor DBusInterface::GetThumbnail(QString const& filename,
     try
     {
         request = p->thumbnailer->get_thumbnail(filename.toStdString(), filename_fd.fileDescriptor(), requestedSize);
-    }
-    catch (unity::Exception const& e)
-    {
-        sendErrorReply(ART_ERROR, QString(e.to_string().c_str()));
-        return QDBusUnixFileDescriptor();
     }
     catch (exception const& e)
     {
