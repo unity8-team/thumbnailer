@@ -425,91 +425,97 @@ TEST_F(RemoteServer, basic)
     }
 }
 
-TEST_F(RemoteServer, errors)
+TEST_F(RemoteServer, no_such_album)
 {
     Thumbnailer tn;
 
-    {
-        auto request = tn.get_album_art("no_such_artist", "no_such_album", QSize());
-        EXPECT_EQ("", request->thumbnail());
+    auto request = tn.get_album_art("no_such_artist", "no_such_album", QSize());
+    EXPECT_EQ("", request->thumbnail());
 
-        QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
-        request->download();
-        ASSERT_TRUE(spy.wait(15000));
+    QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
+    request->download();
+    ASSERT_TRUE(spy.wait(15000));
+    EXPECT_EQ("", request->thumbnail());
+}
+
+TEST_F(RemoteServer, decode_fails)
+{
+    Thumbnailer tn;
+
+    auto request = tn.get_album_art("empty", "empty", QSize());
+    EXPECT_EQ("", request->thumbnail());
+    request->download();
+
+    QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
+    ASSERT_TRUE(spy.wait(15000));
+
+    try
+    {
         EXPECT_EQ("", request->thumbnail());
+        FAIL();
     }
-
+    catch (unity::ResourceException const& e)
     {
-        // Decode fails.
-        auto request = tn.get_album_art("empty", "empty", QSize());
-        EXPECT_EQ("", request->thumbnail());
-        request->download();
-
-        QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
-        ASSERT_TRUE(spy.wait(15000));
-
-        try
-        {
-            EXPECT_EQ("", request->thumbnail());
-            FAIL();
-        }
-        catch (unity::ResourceException const& e)
-        {
-            EXPECT_EQ("unity::ResourceException: RequestBase::thumbnail(): key = empty\\0empty\\0album:\n"
-                      "    load_image(): cannot close pixbuf loader: Unrecognized image file format",
-                      e.to_string());
-        }
+        EXPECT_EQ("unity::ResourceException: RequestBase::thumbnail(): key = empty\\0empty\\0album:\n"
+                  "    load_image(): cannot close pixbuf loader: Unrecognized image file format",
+                  e.to_string());
     }
+}
 
+TEST_F(RemoteServer, no_such_local_image)
+{
+    Thumbnailer tn;
+
+    try
     {
-        // Local image doesn't exist.
-        try
-        {
-            auto request = tn.get_thumbnail("no_such_file", -1, QSize());
-            FAIL();
-        }
-        catch (unity::ResourceException const& e)
-        {
-            string msg = e.to_string();
-            EXPECT_TRUE(boost::starts_with(msg,
-                                           "unity::ResourceException: Thumbnailer::get_thumbnail():\n"
-                                           "    boost::filesystem::canonical: No such file or directory: ")) << msg;
-        }
+        auto request = tn.get_thumbnail("no_such_file", -1, QSize());
+        FAIL();
     }
-
+    catch (unity::ResourceException const& e)
     {
-        // Simulate timeout.
-        auto request = tn.get_album_art("sleep", "3", QSize());
-        EXPECT_EQ("", request->thumbnail());
-        request->download(chrono::seconds(1));
-
-        QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
-        ASSERT_TRUE(spy.wait(15000));
-
-        EXPECT_EQ("", request->thumbnail());
+        string msg = e.to_string();
+        EXPECT_TRUE(boost::starts_with(msg,
+                                       "unity::ResourceException: Thumbnailer::get_thumbnail():\n"
+                                       "    boost::filesystem::canonical: No such file or directory: ")) << msg;
     }
+}
 
+TEST_F(RemoteServer, timeout)
+{
+    Thumbnailer tn;
+
+    auto request = tn.get_album_art("sleep", "3", QSize());
+    EXPECT_EQ("", request->thumbnail());
+    request->download(chrono::seconds(1));
+
+    QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
+    ASSERT_TRUE(spy.wait(15000));
+
+    EXPECT_EQ("", request->thumbnail());
+}
+
+TEST_F(RemoteServer, server_error)
+{
+    Thumbnailer tn;
+
+    auto request = tn.get_album_art("error", "403", QSize());
+    EXPECT_EQ("", request->thumbnail());
+
+    QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
+    request->download();
+    ASSERT_TRUE(spy.wait(15000));
+
+    try
     {
-        // Simulate server error.
-        auto request = tn.get_album_art("error", "403", QSize());
-        EXPECT_EQ("", request->thumbnail());
-
-        QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
-        request->download();
-        ASSERT_TRUE(spy.wait(15000));
-
-        try
-        {
-            request->thumbnail();
-            FAIL();
-        }
-        catch (unity::ResourceException const& e)
-        {
-            string msg = e.to_string();
-            EXPECT_TRUE(boost::starts_with(
-                            msg,
-                            "unity::ResourceException: RequestBase::thumbnail(): key = error")) << msg;
-        }
+        request->thumbnail();
+        FAIL();
+    }
+    catch (unity::ResourceException const& e)
+    {
+        string msg = e.to_string();
+        EXPECT_TRUE(boost::starts_with(
+                        msg,
+                        "unity::ResourceException: RequestBase::thumbnail(): key = error")) << msg;
     }
 }
 
