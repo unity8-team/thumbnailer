@@ -130,22 +130,22 @@ public:
     /**
     \brief Returns the timestamp of the most recent hit.
     */
-    std::chrono::steady_clock::time_point most_recent_hit_time() const noexcept;
+    std::chrono::system_clock::time_point most_recent_hit_time() const noexcept;
 
     /**
     \brief Returns the timestamp of the most recent miss.
     */
-    std::chrono::steady_clock::time_point most_recent_miss_time() const noexcept;
+    std::chrono::system_clock::time_point most_recent_miss_time() const noexcept;
 
     /**
     \brief Returns the time of the longest hit run.
     */
-    std::chrono::steady_clock::time_point longest_hit_run_time() const noexcept;
+    std::chrono::system_clock::time_point longest_hit_run_time() const noexcept;
 
     /**
     \brief Returns the time of the longest miss run.
     */
-    std::chrono::steady_clock::time_point longest_miss_run_time() const noexcept;
+    std::chrono::system_clock::time_point longest_miss_run_time() const noexcept;
 
     /**
     \brief Histogram of the size distribution of cache entries.

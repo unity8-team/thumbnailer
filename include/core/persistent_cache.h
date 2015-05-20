@@ -263,7 +263,7 @@ public:
     */
     bool put(K const& key,
              V const& value,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
 
     /**
     \brief Adds or updates an entry and its metadata. If 'V' or `M` = `std::string`,
@@ -272,7 +272,7 @@ public:
     bool put(K const& key,
              V const& value,
              M const& metadata,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
 
     /**
     \brief Function called by the cache to load an entry after a cache miss.
@@ -336,7 +336,7 @@ public:
     */
     bool touch(
         K const& key,
-        std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+        std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
 
     /**
     \brief Resets all statistics counters.
@@ -483,7 +483,7 @@ PersistentCacheStats PersistentCache<K, V, M>::stats() const
 template <typename K, typename V, typename M>
 bool PersistentCache<K, V, M>::put(K const& key,
                                    V const& value,
-                                   std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                   std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->put(CacheCodec<K>::encode(key), CacheCodec<V>::encode(value), expiry_time);
 }
@@ -492,7 +492,7 @@ template <typename K, typename V, typename M>
 bool PersistentCache<K, V, M>::put(K const& key,
                                    V const& value,
                                    M const& metadata,
-                                   std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                   std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->put(CacheCodec<K>::encode(key), CacheCodec<V>::encode(value), CacheCodec<M>::encode(metadata),
                    expiry_time);
@@ -589,7 +589,7 @@ void PersistentCache<K, V, M>::invalidate()
 }
 
 template <typename K, typename V, typename M>
-bool PersistentCache<K, V, M>::touch(K const& key, std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+bool PersistentCache<K, V, M>::touch(K const& key, std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->touch(CacheCodec<K>::encode(key), expiry_time);
 }
@@ -675,11 +675,11 @@ public:
 
     bool put(std::string const& key,
              V const& value,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     bool put(std::string const& key,
              V const& value,
              M const& metadata,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
 
     typedef std::function<void(std::string const& key, PersistentCache<std::string, V, M>& cache)> Loader;
 
@@ -697,7 +697,7 @@ public:
     void invalidate();
     bool touch(
         std::string const& key,
-        std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+        std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     void clear_stats();
     void resize(int64_t size_in_bytes);
     void trim_to(int64_t used_size_in_bytes);
@@ -815,7 +815,7 @@ PersistentCacheStats PersistentCache<std::string, V, M>::stats() const
 template <typename V, typename M>
 bool PersistentCache<std::string, V, M>::put(std::string const& key,
                                              V const& value,
-                                             std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                             std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->put(key, CacheCodec<V>::encode(value), expiry_time);
 }
@@ -824,7 +824,7 @@ template <typename V, typename M>
 bool PersistentCache<std::string, V, M>::put(std::string const& key,
                                              V const& value,
                                              M const& metadata,
-                                             std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                             std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->put(key, CacheCodec<V>::encode(value), CacheCodec<M>::encode(metadata), expiry_time);
 }
@@ -921,7 +921,7 @@ void PersistentCache<std::string, V, M>::invalidate()
 
 template <typename V, typename M>
 bool PersistentCache<std::string, V, M>::touch(std::string const& key,
-                                               std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                               std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->touch(key, expiry_time);
 }
@@ -993,20 +993,20 @@ public:
 
     bool put(K const& key,
              std::string const& value,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     bool put(K const& key,
              char const* value,
              int64_t size,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     bool put(K const& key,
              std::string const& value,
              M const& metadata,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     bool put(K const& key,
              char const* value,
              int64_t value_size,
              M const& metadata,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
 
     typedef std::function<void(K const& key, PersistentCache<K, std::string, M>& cache)> Loader;
 
@@ -1024,7 +1024,7 @@ public:
     void invalidate();
     bool touch(
         K const& key,
-        std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+        std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     void clear_stats();
     void resize(int64_t size_in_bytes);
     void trim_to(int64_t used_size_in_bytes);
@@ -1141,7 +1141,7 @@ PersistentCacheStats PersistentCache<K, std::string, M>::stats() const
 template <typename K, typename M>
 bool PersistentCache<K, std::string, M>::put(K const& key,
                                              std::string const& value,
-                                             std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                             std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->put(CacheCodec<K>::encode(key), value, expiry_time);
 }
@@ -1150,7 +1150,7 @@ template <typename K, typename M>
 bool PersistentCache<K, std::string, M>::put(K const& key,
                                              char const* value,
                                              int64_t size,
-                                             std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                             std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->put(CacheCodec<K>::encode(key), value, size, expiry_time);
 }
@@ -1159,7 +1159,7 @@ template <typename K, typename M>
 bool PersistentCache<K, std::string, M>::put(K const& key,
                                              std::string const& value,
                                              M const& metadata,
-                                             std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                             std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->put(CacheCodec<K>::encode(key), value, CacheCodec<M>::encode(metadata), expiry_time);
 }
@@ -1169,7 +1169,7 @@ bool PersistentCache<K, std::string, M>::put(K const& key,
                                              char const* value,
                                              int64_t size,
                                              M const& metadata,
-                                             std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                             std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     std::string md = CacheCodec<M>::encode(metadata);
     return p_->put(CacheCodec<K>::encode(key), value, size, md.data(), md.size(), expiry_time);
@@ -1268,7 +1268,7 @@ void PersistentCache<K, std::string, M>::invalidate()
 
 template <typename K, typename M>
 bool PersistentCache<K, std::string, M>::touch(K const& key,
-                                               std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                               std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->touch(CacheCodec<K>::encode(key), expiry_time);
 }
@@ -1344,16 +1344,16 @@ public:
 
     bool put(K const& key,
              V const& value,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     bool put(K const& key,
              V const& value,
              std::string const& metadata,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     bool put(K const& key,
              V const& value,
              char const* metadata,
              int64_t size,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
 
     typedef std::function<void(K const& key, PersistentCache<K, V, std::string>& cache)> Loader;
 
@@ -1372,7 +1372,7 @@ public:
     void invalidate();
     bool touch(
         K const& key,
-        std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+        std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     void clear_stats();
     void resize(int64_t size_in_bytes);
     void trim_to(int64_t used_size_in_bytes);
@@ -1489,7 +1489,7 @@ PersistentCacheStats PersistentCache<K, V, std::string>::stats() const
 template <typename K, typename V>
 bool PersistentCache<K, V, std::string>::put(K const& key,
                                              V const& value,
-                                             std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                             std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->put(CacheCodec<K>::encode(key), CacheCodec<V>::encode(value), expiry_time);
 }
@@ -1498,7 +1498,7 @@ template <typename K, typename V>
 bool PersistentCache<K, V, std::string>::put(K const& key,
                                              V const& value,
                                              std::string const& metadata,
-                                             std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                             std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     std::string v = CacheCodec<V>::encode(value);
     return p_->put(CacheCodec<K>::encode(key), v.data(), v.size(), metadata.data(), metadata.size(), expiry_time);
@@ -1509,7 +1509,7 @@ bool PersistentCache<K, V, std::string>::put(K const& key,
                                              V const& value,
                                              char const* metadata,
                                              int64_t size,
-                                             std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                             std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     std::string v = CacheCodec<V>::encode(value);
     return p_->put(CacheCodec<K>::encode(key), v.data(), v.size(), metadata, size, expiry_time);
@@ -1614,7 +1614,7 @@ void PersistentCache<K, V, std::string>::invalidate()
 
 template <typename K, typename V>
 bool PersistentCache<K, V, std::string>::touch(K const& key,
-                                               std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                               std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->touch(CacheCodec<K>::encode(key), expiry_time);
 }
@@ -1690,20 +1690,20 @@ public:
 
     bool put(std::string const& key,
              std::string const& value,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     bool put(std::string const& key,
              char const* value,
              int64_t size,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     bool put(std::string const& key,
              std::string const& value,
              M const& metadata,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     bool put(std::string const& key,
              char const* value,
              int64_t value_size,
              M const& metadata,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
 
     typedef std::function<void(std::string const& key, PersistentCache<std::string, std::string, M>& cache)> Loader;
 
@@ -1721,7 +1721,7 @@ public:
     void invalidate();
     bool touch(
         std::string const& key,
-        std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+        std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     void clear_stats();
     void resize(int64_t size_in_bytes);
     void trim_to(int64_t used_size_in_bytes);
@@ -1840,7 +1840,7 @@ PersistentCacheStats PersistentCache<std::string, std::string, M>::stats() const
 template <typename M>
 bool PersistentCache<std::string, std::string, M>::put(std::string const& key,
                                                        std::string const& value,
-                                                       std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                                       std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->put(key, value, expiry_time);
 }
@@ -1849,7 +1849,7 @@ template <typename M>
 bool PersistentCache<std::string, std::string, M>::put(std::string const& key,
                                                        char const* value,
                                                        int64_t size,
-                                                       std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                                       std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->put(key, value, size, nullptr, 0, expiry_time);
 }
@@ -1858,7 +1858,7 @@ template <typename M>
 bool PersistentCache<std::string, std::string, M>::put(std::string const& key,
                                                        std::string const& value,
                                                        M const& metadata,
-                                                       std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                                       std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->put(key, value, CacheCodec<M>::encode(metadata), expiry_time);
 }
@@ -1868,7 +1868,7 @@ bool PersistentCache<std::string, std::string, M>::put(std::string const& key,
                                                        char const* value,
                                                        int64_t size,
                                                        M const& metadata,
-                                                       std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                                       std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     std::string md = CacheCodec<M>::encode(metadata);
     return p_->put(key, value, size, md.data(), md.size(), expiry_time);
@@ -1968,7 +1968,7 @@ void PersistentCache<std::string, std::string, M>::invalidate()
 
 template <typename M>
 bool PersistentCache<std::string, std::string, M>::touch(std::string const& key,
-                                                         std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                                         std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->touch(key, expiry_time);
 }
@@ -2040,16 +2040,16 @@ public:
 
     bool put(std::string const& key,
              V const& value,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     bool put(std::string const& key,
              V const& value,
              std::string const& metadata,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     bool put(std::string const& key,
              V const& value,
              char const* metadata,
              int64_t size,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
 
     typedef std::function<void(std::string const& key, PersistentCache<std::string, V, std::string>& cache)> Loader;
 
@@ -2068,7 +2068,7 @@ public:
     void invalidate();
     bool touch(
         std::string const& key,
-        std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+        std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     void clear_stats();
     void resize(int64_t size_in_bytes);
     void trim_to(int64_t used_size_in_bytes);
@@ -2187,7 +2187,7 @@ PersistentCacheStats PersistentCache<std::string, V, std::string>::stats() const
 template <typename V>
 bool PersistentCache<std::string, V, std::string>::put(std::string const& key,
                                                        V const& value,
-                                                       std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                                       std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->put(key, CacheCodec<V>::encode(value), expiry_time);
 }
@@ -2196,7 +2196,7 @@ template <typename V>
 bool PersistentCache<std::string, V, std::string>::put(std::string const& key,
                                                        V const& value,
                                                        std::string const& metadata,
-                                                       std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                                       std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     std::string v = CacheCodec<V>::encode(value);
     return p_->put(key, v.data(), v.size(), metadata.data(), metadata.size(), expiry_time);
@@ -2207,7 +2207,7 @@ bool PersistentCache<std::string, V, std::string>::put(std::string const& key,
                                                        V const& value,
                                                        char const* metadata,
                                                        int64_t size,
-                                                       std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                                       std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     std::string v = CacheCodec<V>::encode(value);
     return p_->put(key, v.data(), v.size(), metadata, size, expiry_time);
@@ -2315,7 +2315,7 @@ void PersistentCache<std::string, V, std::string>::invalidate()
 
 template <typename V>
 bool PersistentCache<std::string, V, std::string>::touch(std::string const& key,
-                                                         std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                                         std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->touch(key, expiry_time);
 }
@@ -2387,21 +2387,21 @@ public:
 
     bool put(K const& key,
              std::string const& value,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     bool put(K const& key,
              char const* value,
              int64_t size,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     bool put(K const& key,
              std::string const& value,
              std::string const& metadata,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     bool put(K const& key,
              char const* value,
              int64_t value_size,
              char const* metadata,
              int64_t metadata_size,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
 
     typedef std::function<void(K const& key, PersistentCache<K, std::string, std::string>& cache)> Loader;
 
@@ -2420,7 +2420,7 @@ public:
     void invalidate();
     bool touch(
         K const& key,
-        std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+        std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     void clear_stats();
     void resize(int64_t size_in_bytes);
     void trim_to(int64_t used_size_in_bytes);
@@ -2539,7 +2539,7 @@ PersistentCacheStats PersistentCache<K, std::string, std::string>::stats() const
 template <typename K>
 bool PersistentCache<K, std::string, std::string>::put(K const& key,
                                                        std::string const& value,
-                                                       std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                                       std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->put(CacheCodec<K>::encode(key), value, expiry_time);
 }
@@ -2548,7 +2548,7 @@ template <typename K>
 bool PersistentCache<K, std::string, std::string>::put(K const& key,
                                                        char const* value,
                                                        int64_t size,
-                                                       std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                                       std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->put(CacheCodec<K>::encode(key), value, size, expiry_time);
 }
@@ -2557,7 +2557,7 @@ template <typename K>
 bool PersistentCache<K, std::string, std::string>::put(K const& key,
                                                        std::string const& value,
                                                        std::string const& metadata,
-                                                       std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                                       std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->put(CacheCodec<K>::encode(key), value, metadata, expiry_time);
 }
@@ -2568,7 +2568,7 @@ bool PersistentCache<K, std::string, std::string>::put(K const& key,
                                                        int64_t value_size,
                                                        char const* metadata,
                                                        int64_t metadata_size,
-                                                       std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                                       std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->put(CacheCodec<K>::encode(key), value, value_size, metadata, metadata_size, expiry_time);
 }
@@ -2675,7 +2675,7 @@ void PersistentCache<K, std::string, std::string>::invalidate()
 
 template <typename K>
 bool PersistentCache<K, std::string, std::string>::touch(K const& key,
-                                                         std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+                                                         std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->touch(CacheCodec<K>::encode(key), expiry_time);
 }
@@ -2751,21 +2751,21 @@ public:
 
     bool put(std::string const& key,
              std::string const& value,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     bool put(std::string const& key,
              char const* value,
              int64_t size,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     bool put(std::string const& key,
              std::string const& value,
              std::string const& metadata,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     bool put(std::string const& key,
              char const* value,
              int64_t value_size,
              char const* metadata,
              int64_t metadata_size,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
 
     typedef std::function<void(std::string const& key, PersistentCache<std::string, std::string, std::string>& cache)>
         Loader;
@@ -2785,7 +2785,7 @@ public:
     void invalidate();
     bool touch(
         std::string const& key,
-        std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+        std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     void clear_stats();
     void resize(int64_t size_in_bytes);
     void trim_to(int64_t used_size_in_bytes);
@@ -2890,7 +2890,7 @@ PersistentCacheStats PersistentCache<std::string, std::string, std::string>::sta
 }
 
 bool PersistentCache<std::string, std::string, std::string>::put(
-    std::string const& key, std::string const& value, std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+    std::string const& key, std::string const& value, std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->put(key, value, expiry_time);
 }
@@ -2899,7 +2899,7 @@ bool PersistentCache<std::string, std::string, std::string>::put(
     std::string const& key,
     char const* value,
     int64_t size,
-    std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+    std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->put(key, value, size, expiry_time);
 }
@@ -2908,7 +2908,7 @@ bool PersistentCache<std::string, std::string, std::string>::put(
     std::string const& key,
     std::string const& value,
     std::string const& metadata,
-    std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+    std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->put(key, value, metadata, expiry_time);
 }
@@ -2919,7 +2919,7 @@ bool PersistentCache<std::string, std::string, std::string>::put(
     int64_t value_size,
     char const* metadata,
     int64_t metadata_size,
-    std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+    std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->put(key, value, value_size, metadata, metadata_size, expiry_time);
 }
@@ -3015,7 +3015,7 @@ void PersistentCache<std::string, std::string, std::string>::invalidate()
 }
 
 bool PersistentCache<std::string, std::string, std::string>::touch(
-    std::string const& key, std::chrono::time_point<std::chrono::steady_clock> expiry_time)
+    std::string const& key, std::chrono::time_point<std::chrono::system_clock> expiry_time)
 {
     return p_->touch(key, expiry_time);
 }

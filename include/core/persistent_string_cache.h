@@ -77,7 +77,7 @@ are therefore discarded strictly in LRU order.
 
 Access and expiry times are recorded with millisecond granularity.
 To indicate infinite expiry time, use the defaulted parameter value or
-`chrono::steady_clock::time_point()`.
+`chrono::system_clock::time_point()`.
 
 ### Error reporting
 
@@ -337,7 +337,7 @@ public:
     */
     bool put(std::string const& key,
              std::string const& value,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
 
     /**
     \brief Adds or updates an entry.
@@ -368,7 +368,7 @@ public:
     bool put(std::string const& key,
              char const* value,
              int64_t size,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
 
     /**
     \brief Adds or updates an entry and its metadata.
@@ -388,7 +388,7 @@ public:
     bool put(std::string const& key,
              std::string const& value,
              std::string const& metadata,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
 
     /**
     \brief Adds or updates an entry and its metadata.
@@ -420,7 +420,7 @@ public:
              int64_t value_size,
              char const* metadata,
              int64_t metadata_size,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
 
     /**
     \brief Function called by the cache to load an entry after a cache miss.
@@ -605,7 +605,7 @@ public:
     */
     bool touch(
         std::string const& key,
-        std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+        std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
 
     /**
     \brief Resets all statistics counters.
