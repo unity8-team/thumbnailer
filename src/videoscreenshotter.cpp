@@ -124,8 +124,11 @@ void VideoScreenshotter::timeout()
 
 void VideoScreenshotter::error()
 {
-    timer_.stop();
-    error_ = string("Error starting vs-thumb. QProcess::ProcessError code = ") + to_string(process_.error())
-             + ", path = " + exe_path_.toStdString();
-    Q_EMIT finished();
+    if (process_.error() == QProcess::ProcessError::FailedToStart)
+    {
+        timer_.stop();
+        error_ = string("Error starting vs-thumb. QProcess::ProcessError code = ") + to_string(process_.error())
+                 + ", path = " + exe_path_.toStdString();
+        Q_EMIT finished();
+    }
 }

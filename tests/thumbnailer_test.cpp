@@ -347,7 +347,7 @@ TEST_F(ThumbnailerTest, vs_thumb_exec_failure)
 class RemoteServer : public ::testing::Test
 {
 protected:
-    void SetUp() override
+    static void SetUpTestCase()
     {
         fake_downloader_server_.setProcessChannelMode(QProcess::ForwardedErrorChannel);
         fake_downloader_server_.start("/usr/bin/python3", QStringList() << FAKE_DOWNLOADER_SERVER);
@@ -356,11 +356,11 @@ protected:
         ASSERT_TRUE(fake_downloader_server_.waitForReadyRead());
         QString port = QString::fromUtf8(fake_downloader_server_.readAllStandardOutput()).trimmed();
 
-        apiroot_ = QString("http://127.0.0.1:%1").arg(port);
-        setenv("THUMBNAILER_UBUNTU_APIROOT", apiroot_.toUtf8().constData(), true);
+        auto apiroot = QString("http://127.0.0.1:%1").arg(port);
+        setenv("THUMBNAILER_UBUNTU_APIROOT", apiroot.toUtf8().constData(), true);
     }
 
-    void TearDown() override
+    static void TearDownTestCase()
     {
         fake_downloader_server_.terminate();
         if (!fake_downloader_server_.waitForFinished())
@@ -372,11 +372,10 @@ protected:
         boost::filesystem::remove_all(ThumbnailerTest::tempdir_path());
     }
 
-    QProcess fake_downloader_server_;
-    QString apiroot_;
-    QString server_argv_;
-    int number_of_errors_before_ok_;
+    static QProcess fake_downloader_server_;
 };
+
+QProcess RemoteServer::fake_downloader_server_;
 
 TEST_F(RemoteServer, basic)
 {
@@ -519,37 +518,14 @@ class DeadServer : public ::testing::Test
 protected:
     void SetUp() override
     {
-#if 0
-        fake_downloader_server_.setProcessChannelMode(QProcess::ForwardedErrorChannel);
-        fake_downloader_server_.start("/usr/bin/python3", QStringList() << FAKE_DOWNLOADER_SERVER);
-        ASSERT_TRUE(fake_downloader_server_.waitForStarted()) << "Failed to launch " << FAKE_DOWNLOADER_SERVER;
-        ASSERT_GT(fake_downloader_server_.pid(), 0);
-        ASSERT_TRUE(fake_downloader_server_.waitForReadyRead());
-        QString port = QString::fromUtf8(fake_downloader_server_.readAllStandardOutput()).trimmed();
-
-#endif
-        apiroot_ = QString("http://deadserver.invalid:80");
-        setenv("THUMBNAILER_UBUNTU_APIROOT", apiroot_.toUtf8().constData(), true);
+        auto apiroot = QString("http://deadserver.invalid:80");
+        setenv("THUMBNAILER_UBUNTU_APIROOT", apiroot.toUtf8().constData(), true);
     }
 
     void TearDown() override
     {
-#if 0
-        fake_downloader_server_.terminate();
-        if (!fake_downloader_server_.waitForFinished())
-        {
-            qCritical() << "Failed to terminate fake server";
-        }
-#endif
         unsetenv("THUMBNAILER_UBUNTU_APIROOT");
     }
-
-#if 0
-    QProcess fake_downloader_server_;
-    QString server_argv_;
-    int number_of_errors_before_ok_;
-#endif
-    QString apiroot_;
 };
 
 TEST_F(DeadServer, errors)
