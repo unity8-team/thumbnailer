@@ -61,6 +61,12 @@ static unique_ptr<QTemporaryDir> tempdir(set_tempdir());
 
 class ThumbnailerTest : public ::testing::Test
 {
+public:
+    static string tempdir_path()
+    {
+        return tempdir->path().toUtf8().data();
+    }
+
 protected:
     virtual void SetUp() override
     {
@@ -70,11 +76,6 @@ protected:
     virtual void TearDown() override
     {
         boost::filesystem::remove_all(tempdir_path());
-    }
-
-    static string tempdir_path()
-    {
-        return tempdir->path().toUtf8().data();
     }
 };
 
@@ -309,6 +310,40 @@ TEST_F(ThumbnailerTest, exceptions)
     ASSERT_EQ(0, chmod(cache_dir.c_str(), 0700));
 }
 
+TEST_F(ThumbnailerTest, vs_thumb_exec_failure)
+{
+    Thumbnailer tn;
+    {
+        // Cause vs-thumb exec failure.
+        char const* tn_util = getenv("TN_UTILDIR");
+        ASSERT_TRUE(tn_util && *tn_util != '\0');
+        string old_env = tn_util;
+
+        setenv("TN_UTILDIR", "no_such_directory", true);
+
+        FdPtr fd(open(TEST_SONG, O_RDONLY), do_close);
+        auto request = tn.get_thumbnail(TEST_SONG, fd.get(), QSize());
+        EXPECT_EQ("", request->thumbnail());
+
+        QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
+        request->download();
+        ASSERT_TRUE(spy.wait(15000));
+
+        try
+        {
+            request->thumbnail();
+            FAIL();
+        }
+        catch (unity::ResourceException const& e)
+        {
+            string msg = e.to_string();
+            string exp = "VideoScreenshotter::data(): Error starting vs-thumb. QProcess::ProcessError";
+            EXPECT_TRUE(msg.find(exp) != string::npos) << msg;
+        }
+        setenv("TN_UTILDIR", old_env.c_str(), true);
+    }
+}
+
 class RemoteServer : public ::testing::Test
 {
 protected:
@@ -333,6 +368,8 @@ protected:
             qCritical() << "Failed to terminate fake server";
         }
         unsetenv("THUMBNAILER_UBUNTU_APIROOT");
+
+        boost::filesystem::remove_all(ThumbnailerTest::tempdir_path());
     }
 
     QProcess fake_downloader_server_;
@@ -442,10 +479,10 @@ TEST_F(RemoteServer, errors)
     }
 
     {
-        // Simulate network down.
-        auto request = tn.get_album_art("sleep", "11", QSize());
+        // Simulate timeout.
+        auto request = tn.get_album_art("sleep", "3", QSize());
         EXPECT_EQ("", request->thumbnail());
-        request->download();
+        request->download(chrono::seconds(1));
 
         QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
         ASSERT_TRUE(spy.wait(15000));
@@ -475,36 +512,60 @@ TEST_F(RemoteServer, errors)
                             "unity::ResourceException: RequestBase::thumbnail(): key = error")) << msg;
         }
     }
+}
 
+class DeadServer : public ::testing::Test
+{
+protected:
+    void SetUp() override
     {
-        // Cause vs-thumb exec failure.
-        char const* tn_util = getenv("TN_UTILDIR");
-        ASSERT_TRUE(tn_util && *tn_util != '\0');
-        string old_env = tn_util;
+#if 0
+        fake_downloader_server_.setProcessChannelMode(QProcess::ForwardedErrorChannel);
+        fake_downloader_server_.start("/usr/bin/python3", QStringList() << FAKE_DOWNLOADER_SERVER);
+        ASSERT_TRUE(fake_downloader_server_.waitForStarted()) << "Failed to launch " << FAKE_DOWNLOADER_SERVER;
+        ASSERT_GT(fake_downloader_server_.pid(), 0);
+        ASSERT_TRUE(fake_downloader_server_.waitForReadyRead());
+        QString port = QString::fromUtf8(fake_downloader_server_.readAllStandardOutput()).trimmed();
 
-        setenv("TN_UTILDIR", "no_such_directory", true);
-
-        FdPtr fd(open(TEST_SONG, O_RDONLY), do_close);
-        auto request = tn.get_thumbnail(TEST_SONG, fd.get(), QSize());
-        EXPECT_EQ("", request->thumbnail());
-
-        QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
-        request->download();
-        ASSERT_TRUE(spy.wait(15000));
-
-        try
-        {
-            request->thumbnail();
-            FAIL();
-        }
-        catch (unity::ResourceException const& e)
-        {
-            string msg = e.to_string();
-            string exp = "VideoScreenshotter::data(): Error starting vs-thumb. QProcess::ProcessError";
-            EXPECT_TRUE(msg.find(exp) != string::npos) << msg;
-        }
-        setenv("TN_UTILDIR", old_env.c_str(), true);
+#endif
+        apiroot_ = QString("http://deadserver.invalid:80");
+        setenv("THUMBNAILER_UBUNTU_APIROOT", apiroot_.toUtf8().constData(), true);
     }
+
+    void TearDown() override
+    {
+#if 0
+        fake_downloader_server_.terminate();
+        if (!fake_downloader_server_.waitForFinished())
+        {
+            qCritical() << "Failed to terminate fake server";
+        }
+#endif
+        unsetenv("THUMBNAILER_UBUNTU_APIROOT");
+    }
+
+#if 0
+    QProcess fake_downloader_server_;
+    QString server_argv_;
+    int number_of_errors_before_ok_;
+#endif
+    QString apiroot_;
+};
+
+TEST_F(DeadServer, errors)
+{
+    Thumbnailer tn;
+
+    // DeadServer won't reply
+    auto request = tn.get_album_art("some_artist", "some_album", QSize());
+    EXPECT_EQ("", request->thumbnail());
+
+    request->download();
+
+    QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
+    ASSERT_TRUE(spy.wait(15000));
+
+    EXPECT_EQ("", request->thumbnail());
 }
 
 int main(int argc, char** argv)

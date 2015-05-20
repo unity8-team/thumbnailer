@@ -161,7 +161,7 @@ void Handler::begin()
         }
         catch (unity::Exception const& e)
         {
-            return FdOrError{QDBusUnixFileDescriptor(), QString(e.to_string().c_str())};
+            return FdOrError{QDBusUnixFileDescriptor(), QString::fromStdString(e.to_string())};
         }
         catch (std::exception const& e)
         {
@@ -203,7 +203,7 @@ void Handler::checkFinished()
     }
     catch (unity::Exception const& e)
     {
-        sendError(QString(e.to_string().c_str()));
+        sendError(QString::fromStdString(e.to_string()));
         return;
     }
     catch (std::exception const& e)
@@ -243,7 +243,7 @@ void Handler::downloadFinished()
         }
         catch (unity::Exception const& e)
         {
-            return FdOrError{QDBusUnixFileDescriptor(), QString(e.to_string().c_str())};
+            return FdOrError{QDBusUnixFileDescriptor(), QString::fromStdString(e.to_string())};
         }
         catch (std::exception const& e)
         {
@@ -282,7 +282,7 @@ void Handler::createFinished()
     }
     catch (unity::Exception const& e)
     {
-        sendError(QString(e.to_string().c_str()));
+        sendError(QString::fromStdString(e.to_string()));
         return;
     }
     catch (std::exception const& e)
