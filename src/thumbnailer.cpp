@@ -358,7 +358,9 @@ LocalThumbnailRequest::LocalThumbnailRequest(Thumbnailer* thumbnailer,
     fd_.reset(open(filename_.c_str(), O_RDONLY | O_CLOEXEC));
     if (fd_.get() < 0)
     {
+        // LCOV_EXCL_START
         throw runtime_error("LocalThumbnailRequest(): Could not open " + filename_ + ": " + safe_strerror(errno));
+        // LCOV_EXCL_STOP
     }
     struct stat our_stat, client_stat;
     if (fstat(fd_.get(), &our_stat) < 0)

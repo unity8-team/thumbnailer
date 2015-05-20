@@ -22,7 +22,6 @@
 #include <internal/safe_strerror.h>
 
 #include <QDebug>
-#include <unity/Exception.h>
 
 #include <chrono>
 #include <map>
@@ -87,11 +86,6 @@ QDBusUnixFileDescriptor DBusInterface::GetThumbnail(QString const& filename,
     try
     {
         request = thumbnailer_->get_thumbnail(filename.toStdString(), filename_fd.fileDescriptor(), requestedSize);
-    }
-    catch (unity::Exception const& e)
-    {
-        sendErrorReply(ART_ERROR, QString(e.to_string().c_str()));
-        return QDBusUnixFileDescriptor();
     }
     catch (exception const& e)
     {

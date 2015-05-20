@@ -26,7 +26,6 @@
 #include <QFutureWatcher>
 #include <QtConcurrent>
 #include <QThreadPool>
-#include <unity/Exception.h>
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -159,10 +158,6 @@ void Handler::begin()
         {
             return FdOrError{check(), nullptr};
         }
-        catch (unity::Exception const& e)
-        {
-            return FdOrError{QDBusUnixFileDescriptor(), QString(e.to_string().c_str())};
-        }
         catch (std::exception const& e)
         {
             return FdOrError{QDBusUnixFileDescriptor(), e.what()};
@@ -201,11 +196,6 @@ void Handler::checkFinished()
     {
         fd_error = p->checkWatcher.result();
     }
-    catch (unity::Exception const& e)
-    {
-        sendError(QString(e.to_string().c_str()));
-        return;
-    }
     catch (std::exception const& e)
     {
         sendError(e.what());
@@ -241,10 +231,6 @@ void Handler::downloadFinished()
         {
             return FdOrError{create(), nullptr};
         }
-        catch (unity::Exception const& e)
-        {
-            return FdOrError{QDBusUnixFileDescriptor(), QString(e.to_string().c_str())};
-        }
         catch (std::exception const& e)
         {
             return FdOrError{QDBusUnixFileDescriptor(), e.what()};
@@ -279,11 +265,6 @@ void Handler::createFinished()
     try
     {
         fd_error = p->createWatcher.result();
-    }
-    catch (unity::Exception const& e)
-    {
-        sendError(QString(e.to_string().c_str()));
-        return;
     }
     catch (std::exception const& e)
     {
