@@ -347,7 +347,7 @@ TEST_F(ThumbnailerTest, vs_thumb_exec_failure)
 class RemoteServer : public ::testing::Test
 {
 protected:
-    void SetUp() override
+    static void SetUpTestCase()
     {
         fake_downloader_server_.setProcessChannelMode(QProcess::ForwardedErrorChannel);
         fake_downloader_server_.start("/usr/bin/python3", QStringList() << FAKE_DOWNLOADER_SERVER);
@@ -356,11 +356,11 @@ protected:
         ASSERT_TRUE(fake_downloader_server_.waitForReadyRead());
         QString port = QString::fromUtf8(fake_downloader_server_.readAllStandardOutput()).trimmed();
 
-        apiroot_ = QString("http://127.0.0.1:%1").arg(port);
-        setenv("THUMBNAILER_UBUNTU_APIROOT", apiroot_.toUtf8().constData(), true);
+        auto apiroot = QString("http://127.0.0.1:%1").arg(port);
+        setenv("THUMBNAILER_UBUNTU_APIROOT", apiroot.toUtf8().constData(), true);
     }
 
-    void TearDown() override
+    static void TearDownTestCase()
     {
         fake_downloader_server_.terminate();
         if (!fake_downloader_server_.waitForFinished())
@@ -372,11 +372,10 @@ protected:
         boost::filesystem::remove_all(ThumbnailerTest::tempdir_path());
     }
 
-    QProcess fake_downloader_server_;
-    QString apiroot_;
-    QString server_argv_;
-    int number_of_errors_before_ok_;
+    static QProcess fake_downloader_server_;
 };
+
+QProcess RemoteServer::fake_downloader_server_;
 
 TEST_F(RemoteServer, basic)
 {
@@ -426,91 +425,97 @@ TEST_F(RemoteServer, basic)
     }
 }
 
-TEST_F(RemoteServer, errors)
+TEST_F(RemoteServer, no_such_album)
 {
     Thumbnailer tn;
 
-    {
-        auto request = tn.get_album_art("no_such_artist", "no_such_album", QSize());
-        EXPECT_EQ("", request->thumbnail());
+    auto request = tn.get_album_art("no_such_artist", "no_such_album", QSize());
+    EXPECT_EQ("", request->thumbnail());
 
-        QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
-        request->download();
-        ASSERT_TRUE(spy.wait(15000));
+    QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
+    request->download();
+    ASSERT_TRUE(spy.wait(15000));
+    EXPECT_EQ("", request->thumbnail());
+}
+
+TEST_F(RemoteServer, decode_fails)
+{
+    Thumbnailer tn;
+
+    auto request = tn.get_album_art("empty", "empty", QSize());
+    EXPECT_EQ("", request->thumbnail());
+    request->download();
+
+    QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
+    ASSERT_TRUE(spy.wait(15000));
+
+    try
+    {
         EXPECT_EQ("", request->thumbnail());
+        FAIL();
     }
-
+    catch (unity::ResourceException const& e)
     {
-        // Decode fails.
-        auto request = tn.get_album_art("empty", "empty", QSize());
-        EXPECT_EQ("", request->thumbnail());
-        request->download();
-
-        QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
-        ASSERT_TRUE(spy.wait(15000));
-
-        try
-        {
-            EXPECT_EQ("", request->thumbnail());
-            FAIL();
-        }
-        catch (unity::ResourceException const& e)
-        {
-            EXPECT_EQ("unity::ResourceException: RequestBase::thumbnail(): key = empty\\0empty\\0album:\n"
-                      "    load_image(): cannot close pixbuf loader: Unrecognized image file format",
-                      e.to_string());
-        }
+        EXPECT_EQ("unity::ResourceException: RequestBase::thumbnail(): key = empty\\0empty\\0album:\n"
+                  "    load_image(): cannot close pixbuf loader: Unrecognized image file format",
+                  e.to_string());
     }
+}
 
+TEST_F(RemoteServer, no_such_local_image)
+{
+    Thumbnailer tn;
+
+    try
     {
-        // Local image doesn't exist.
-        try
-        {
-            auto request = tn.get_thumbnail("no_such_file", -1, QSize());
-            FAIL();
-        }
-        catch (unity::ResourceException const& e)
-        {
-            string msg = e.to_string();
-            EXPECT_TRUE(boost::starts_with(msg,
-                                           "unity::ResourceException: Thumbnailer::get_thumbnail():\n"
-                                           "    boost::filesystem::canonical: No such file or directory: ")) << msg;
-        }
+        auto request = tn.get_thumbnail("no_such_file", -1, QSize());
+        FAIL();
     }
-
+    catch (unity::ResourceException const& e)
     {
-        // Simulate timeout.
-        auto request = tn.get_album_art("sleep", "3", QSize());
-        EXPECT_EQ("", request->thumbnail());
-        request->download(chrono::seconds(1));
-
-        QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
-        ASSERT_TRUE(spy.wait(15000));
-
-        EXPECT_EQ("", request->thumbnail());
+        string msg = e.to_string();
+        EXPECT_TRUE(boost::starts_with(msg,
+                                       "unity::ResourceException: Thumbnailer::get_thumbnail():\n"
+                                       "    boost::filesystem::canonical: No such file or directory: ")) << msg;
     }
+}
 
+TEST_F(RemoteServer, timeout)
+{
+    Thumbnailer tn;
+
+    auto request = tn.get_album_art("sleep", "3", QSize());
+    EXPECT_EQ("", request->thumbnail());
+    request->download(chrono::seconds(1));
+
+    QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
+    ASSERT_TRUE(spy.wait(15000));
+
+    EXPECT_EQ("", request->thumbnail());
+}
+
+TEST_F(RemoteServer, server_error)
+{
+    Thumbnailer tn;
+
+    auto request = tn.get_album_art("error", "403", QSize());
+    EXPECT_EQ("", request->thumbnail());
+
+    QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
+    request->download();
+    ASSERT_TRUE(spy.wait(15000));
+
+    try
     {
-        // Simulate server error.
-        auto request = tn.get_album_art("error", "403", QSize());
-        EXPECT_EQ("", request->thumbnail());
-
-        QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
-        request->download();
-        ASSERT_TRUE(spy.wait(15000));
-
-        try
-        {
-            request->thumbnail();
-            FAIL();
-        }
-        catch (unity::ResourceException const& e)
-        {
-            string msg = e.to_string();
-            EXPECT_TRUE(boost::starts_with(
-                            msg,
-                            "unity::ResourceException: RequestBase::thumbnail(): key = error")) << msg;
-        }
+        request->thumbnail();
+        FAIL();
+    }
+    catch (unity::ResourceException const& e)
+    {
+        string msg = e.to_string();
+        EXPECT_TRUE(boost::starts_with(
+                        msg,
+                        "unity::ResourceException: RequestBase::thumbnail(): key = error")) << msg;
     }
 }
 
@@ -519,16 +524,14 @@ class DeadServer : public ::testing::Test
 protected:
     void SetUp() override
     {
-        apiroot_ = QString("http://deadserver.invalid:80");
-        setenv("THUMBNAILER_UBUNTU_APIROOT", apiroot_.toUtf8().constData(), true);
+        auto apiroot = QString("http://deadserver.invalid:80");
+        setenv("THUMBNAILER_UBUNTU_APIROOT", apiroot.toUtf8().constData(), true);
     }
 
     void TearDown() override
     {
         unsetenv("THUMBNAILER_UBUNTU_APIROOT");
     }
-
-    QString apiroot_;
 };
 
 TEST_F(DeadServer, errors)
