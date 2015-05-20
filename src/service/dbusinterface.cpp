@@ -44,8 +44,10 @@ char const ART_ERROR[] = "com.canonical.Thumbnailer.Error.Failed";
 
 namespace unity
 {
+
 namespace thumbnailer
 {
+
 namespace service
 {
 
@@ -112,86 +114,6 @@ QDBusUnixFileDescriptor DBusInterface::GetThumbnail(QString const& filename,
     return QDBusUnixFileDescriptor();
 }
 
-namespace
-{
-
-// Conversion is somewhat awkward because system_clock
-// is not guaranteed to use the same epoch as QDateTime.
-// (The C++ standard leaves the epoch time point undefined.)
-// We figure out the epoch for both clocks and adjust
-// if they differ by more than a day, to allow
-// for the (very unlikely) case of getting a SIGSTOP
-// in between the calls to retrieve the current time for each clock.
-// If we are suspended for more than a day at just that point,
-// that's too bad...
-
-using namespace std::chrono;
-
-static auto adjustment_ms = []
-{
-    auto qt_msecs = QDateTime::currentMSecsSinceEpoch();
-    auto system_msecs = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
-    int64_t adjust_ms = 0;
-    auto diff_in_hours = duration_cast<hours>(milliseconds(abs(system_msecs - qt_msecs)));
-    if (diff_in_hours.count() > 24)
-    {
-        adjust_ms = system_msecs - qt_msecs;
-    }
-    return adjust_ms;
-}();
-
-QDateTime to_date_time(chrono::system_clock::time_point tp)
-{
-    return QDateTime::fromMSecsSinceEpoch(duration_cast<milliseconds>(tp.time_since_epoch()).count() - adjustment_ms);
-}
-
-QList<QVariant> to_list(core::PersistentCacheStats::Histogram const& histogram)
-{
-    QList<QVariant> l;
-    for (auto c : histogram)
-    {
-        l.append(QVariant(c));
-    }
-    return l;
-}
-
-QVariantMap to_variant_map(core::PersistentCacheStats const& st)
-{
-    QVariantMap m;
-    m.insert("cache_path", QVariant(QString(st.cache_path().c_str())));
-    m.insert("policy", QVariant(static_cast<uint32_t>(st.policy())));
-    m.insert("size", QVariant(static_cast<qlonglong>(st.size())));
-    m.insert("size_in_bytes", QVariant(static_cast<qlonglong>(st.size_in_bytes())));
-    m.insert("max_size_in_bytes", QVariant(static_cast<qlonglong>(st.max_size_in_bytes())));
-    m.insert("hits", QVariant(static_cast<qlonglong>(st.hits())));
-    m.insert("misses", QVariant(static_cast<qlonglong>(st.misses())));
-    m.insert("hits_since_last_miss", QVariant(static_cast<qlonglong>(st.hits_since_last_miss())));
-    m.insert("misses_since_last_hit", QVariant(static_cast<qlonglong>(st.misses_since_last_hit())));
-    m.insert("longest_hit_run", QVariant(static_cast<qlonglong>(st.longest_hit_run())));
-    m.insert("longest_miss_run", QVariant(static_cast<qlonglong>(st.longest_miss_run())));
-    m.insert("ttl_evictions", QVariant(static_cast<qlonglong>(st.ttl_evictions())));
-    m.insert("lru_evictions", QVariant(static_cast<qlonglong>(st.lru_evictions())));
-    m.insert("most_recent_hit_time", QVariant(to_date_time(st.most_recent_hit_time())));
-    m.insert("most_recent_miss_time", QVariant(to_date_time(st.most_recent_miss_time())));
-    m.insert("longest_hit_run_time", QVariant(to_date_time(st.longest_hit_run_time())));
-    m.insert("longest_miss_run_time", QVariant(to_date_time(st.longest_miss_run_time())));
-    m.insert("histogram", QVariant(to_list(st.histogram())));
-    return m;
-}
-
-}  // namespace
-
-QVariantMap DBusInterface::Stats()
-{
-    auto st = p->thumbnailer->stats();
-    
-    QVariantMap m;
-    m.insert("full_size_stats", to_variant_map(st.full_size_stats));
-    m.insert("thumbnail_stats", to_variant_map(st.thumbnail_stats));
-    m.insert("failure_stats", to_variant_map(st.failure_stats));
-    return m;
-}
-
 void DBusInterface::queueRequest(Handler* handler)
 {
     p->requests.emplace(handler, std::unique_ptr<Handler>(handler));
@@ -221,6 +143,9 @@ void DBusInterface::requestFinished()
     // Queue deletion of handler when we re-enter the event loop.
     handler->deleteLater();
 }
-}
-}
-}
+
+}  // namespace service
+
+}  // namespace thumbnailer
+
+}  // namespace unity

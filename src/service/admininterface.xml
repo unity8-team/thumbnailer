@@ -1,0 +1,8 @@
+<node>
+  <interface name="com.canonical.ThumbnailerAdmin">
+    <method name="Stats">
+      <arg direction="out" type="a(suxxxxxxxxxxxttttau)" name="stats" />
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="unity::thumbnailer::service::AllStats"/>
+    </method>
+  </interface>
+</node>

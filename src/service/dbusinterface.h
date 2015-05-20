@@ -31,8 +31,10 @@
 
 namespace unity
 {
+
 namespace thumbnailer
 {
+
 namespace service
 {
 
@@ -54,7 +56,6 @@ public Q_SLOTS:
     QDBusUnixFileDescriptor GetThumbnail(QString const& filename,
                                          QDBusUnixFileDescriptor const& filename_fd,
                                          QSize const& requestedSize);
-    QVariantMap Stats();
 
 private:
     void queueRequest(Handler* handler);
@@ -69,6 +70,9 @@ Q_SIGNALS:
 private:
     std::unique_ptr<DBusInterfacePrivate> p;
 };
-}
-}
-}
+
+}  // namespace service
+
+}  // namespace thumbnailer
+
+}  // namespace unity

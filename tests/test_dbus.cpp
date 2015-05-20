@@ -2,34 +2,34 @@
 #include <internal/image.h>
 #include <internal/raii.h>
 #include "thumbnailerinterface.h"
-
-#include <memory>
-#include <string>
-#include <cstdlib>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
+#include "thumbnaileradmininterface.h"
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <gtest/gtest.h>
-
 #include <libqtdbustest/DBusTestRunner.h>
 #include <libqtdbustest/QProcessDBusService.h>
-
-#include <QSignalSpy>
 #include <QProcess>
+#include <QSignalSpy>
 #include <QTemporaryDir>
 
 #include <testsetup.h>
 
-// TODO: remove these
-#include <QDate>
+#include <cstdlib>
+#include <fcntl.h>
+#include <memory>
+#include <string>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
+using namespace std;
 using namespace unity::thumbnailer::internal;
 
 static const char BUS_NAME[] = "com.canonical.Thumbnailer";
 static const char BUS_PATH[] = "/com/canonical/Thumbnailer";
+
+static const char BUS_ADMIN_NAME[] = "com.canonical.ThumbnailerAdmin";
+static const char BUS_ADMIN_PATH[] = "/com/canonical/ThumbnailerAdmin";
 
 template <typename T>
 void assert_no_error(const QDBusReply<T>& reply)
@@ -83,6 +83,11 @@ protected:
         iface.reset(
             new ThumbnailerInterface(BUS_NAME, BUS_PATH,
                                      dbusTestRunner->sessionConnection()));
+
+        admin_iface.reset(
+            new ThumbnailerAdminInterface(BUS_ADMIN_NAME, BUS_ADMIN_PATH,
+                                          dbusTestRunner->sessionConnection()));
+        qDBusRegisterMetaType<unity::thumbnailer::service::AllStats>();
     }
 
     virtual void TearDown() override
@@ -102,9 +107,10 @@ protected:
         unsetenv("THUMBNAILER_UBUNTU_APIROOT");
     }
 
-    std::unique_ptr<QTemporaryDir> tempdir;
-    std::unique_ptr<QtDBusTest::DBusTestRunner> dbusTestRunner;
-    std::unique_ptr<ThumbnailerInterface> iface;
+    unique_ptr<QTemporaryDir> tempdir;
+    unique_ptr<QtDBusTest::DBusTestRunner> dbusTestRunner;
+    unique_ptr<ThumbnailerInterface> iface;
+    unique_ptr<ThumbnailerAdminInterface> admin_iface;
     QSharedPointer<QtDBusTest::QProcessDBusService> dbusService;
     QProcess fake_downloader_server_;
     QString apiroot_;
@@ -202,8 +208,8 @@ TEST_F(DBusTest, test_inactivity_exit)
 TEST(DBusTestBadIdle, env_variable_bad_value)
 {
     QTemporaryDir tempdir(TESTBINDIR "/dbus-test.XXXXXX");
-    std::unique_ptr<QtDBusTest::DBusTestRunner> dbusTestRunner;
-    std::unique_ptr<QDBusInterface> iface;
+    unique_ptr<QtDBusTest::DBusTestRunner> dbusTestRunner;
+    unique_ptr<QDBusInterface> iface;
     QSharedPointer<QtDBusTest::QProcessDBusService> dbusService;
 
     setenv("XDG_CACHE_HOME", (tempdir.path() + "/cache").toUtf8().data(), true);
@@ -226,6 +232,30 @@ TEST(DBusTestBadIdle, env_variable_bad_value)
     EXPECT_EQ(process->exitCode(), 1);
 
     unsetenv("THUMBNAILER_MAX_IDLE");
+}
+
+TEST_F(DBusTest, stats)
+{
+    QDBusReply<QVariantMap> reply = admin_iface->Stats();
+    ASSERT_TRUE(reply.isValid());
+
+#if 0
+    QVariantMap m = reply.value();
+    ASSERT_FALSE(m.empty());
+    QMapIterator<QString, QVariant> i(m);
+    while (i.hasNext())
+    {
+        i.next();
+        cout << i.key().toStdString() << ": " << i.value().typeName() << endl;
+        cerr << i.key().toStdString() << "Can convert to QDBusArgument: " << i.value().canConvert<QDBusArgument>() << endl;
+        cerr << i.key().toStdString() << "Can convert to QVariant: " << i.value().canConvert<QVariant>() << endl;
+    }
+    QVariant v = qvariant_cast<QDBusArgument>(m.value("full_size_stats")).asVariant().toMap();
+    cerr << "v: " << v.typeName() << endl;
+    cerr << endl << endl;
+    QVariantMap fullsize = qvariant_cast<QDBusVariant>(m.value("full_size_stats")).variant().toMap();
+    EXPECT_FALSE(fullsize.empty());
+#endif
 }
 
 int main(int argc, char** argv)
