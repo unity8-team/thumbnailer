@@ -261,8 +261,10 @@ string RequestBase::thumbnail()
         else
         {
             // Try and download or read the artwork, provided that we don't
-            // have this image in the failure cache.
-            if (thumbnailer_->failure_cache_->contains_key(key_))
+            // have this image in the failure cache. We use get()
+            // here instead of contains_key(), so the stats for the
+            // failure cache are updated.
+            if (thumbnailer_->failure_cache_->get(key_))
             {
                 cerr << "returning failure" << endl;
                 return "";

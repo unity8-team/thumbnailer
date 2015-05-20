@@ -121,7 +121,6 @@ protected:
     QString apiroot_;
 };
 
-#if 0
 TEST_F(DBusTest, get_album_art)
 {
     QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetAlbumArt(
@@ -239,7 +238,6 @@ TEST(DBusTestBadIdle, env_variable_bad_value)
 
     unsetenv("THUMBNAILER_MAX_IDLE");
 }
-#endif
 
 TEST_F(DBusTest, stats)
 {
