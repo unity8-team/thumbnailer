@@ -380,6 +380,24 @@ TEST_F(DBusTest, stats)
     {
         CacheStats s = reply.value().failure_stats;
         EXPECT_EQ(1, s.size);
+        EXPECT_EQ(0, s.hits);
+        EXPECT_EQ(1, s.misses);
+    }
+
+    // Get the same non-existent remote image again, so we get a hit.
+    {
+        QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetAlbumArt(
+            "no_such_artist", "no_such_album", QSize(24, 24));
+    }
+
+    reply = admin_iface->Stats();
+    ASSERT_TRUE(reply.isValid());
+
+    {
+        CacheStats s = reply.value().failure_stats;
+        EXPECT_EQ(1, s.size);
+        EXPECT_EQ(2, s.hits);
+        EXPECT_EQ(4, s.misses);
     }
 }
 

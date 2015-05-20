@@ -266,7 +266,6 @@ string RequestBase::thumbnail()
             // failure cache are updated.
             if (thumbnailer_->failure_cache_->get(key_))
             {
-                cerr << "returning failure" << endl;
                 return "";
             }
             auto image_data = fetch(target_size);
