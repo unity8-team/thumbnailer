@@ -2,7 +2,7 @@
 #include <internal/image.h>
 #include <internal/raii.h>
 #include "thumbnailerinterface.h"
-#include "thumbnaileradmininterface.h"
+#include "admininterface.h"
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <gtest/gtest.h>
@@ -90,6 +90,11 @@ protected:
         qDBusRegisterMetaType<unity::thumbnailer::service::AllStats>();
     }
 
+    string temp_dir()
+    {
+        return tempdir->path().toStdString();
+    }
+
     virtual void TearDown() override
     {
         iface.reset();
@@ -116,6 +121,7 @@ protected:
     QString apiroot_;
 };
 
+#if 0
 TEST_F(DBusTest, get_album_art)
 {
     QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetAlbumArt(
@@ -233,29 +239,150 @@ TEST(DBusTestBadIdle, env_variable_bad_value)
 
     unsetenv("THUMBNAILER_MAX_IDLE");
 }
+#endif
 
 TEST_F(DBusTest, stats)
 {
-    QDBusReply<QVariantMap> reply = admin_iface->Stats();
+    using namespace unity::thumbnailer::service;
+
+    QDBusReply<AllStats> reply = admin_iface->Stats();
     ASSERT_TRUE(reply.isValid());
 
-#if 0
-    QVariantMap m = reply.value();
-    ASSERT_FALSE(m.empty());
-    QMapIterator<QString, QVariant> i(m);
-    while (i.hasNext())
     {
-        i.next();
-        cout << i.key().toStdString() << ": " << i.value().typeName() << endl;
-        cerr << i.key().toStdString() << "Can convert to QDBusArgument: " << i.value().canConvert<QDBusArgument>() << endl;
-        cerr << i.key().toStdString() << "Can convert to QVariant: " << i.value().canConvert<QVariant>() << endl;
+        CacheStats s = reply.value().full_size_stats;
+        EXPECT_EQ(temp_dir() + "/cache/unity-thumbnailer/images", s.cache_path.toStdString());
+        EXPECT_EQ(1, s.policy);
+        EXPECT_EQ(0, s.size);
+        EXPECT_EQ(0, s.size_in_bytes);
+        EXPECT_NE(0, s.max_size_in_bytes);
+        EXPECT_EQ(0, s.hits);
+        EXPECT_EQ(0, s.misses);
+        EXPECT_EQ(0, s.hits_since_last_miss);
+        EXPECT_EQ(0, s.misses_since_last_hit);
+        EXPECT_EQ(0, s.longest_hit_run);
+        EXPECT_EQ(0, s.longest_miss_run);
+        EXPECT_EQ(0, s.ttl_evictions);
+        EXPECT_EQ(0, s.lru_evictions);
+        EXPECT_EQ("Thu Jan 1 00:00:00 1970 GMT", s.most_recent_hit_time.toUTC().toString().toStdString());
+        EXPECT_EQ("Thu Jan 1 00:00:00 1970 GMT", s.most_recent_miss_time.toUTC().toString().toStdString());
+        EXPECT_EQ("Thu Jan 1 00:00:00 1970 GMT", s.longest_hit_run_time.toUTC().toString().toStdString());
+        EXPECT_EQ("Thu Jan 1 00:00:00 1970 GMT", s.longest_miss_run_time.toUTC().toString().toStdString());
+        auto list = s.histogram;
+        for (auto c : list)
+        {
+            EXPECT_EQ(0, c);
+        }
     }
-    QVariant v = qvariant_cast<QDBusArgument>(m.value("full_size_stats")).asVariant().toMap();
-    cerr << "v: " << v.typeName() << endl;
-    cerr << endl << endl;
-    QVariantMap fullsize = qvariant_cast<QDBusVariant>(m.value("full_size_stats")).variant().toMap();
-    EXPECT_FALSE(fullsize.empty());
-#endif
+
+    {
+        CacheStats s = reply.value().thumbnail_stats;
+        EXPECT_EQ(temp_dir() + "/cache/unity-thumbnailer/thumbnails", s.cache_path.toStdString());
+        EXPECT_EQ(1, s.policy);
+        EXPECT_EQ(0, s.size);
+    }
+
+    {
+        CacheStats s = reply.value().failure_stats;
+        EXPECT_EQ(temp_dir() + "/cache/unity-thumbnailer/failures", s.cache_path.toStdString());
+        EXPECT_EQ(0, s.policy);
+        EXPECT_EQ(0, s.size);
+    }
+
+    // Get a remote image from the cache, so the stats change.
+    {
+        QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetAlbumArt(
+            "metallica", "load", QSize(24, 24));
+        assert_no_error(reply);
+        Image image(reply.value().fileDescriptor());
+        EXPECT_EQ(24, image.width());
+        EXPECT_EQ(24, image.width());
+    }
+
+    reply = admin_iface->Stats();
+    ASSERT_TRUE(reply.isValid());
+
+    {
+        CacheStats s = reply.value().full_size_stats;
+        EXPECT_EQ(1, s.size);
+        EXPECT_NE(0, s.size_in_bytes);
+        EXPECT_EQ(0, s.hits);
+        EXPECT_EQ(2, s.misses);
+        EXPECT_EQ(0, s.hits_since_last_miss);
+        EXPECT_EQ(2, s.misses_since_last_hit);
+        EXPECT_EQ(0, s.longest_hit_run);
+        EXPECT_EQ(2, s.longest_miss_run);
+        EXPECT_EQ(0, s.ttl_evictions);
+        EXPECT_EQ(0, s.lru_evictions);
+        EXPECT_EQ("Thu Jan 1 00:00:00 1970 GMT", s.most_recent_hit_time.toUTC().toString().toStdString());
+        EXPECT_NE("Thu Jan 1 00:00:00 1970 GMT", s.most_recent_miss_time.toUTC().toString().toStdString());
+        EXPECT_EQ("Thu Jan 1 00:00:00 1970 GMT", s.longest_hit_run_time.toUTC().toString().toStdString());
+        EXPECT_NE("Thu Jan 1 00:00:00 1970 GMT", s.longest_miss_run_time.toUTC().toString().toStdString());
+        auto list = s.histogram;
+        EXPECT_EQ(1, list[18]);
+    }
+
+    {
+        CacheStats s = reply.value().thumbnail_stats;
+        EXPECT_EQ(1, s.size);
+        EXPECT_NE(0, s.size_in_bytes);
+        EXPECT_EQ(0, s.hits);
+        EXPECT_EQ(2, s.misses);
+        EXPECT_EQ(0, s.hits_since_last_miss);
+        EXPECT_EQ(2, s.misses_since_last_hit);
+        EXPECT_EQ(0, s.longest_hit_run);
+        EXPECT_EQ(2, s.longest_miss_run);
+        EXPECT_EQ(0, s.ttl_evictions);
+        EXPECT_EQ(0, s.lru_evictions);
+        EXPECT_EQ("Thu Jan 1 00:00:00 1970 GMT", s.most_recent_hit_time.toUTC().toString().toStdString());
+        EXPECT_NE("Thu Jan 1 00:00:00 1970 GMT", s.most_recent_miss_time.toUTC().toString().toStdString());
+        EXPECT_EQ("Thu Jan 1 00:00:00 1970 GMT", s.longest_hit_run_time.toUTC().toString().toStdString());
+        EXPECT_NE("Thu Jan 1 00:00:00 1970 GMT", s.longest_miss_run_time.toUTC().toString().toStdString());
+    }
+
+    // Get the same image again, so we get a hit.
+    {
+        QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetAlbumArt(
+            "metallica", "load", QSize(24, 24));
+        assert_no_error(reply);
+        Image image(reply.value().fileDescriptor());
+        EXPECT_EQ(24, image.width());
+        EXPECT_EQ(24, image.width());
+    }
+
+    reply = admin_iface->Stats();
+    ASSERT_TRUE(reply.isValid());
+
+    {
+        CacheStats s = reply.value().thumbnail_stats;
+        EXPECT_EQ(1, s.size);
+        EXPECT_NE(0, s.size_in_bytes);
+        EXPECT_EQ(1, s.hits);
+        EXPECT_EQ(2, s.misses);
+        EXPECT_EQ(1, s.hits_since_last_miss);
+        EXPECT_EQ(0, s.misses_since_last_hit);
+        EXPECT_EQ(1, s.longest_hit_run);
+        EXPECT_EQ(2, s.longest_miss_run);
+        EXPECT_EQ(0, s.ttl_evictions);
+        EXPECT_EQ(0, s.lru_evictions);
+        EXPECT_NE("Thu Jan 1 00:00:00 1970 GMT", s.most_recent_hit_time.toUTC().toString().toStdString());
+        EXPECT_NE("Thu Jan 1 00:00:00 1970 GMT", s.most_recent_miss_time.toUTC().toString().toStdString());
+        EXPECT_NE("Thu Jan 1 00:00:00 1970 GMT", s.longest_hit_run_time.toUTC().toString().toStdString());
+        EXPECT_NE("Thu Jan 1 00:00:00 1970 GMT", s.longest_miss_run_time.toUTC().toString().toStdString());
+    }
+
+    // Get a non-existent remote image from the cache, so the failure stats change.
+    {
+        QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetAlbumArt(
+            "no_such_artist", "no_such_album", QSize(24, 24));
+    }
+
+    reply = admin_iface->Stats();
+    ASSERT_TRUE(reply.isValid());
+
+    {
+        CacheStats s = reply.value().failure_stats;
+        EXPECT_EQ(1, s.size);
+    }
 }
 
 int main(int argc, char** argv)

@@ -20,8 +20,6 @@
 
 #include <internal/thumbnailer.h>
 
-#include <QDateTime>
-
 using namespace std;
 using namespace unity::thumbnailer::internal;
 
@@ -33,26 +31,6 @@ namespace thumbnailer
 
 namespace service
 {
-
-struct AdminInterfacePrivate
-{
-#if 0
-    std::shared_ptr<Thumbnailer> thumbnailer = std::make_shared<Thumbnailer>();
-    std::map<Handler*, std::unique_ptr<Handler>> requests;
-    std::shared_ptr<QThreadPool> check_thread_pool = std::make_shared<QThreadPool>();
-    std::shared_ptr<QThreadPool> create_thread_pool = std::make_shared<QThreadPool>();
-#endif
-};
-
-AdminInterface::AdminInterface(QObject* parent)
-    : QObject(parent)
-    , p(new AdminInterfacePrivate)
-{
-}
-
-AdminInterface::~AdminInterface()
-{
-}
 
 namespace
 {
@@ -86,53 +64,51 @@ QDateTime to_date_time(chrono::system_clock::time_point tp)
     return QDateTime::fromMSecsSinceEpoch(duration_cast<milliseconds>(tp.time_since_epoch()).count() - adjustment_ms);
 }
 
-QList<QVariant> to_list(core::PersistentCacheStats::Histogram const& histogram)
+QList<uint32_t> to_list(core::PersistentCacheStats::Histogram const& histogram)
 {
-    QList<QVariant> l;
+    QList<uint32_t> l;
     for (auto c : histogram)
     {
-        l.append(QVariant(c));
+        l.append(c);
     }
     return l;
 }
 
-QVariantMap to_variant_map(core::PersistentCacheStats const& st)
+CacheStats to_cache_stats(core::PersistentCacheStats const& st)
 {
-    QVariantMap m;
-    m.insert("cache_path", QVariant(QString(st.cache_path().c_str())));
-    m.insert("policy", QVariant(static_cast<uint32_t>(st.policy())));
-    m.insert("size", QVariant(static_cast<qlonglong>(st.size())));
-    m.insert("size_in_bytes", QVariant(static_cast<qlonglong>(st.size_in_bytes())));
-    m.insert("max_size_in_bytes", QVariant(static_cast<qlonglong>(st.max_size_in_bytes())));
-    m.insert("hits", QVariant(static_cast<qlonglong>(st.hits())));
-    m.insert("misses", QVariant(static_cast<qlonglong>(st.misses())));
-    m.insert("hits_since_last_miss", QVariant(static_cast<qlonglong>(st.hits_since_last_miss())));
-    m.insert("misses_since_last_hit", QVariant(static_cast<qlonglong>(st.misses_since_last_hit())));
-    m.insert("longest_hit_run", QVariant(static_cast<qlonglong>(st.longest_hit_run())));
-    m.insert("longest_miss_run", QVariant(static_cast<qlonglong>(st.longest_miss_run())));
-    m.insert("ttl_evictions", QVariant(static_cast<qlonglong>(st.ttl_evictions())));
-    m.insert("lru_evictions", QVariant(static_cast<qlonglong>(st.lru_evictions())));
-    m.insert("most_recent_hit_time", QVariant(to_date_time(st.most_recent_hit_time())));
-    m.insert("most_recent_miss_time", QVariant(to_date_time(st.most_recent_miss_time())));
-    m.insert("longest_hit_run_time", QVariant(to_date_time(st.longest_hit_run_time())));
-    m.insert("longest_miss_run_time", QVariant(to_date_time(st.longest_miss_run_time())));
-    m.insert("histogram", QVariant(to_list(st.histogram())));
-    return m;
+    return
+    {
+        QString(st.cache_path().c_str()),
+        static_cast<uint32_t>(st.policy()),
+        static_cast<qlonglong>(st.size()),
+        static_cast<qlonglong>(st.size_in_bytes()),
+        static_cast<qlonglong>(st.max_size_in_bytes()),
+        static_cast<qlonglong>(st.hits()),
+        static_cast<qlonglong>(st.misses()),
+        static_cast<qlonglong>(st.hits_since_last_miss()),
+        static_cast<qlonglong>(st.misses_since_last_hit()),
+        static_cast<qlonglong>(st.longest_hit_run()),
+        static_cast<qlonglong>(st.longest_miss_run()),
+        static_cast<qlonglong>(st.ttl_evictions()),
+        static_cast<qlonglong>(st.lru_evictions()),
+        to_date_time(st.most_recent_hit_time()),
+        to_date_time(st.most_recent_miss_time()),
+        to_date_time(st.longest_hit_run_time()),
+        to_date_time(st.longest_miss_run_time()),
+        to_list(st.histogram())
+    };
 }
 
 }  // namespace
 
 unity::thumbnailer::service::AllStats AdminInterface::Stats()
 {
-#if 0
-    auto st = p->thumbnailer->stats();
-    QVariantMap m;
-    m.insert("full_size_stats", QVariant(to_variant_map(st.full_size_stats)));
-    m.insert("thumbnail_stats", QVariant(to_variant_map(st.thumbnail_stats)));
-    m.insert("failure_stats", QVariant(to_variant_map(st.failure_stats)));
-    return m;
-#endif
-    return AllStats();
+    auto const st = thumbnailer_->stats();
+    AllStats all;
+    all.full_size_stats = to_cache_stats(st.full_size_stats);
+    all.thumbnail_stats = to_cache_stats(st.thumbnail_stats);
+    all.failure_stats = to_cache_stats(st.failure_stats);
+    return all;
 }
 
 }  // namespace service
@@ -141,42 +117,72 @@ unity::thumbnailer::service::AllStats AdminInterface::Stats()
 
 }  // namespace unity
 
-QDBusArgument& operator<<(QDBusArgument& arg, unity::thumbnailer::service::CacheStats const& cache_stats)
+QDBusArgument& operator<<(QDBusArgument& arg, unity::thumbnailer::service::CacheStats const& s)
 {
     arg.beginStructure();
-    arg << cache_stats.cache_path
-        << cache_stats.policy
-        << cache_stats.size;
+    arg << s.cache_path
+        << s.policy
+        << s.size
+        << s.size_in_bytes
+        << s.max_size_in_bytes
+        << s.hits
+        << s.misses
+        << s.hits_since_last_miss
+        << s.misses_since_last_hit
+        << s.longest_hit_run
+        << s.longest_miss_run
+        << s.ttl_evictions
+        << s.lru_evictions
+        << s.most_recent_hit_time
+        << s.most_recent_miss_time
+        << s.longest_hit_run_time
+        << s.longest_miss_run_time
+        << s.histogram;
+        arg.endStructure();
+    return arg;
+}
+
+QDBusArgument const& operator>>(QDBusArgument const& arg, unity::thumbnailer::service::CacheStats& s)
+{
+    arg.beginStructure();
+    arg >> s.cache_path
+        >> s.policy
+        >> s.size
+        >> s.size_in_bytes
+        >> s.max_size_in_bytes
+        >> s.hits
+        >> s.misses
+        >> s.hits_since_last_miss
+        >> s.misses_since_last_hit
+        >> s.longest_hit_run
+        >> s.longest_miss_run
+        >> s.ttl_evictions
+        >> s.lru_evictions
+        >> s.most_recent_hit_time
+        >> s.most_recent_miss_time
+        >> s.longest_hit_run_time
+        >> s.longest_miss_run_time
+        >> s.histogram;
     arg.endStructure();
     return arg;
 }
 
-QDBusArgument const& operator>>(QDBusArgument const& arg, unity::thumbnailer::service::CacheStats& cache_stats)
+QDBusArgument& operator<<(QDBusArgument& arg, unity::thumbnailer::service::AllStats const& s)
 {
     arg.beginStructure();
-    arg >> cache_stats.cache_path
-        >> cache_stats.policy
-        >> cache_stats.size;
+    arg << s.full_size_stats
+        << s.thumbnail_stats
+        << s.failure_stats;
     arg.endStructure();
     return arg;
 }
 
-QDBusArgument& operator<<(QDBusArgument& arg, unity::thumbnailer::service::AllStats const& all_stats)
+QDBusArgument const& operator>>(QDBusArgument const& arg, unity::thumbnailer::service::AllStats& s)
 {
     arg.beginStructure();
-    arg << all_stats.full_size_stats
-        << all_stats.thumbnail_stats
-        << all_stats.failure_stats;
-    arg.endStructure();
-    return arg;
-}
-
-QDBusArgument const& operator>>(QDBusArgument const& arg, unity::thumbnailer::service::AllStats& all_stats)
-{
-    arg.beginStructure();
-    arg >> all_stats.full_size_stats
-        >> all_stats.thumbnail_stats
-        >> all_stats.failure_stats;
+    arg >> s.full_size_stats
+        >> s.thumbnail_stats
+        >> s.failure_stats;
     arg.endStructure();
     return arg;
 }

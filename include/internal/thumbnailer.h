@@ -104,14 +104,14 @@ public:
                                                      std::string const& album,
                                                      QSize const& requested_size);
 
-    struct CacheStats
+    struct AllStats
     {
         core::PersistentCacheStats full_size_stats;
         core::PersistentCacheStats thumbnail_stats;
         core::PersistentCacheStats failure_stats;
     };
 
-    CacheStats stats() const;
+    AllStats stats() const;
 
 private:
     ArtDownloader* downloader() const

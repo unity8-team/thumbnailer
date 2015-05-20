@@ -17,10 +17,10 @@
  *              Michi Henning <michi.henning@canonical.com>
  */
 
-#include "admininterfaceadaptor.h"
 #include "admininterface.h"
-#include "dbusinterfaceadaptor.h"
+#include "admininterfaceadaptor.h"
 #include "dbusinterface.h"
+#include "dbusinterfaceadaptor.h"
 #include "inactivityhandler.h"
 
 #include <QCoreApplication>
@@ -28,6 +28,7 @@
 #include <cstdio>
 #include <iostream>
 
+using namespace unity::thumbnailer::internal;
 using namespace unity::thumbnailer::service;
 
 static const char BUS_NAME[] = "com.canonical.Thumbnailer";
@@ -41,8 +42,9 @@ int main(int argc, char** argv)
     QCoreApplication app(argc, argv);
 
     auto bus = QDBusConnection::sessionBus();
+    auto thumbnailer = std::make_shared<Thumbnailer>();
 
-    unity::thumbnailer::service::DBusInterface server;
+    unity::thumbnailer::service::DBusInterface server(thumbnailer);
     new ThumbnailerAdaptor(&server);
     bus.registerObject(BUS_PATH, &server);
     if (!bus.registerService(BUS_NAME))
@@ -61,7 +63,7 @@ int main(int argc, char** argv)
         exit(1);
     }
 
-    unity::thumbnailer::service::AdminInterface admin_server;
+    unity::thumbnailer::service::AdminInterface admin_server(thumbnailer);
     new ThumbnailerAdminAdaptor(&admin_server);
     bus.registerObject(BUS_ADMIN_PATH, &admin_server);
     if (!bus.registerService(BUS_ADMIN_NAME))

@@ -264,6 +264,7 @@ string RequestBase::thumbnail()
             // have this image in the failure cache.
             if (thumbnailer_->failure_cache_->contains_key(key_))
             {
+                cerr << "returning failure" << endl;
                 return "";
             }
             auto image_data = fetch(target_size);
@@ -603,9 +604,9 @@ unique_ptr<ThumbnailRequest> Thumbnailer::get_artist_art(string const& artist,
     // LCOV_EXCL_STOP
 }
 
-Thumbnailer::CacheStats Thumbnailer::stats() const
+Thumbnailer::AllStats Thumbnailer::stats() const
 {
-    return CacheStats{full_size_cache_->stats(), thumbnail_cache_->stats(), failure_cache_->stats()};
+    return AllStats{full_size_cache_->stats(), thumbnail_cache_->stats(), failure_cache_->stats()};
 }
 
 }  // namespace internal

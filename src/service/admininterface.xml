@@ -1,7 +1,10 @@
 <node>
   <interface name="com.canonical.ThumbnailerAdmin">
     <method name="Stats">
-      <arg direction="out" type="a(suxxxxxxxxxxxttttau)" name="stats" />
+      <!--
+        Note: No type is specified here because we are using custom marshaling.
+      -->
+      <arg direction="out" name="stats" />
       <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="unity::thumbnailer::service::AllStats"/>
     </method>
   </interface>
