@@ -118,6 +118,11 @@ unity::thumbnailer::service::AllStats AdminInterface::Stats()
     return all;
 }
 
+void AdminInterface::Shutdown()
+{
+    app_.quit();
+}
+
 }  // namespace service
 
 }  // namespace thumbnailer

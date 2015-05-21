@@ -90,13 +90,15 @@ protected:
     virtual void TearDown() override
     {
         iface.reset();
+        admin_iface->Shutdown();
+        admin_iface.reset();
         dbusTestRunner.reset();
+
+        art_server_.reset();
 
         unsetenv("THUMBNAILER_MAX_IDLE");
         unsetenv("XDG_CACHE_HOME");
         tempdir.reset();
-
-        art_server_.reset();
     }
 
     unique_ptr<QTemporaryDir> tempdir;

@@ -19,6 +19,7 @@
 #pragma once
 
 #include <QDateTime>
+#include <QDBusArgument>
 
 namespace unity
 {
@@ -63,3 +64,11 @@ struct AllStats
 }  // namespace thumbnailer
 
 }  // namespace unity
+
+Q_DECLARE_METATYPE(unity::thumbnailer::service::AllStats)
+
+QDBusArgument& operator<<(QDBusArgument& arg, unity::thumbnailer::service::CacheStats const& s);
+QDBusArgument const& operator>>(QDBusArgument const& arg, unity::thumbnailer::service::CacheStats& s);
+
+QDBusArgument& operator<<(QDBusArgument& arg, unity::thumbnailer::service::AllStats const& s);
+QDBusArgument const& operator>>(QDBusArgument const& arg, unity::thumbnailer::service::AllStats& s);

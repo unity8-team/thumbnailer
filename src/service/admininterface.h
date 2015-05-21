@@ -21,8 +21,8 @@
 #include <internal/thumbnailer.h>
 #include "stats.h"
 
-#include <QDBusArgument>
 #include <QDBusContext>
+#include <QCoreApplication>
 
 namespace unity
 {
@@ -38,9 +38,11 @@ class AdminInterface : public QObject, protected QDBusContext
     Q_OBJECT
 public:
     AdminInterface(std::shared_ptr<unity::thumbnailer::internal::Thumbnailer> const& thumbnailer,
+                   QCoreApplication& app,
                    QObject* parent = nullptr)
         : QObject(parent)
         , thumbnailer_(thumbnailer)
+        , app_(app)
     {
     }
     ~AdminInterface() = default;
@@ -50,9 +52,11 @@ public:
 
 public Q_SLOTS:
     AllStats Stats();
+    void Shutdown();
 
 private:
     std::shared_ptr<unity::thumbnailer::internal::Thumbnailer> const& thumbnailer_;
+    QCoreApplication& app_;
 };
 
 }  // namespace service
@@ -60,11 +64,3 @@ private:
 }  // namespace thumbnailer
 
 }  // namespace unity
-
-Q_DECLARE_METATYPE(unity::thumbnailer::service::AllStats)
-
-QDBusArgument& operator<<(QDBusArgument& arg, unity::thumbnailer::service::CacheStats const& s);
-QDBusArgument const& operator>>(QDBusArgument const& arg, unity::thumbnailer::service::CacheStats& s);
-
-QDBusArgument& operator<<(QDBusArgument& arg, unity::thumbnailer::service::AllStats const& s);
-QDBusArgument const& operator>>(QDBusArgument const& arg, unity::thumbnailer::service::AllStats& s);

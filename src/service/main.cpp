@@ -46,7 +46,7 @@ int main(int argc, char** argv)
     unity::thumbnailer::service::DBusInterface server(thumbnailer);
     new ThumbnailerAdaptor(&server);
 
-    unity::thumbnailer::service::AdminInterface admin_server(thumbnailer);
+    unity::thumbnailer::service::AdminInterface admin_server(thumbnailer, app);
     new ThumbnailerAdminAdaptor(&admin_server);
 
     bus.registerObject(BUS_THUMBNAILER_PATH, &server);

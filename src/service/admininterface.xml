@@ -7,5 +7,7 @@
       <arg direction="out" name="stats" />
       <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="unity::thumbnailer::service::AllStats"/>
     </method>
+    <method name="Shutdown">
+    </method>
   </interface>
 </node>
