@@ -41,6 +41,8 @@ VideoScreenshotter::VideoScreenshotter(int fd, chrono::milliseconds timeout)
     process_.setProcessChannelMode(QProcess::ForwardedChannels);
     connect(&process_, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
             &VideoScreenshotter::processFinished);
+    connect(&process_, static_cast<void (QProcess::*)(QProcess::ProcessError)>(&QProcess::error), this,
+            &VideoScreenshotter::error);
     connect(&timer_, &QTimer::timeout, this, &VideoScreenshotter::timeout);
 }
 
@@ -51,56 +53,62 @@ void VideoScreenshotter::extract()
     // Gstreamer video pipelines are unstable so we need to run an
     // external helper library.
     char* utildir = getenv("TN_UTILDIR");
-    QString exe_path = utildir ? utildir : SHARE_PRIV_ABS;
-    exe_path += "/vs-thumb";
+    exe_path_ = utildir ? utildir : SHARE_PRIV_ABS;
+    exe_path_ += "/vs-thumb";
 
     if (!tmpfile_.open())
     {
         throw runtime_error("VideoScreenshotter::extract: unable to open temporary file");
     }
     /* Our duplicated file descriptor does not have the FD_CLOEXEC flag set */
-    process_.start(exe_path, {QString("fd://%1").arg(fd_.get()), tmpfile_.fileName()});
+    process_.start(exe_path_, {QString("fd://%1").arg(fd_.get()), tmpfile_.fileName()});
     // Set a watchdog timer in case vs-thumb doesn't finish in time.
     timer_.start(15000);
 }
 
-bool VideoScreenshotter::success()
+string VideoScreenshotter::error_string()
 {
-    return process_.exitStatus() == QProcess::NormalExit && process_.exitCode() == 0;
-}
-
-string VideoScreenshotter::error()
-{
-    switch (process_.exitStatus())
-    {
-        case QProcess::NormalExit:
-            switch (process_.exitCode())
-            {
-                case 0:
-                    return "";
-                case 1:
-                    return "Could not extract screenshot";
-                case 2:
-                    return "Video extractor pipeline failed";
-                default:
-                    return string("Unknown error when trying to extract video screenshot, return value was ") +
-                           to_string(process_.exitCode());
-            }
-        case QProcess::CrashExit:
-            return "vs-thumb subprocess crashed";
-        default:
-            abort();  // Impossible
-    }
+    return error_;
 }
 
 string VideoScreenshotter::data()
 {
+    if (!error_.empty())
+    {
+        throw runtime_error(string("VideoScreenshotter::data(): ") + error_);
+    }
     return read_file(tmpfile_.fileName().toStdString());
 }
 
 void VideoScreenshotter::processFinished()
 {
     timer_.stop();
+    switch (process_.exitStatus())
+    {
+        case QProcess::NormalExit:
+            switch (process_.exitCode())
+            {
+                case 0:
+                    error_ = "";
+                    break;
+                case 1:
+                    error_ = "Could not extract screenshot";
+                    break;
+                case 2:
+                    error_ = "Video extractor pipeline failed";
+                    break;
+                default:
+                    error_ = string("Unknown error when trying to extract video screenshot, return value was ") +
+                             to_string(process_.exitCode());
+                    break;
+            }
+            break;
+        case QProcess::CrashExit:
+            error_ = "vs-thumb subprocess crashed";
+            break;
+        default:
+            abort();  // Impossible
+    }
     Q_EMIT finished();
 }
 
@@ -109,5 +117,18 @@ void VideoScreenshotter::timeout()
     if (process_.state() != QProcess::NotRunning)
     {
         process_.kill();
+    }
+    error_ = "vs-thumb did not return after 15 seconds";
+    Q_EMIT finished();
+}
+
+void VideoScreenshotter::error()
+{
+    if (process_.error() == QProcess::ProcessError::FailedToStart)
+    {
+        timer_.stop();
+        error_ = string("Error starting vs-thumb. QProcess::ProcessError code = ") + to_string(process_.error())
+                 + ", path = " + exe_path_.toStdString();
+        Q_EMIT finished();
     }
 }

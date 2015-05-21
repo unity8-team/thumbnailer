@@ -39,11 +39,6 @@ add_executable(safe_strerror_test safe_strerror_test.cpp)
 target_link_libraries(safe_strerror_test thumbnailer core gtest)
 add_test(safe_strerror_test safe_strerror_test)
 
-add_executable(thumbnailer_test thumbnailer_test.cpp)
-target_link_libraries(thumbnailer_test thumbnailer core gtest)
-add_test(thumbnailer_test thumbnailer_test)
-qt5_use_modules(thumbnailer_test Test)
-
 add_executable(downloadtest download.cpp)
 
 target_link_libraries(downloadtest thumbnailer testutils gtest)
@@ -94,6 +89,21 @@ target_link_libraries(test_dbus
   gtest)
 add_test(test_dbus test_dbus)
 add_dependencies(test_dbus thumbnailer-service)
+
+# Thumbnailer tests
+
+add_executable(thumbnailer_test
+    thumbnailer_test.cpp
+    ${interface_files}
+)
+qt5_use_modules(thumbnailer_test DBus Test)
+target_link_libraries(thumbnailer_test
+    thumbnailer
+    ${QTDBUSTEST_DEPS_LDFLAGS}
+    testutils
+    gtest)
+add_test(thumbnailer_test thumbnailer_test)
+add_dependencies(thumbnailer_test thumbnailer-service)
 
 # Tests for the QML plugin
 add_executable(test_qml test_qml.cpp)

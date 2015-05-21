@@ -127,5 +127,6 @@ enable_coverage_report(
         file_io
         image
         safe_strerror_test
+        test_dbus
         thumbnailer_test
 )

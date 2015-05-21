@@ -53,8 +53,10 @@ string read_file(string const& filename)
     struct stat st;
     if (fstat(fd_ptr.get(), &st) == -1)
     {
+        // LCOV_EXCL_START
         throw runtime_error("read_file(): cannot fstat \"" + filename + "\": " +
-                            safe_strerror(errno));  // LCOV_EXCL_LINE
+                            safe_strerror(errno));
+        // LCOV_EXCL_STOP
     }
 
     string contents;
@@ -63,8 +65,10 @@ string read_file(string const& filename)
     int rc = read(fd_ptr.get(), &contents[0], st.st_size);
     if (rc == -1)
     {
+        // LCOV_EXCL_START
         throw runtime_error("read_file(): cannot read from \"" + filename + "\": " +
-                            safe_strerror(errno));  // LCOV_EXCL_LINE
+                            safe_strerror(errno));
+        // LCOV_EXCL_STOP
     }
     if (rc != st.st_size)
     {
@@ -109,8 +113,10 @@ void write_file(string const& filename, string const& contents)
         int rc = write(fd_ptr.get(), &contents[0], contents.size());
         if (rc == -1)
         {
+        // LCOV_EXCL_START
             throw runtime_error("write_file(): cannot write to \"" + filename + "\": " +
-                                safe_strerror(errno));  // LCOV_EXCL_LINE
+                                safe_strerror(errno));
+        // LCOV_EXCL_STOP
         }
         if (string::size_type(rc) != contents.size())
         {
