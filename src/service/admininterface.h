@@ -22,7 +22,6 @@
 #include "stats.h"
 
 #include <QDBusContext>
-#include <QCoreApplication>
 
 namespace unity
 {
@@ -38,11 +37,9 @@ class AdminInterface : public QObject, protected QDBusContext
     Q_OBJECT
 public:
     AdminInterface(std::shared_ptr<unity::thumbnailer::internal::Thumbnailer> const& thumbnailer,
-                   QCoreApplication& app,
                    QObject* parent = nullptr)
         : QObject(parent)
         , thumbnailer_(thumbnailer)
-        , app_(app)
     {
     }
     ~AdminInterface() = default;
@@ -56,7 +53,6 @@ public Q_SLOTS:
 
 private:
     std::shared_ptr<unity::thumbnailer::internal::Thumbnailer> const& thumbnailer_;
-    QCoreApplication& app_;
 };
 
 }  // namespace service

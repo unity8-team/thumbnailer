@@ -20,6 +20,8 @@
 
 #include <internal/thumbnailer.h>
 
+#include <QCoreApplication>
+
 #include <iomanip>
 #include <sstream>
 
@@ -120,7 +122,7 @@ unity::thumbnailer::service::AllStats AdminInterface::Stats()
 
 void AdminInterface::Shutdown()
 {
-    app_.quit();
+    QCoreApplication::instance()->quit();
 }
 
 }  // namespace service
