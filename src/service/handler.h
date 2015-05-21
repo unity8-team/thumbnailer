@@ -45,14 +45,14 @@ class Handler : public QObject
 {
     Q_OBJECT
 public:
-    Handler(const QDBusConnection& bus,
-            const QDBusMessage& message,
+    Handler(QDBusConnection const& bus,
+            QDBusMessage const& message,
             std::shared_ptr<QThreadPool> check_pool,
             std::shared_ptr<QThreadPool> create_pool,
             std::unique_ptr<internal::ThumbnailRequest>&& request);
     ~Handler();
 
-    Handler(const Handler&) = delete;
+    Handler(Handler const&) = delete;
     Handler& operator=(Handler&) = delete;
 
 
@@ -70,8 +70,8 @@ Q_SIGNALS:
     void finished();
 
 private:
-    void sendThumbnail(const QDBusUnixFileDescriptor& unix_fd);
-    void sendError(const QString& error);
+    void sendThumbnail(QDBusUnixFileDescriptor const& unix_fd);
+    void sendError(QString const& error);
     QDBusUnixFileDescriptor check();
     QDBusUnixFileDescriptor create();
 

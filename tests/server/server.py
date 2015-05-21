@@ -48,6 +48,11 @@ class UbuntuAlbumImagesProvider(FileReaderProvider):
             seconds = int(self.get_argument('album', None))
             time.sleep(seconds)
             self.write("TEST_SLEEP_TEST_%s" % seconds)
+        elif self.get_argument('artist', None) == "error":
+            error_code = self.get_argument('album', None)
+            self.set_status(int(error_code))
+            content = "<html><body>" + error_code + " ERROR</body></html>"
+            self.write(content)
         else:
             file = 'images/%s_%s_album' % (self.get_argument('artist', None ), self.get_argument('album', None ))
             self.read_file(file)
@@ -61,6 +66,11 @@ class UbuntuArtistImagesProvider(FileReaderProvider):
             seconds = int(self.get_argument('album', None))
             time.sleep(seconds)
             self.write("TEST_SLEEP_TEST_%s" % seconds)
+        elif self.get_argument('artist', None) == "error":
+            error_code = self.get_argument('album', None)
+            self.set_status(int(error_code))
+            content = "<html><body>" + error_code + " ERROR</body></html>"
+            self.write(content)
         else:
             file = 'images/%s_%s' % (self.get_argument('artist', None ), self.get_argument('album', None ))
             self.read_file(file)
