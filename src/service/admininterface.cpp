@@ -71,9 +71,9 @@ QDateTime to_date_time(chrono::system_clock::time_point tp)
     return QDateTime::fromMSecsSinceEpoch(duration_cast<milliseconds>(tp.time_since_epoch()).count() - adjustment_ms);
 }
 
-QList<uint32_t> to_list(core::PersistentCacheStats::Histogram const& histogram)
+QList<quint32> to_list(core::PersistentCacheStats::Histogram const& histogram)
 {
-    QList<uint32_t> l;
+    QList<quint32> l;
     for (auto c : histogram)
     {
         l.append(c);
@@ -86,18 +86,18 @@ CacheStats to_cache_stats(core::PersistentCacheStats const& st)
     return
     {
         QString(st.cache_path().c_str()),
-        static_cast<uint32_t>(st.policy()),
-        static_cast<qlonglong>(st.size()),
-        static_cast<qlonglong>(st.size_in_bytes()),
-        static_cast<qlonglong>(st.max_size_in_bytes()),
-        static_cast<qlonglong>(st.hits()),
-        static_cast<qlonglong>(st.misses()),
-        static_cast<qlonglong>(st.hits_since_last_miss()),
-        static_cast<qlonglong>(st.misses_since_last_hit()),
-        static_cast<qlonglong>(st.longest_hit_run()),
-        static_cast<qlonglong>(st.longest_miss_run()),
-        static_cast<qlonglong>(st.ttl_evictions()),
-        static_cast<qlonglong>(st.lru_evictions()),
+        quint32(st.policy()),
+        qint64(st.size()),
+        qint64(st.size_in_bytes()),
+        qint64(st.max_size_in_bytes()),
+        qint64(st.hits()),
+        qint64(st.misses()),
+        qint64(st.hits_since_last_miss()),
+        qint64(st.misses_since_last_hit()),
+        qint64(st.longest_hit_run()),
+        qint64(st.longest_miss_run()),
+        qint64(st.ttl_evictions()),
+        qint64(st.lru_evictions()),
         to_date_time(st.most_recent_hit_time()),
         to_date_time(st.most_recent_miss_time()),
         to_date_time(st.longest_hit_run_time()),

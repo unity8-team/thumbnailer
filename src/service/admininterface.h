@@ -36,23 +36,23 @@ namespace service
 struct CacheStats
 {
     QString cache_path;
-    uint32_t policy;
-    qlonglong size;
-    qlonglong size_in_bytes;
-    qlonglong max_size_in_bytes;
-    qlonglong hits;
-    qlonglong misses;
-    qlonglong hits_since_last_miss;
-    qlonglong misses_since_last_hit;
-    qlonglong longest_hit_run;
-    qlonglong longest_miss_run;
-    qlonglong ttl_evictions;
-    qlonglong lru_evictions;
+    quint32 policy;
+    qint64 size;
+    qint64 size_in_bytes;
+    qint64 max_size_in_bytes;
+    qint64 hits;
+    qint64 misses;
+    qint64 hits_since_last_miss;
+    qint64 misses_since_last_hit;
+    qint64 longest_hit_run;
+    qint64 longest_miss_run;
+    qint64 ttl_evictions;
+    qint64 lru_evictions;
     QDateTime most_recent_hit_time;
     QDateTime most_recent_miss_time;
     QDateTime longest_hit_run_time;
     QDateTime longest_miss_run_time;
-    QList<uint32_t> histogram;
+    QList<quint32> histogram;
 };
 
 struct AllStats
