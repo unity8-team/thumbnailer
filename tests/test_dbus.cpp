@@ -173,12 +173,16 @@ TEST_F(DBusTest, thumbnail_wrong_fd_fails)
     EXPECT_TRUE(boost::contains(message, " file descriptor does not refer to file ")) << message;
 }
 
+Q_DECLARE_METATYPE(QProcess::ExitStatus)  // Avoid noise from signal spy.
+
 TEST_F(DBusTest, test_inactivity_exit)
 {
     // basic setup to the query
     const char* filename = TESTDATADIR "/testimage.jpg";
     FdPtr fd(open(filename, O_RDONLY), do_close);
     ASSERT_GE(fd.get(), 0);
+
+    qRegisterMetaType<QProcess::ExitStatus>("QProcess::ExitStatus");  // Avoid noise from signal spy.
 
     QSignalSpy spy_exit(&dbusService->underlyingProcess(),
                         static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished));
