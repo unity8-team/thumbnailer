@@ -87,7 +87,6 @@ qt5_add_dbus_interface(
   "${CMAKE_SOURCE_DIR}/src/service/admininterface.xml"
   thumbnaileradmininterface)
 
-message("F: ${admininterface_files}")
 add_executable(test_dbus
   test_dbus.cpp
   ${CMAKE_SOURCE_DIR}/src/service/admininterface.cpp
