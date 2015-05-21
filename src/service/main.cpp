@@ -32,9 +32,8 @@ using namespace unity::thumbnailer::internal;
 using namespace unity::thumbnailer::service;
 
 static const char BUS_NAME[] = "com.canonical.Thumbnailer";
-static const char BUS_PATH[] = "/com/canonical/Thumbnailer";
 
-static const char BUS_ADMIN_NAME[] = "com.canonical.ThumbnailerAdmin";
+static const char BUS_PATH[] = "/com/canonical/Thumbnailer";
 static const char BUS_ADMIN_PATH[] = "/com/canonical/ThumbnailerAdmin";
 
 int main(int argc, char** argv)
@@ -46,7 +45,15 @@ int main(int argc, char** argv)
 
     unity::thumbnailer::service::DBusInterface server(thumbnailer);
     new ThumbnailerAdaptor(&server);
+
+    unity::thumbnailer::service::AdminInterface admin_server(thumbnailer);
+    new ThumbnailerAdminAdaptor(&admin_server);
+
     bus.registerObject(BUS_PATH, &server);
+    bus.registerObject(BUS_ADMIN_PATH, &admin_server);
+
+    qDBusRegisterMetaType<unity::thumbnailer::service::AllStats>();
+
     if (!bus.registerService(BUS_NAME))
     {
         fprintf(stderr, "Could not acquire D-Bus name %s.\n", BUS_NAME);
@@ -62,16 +69,6 @@ int main(int argc, char** argv)
         std::cerr << e.what() << std::endl;
         exit(1);
     }
-
-    unity::thumbnailer::service::AdminInterface admin_server(thumbnailer);
-    new ThumbnailerAdminAdaptor(&admin_server);
-    bus.registerObject(BUS_ADMIN_PATH, &admin_server);
-    if (!bus.registerService(BUS_ADMIN_NAME))
-    {
-        fprintf(stderr, "Could not acquire D-Bus name %s.\n", BUS_ADMIN_NAME);
-        return 0;
-    }
-    qDBusRegisterMetaType<unity::thumbnailer::service::AllStats>();
 
     return app.exec();
 }

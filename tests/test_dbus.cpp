@@ -27,9 +27,8 @@ using namespace std;
 using namespace unity::thumbnailer::internal;
 
 static const char BUS_NAME[] = "com.canonical.Thumbnailer";
-static const char BUS_PATH[] = "/com/canonical/Thumbnailer";
 
-static const char BUS_ADMIN_NAME[] = "com.canonical.ThumbnailerAdmin";
+static const char BUS_PATH[] = "/com/canonical/Thumbnailer";
 static const char BUS_ADMIN_PATH[] = "/com/canonical/ThumbnailerAdmin";
 
 template <typename T>
@@ -78,7 +77,7 @@ protected:
                                      dbusTestRunner->sessionConnection()));
 
         admin_iface.reset(
-            new ThumbnailerAdminInterface(BUS_ADMIN_NAME, BUS_ADMIN_PATH,
+            new ThumbnailerAdminInterface(BUS_NAME, BUS_ADMIN_PATH,
                                           dbusTestRunner->sessionConnection()));
         qDBusRegisterMetaType<unity::thumbnailer::service::AllStats>();
     }
@@ -288,7 +287,7 @@ TEST_F(DBusTest, stats)
     }
 
     reply = admin_iface->Stats();
-    ASSERT_TRUE(reply.isValid());
+    ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
 
     {
         CacheStats s = reply.value().full_size_stats;
@@ -339,7 +338,7 @@ TEST_F(DBusTest, stats)
     }
 
     reply = admin_iface->Stats();
-    ASSERT_TRUE(reply.isValid());
+    ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
 
     {
         CacheStats s = reply.value().thumbnail_stats;
@@ -382,7 +381,7 @@ TEST_F(DBusTest, stats)
     }
 
     reply = admin_iface->Stats();
-    ASSERT_TRUE(reply.isValid());
+    ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
 
     {
         CacheStats s = reply.value().failure_stats;
