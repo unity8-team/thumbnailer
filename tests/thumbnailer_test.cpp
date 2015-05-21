@@ -353,36 +353,16 @@ class RemoteServer : public ::testing::Test
 protected:
     static void SetUpTestCase()
     {
-        static const char BUS_NAME[] = "com.canonical.Thumbnailer";
-        static const char BUS_PATH[] = "/com/canonical/Thumbnailer";
-
         // start fake server
         art_server_.reset(new ArtServer());
 
         // start dbus service
         tempdir.reset(new QTemporaryDir(TESTBINDIR "/dbus-test.XXXXXX"));
         setenv("XDG_CACHE_HOME", (tempdir->path() + "/cache").toUtf8().data(), true);
-
-        dbusTestRunner_.reset(new QtDBusTest::DBusTestRunner());
-
-        // set 3 seconds as max idle time
-        setenv("THUMBNAILER_MAX_IDLE", "1000", true);
-
-        dbusService_.reset(new QtDBusTest::QProcessDBusService(
-            BUS_NAME, QDBusConnection::SessionBus, TESTBINDIR "/../src/service/thumbnailer-service", QStringList()));
-        dbusTestRunner_->registerService(dbusService_);
-        dbusTestRunner_->startServices();
-
-        iface_.reset(
-            new ThumbnailerInterface(BUS_NAME, BUS_PATH,
-                                     dbusTestRunner_->sessionConnection()));
     }
 
     static void TearDownTestCase()
     {
-        iface_.reset();
-        dbusService_.reset();
-        dbusTestRunner_.reset();
         art_server_.reset();
 
         boost::filesystem::remove_all(ThumbnailerTest::tempdir_path());
@@ -393,15 +373,9 @@ protected:
     }
 
     static unique_ptr<ArtServer> art_server_;
-    static unique_ptr<QtDBusTest::DBusTestRunner> dbusTestRunner_;
-    static QSharedPointer<QtDBusTest::QProcessDBusService> dbusService_;
-    static unique_ptr<ThumbnailerInterface> iface_;
 };
 
 unique_ptr<ArtServer> RemoteServer::art_server_;
-unique_ptr<QtDBusTest::DBusTestRunner> RemoteServer::dbusTestRunner_;
-QSharedPointer<QtDBusTest::QProcessDBusService> RemoteServer::dbusService_;
-unique_ptr<ThumbnailerInterface> RemoteServer::iface_;
 
 TEST_F(RemoteServer, basic)
 {
