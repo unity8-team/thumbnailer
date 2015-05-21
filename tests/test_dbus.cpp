@@ -165,13 +165,16 @@ TEST_F(DBusTest, duplicate_requests)
         "metallica", "load", QSize(24, 24));
     QDBusPendingReply<QDBusUnixFileDescriptor> reply2 = iface->GetAlbumArt(
         "metallica", "load", QSize(48, 48));
+    QDBusPendingReply<QDBusUnixFileDescriptor> reply3 = iface->GetAlbumArt(
+        "metallica", "load", QSize(72, 72));
 
     // The second request should have only been started once the first
-    // is finished.
+    // is finished.  The third is delayed until after the second.
     QDBusPendingCallWatcher watcher(reply2);
     QSignalSpy spy(&watcher, &QDBusPendingCallWatcher::finished);
     ASSERT_TRUE(spy.wait());
     EXPECT_TRUE(reply1.isFinished());
+    EXPECT_FALSE(reply3.isFinished());
 
     EXPECT_FALSE(reply1.isError());
     EXPECT_FALSE(reply2.isError());
