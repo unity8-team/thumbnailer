@@ -68,7 +68,7 @@ class ThumbnailerTest : public ::testing::Test
 public:
     static string tempdir_path()
     {
-        return tempdir->path().toUtf8().data();
+        return tempdir->path().toStdString();
     }
 
 protected:
