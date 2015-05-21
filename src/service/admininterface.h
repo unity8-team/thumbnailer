@@ -19,10 +19,10 @@
 #pragma once
 
 #include <internal/thumbnailer.h>
+#include "stats.h"
 
 #include <QDBusArgument>
 #include <QDBusContext>
-#include <QDateTime>
 
 namespace unity
 {
@@ -32,35 +32,6 @@ namespace thumbnailer
 
 namespace service
 {
-
-struct CacheStats
-{
-    QString cache_path;
-    quint32 policy;
-    qint64 size;
-    qint64 size_in_bytes;
-    qint64 max_size_in_bytes;
-    qint64 hits;
-    qint64 misses;
-    qint64 hits_since_last_miss;
-    qint64 misses_since_last_hit;
-    qint64 longest_hit_run;
-    qint64 longest_miss_run;
-    qint64 ttl_evictions;
-    qint64 lru_evictions;
-    QDateTime most_recent_hit_time;
-    QDateTime most_recent_miss_time;
-    QDateTime longest_hit_run_time;
-    QDateTime longest_miss_run_time;
-    QList<quint32> histogram;
-};
-
-struct AllStats
-{
-    CacheStats full_size_stats;
-    CacheStats thumbnail_stats;
-    CacheStats failure_stats;
-};
 
 class AdminInterface : public QObject, protected QDBusContext
 {

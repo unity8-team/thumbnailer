@@ -9,6 +9,7 @@ add_executable(thumbnailer-service
   handler.cpp
   inactivityhandler.cpp
   main.cpp
+  stats.cpp
   ${adaptor_files}
   )
 

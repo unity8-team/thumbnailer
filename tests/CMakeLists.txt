@@ -90,6 +90,7 @@ qt5_add_dbus_interface(
 add_executable(test_dbus
   test_dbus.cpp
   ${CMAKE_SOURCE_DIR}/src/service/admininterface.cpp
+  ${CMAKE_SOURCE_DIR}/src/service/stats.cpp
   ${interface_files})
 qt5_use_modules(test_dbus DBus Test)
 target_link_libraries(test_dbus
