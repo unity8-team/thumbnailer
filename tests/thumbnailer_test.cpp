@@ -522,6 +522,15 @@ TEST_F(RemoteServer, server_error)
     }
 }
 
+TEST_F(RemoteServer, album_and_artist_have_distinct_keys)
+{
+    Thumbnailer tn;
+
+    auto album_request = tn.get_album_art("metallica", "load", QSize());
+    auto artist_request = tn.get_artist_art("metallica", "load", QSize());
+    EXPECT_NE(album_request->key(), artist_request->key());
+}
+
 class DeadServer : public ::testing::Test
 {
 protected:
