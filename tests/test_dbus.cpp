@@ -28,7 +28,7 @@ using namespace unity::thumbnailer::internal;
 
 static const char BUS_NAME[] = "com.canonical.Thumbnailer";
 
-static const char BUS_PATH[] = "/com/canonical/Thumbnailer";
+static const char BUS_THUMBNAILER_PATH[] = "/com/canonical/Thumbnailer";
 static const char BUS_ADMIN_PATH[] = "/com/canonical/ThumbnailerAdmin";
 
 template <typename T>
@@ -73,7 +73,7 @@ protected:
         dbusTestRunner->startServices();
 
         iface.reset(
-            new ThumbnailerInterface(BUS_NAME, BUS_PATH,
+            new ThumbnailerInterface(BUS_NAME, BUS_THUMBNAILER_PATH,
                                      dbusTestRunner->sessionConnection()));
 
         admin_iface.reset(
@@ -172,16 +172,12 @@ TEST_F(DBusTest, thumbnail_wrong_fd_fails)
     EXPECT_TRUE(boost::contains(message, " file descriptor does not refer to file ")) << message;
 }
 
-Q_DECLARE_METATYPE(QProcess::ExitStatus)  // Avoid noise from signal spy.
-
 TEST_F(DBusTest, test_inactivity_exit)
 {
     // basic setup to the query
     const char* filename = TESTDATADIR "/testimage.jpg";
     FdPtr fd(open(filename, O_RDONLY), do_close);
     ASSERT_GE(fd.get(), 0);
-
-    qRegisterMetaType<QProcess::ExitStatus>("QProcess::ExitStatus");  // Avoid noise from signal spy.
 
     QSignalSpy spy_exit(&dbusService->underlyingProcess(),
                         static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished));
@@ -391,9 +387,13 @@ TEST_F(DBusTest, stats)
     }
 }
 
+Q_DECLARE_METATYPE(QProcess::ExitStatus)  // Avoid noise from signal spy.
+
 int main(int argc, char** argv)
 {
     QCoreApplication app(argc, argv);
+    qRegisterMetaType<QProcess::ExitStatus>("QProcess::ExitStatus");  // Avoid noise from signal spy.
+
     setenv("TN_UTILDIR", TESTBINDIR "/../src/vs-thumb", true);
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

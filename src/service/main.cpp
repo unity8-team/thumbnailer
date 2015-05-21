@@ -33,7 +33,7 @@ using namespace unity::thumbnailer::service;
 
 static const char BUS_NAME[] = "com.canonical.Thumbnailer";
 
-static const char BUS_PATH[] = "/com/canonical/Thumbnailer";
+static const char BUS_THUMBNAILER_PATH[] = "/com/canonical/Thumbnailer";
 static const char BUS_ADMIN_PATH[] = "/com/canonical/ThumbnailerAdmin";
 
 int main(int argc, char** argv)
@@ -49,7 +49,7 @@ int main(int argc, char** argv)
     unity::thumbnailer::service::AdminInterface admin_server(thumbnailer);
     new ThumbnailerAdminAdaptor(&admin_server);
 
-    bus.registerObject(BUS_PATH, &server);
+    bus.registerObject(BUS_THUMBNAILER_PATH, &server);
     bus.registerObject(BUS_ADMIN_PATH, &admin_server);
 
     qDBusRegisterMetaType<unity::thumbnailer::service::AllStats>();
