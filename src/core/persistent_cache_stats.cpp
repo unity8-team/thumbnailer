@@ -167,22 +167,22 @@ int64_t PersistentCacheStats::lru_evictions() const noexcept
     return p_->lru_evictions_;
 }
 
-chrono::steady_clock::time_point PersistentCacheStats::most_recent_hit_time() const noexcept
+chrono::system_clock::time_point PersistentCacheStats::most_recent_hit_time() const noexcept
 {
     return p_->most_recent_hit_time_;
 }
 
-chrono::steady_clock::time_point PersistentCacheStats::most_recent_miss_time() const noexcept
+chrono::system_clock::time_point PersistentCacheStats::most_recent_miss_time() const noexcept
 {
     return p_->most_recent_miss_time_;
 }
 
-chrono::steady_clock::time_point PersistentCacheStats::longest_hit_run_time() const noexcept
+chrono::system_clock::time_point PersistentCacheStats::longest_hit_run_time() const noexcept
 {
     return p_->longest_hit_run_time_;
 }
 
-chrono::steady_clock::time_point PersistentCacheStats::longest_miss_run_time() const noexcept
+chrono::system_clock::time_point PersistentCacheStats::longest_miss_run_time() const noexcept
 {
     return p_->longest_miss_run_time_;
 }

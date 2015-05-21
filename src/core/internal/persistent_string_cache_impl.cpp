@@ -262,19 +262,19 @@ string k_etime_index(int64_t etime, string const& key)
 
 // Little helpers to get milliseconds since the epoch.
 
-int64_t ticks(chrono::time_point<chrono::steady_clock> tp)
+int64_t ticks(chrono::time_point<chrono::system_clock> tp)
 {
     return chrono::duration_cast<chrono::milliseconds>(tp.time_since_epoch()).count();
 }
 
 int64_t now_ticks()
 {
-    return ticks(chrono::steady_clock::now());
+    return ticks(chrono::system_clock::now());
 }
 
 // Usually zero, but the standard doesn't guarantee this.
 
-static auto const clock_origin = ticks(chrono::steady_clock::time_point());
+static auto const clock_origin = ticks(chrono::system_clock::time_point());
 
 int64_t epoch_ticks()
 {
@@ -554,7 +554,7 @@ PersistentCacheStats PersistentStringCacheImpl::stats() const
 
 bool PersistentStringCacheImpl::put(string const& key,
                                     string const& value,
-                                    chrono::time_point<chrono::steady_clock> expiry_time)
+                                    chrono::time_point<chrono::system_clock> expiry_time)
 {
     return put(key, value.data(), value.size(), nullptr, 0, expiry_time);
 }
@@ -562,7 +562,7 @@ bool PersistentStringCacheImpl::put(string const& key,
 bool PersistentStringCacheImpl::put(string const& key,
                                     char const* value_data,
                                     int64_t value_size,
-                                    chrono::time_point<chrono::steady_clock> expiry_time)
+                                    chrono::time_point<chrono::system_clock> expiry_time)
 {
     return put(key, value_data, value_size, nullptr, 0, expiry_time);
 }
@@ -570,7 +570,7 @@ bool PersistentStringCacheImpl::put(string const& key,
 bool PersistentStringCacheImpl::put(string const& key,
                                     string const& value,
                                     string const* metadata,
-                                    chrono::time_point<chrono::steady_clock> expiry_time)
+                                    chrono::time_point<chrono::system_clock> expiry_time)
 {
     assert(metadata);
     return put(key,
@@ -584,7 +584,7 @@ bool PersistentStringCacheImpl::put(string const& key,
                                     int64_t value_size,
                                     char const* metadata_data,
                                     int64_t metadata_size,
-                                    chrono::time_point<chrono::steady_clock> expiry_time)
+                                    chrono::time_point<chrono::system_clock> expiry_time)
 {
     if (key.empty())
     {
@@ -1037,7 +1037,7 @@ void PersistentStringCacheImpl::invalidate()
     stats_->cache_size_ = 0;
 }
 
-bool PersistentStringCacheImpl::touch(string const& key, chrono::time_point<chrono::steady_clock> expiry_time)
+bool PersistentStringCacheImpl::touch(string const& key, chrono::time_point<chrono::system_clock> expiry_time)
 {
     if (key.empty())
     {

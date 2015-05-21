@@ -2,6 +2,7 @@
 #include <internal/image.h>
 #include <internal/raii.h>
 #include "thumbnailerinterface.h"
+#include "utils/artserver.h"
 
 #include <memory>
 #include <string>
@@ -53,15 +54,7 @@ protected:
     virtual void SetUp() override
     {
         // start fake server
-        fake_downloader_server_.setProcessChannelMode(QProcess::ForwardedErrorChannel);
-        fake_downloader_server_.start("/usr/bin/python3", QStringList() << FAKE_DOWNLOADER_SERVER);
-        ASSERT_TRUE(fake_downloader_server_.waitForStarted()) << "Failed to launch " << FAKE_DOWNLOADER_SERVER;
-        ASSERT_GT(fake_downloader_server_.pid(), 0);
-        ASSERT_TRUE(fake_downloader_server_.waitForReadyRead());
-        QString port = QString::fromUtf8(fake_downloader_server_.readAllStandardOutput()).trimmed();
-
-        QString apiroot = QString("http://127.0.0.1:%1").arg(port);
-        setenv("THUMBNAILER_UBUNTU_APIROOT", apiroot.toUtf8().constData(), true);
+        art_server_.reset(new ArtServer());
 
         // start dbus service
         tempdir.reset(new QTemporaryDir(TESTBINDIR "/dbus-test.XXXXXX"));
@@ -91,20 +84,14 @@ protected:
         unsetenv("XDG_CACHE_HOME");
         tempdir.reset();
 
-        fake_downloader_server_.terminate();
-        if (!fake_downloader_server_.waitForFinished())
-        {
-            qCritical() << "Failed to terminate fake server";
-        }
-        unsetenv("THUMBNAILER_UBUNTU_APIROOT");
+        art_server_.reset();
     }
 
     std::unique_ptr<QTemporaryDir> tempdir;
     std::unique_ptr<QtDBusTest::DBusTestRunner> dbusTestRunner;
     std::unique_ptr<ThumbnailerInterface> iface;
     QSharedPointer<QtDBusTest::QProcessDBusService> dbusService;
-    QProcess fake_downloader_server_;
-    QString apiroot_;
+    std::unique_ptr<ArtServer> art_server_;
 };
 
 TEST_F(DBusTest, get_album_art)

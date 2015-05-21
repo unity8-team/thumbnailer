@@ -22,10 +22,14 @@
 #include <internal/image.h>
 #include <internal/raii.h>
 #include <testsetup.h>
+#include "thumbnailerinterface.h"
+#include "utils/artserver.h"
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <gtest/gtest.h>
+#include <libqtdbustest/DBusTestRunner.h>
+#include <libqtdbustest/QProcessDBusService.h>
 #include <QCoreApplication>
 #include <QDebug>
 #include <QProcess>
@@ -349,33 +353,55 @@ class RemoteServer : public ::testing::Test
 protected:
     static void SetUpTestCase()
     {
-        fake_downloader_server_.setProcessChannelMode(QProcess::ForwardedErrorChannel);
-        fake_downloader_server_.start("/usr/bin/python3", QStringList() << FAKE_DOWNLOADER_SERVER);
-        ASSERT_TRUE(fake_downloader_server_.waitForStarted()) << "Failed to launch " << FAKE_DOWNLOADER_SERVER;
-        ASSERT_GT(fake_downloader_server_.pid(), 0);
-        ASSERT_TRUE(fake_downloader_server_.waitForReadyRead());
-        QString port = QString::fromUtf8(fake_downloader_server_.readAllStandardOutput()).trimmed();
+        static const char BUS_NAME[] = "com.canonical.Thumbnailer";
+        static const char BUS_PATH[] = "/com/canonical/Thumbnailer";
 
-        auto apiroot = QString("http://127.0.0.1:%1").arg(port);
-        setenv("THUMBNAILER_UBUNTU_APIROOT", apiroot.toUtf8().constData(), true);
+        // start fake server
+        art_server_.reset(new ArtServer());
+
+        // start dbus service
+        tempdir.reset(new QTemporaryDir(TESTBINDIR "/dbus-test.XXXXXX"));
+        setenv("XDG_CACHE_HOME", (tempdir->path() + "/cache").toUtf8().data(), true);
+
+        dbusTestRunner_.reset(new QtDBusTest::DBusTestRunner());
+
+        // set 3 seconds as max idle time
+        setenv("THUMBNAILER_MAX_IDLE", "1000", true);
+
+        dbusService_.reset(new QtDBusTest::QProcessDBusService(
+            BUS_NAME, QDBusConnection::SessionBus, TESTBINDIR "/../src/service/thumbnailer-service", QStringList()));
+        dbusTestRunner_->registerService(dbusService_);
+        dbusTestRunner_->startServices();
+
+        iface_.reset(
+            new ThumbnailerInterface(BUS_NAME, BUS_PATH,
+                                     dbusTestRunner_->sessionConnection()));
     }
 
     static void TearDownTestCase()
     {
-        fake_downloader_server_.terminate();
-        if (!fake_downloader_server_.waitForFinished())
-        {
-            qCritical() << "Failed to terminate fake server";
-        }
-        unsetenv("THUMBNAILER_UBUNTU_APIROOT");
+        iface_.reset();
+        dbusService_.reset();
+        dbusTestRunner_.reset();
+        art_server_.reset();
 
         boost::filesystem::remove_all(ThumbnailerTest::tempdir_path());
+
+        tempdir.reset();
+        unsetenv("THUMBNAILER_MAX_IDLE");
+        unsetenv("XDG_CACHE_HOME");
     }
 
-    static QProcess fake_downloader_server_;
+    static unique_ptr<ArtServer> art_server_;
+    static unique_ptr<QtDBusTest::DBusTestRunner> dbusTestRunner_;
+    static QSharedPointer<QtDBusTest::QProcessDBusService> dbusService_;
+    static unique_ptr<ThumbnailerInterface> iface_;
 };
 
-QProcess RemoteServer::fake_downloader_server_;
+unique_ptr<ArtServer> RemoteServer::art_server_;
+unique_ptr<QtDBusTest::DBusTestRunner> RemoteServer::dbusTestRunner_;
+QSharedPointer<QtDBusTest::QProcessDBusService> RemoteServer::dbusService_;
+unique_ptr<ThumbnailerInterface> RemoteServer::iface_;
 
 TEST_F(RemoteServer, basic)
 {

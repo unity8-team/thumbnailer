@@ -269,11 +269,11 @@ string RequestBase::thumbnail()
             auto image_data = fetch(target_size);
             switch (image_data.status)
             {
-                case FetchStatus::downloaded:      // Success, we'll return the thumbnail below.
+                case FetchStatus::downloaded:  // Success, we'll return the thumbnail below.
                     break;
                 case FetchStatus::needs_download:  // Caller will call download().
                     return "";
-                case FetchStatus::no_network:      // Network down, try again next time.
+                case FetchStatus::no_network:  // Network down, try again next time.
                     return "";
                 case FetchStatus::not_found:
                 {
@@ -282,10 +282,10 @@ string RequestBase::thumbnail()
                     // changed (say, such that artwork is added), the file's key will change too.
                     // For remote files, we try again after one week.
                     // TODO: Make interval configurable.
-                    chrono::time_point<std::chrono::steady_clock> later;  // Infinite expiry time
+                    chrono::time_point<std::chrono::system_clock> later;  // Infinite expiry time
                     if (image_data.location == Location::remote)
                     {
-                        later = chrono::steady_clock::now() + chrono::hours(24 * 7);  // One week
+                        later = chrono::system_clock::now() + chrono::hours(24 * 7);  // One week
                     }
                     thumbnailer_->failure_cache_->put(key_, "", later);
                     return "";
@@ -298,15 +298,16 @@ string RequestBase::thumbnail()
                     // changed, (say, its permissions change), the file's key will change too.
                     // For remote files, we try again after two hours.
                     // TODO: Make interval configurable.
-                    chrono::time_point<std::chrono::steady_clock> later;  // Infinite expiry time
+                    chrono::time_point<std::chrono::system_clock> later;  // Infinite expiry time
                     if (image_data.location == Location::remote)
                     {
-                        later = chrono::steady_clock::now() + chrono::hours(2);  // Two hours before we try again.
+                        later = chrono::system_clock::now() + chrono::hours(2);  // Two hours before we try again.
                     }
                     thumbnailer_->failure_cache_->put(key_, "", later);
                     // TODO: That's really poor. Should store the error data so we can produce
                     //       a proper diagnostic.
                     throw runtime_error("fetch() failed");
+                    return "";
                 }
                 default:
                     abort();  // LCOV_EXCL_LINE  // Impossible
