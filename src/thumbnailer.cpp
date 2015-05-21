@@ -75,6 +75,10 @@ class RequestBase : public ThumbnailRequest
 public:
     virtual ~RequestBase() = default;
     string thumbnail() override;
+    string const& key() const override
+    {
+        return key_;
+    }
     enum class FetchStatus
     {
         needs_download,
