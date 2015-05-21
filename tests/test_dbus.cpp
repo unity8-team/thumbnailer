@@ -235,7 +235,7 @@ TEST_F(DBusTest, stats)
     using namespace unity::thumbnailer::service;
 
     QDBusReply<AllStats> reply = admin_iface->Stats();
-    ASSERT_TRUE(reply.isValid());
+    ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
 
     {
         CacheStats s = reply.value().full_size_stats;
