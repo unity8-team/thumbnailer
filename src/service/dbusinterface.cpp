@@ -28,7 +28,9 @@
 #include <QDebug>
 #include <QThreadPool>
 
+#include <algorithm>
 #include <map>
+#include <vector>
 #include <sstream>
 
 using namespace std;
@@ -50,6 +52,7 @@ struct DBusInterfacePrivate
 {
     std::shared_ptr<Thumbnailer> thumbnailer = std::make_shared<Thumbnailer>();
     std::map<Handler*, std::unique_ptr<Handler>> requests;
+    std::map<string, std::vector<Handler*>> request_keys;
     std::shared_ptr<QThreadPool> check_thread_pool = std::make_shared<QThreadPool>();
     std::shared_ptr<QThreadPool> create_thread_pool = std::make_shared<QThreadPool>();
 };
@@ -110,7 +113,23 @@ void DBusInterface::queueRequest(Handler* handler)
     Q_EMIT endInactivity();
     connect(handler, &Handler::finished, this, &DBusInterface::requestFinished);
     setDelayedReply(true);
-    handler->begin();
+
+    std::vector<Handler*> &requests_for_key = p->request_keys[handler->key()];
+    if (requests_for_key.size() == 0)
+    {
+        /* There are no other concurrent requests for this item, so
+         * begin immediately. */
+        handler->begin();
+    }
+    else
+    {
+        /* There are other requests for this item, so chain this
+         * request to wait for them to complete first.  This way we
+         * can take advantage of any cached downloads or failures. */
+        connect(requests_for_key.back(), &Handler::finished,
+                handler, &Handler::begin);
+    }
+    requests_for_key.push_back(handler);
 }
 
 void DBusInterface::requestFinished()
@@ -126,6 +145,15 @@ void DBusInterface::requestFinished()
     {
         qWarning() << "finished() called on unknown handler" << handler;
     }
+
+    // Remove ourselves from the chain of requests
+    std::vector<Handler*> &requests = p->request_keys[handler->key()];
+    requests.erase(std::remove(requests.begin(), requests.end(), handler), requests.end());
+    if (requests.size() == 0)
+    {
+        p->request_keys.erase(handler->key());
+    }
+
     if (p->requests.empty())
     {
         Q_EMIT startInactivity();

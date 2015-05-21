@@ -150,6 +150,11 @@ Handler::~Handler()
     qDebug() << "Handler" << this << "destroyed";
 }
 
+std::string const& Handler::key() const
+{
+    return p->request->key();
+}
+
 void Handler::begin()
 {
     auto do_check = [this]() -> FdOrError
