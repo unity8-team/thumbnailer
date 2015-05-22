@@ -116,7 +116,6 @@ enable_coverage_report(
         thumbnailer-service
         thumbnailer-qml
         vs-thumb
-        core
         testutils
     FILTER
         ${CMAKE_SOURCE_DIR}/tests/*
@@ -134,8 +133,4 @@ enable_coverage_report(
         test_qml
         test_vsthumb
         thumbnailer_test
-        persistent_cache_test
-        persistent_string_cache_test
-        persistent_string_cache_impl_test
-        speed_test
 )
