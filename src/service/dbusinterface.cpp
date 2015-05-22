@@ -113,10 +113,12 @@ void DBusInterface::requestFinished()
         h.release();
         requests.erase(handler);
     }
+    // LCOV_EXCL_START
     catch (std::out_of_range const& e)
     {
         qWarning() << "finished() called on unknown handler" << handler;
     }
+    // LCOV_EXCL_STOP
     if (requests.empty())
     {
         Q_EMIT startInactivity();
