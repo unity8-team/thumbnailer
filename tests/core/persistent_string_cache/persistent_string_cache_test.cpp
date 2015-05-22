@@ -137,10 +137,10 @@ TEST(PersistentStringCache, stats)
         EXPECT_EQ(0, s.longest_miss_run());
         EXPECT_EQ(0, s.ttl_evictions());
         EXPECT_EQ(0, s.lru_evictions());
-        EXPECT_EQ(chrono::steady_clock::time_point(), s.most_recent_hit_time());
-        EXPECT_EQ(chrono::steady_clock::time_point(), s.most_recent_miss_time());
-        EXPECT_EQ(chrono::steady_clock::time_point(), s.longest_hit_run_time());
-        EXPECT_EQ(chrono::steady_clock::time_point(), s.longest_miss_run_time());
+        EXPECT_EQ(chrono::system_clock::time_point(), s.most_recent_hit_time());
+        EXPECT_EQ(chrono::system_clock::time_point(), s.most_recent_miss_time());
+        EXPECT_EQ(chrono::system_clock::time_point(), s.longest_hit_run_time());
+        EXPECT_EQ(chrono::system_clock::time_point(), s.longest_miss_run_time());
         auto hist = s.histogram();
         for (unsigned i = 0; i < hist.size(); ++i)
         {
@@ -168,13 +168,13 @@ TEST(PersistentStringCache, stats)
         EXPECT_EQ(0, s.longest_miss_run());
         EXPECT_EQ(0, s.ttl_evictions());
         EXPECT_EQ(0, s.lru_evictions());
-        EXPECT_EQ(chrono::steady_clock::time_point(), s.most_recent_hit_time());
-        EXPECT_EQ(chrono::steady_clock::time_point(), s.most_recent_miss_time());
-        EXPECT_EQ(chrono::steady_clock::time_point(), s.longest_hit_run_time());
-        EXPECT_EQ(chrono::steady_clock::time_point(), s.longest_miss_run_time());
+        EXPECT_EQ(chrono::system_clock::time_point(), s.most_recent_hit_time());
+        EXPECT_EQ(chrono::system_clock::time_point(), s.most_recent_miss_time());
+        EXPECT_EQ(chrono::system_clock::time_point(), s.longest_hit_run_time());
+        EXPECT_EQ(chrono::system_clock::time_point(), s.longest_miss_run_time());
 
         // Incur a miss followed by a hit.
-        auto now = chrono::steady_clock::now();
+        auto now = chrono::system_clock::now();
         c->put("x", "y");
         EXPECT_FALSE(c->get("y"));
         EXPECT_TRUE(c->get("x"));
@@ -193,13 +193,13 @@ TEST(PersistentStringCache, stats)
         EXPECT_EQ(1, s.longest_miss_run());
         EXPECT_EQ(0, s.ttl_evictions());
         EXPECT_EQ(0, s.lru_evictions());
-        EXPECT_NE(chrono::steady_clock::time_point(), s.most_recent_hit_time());
+        EXPECT_NE(chrono::system_clock::time_point(), s.most_recent_hit_time());
         EXPECT_GE(s.most_recent_hit_time(), now);
-        EXPECT_NE(chrono::steady_clock::time_point(), s.most_recent_miss_time());
+        EXPECT_NE(chrono::system_clock::time_point(), s.most_recent_miss_time());
         EXPECT_GE(s.most_recent_miss_time(), now);
-        EXPECT_NE(chrono::steady_clock::time_point(), s.longest_hit_run_time());
+        EXPECT_NE(chrono::system_clock::time_point(), s.longest_hit_run_time());
         EXPECT_GE(s.longest_hit_run_time(), now);
-        EXPECT_NE(chrono::steady_clock::time_point(), s.longest_miss_run_time());
+        EXPECT_NE(chrono::system_clock::time_point(), s.longest_miss_run_time());
         EXPECT_GE(s.longest_miss_run_time(), now);
 
         auto last_hit_time = s.most_recent_hit_time();
@@ -208,7 +208,7 @@ TEST(PersistentStringCache, stats)
         auto miss_run_time = s.longest_miss_run_time();
 
         // Two more hits.
-        now = chrono::steady_clock::now();
+        now = chrono::system_clock::now();
         EXPECT_TRUE(c->get("x"));
         EXPECT_TRUE(c->get("x"));
 
@@ -232,7 +232,7 @@ TEST(PersistentStringCache, stats)
         miss_run_time = s.longest_miss_run_time();
 
         // Four more misses
-        now = chrono::steady_clock::now();
+        now = chrono::system_clock::now();
         EXPECT_FALSE(c->get("y"));
         EXPECT_FALSE(c->get("y"));
         EXPECT_FALSE(c->get("y"));
@@ -258,7 +258,7 @@ TEST(PersistentStringCache, stats)
         miss_run_time = s.longest_miss_run_time();
 
         // One more hit
-        now = chrono::steady_clock::now();
+        now = chrono::system_clock::now();
         EXPECT_TRUE(c->get("x"));
 
         s = c->stats();
@@ -442,7 +442,7 @@ TEST(PersistentStringCache, stats)
         EXPECT_EQ(2, s.lru_evictions());
 
         // Add two records that expire in 500ms. These must evict two more entries.
-        auto later = chrono::steady_clock::now() + chrono::milliseconds(500);
+        auto later = chrono::system_clock::now() + chrono::milliseconds(500);
         c->put("7", string(200, 'a'), later);
         c->put("8", string(200, 'a'), later);
         EXPECT_EQ(1004, c->size_in_bytes());
@@ -452,7 +452,7 @@ TEST(PersistentStringCache, stats)
         EXPECT_EQ(4, s.lru_evictions());
 
         // Wait until records have expired.
-        while (chrono::steady_clock::now() <= later)
+        while (chrono::system_clock::now() <= later)
         {
             this_thread::sleep_for(chrono::milliseconds(5));
         }

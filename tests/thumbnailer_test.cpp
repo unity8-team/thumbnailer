@@ -22,13 +22,20 @@
 #include <internal/image.h>
 #include <internal/raii.h>
 #include <testsetup.h>
+#include "thumbnailerinterface.h"
+#include "utils/artserver.h"
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <gtest/gtest.h>
+#include <libqtdbustest/DBusTestRunner.h>
+#include <libqtdbustest/QProcessDBusService.h>
 #include <QCoreApplication>
+#include <QDebug>
+#include <QProcess>
 #include <QSignalSpy>
 #include <QTemporaryDir>
+#include <unity/UnityExceptions.h>
 
 #include <sys/types.h>
 #include <fcntl.h>
@@ -50,7 +57,7 @@ using namespace unity::thumbnailer::internal;
 
 static auto set_tempdir = []()
 {
-    auto dir = new QTemporaryDir(TESTBINDIR "/thumbnailer-test.XXXXXX");
+    auto dir = new QTemporaryDir(TESTBINDIR "/test-dir.XXXXXX");
     setenv("XDG_CACHE_HOME", dir->path().toUtf8().data(), true);
     return dir;
 };
@@ -58,6 +65,12 @@ static unique_ptr<QTemporaryDir> tempdir(set_tempdir());
 
 class ThumbnailerTest : public ::testing::Test
 {
+public:
+    static string tempdir_path()
+    {
+        return tempdir->path().toStdString();
+    }
+
 protected:
     virtual void SetUp() override
     {
@@ -68,16 +81,12 @@ protected:
     {
         boost::filesystem::remove_all(tempdir_path());
     }
-
-    static string tempdir_path()
-    {
-        return tempdir->path().toUtf8().data();
-    }
 };
 
 TEST_F(ThumbnailerTest, basic)
 {
     Thumbnailer tn;
+    std::unique_ptr<ThumbnailRequest> request;
     string thumb;
     Image img;
     FdPtr fd(-1, do_close);
@@ -92,7 +101,9 @@ TEST_F(ThumbnailerTest, basic)
     EXPECT_EQ("", thumb);
 
     fd.reset(open(TEST_IMAGE, O_RDONLY));
-    thumb = tn.get_thumbnail(TEST_IMAGE, fd.get(), QSize())->thumbnail();
+    request = tn.get_thumbnail(TEST_IMAGE, fd.get(), QSize());
+    EXPECT_TRUE(boost::starts_with(request->key(), TEST_IMAGE)) << request->key();
+    thumb = request->thumbnail();
     img = Image(thumb);
     EXPECT_EQ(640, img.width());
     EXPECT_EQ(480, img.height());
@@ -126,7 +137,7 @@ TEST_F(ThumbnailerTest, basic)
     catch (std::exception const& e)
     {
         string msg = e.what();
-        EXPECT_TRUE(boost::starts_with(msg, "load_image(): cannot close pixbuf loader: ")) << msg;
+        EXPECT_TRUE(boost::starts_with(msg, "unity::ResourceException: RequestBase::thumbnail(): key = ")) << msg;
     }
 
     fd.reset(open(RGB_IMAGE, O_RDONLY));
@@ -304,6 +315,251 @@ TEST_F(ThumbnailerTest, exceptions)
         EXPECT_EQ(0, msg.compare(0, exp.length(), exp)) << msg;
     }
     ASSERT_EQ(0, chmod(cache_dir.c_str(), 0700));
+}
+
+TEST_F(ThumbnailerTest, vs_thumb_exec_failure)
+{
+    Thumbnailer tn;
+    {
+        // Cause vs-thumb exec failure.
+        char const* tn_util = getenv("TN_UTILDIR");
+        ASSERT_TRUE(tn_util && *tn_util != '\0');
+        string old_env = tn_util;
+
+        setenv("TN_UTILDIR", "no_such_directory", true);
+
+        FdPtr fd(open(TEST_SONG, O_RDONLY), do_close);
+        auto request = tn.get_thumbnail(TEST_SONG, fd.get(), QSize());
+        EXPECT_EQ("", request->thumbnail());
+
+        QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
+        request->download();
+        ASSERT_TRUE(spy.wait(15000));
+
+        try
+        {
+            request->thumbnail();
+            FAIL();
+        }
+        catch (unity::ResourceException const& e)
+        {
+            string msg = e.to_string();
+            string exp = "VideoScreenshotter::data(): Error starting vs-thumb. QProcess::ProcessError";
+            EXPECT_TRUE(msg.find(exp) != string::npos) << msg;
+        }
+        setenv("TN_UTILDIR", old_env.c_str(), true);
+    }
+}
+
+class RemoteServer : public ::testing::Test
+{
+protected:
+    static void SetUpTestCase()
+    {
+        // start fake server
+        art_server_.reset(new ArtServer());
+
+        // start dbus service
+        tempdir.reset(new QTemporaryDir(TESTBINDIR "/dbus-test.XXXXXX"));
+        setenv("XDG_CACHE_HOME", (tempdir->path() + "/cache").toUtf8().data(), true);
+    }
+
+    static void TearDownTestCase()
+    {
+        art_server_.reset();
+
+        boost::filesystem::remove_all(ThumbnailerTest::tempdir_path());
+
+        tempdir.reset();
+        unsetenv("THUMBNAILER_MAX_IDLE");
+        unsetenv("XDG_CACHE_HOME");
+    }
+
+    static unique_ptr<ArtServer> art_server_;
+};
+
+unique_ptr<ArtServer> RemoteServer::art_server_;
+
+TEST_F(RemoteServer, basic)
+{
+    Thumbnailer tn;
+
+    {
+        auto request = tn.get_album_art("metallica", "load", QSize());
+        EXPECT_EQ("", request->thumbnail());
+
+        QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
+        request->download();
+        ASSERT_TRUE(spy.wait(15000));
+
+        auto thumb = request->thumbnail();
+        Image img(thumb);
+        EXPECT_EQ(48, img.width());
+        EXPECT_EQ(48, img.height());
+    }
+
+    {
+        auto request = tn.get_artist_art("metallica", "load", QSize());
+        EXPECT_EQ("", request->thumbnail());
+
+        QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
+        request->download();
+        ASSERT_TRUE(spy.wait(15000));
+
+        auto thumb = request->thumbnail();
+        Image img(thumb);
+        EXPECT_EQ(48, img.width());
+        EXPECT_EQ(48, img.height());
+    }
+
+    {
+        // For coverage, big images are down-sized for the full-size cache.
+        auto request = tn.get_artist_art("big", "image", QSize());
+        EXPECT_EQ("", request->thumbnail());
+
+        QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
+        request->download();
+        ASSERT_TRUE(spy.wait(15000));
+
+        auto thumb = request->thumbnail();
+        Image img(thumb);
+        EXPECT_EQ(1920, img.width());
+        EXPECT_EQ(1439, img.height());
+    }
+}
+
+TEST_F(RemoteServer, no_such_album)
+{
+    Thumbnailer tn;
+
+    auto request = tn.get_album_art("no_such_artist", "no_such_album", QSize());
+    EXPECT_EQ("", request->thumbnail());
+
+    QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
+    request->download();
+    ASSERT_TRUE(spy.wait(15000));
+    EXPECT_EQ("", request->thumbnail());
+}
+
+TEST_F(RemoteServer, decode_fails)
+{
+    Thumbnailer tn;
+
+    auto request = tn.get_album_art("empty", "empty", QSize());
+    EXPECT_EQ("", request->thumbnail());
+    request->download();
+
+    QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
+    ASSERT_TRUE(spy.wait(15000));
+
+    try
+    {
+        EXPECT_EQ("", request->thumbnail());
+        FAIL();
+    }
+    catch (unity::ResourceException const& e)
+    {
+        EXPECT_EQ("unity::ResourceException: RequestBase::thumbnail(): key = empty\\0empty\\0album:\n"
+                  "    load_image(): cannot close pixbuf loader: Unrecognized image file format",
+                  e.to_string());
+    }
+}
+
+TEST_F(RemoteServer, no_such_local_image)
+{
+    Thumbnailer tn;
+
+    try
+    {
+        auto request = tn.get_thumbnail("no_such_file", -1, QSize());
+        FAIL();
+    }
+    catch (unity::ResourceException const& e)
+    {
+        string msg = e.to_string();
+        EXPECT_TRUE(boost::starts_with(msg,
+                                       "unity::ResourceException: Thumbnailer::get_thumbnail():\n"
+                                       "    boost::filesystem::canonical: No such file or directory: ")) << msg;
+    }
+}
+
+TEST_F(RemoteServer, timeout)
+{
+    Thumbnailer tn;
+
+    auto request = tn.get_album_art("sleep", "3", QSize());
+    EXPECT_EQ("", request->thumbnail());
+    request->download(chrono::seconds(1));
+
+    QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
+    ASSERT_TRUE(spy.wait(15000));
+
+    EXPECT_EQ("", request->thumbnail());
+}
+
+TEST_F(RemoteServer, server_error)
+{
+    Thumbnailer tn;
+
+    auto request = tn.get_album_art("error", "403", QSize());
+    EXPECT_EQ("", request->thumbnail());
+
+    QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
+    request->download();
+    ASSERT_TRUE(spy.wait(15000));
+
+    try
+    {
+        request->thumbnail();
+        FAIL();
+    }
+    catch (unity::ResourceException const& e)
+    {
+        string msg = e.to_string();
+        EXPECT_TRUE(boost::starts_with(
+                        msg,
+                        "unity::ResourceException: RequestBase::thumbnail(): key = error")) << msg;
+    }
+}
+
+TEST_F(RemoteServer, album_and_artist_have_distinct_keys)
+{
+    Thumbnailer tn;
+
+    auto album_request = tn.get_album_art("metallica", "load", QSize());
+    auto artist_request = tn.get_artist_art("metallica", "load", QSize());
+    EXPECT_NE(album_request->key(), artist_request->key());
+}
+
+class DeadServer : public ::testing::Test
+{
+protected:
+    void SetUp() override
+    {
+        auto apiroot = QString("http://deadserver.invalid:80");
+        setenv("THUMBNAILER_UBUNTU_APIROOT", apiroot.toUtf8().constData(), true);
+    }
+
+    void TearDown() override
+    {
+        unsetenv("THUMBNAILER_UBUNTU_APIROOT");
+    }
+};
+
+TEST_F(DeadServer, errors)
+{
+    Thumbnailer tn;
+
+    // DeadServer won't reply
+    auto request = tn.get_album_art("some_artist", "some_album", QSize());
+    EXPECT_EQ("", request->thumbnail());
+
+    request->download();
+
+    QSignalSpy spy(request.get(), &ThumbnailRequest::downloadFinished);
+    ASSERT_TRUE(spy.wait(15000));
+
+    EXPECT_EQ("", request->thumbnail());
 }
 
 int main(int argc, char** argv)

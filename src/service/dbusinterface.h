@@ -21,39 +21,35 @@
 
 #include "handler.h"
 
-#include <memory>
-
 #include <QDBusContext>
-#include <QDBusUnixFileDescriptor>
-#include <QObject>
-#include <QSize>
-#include <QString>
+#include <QThreadPool>
 
 namespace unity
 {
+
 namespace thumbnailer
 {
+
 namespace service
 {
-
-struct DBusInterfacePrivate;
 
 class DBusInterface : public QObject, protected QDBusContext
 {
     Q_OBJECT
 public:
-    explicit DBusInterface(QObject* parent = nullptr);
+    DBusInterface(std::shared_ptr<unity::thumbnailer::internal::Thumbnailer> const& thumbnailer,
+                  QObject* parent = nullptr);
     ~DBusInterface();
 
-    DBusInterface(const DBusInterface&) = delete;
+    DBusInterface(DBusInterface const&) = delete;
     DBusInterface& operator=(DBusInterface&) = delete;
 
 public Q_SLOTS:
-    QDBusUnixFileDescriptor GetAlbumArt(const QString& artist, const QString& album, const QSize& requestedSize);
-    QDBusUnixFileDescriptor GetArtistArt(const QString& artist, const QString& album, const QSize& requestedSize);
-    QDBusUnixFileDescriptor GetThumbnail(const QString& filename,
-                                         const QDBusUnixFileDescriptor& filename_fd,
-                                         const QSize& requestedSize);
+    QDBusUnixFileDescriptor GetAlbumArt(QString const& artist, QString const& album, QSize const& requestedSize);
+    QDBusUnixFileDescriptor GetArtistArt(QString const& artist, QString const& album, QSize const& requestedSize);
+    QDBusUnixFileDescriptor GetThumbnail(QString const& filename,
+                                         QDBusUnixFileDescriptor const& filename_fd,
+                                         QSize const& requestedSize);
 
 private:
     void queueRequest(Handler* handler);
@@ -66,8 +62,15 @@ Q_SIGNALS:
     void startInactivity();
 
 private:
-    std::unique_ptr<DBusInterfacePrivate> p;
+    std::shared_ptr<unity::thumbnailer::internal::Thumbnailer> const& thumbnailer_;
+    std::shared_ptr<QThreadPool> check_thread_pool_;
+    std::shared_ptr<QThreadPool> create_thread_pool_;
+    std::map<Handler*, std::unique_ptr<Handler>> requests_;
+    std::map<std::string, std::vector<Handler*>> request_keys_;
 };
-}
-}
-}
+
+}  // namespace service
+
+}  // namespace thumbnailer
+
+}  // namespace unity

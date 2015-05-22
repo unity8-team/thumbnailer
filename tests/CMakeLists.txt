@@ -1,9 +1,5 @@
+add_subdirectory(utils)
 add_subdirectory(core)
-
-add_definitions(
-  -DFAKE_DOWNLOADER_SERVER="${CMAKE_CURRENT_SOURCE_DIR}/server/server.py"
-  -DTHUMBNAILER_TEST_DEFAULT_IMAGE="${CMAKE_CURRENT_SOURCE_DIR}/media/orientation-8.jpg"
-)
 
 if (NOT DEFINED GTEST_ROOT)
     set(GTEST_ROOT /usr/src/gtest)
@@ -43,14 +39,9 @@ add_executable(safe_strerror_test safe_strerror_test.cpp)
 target_link_libraries(safe_strerror_test thumbnailer core gtest)
 add_test(safe_strerror_test safe_strerror_test)
 
-add_executable(thumbnailer_test thumbnailer_test.cpp)
-target_link_libraries(thumbnailer_test thumbnailer core gtest)
-add_test(thumbnailer_test thumbnailer_test)
-qt5_use_modules(thumbnailer_test Test)
-
 add_executable(downloadtest download.cpp)
 
-target_link_libraries(downloadtest thumbnailer gtest)
+target_link_libraries(downloadtest thumbnailer testutils gtest)
 add_test(downloadtest downloadtest)
 set_property(TEST downloadtest PROPERTY ENVIRONMENT "GSETTINGS_SCHEMA_DIR=${CMAKE_BINARY_DIR}/data")
 qt5_use_modules(downloadtest Core Network Test)
@@ -87,22 +78,48 @@ qt5_add_dbus_interface(
   "${CMAKE_SOURCE_DIR}/src/service/dbusinterface.xml"
   thumbnailerinterface)
 
+set_source_files_properties(
+  "${CMAKE_SOURCE_DIR}/src/service/admininterface.xml" PROPERTIES
+  CLASSNAME ThumbnailerAdminInterface
+  INCLUDE ${CMAKE_SOURCE_DIR}/src/service/admininterface.h)
+qt5_add_dbus_interface(
+  interface_files
+  "${CMAKE_SOURCE_DIR}/src/service/admininterface.xml"
+  admininterface)
+
 add_executable(test_dbus
   test_dbus.cpp
+  ${CMAKE_SOURCE_DIR}/src/service/admininterface.cpp
+  ${CMAKE_SOURCE_DIR}/src/service/stats.cpp
   ${interface_files})
 qt5_use_modules(test_dbus DBus Test)
 target_link_libraries(test_dbus
   thumbnailer
   ${QTDBUSTEST_DEPS_LDFLAGS}
-  ${IMG_DEPS_LDFLAGS}
+  testutils
   gtest)
 add_test(test_dbus test_dbus)
 add_dependencies(test_dbus thumbnailer-service)
+
+# Thumbnailer tests
+
+add_executable(thumbnailer_test
+    thumbnailer_test.cpp
+    ${interface_files}
+)
+qt5_use_modules(thumbnailer_test DBus Test)
+target_link_libraries(thumbnailer_test
+    thumbnailer
+    ${QTDBUSTEST_DEPS_LDFLAGS}
+    testutils
+    gtest)
+add_test(thumbnailer_test thumbnailer_test)
+add_dependencies(thumbnailer_test thumbnailer-service)
 
 # Tests for the QML plugin
 add_executable(test_qml test_qml.cpp)
 qt5_use_modules(test_qml Qml DBus QuickTest)
 target_link_libraries(test_qml
-  ${QTDBUSTEST_DEPS_LDFLAGS})
+  ${QTDBUSTEST_DEPS_LDFLAGS} testutils)
 add_test(test_qml xvfb-run -a -s "-screen 0 800x600x24" ./test_qml -import ${CMAKE_BINARY_DIR}/plugins)
 add_dependencies(test_qml thumbnailer-service)

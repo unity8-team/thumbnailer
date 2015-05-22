@@ -65,21 +65,21 @@ public:
 
     bool put(std::string const& key,
              std::string const& value,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     bool put(std::string const& key,
              char const* value,
              int64_t size,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     bool put(std::string const& key,
              std::string const& value,
              std::string const* metadata,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     bool put(std::string const& key,
              char const* value_data,
              int64_t value_size,
              char const* metadata_data,
              int64_t metadata_size,
-             std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+             std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     bool get_or_put(std::string const& key, std::string& value, PersistentStringCache::Loader load_func);
     bool get_or_put(std::string const& key,
                     std::string& value,
@@ -97,7 +97,7 @@ public:
     void invalidate();
     bool touch(
         std::string const& key,
-        std::chrono::time_point<std::chrono::steady_clock> expiry_time = std::chrono::steady_clock::time_point());
+        std::chrono::time_point<std::chrono::system_clock> expiry_time = std::chrono::system_clock::time_point());
     void clear_stats() noexcept;
     void resize(int64_t size_in_bytes);
     void trim_to(int64_t used_size_in_bytes);

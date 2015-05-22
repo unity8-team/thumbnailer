@@ -13,7 +13,8 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Michi Henning <michi.henning@canonical.com>
+ * Authored by: James Henstridge <james.henstridge@canonical.com>
+ *              Michi Henning <michi.henning@canonical.com>
  */
 
 #include <internal/image.h>

@@ -196,7 +196,7 @@ TEST(Gobj_ptr, sizeoftest)
 TEST(Gobj_ptr, deleter)
 {
     gobj_ptr<GObject> u1;
-    EXPECT_EQ(g_object_unref, u1.get_deleter());
+    EXPECT_TRUE(g_object_unref == u1.get_deleter());
 }
 
 int main(int argc, char** argv)

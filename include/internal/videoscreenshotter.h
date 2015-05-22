@@ -48,8 +48,7 @@ public:
     VideoScreenshotter& operator=(const VideoScreenshotter& t) = delete;
 
     void extract();
-    bool success();
-    std::string error();
+    std::string error_string();
     std::string data();
 
 Q_SIGNALS:
@@ -58,13 +57,13 @@ Q_SIGNALS:
 private Q_SLOTS:
     void processFinished();
     void timeout();
+    void error();
 
 private:
     unity::util::ResourcePtr<int, void (*)(int)> fd_;
     int timeout_ms_;
-    bool success_ = false;
+    QString exe_path_;
     std::string error_;
-    std::string data_;
 
     QProcess process_;
     QTimer timer_;
