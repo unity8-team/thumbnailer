@@ -21,10 +21,10 @@ DBusServer::DBusServer()
     runner_->registerService(service_);
     runner_->startServices();
 
-    thumbnailer.reset(
+    thumbnailer_.reset(
         new ThumbnailerInterface(BUS_NAME, THUMBNAILER_BUS_PATH,
                                  runner_->sessionConnection()));
-    admin.reset(
+    admin_.reset(
         new AdminInterface(BUS_NAME, ADMIN_BUS_PATH,
                            runner_->sessionConnection()));
 }
@@ -35,11 +35,11 @@ DBusServer::~DBusServer()
     // Without this, it won't update the coverage stats.
     if (service_process().state() == QProcess::Running)
     {
-        admin->Shutdown().waitForFinished();
+        admin_->Shutdown().waitForFinished();
         service_process().waitForFinished();
     }
-    thumbnailer.reset();
-    admin.reset();
+    admin_.reset();
+    thumbnailer_.reset();
 
     runner_.reset();
 }

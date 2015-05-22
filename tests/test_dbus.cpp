@@ -82,8 +82,8 @@ protected:
 
 TEST_F(DBusTest, get_album_art)
 {
-    QDBusReply<QDBusUnixFileDescriptor> reply = dbus_->thumbnailer->GetAlbumArt(
-        "metallica", "load", QSize(24, 24));
+    QDBusReply<QDBusUnixFileDescriptor> reply =
+        dbus_->thumbnailer_->GetAlbumArt("metallica", "load", QSize(24, 24));
     assert_no_error(reply);
     Image image(reply.value().fileDescriptor());
     EXPECT_EQ(24, image.width());
@@ -92,8 +92,8 @@ TEST_F(DBusTest, get_album_art)
 
 TEST_F(DBusTest, get_artist_art)
 {
-    QDBusReply<QDBusUnixFileDescriptor> reply = dbus_->thumbnailer->GetArtistArt(
-        "metallica", "load", QSize(24, 24));
+    QDBusReply<QDBusUnixFileDescriptor> reply =
+        dbus_->thumbnailer_->GetArtistArt("metallica", "load", QSize(24, 24));
     assert_no_error(reply);
     Image image(reply.value().fileDescriptor());
     EXPECT_EQ(24, image.width());
@@ -106,8 +106,9 @@ TEST_F(DBusTest, thumbnail_image)
     FdPtr fd(open(filename, O_RDONLY), do_close);
     ASSERT_GE(fd.get(), 0);
 
-    QDBusReply<QDBusUnixFileDescriptor> reply = dbus_->thumbnailer->GetThumbnail(
-        filename, QDBusUnixFileDescriptor(fd.get()), QSize(256, 256));
+    QDBusReply<QDBusUnixFileDescriptor> reply =
+        dbus_->thumbnailer_->GetThumbnail(
+            filename, QDBusUnixFileDescriptor(fd.get()), QSize(256, 256));
     assert_no_error(reply);
 
     Image image(reply.value().fileDescriptor());
@@ -123,8 +124,9 @@ TEST_F(DBusTest, thumbnail_no_such_file)
     FdPtr fd(open(filename2, O_RDONLY), do_close);
     ASSERT_GE(fd.get(), 0);
 
-    QDBusReply<QDBusUnixFileDescriptor> reply = dbus_->thumbnailer->GetThumbnail(
-        no_such_file, QDBusUnixFileDescriptor(fd.get()), QSize(256, 256));
+    QDBusReply<QDBusUnixFileDescriptor> reply =
+        dbus_->thumbnailer_->GetThumbnail(
+            no_such_file, QDBusUnixFileDescriptor(fd.get()), QSize(256, 256));
     EXPECT_FALSE(reply.isValid());
     auto message = reply.error().message().toStdString();
     EXPECT_TRUE(boost::contains(message, " No such file or directory: ")) << message;
@@ -138,8 +140,9 @@ TEST_F(DBusTest, thumbnail_wrong_fd_fails)
     FdPtr fd(open(filename2, O_RDONLY), do_close);
     ASSERT_GE(fd.get(), 0);
 
-    QDBusReply<QDBusUnixFileDescriptor> reply = dbus_->thumbnailer->GetThumbnail(
-        filename1, QDBusUnixFileDescriptor(fd.get()), QSize(256, 256));
+    QDBusReply<QDBusUnixFileDescriptor> reply =
+        dbus_->thumbnailer_->GetThumbnail(
+            filename1, QDBusUnixFileDescriptor(fd.get()), QSize(256, 256));
     EXPECT_FALSE(reply.isValid());
     auto message = reply.error().message().toStdString();
     EXPECT_TRUE(boost::contains(message, " file descriptor does not refer to file ")) << message;
@@ -147,12 +150,12 @@ TEST_F(DBusTest, thumbnail_wrong_fd_fails)
 
 TEST_F(DBusTest, duplicate_requests)
 {
-    QDBusPendingReply<QDBusUnixFileDescriptor> reply1 = iface->GetAlbumArt(
-        "metallica", "load", QSize(24, 24));
-    QDBusPendingReply<QDBusUnixFileDescriptor> reply2 = iface->GetAlbumArt(
-        "metallica", "load", QSize(48, 48));
-    QDBusPendingReply<QDBusUnixFileDescriptor> reply3 = iface->GetAlbumArt(
-        "metallica", "load", QSize(72, 72));
+    QDBusPendingReply<QDBusUnixFileDescriptor> reply1 =
+        dbus_->thumbnailer_->GetAlbumArt("metallica", "load", QSize(24, 24));
+    QDBusPendingReply<QDBusUnixFileDescriptor> reply2 =
+        dbus_->thumbnailer_->GetAlbumArt("metallica", "load", QSize(48, 48));
+    QDBusPendingReply<QDBusUnixFileDescriptor> reply3 =
+        dbus_->thumbnailer_->GetAlbumArt("metallica", "load", QSize(72, 72));
 
     // The second request should have only been started once the first
     // is finished.  The third is delayed until after the second.
@@ -177,8 +180,9 @@ TEST_F(DBusTest, test_inactivity_exit)
                         static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished));
 
     // start a query
-    QDBusReply<QDBusUnixFileDescriptor> reply = dbus_->thumbnailer->GetThumbnail(
-        filename, QDBusUnixFileDescriptor(fd.get()), QSize(256, 256));
+    QDBusReply<QDBusUnixFileDescriptor> reply =
+        dbus_->thumbnailer_->GetThumbnail(
+            filename, QDBusUnixFileDescriptor(fd.get()), QSize(256, 256));
     assert_no_error(reply);
 
     // wait for 5 seconds... (default)
@@ -212,7 +216,7 @@ TEST_F(DBusTest, stats)
 {
     using namespace unity::thumbnailer::service;
 
-    QDBusReply<AllStats> reply = dbus_->admin->Stats();
+    QDBusReply<AllStats> reply = dbus_->admin_->Stats();
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
 
     {
@@ -257,15 +261,15 @@ TEST_F(DBusTest, stats)
 
     // Get a remote image from the cache, so the stats change.
     {
-        QDBusReply<QDBusUnixFileDescriptor> reply = dbus_->thumbnailer->GetAlbumArt(
-            "metallica", "load", QSize(24, 24));
+        QDBusReply<QDBusUnixFileDescriptor> reply =
+            dbus_->thumbnailer_->GetAlbumArt("metallica", "load", QSize(24, 24));
         assert_no_error(reply);
         Image image(reply.value().fileDescriptor());
         EXPECT_EQ(24, image.width());
         EXPECT_EQ(24, image.width());
     }
 
-    reply = dbus_->admin->Stats();
+    reply = dbus_->admin_->Stats();
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
 
     {
@@ -308,15 +312,15 @@ TEST_F(DBusTest, stats)
 
     // Get the same image again, so we get a hit.
     {
-        QDBusReply<QDBusUnixFileDescriptor> reply = dbus_->thumbnailer->GetAlbumArt(
-            "metallica", "load", QSize(24, 24));
+        QDBusReply<QDBusUnixFileDescriptor> reply =
+            dbus_->thumbnailer_->GetAlbumArt("metallica", "load", QSize(24, 24));
         assert_no_error(reply);
         Image image(reply.value().fileDescriptor());
         EXPECT_EQ(24, image.width());
         EXPECT_EQ(24, image.width());
     }
 
-    reply = dbus_->admin->Stats();
+    reply = dbus_->admin_->Stats();
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
 
     {
@@ -339,11 +343,12 @@ TEST_F(DBusTest, stats)
 
     // Get a non-existent remote image from the cache, so the failure stats change.
     {
-        QDBusReply<QDBusUnixFileDescriptor> reply = dbus_->thumbnailer->GetAlbumArt(
-            "no_such_artist", "no_such_album", QSize(24, 24));
+        QDBusReply<QDBusUnixFileDescriptor> reply =
+            dbus_->thumbnailer_->GetAlbumArt(
+                "no_such_artist", "no_such_album", QSize(24, 24));
     }
 
-    reply = dbus_->admin->Stats();
+    reply = dbus_->admin_->Stats();
     ASSERT_TRUE(reply.isValid());
 
     {
@@ -355,11 +360,12 @@ TEST_F(DBusTest, stats)
 
     // Get the same non-existent remote image again, so we get a hit.
     {
-        QDBusReply<QDBusUnixFileDescriptor> reply = dbus_->thumbnailer->GetAlbumArt(
-            "no_such_artist", "no_such_album", QSize(24, 24));
+        QDBusReply<QDBusUnixFileDescriptor> reply =
+            dbus_->thumbnailer_->GetAlbumArt(
+                "no_such_artist", "no_such_album", QSize(24, 24));
     }
 
-    reply = dbus_->admin->Stats();
+    reply = dbus_->admin_->Stats();
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
 
     {

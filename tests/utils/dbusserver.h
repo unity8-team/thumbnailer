@@ -19,8 +19,8 @@ public:
     DBusServer();
     ~DBusServer();
 
-    std::unique_ptr<ThumbnailerInterface> thumbnailer;
-    std::unique_ptr<AdminInterface> admin;
+    std::unique_ptr<ThumbnailerInterface> thumbnailer_;
+    std::unique_ptr<AdminInterface> admin_;
 
     QProcess& service_process();
 
