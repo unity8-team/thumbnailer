@@ -2,6 +2,7 @@ add_subdirectory(utils)
 add_subdirectory(core)
 add_subdirectory(copyright)
 add_subdirectory(headers)
+add_subdirectory(whitespace)
 
 if (NOT DEFINED GTEST_ROOT)
     set(GTEST_ROOT /usr/src/gtest)
