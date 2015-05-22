@@ -38,10 +38,10 @@ QDBusArgument& operator<<(QDBusArgument& arg, CacheStats const& s)
         << s.longest_miss_run
         << s.ttl_evictions
         << s.lru_evictions
-        << s.most_recent_hit_time
-        << s.most_recent_miss_time
-        << s.longest_hit_run_time
-        << s.longest_miss_run_time
+        << s.most_recent_hit_time.toMSecsSinceEpoch()
+        << s.most_recent_miss_time.toMSecsSinceEpoch()
+        << s.longest_hit_run_time.toMSecsSinceEpoch()
+        << s.longest_miss_run_time.toMSecsSinceEpoch()
         << s.histogram;
         arg.endStructure();
     return arg;
@@ -49,6 +49,10 @@ QDBusArgument& operator<<(QDBusArgument& arg, CacheStats const& s)
 
 QDBusArgument const& operator>>(QDBusArgument const& arg, CacheStats& s)
 {
+    qint64 mrht;
+    qint64 mrmt;
+    qint64 lhrt;
+    qint64 lmrt;
     arg.beginStructure();
     arg >> s.cache_path
         >> s.policy
@@ -63,12 +67,16 @@ QDBusArgument const& operator>>(QDBusArgument const& arg, CacheStats& s)
         >> s.longest_miss_run
         >> s.ttl_evictions
         >> s.lru_evictions
-        >> s.most_recent_hit_time
-        >> s.most_recent_miss_time
-        >> s.longest_hit_run_time
-        >> s.longest_miss_run_time
+        >> mrht
+        >> mrmt
+        >> lhrt
+        >> lmrt
         >> s.histogram;
     arg.endStructure();
+    s.most_recent_hit_time = QDateTime::fromMSecsSinceEpoch(mrht);
+    s.most_recent_miss_time = QDateTime::fromMSecsSinceEpoch(mrmt);
+    s.longest_hit_run_time = QDateTime::fromMSecsSinceEpoch(lhrt);
+    s.longest_miss_run_time = QDateTime::fromMSecsSinceEpoch(lmrt);
     return arg;
 }
 
