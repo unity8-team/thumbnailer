@@ -20,6 +20,7 @@
 
 #include <internal/artdownloader.h>
 
+#include <core/persistent_cache_stats.h>
 #include <core/persistent_string_cache.h>
 #include <QObject>
 #include <QSize>
@@ -102,6 +103,15 @@ public:
     std::unique_ptr<ThumbnailRequest> get_artist_art(std::string const& artist,
                                                      std::string const& album,
                                                      QSize const& requested_size);
+
+    struct AllStats
+    {
+        core::PersistentCacheStats full_size_stats;
+        core::PersistentCacheStats thumbnail_stats;
+        core::PersistentCacheStats failure_stats;
+    };
+
+    AllStats stats() const;
 
 private:
     ArtDownloader* downloader() const
