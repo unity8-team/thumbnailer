@@ -22,7 +22,6 @@
 #include <internal/image.h>
 #include <internal/raii.h>
 #include <testsetup.h>
-#include "thumbnailerinterface.h"
 #include "utils/artserver.h"
 
 #include <boost/algorithm/string.hpp>
@@ -30,7 +29,6 @@
 #include <gtest/gtest.h>
 #include <QCoreApplication>
 #include <QDebug>
-#include <QProcess>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <unity/UnityExceptions.h>
