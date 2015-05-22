@@ -139,9 +139,11 @@ void DBusInterface::requestFinished()
     // LCOV_EXCL_STOP
 
     // Remove ourselves from the chain of requests
-    std::vector<Handler*> &requests = request_keys_[handler->key()];
-    requests.erase(std::remove(requests.begin(), requests.end(), handler), requests.end());
-    if (requests.size() == 0)
+    std::vector<Handler*> &requests_for_key = request_keys_[handler->key()];
+    requests_for_key.erase(
+        std::remove(requests_for_key.begin(), requests_for_key.end(), handler),
+        requests_for_key.end());
+    if (requests_for_key.size() == 0)
     {
         request_keys_.erase(handler->key());
     }
