@@ -84,6 +84,7 @@ protected:
 TEST_F(ThumbnailerTest, basic)
 {
     Thumbnailer tn;
+    std::unique_ptr<ThumbnailRequest> request;
     string thumb;
     Image img;
     FdPtr fd(-1, do_close);
@@ -98,7 +99,9 @@ TEST_F(ThumbnailerTest, basic)
     EXPECT_EQ("", thumb);
 
     fd.reset(open(TEST_IMAGE, O_RDONLY));
-    thumb = tn.get_thumbnail(TEST_IMAGE, fd.get(), QSize())->thumbnail();
+    request = tn.get_thumbnail(TEST_IMAGE, fd.get(), QSize());
+    EXPECT_TRUE(boost::starts_with(request->key(), TEST_IMAGE)) << request->key();
+    thumb = request->thumbnail();
     img = Image(thumb);
     EXPECT_EQ(640, img.width());
     EXPECT_EQ(480, img.height());
@@ -515,6 +518,15 @@ TEST_F(RemoteServer, server_error)
                         msg,
                         "unity::ResourceException: RequestBase::thumbnail(): key = error")) << msg;
     }
+}
+
+TEST_F(RemoteServer, album_and_artist_have_distinct_keys)
+{
+    Thumbnailer tn;
+
+    auto album_request = tn.get_album_art("metallica", "load", QSize());
+    auto artist_request = tn.get_artist_art("metallica", "load", QSize());
+    EXPECT_NE(album_request->key(), artist_request->key());
 }
 
 class DeadServer : public ::testing::Test

@@ -56,6 +56,8 @@ public:
     virtual std::string thumbnail() = 0;
     // TODO: Timeout should be configurable?
     virtual void download(std::chrono::milliseconds timeout = std::chrono::milliseconds(10000)) = 0;
+
+    virtual std::string const& key() const = 0;
 Q_SIGNALS:
     void downloadFinished();
 };
