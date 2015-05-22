@@ -65,7 +65,8 @@ private:
     std::shared_ptr<unity::thumbnailer::internal::Thumbnailer> const& thumbnailer_;
     std::shared_ptr<QThreadPool> check_thread_pool_;
     std::shared_ptr<QThreadPool> create_thread_pool_;
-    std::map<Handler*, std::unique_ptr<Handler>> requests;
+    std::map<Handler*, std::unique_ptr<Handler>> requests_;
+    std::map<std::string, std::vector<Handler*>> request_keys_;
 };
 
 }  // namespace service
