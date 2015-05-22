@@ -153,9 +153,9 @@ FUNCTION(ENABLE_COVERAGE_REPORT)
             FOREACH(F ${ENABLE_COVERAGE_REPORT_FILTER})
                 # Half arsed glob to regexp conversion:
                 STRING(REPLACE "." "\\." F ${F})
-                STRING(REPLACE "?" "." F ${F})
-                STRING(REPLACE "*" ".*" F ${F})
-                SET(GCOVR_FILTER "${GCOVR_FILTER} -e \"^${F}\\$\"")
+                STRING(REPLACE "?" "[^/]" F ${F})
+                STRING(REPLACE "*" "[^/]*" F ${F})
+                SET(GCOVR_FILTER "${GCOVR_FILTER} -e \"^${F}\\$\" -e \"^${F}/\"")
             ENDFOREACH()
 
             # gcovr cannot write directly to a file so the execution needs to
