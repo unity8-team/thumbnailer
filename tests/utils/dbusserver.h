@@ -3,11 +3,16 @@
 #include <utils/thumbnailerinterface.h>
 #include <utils/admininterface.h>
 
+#include <QProcess>
+#include <QSharedPointer>
+
 #include <memory>
 
-#include <libqtdbustest/DBusTestRunner.h>
-#include <libqtdbustest/QProcessDBusService.h>
-#include <QProcess>
+namespace QtDBusTest
+{
+class DBusTestRunner;
+class QProcessDBusService;
+}
 
 class DBusServer final {
 public:
@@ -17,9 +22,9 @@ public:
     std::unique_ptr<ThumbnailerInterface> thumbnailer;
     std::unique_ptr<AdminInterface> admin;
 
-    QProcess& process();
+    QProcess& service_process();
 
 private:
-    QtDBusTest::DBusTestRunner runner_;
+    std::unique_ptr<QtDBusTest::DBusTestRunner> runner_;
     QSharedPointer<QtDBusTest::QProcessDBusService> service_;
 };

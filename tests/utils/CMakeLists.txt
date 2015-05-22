@@ -15,7 +15,7 @@ qt5_add_dbus_interface(
 set_source_files_properties(
   "${CMAKE_SOURCE_DIR}/src/service/admininterface.xml" PROPERTIES
   CLASSNAME AdminInterface
-  INCLUDE ${CMAKE_SOURCE_DIR}/src/service/admininterface.h)
+  INCLUDE ${CMAKE_SOURCE_DIR}/src/service/stats.h)
 qt5_add_dbus_interface(
   interface_files
   "${CMAKE_SOURCE_DIR}/src/service/admininterface.xml"
@@ -25,5 +25,9 @@ add_library(testutils STATIC
   artserver.cpp
   dbusserver.cpp
   ${interface_files}
+  ${CMAKE_SOURCE_DIR}/src/service/stats.cpp
   )
 qt5_use_modules(testutils Core DBus)
+target_link_libraries(testutils
+  ${QTDBUSTEST_DEPS_LDFLAGS}
+  )

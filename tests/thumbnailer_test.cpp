@@ -28,8 +28,6 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <gtest/gtest.h>
-#include <libqtdbustest/DBusTestRunner.h>
-#include <libqtdbustest/QProcessDBusService.h>
 #include <QCoreApplication>
 #include <QDebug>
 #include <QProcess>

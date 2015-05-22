@@ -1,14 +1,11 @@
 
 #include <internal/image.h>
 #include <internal/raii.h>
-#include "thumbnailerinterface.h"
-#include "admininterface.h"
 #include "utils/artserver.h"
+#include "utils/dbusserver.h"
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <gtest/gtest.h>
-#include <libqtdbustest/DBusTestRunner.h>
-#include <libqtdbustest/QProcessDBusService.h>
 #include <QProcess>
 #include <QSignalSpy>
 #include <QTemporaryDir>
@@ -22,15 +19,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <thread> // TODO: remove this
 
 using namespace std;
 using namespace unity::thumbnailer::internal;
-
-static const char BUS_NAME[] = "com.canonical.Thumbnailer";
-
-static const char BUS_THUMBNAILER_PATH[] = "/com/canonical/Thumbnailer";
-static const char BUS_ADMIN_PATH[] = "/com/canonical/ThumbnailerAdmin";
 
 template <typename T>
 void assert_no_error(const QDBusReply<T>& reply)
@@ -63,24 +54,10 @@ protected:
         tempdir.reset(new QTemporaryDir(TESTBINDIR "/dbus-test.XXXXXX"));
         setenv("XDG_CACHE_HOME", (tempdir->path() + "/cache").toUtf8().data(), true);
 
-        dbusTestRunner.reset(new QtDBusTest::DBusTestRunner());
-
         // set 3 seconds as max idle time
         setenv("THUMBNAILER_MAX_IDLE", "1000", true);
 
-        dbusService.reset(new QtDBusTest::QProcessDBusService(
-            BUS_NAME, QDBusConnection::SessionBus, TESTBINDIR "/../src/service/thumbnailer-service", QStringList()));
-        dbusTestRunner->registerService(dbusService);
-        dbusTestRunner->startServices();
-
-        iface.reset(
-            new ThumbnailerInterface(BUS_NAME, BUS_THUMBNAILER_PATH,
-                                     dbusTestRunner->sessionConnection()));
-
-        admin_iface.reset(
-            new ThumbnailerAdminInterface(BUS_NAME, BUS_ADMIN_PATH,
-                                          dbusTestRunner->sessionConnection()));
-        qDBusRegisterMetaType<unity::thumbnailer::service::AllStats>();
+        dbus_.reset(new DBusServer());
     }
 
     string temp_dir()
@@ -90,13 +67,7 @@ protected:
 
     virtual void TearDown() override
     {
-        iface.reset();
-        admin_iface->Shutdown().waitForFinished();
-        // For gcovr. We need to give the server some time to write its coverage data.
-        this_thread::sleep_for(chrono::seconds(2));
-        admin_iface.reset();
-        dbusTestRunner.reset();
-
+        dbus_.reset();
         art_server_.reset();
 
         unsetenv("THUMBNAILER_MAX_IDLE");
@@ -105,16 +76,13 @@ protected:
     }
 
     unique_ptr<QTemporaryDir> tempdir;
-    unique_ptr<QtDBusTest::DBusTestRunner> dbusTestRunner;
-    unique_ptr<ThumbnailerInterface> iface;
-    unique_ptr<ThumbnailerAdminInterface> admin_iface;
-    QSharedPointer<QtDBusTest::QProcessDBusService> dbusService;
-    std::unique_ptr<ArtServer> art_server_;
+    unique_ptr<DBusServer> dbus_;
+    unique_ptr<ArtServer> art_server_;
 };
 
 TEST_F(DBusTest, get_album_art)
 {
-    QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetAlbumArt(
+    QDBusReply<QDBusUnixFileDescriptor> reply = dbus_->thumbnailer->GetAlbumArt(
         "metallica", "load", QSize(24, 24));
     assert_no_error(reply);
     Image image(reply.value().fileDescriptor());
@@ -124,7 +92,7 @@ TEST_F(DBusTest, get_album_art)
 
 TEST_F(DBusTest, get_artist_art)
 {
-    QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetArtistArt(
+    QDBusReply<QDBusUnixFileDescriptor> reply = dbus_->thumbnailer->GetArtistArt(
         "metallica", "load", QSize(24, 24));
     assert_no_error(reply);
     Image image(reply.value().fileDescriptor());
@@ -138,7 +106,7 @@ TEST_F(DBusTest, thumbnail_image)
     FdPtr fd(open(filename, O_RDONLY), do_close);
     ASSERT_GE(fd.get(), 0);
 
-    QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetThumbnail(
+    QDBusReply<QDBusUnixFileDescriptor> reply = dbus_->thumbnailer->GetThumbnail(
         filename, QDBusUnixFileDescriptor(fd.get()), QSize(256, 256));
     assert_no_error(reply);
 
@@ -155,7 +123,7 @@ TEST_F(DBusTest, thumbnail_no_such_file)
     FdPtr fd(open(filename2, O_RDONLY), do_close);
     ASSERT_GE(fd.get(), 0);
 
-    QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetThumbnail(
+    QDBusReply<QDBusUnixFileDescriptor> reply = dbus_->thumbnailer->GetThumbnail(
         no_such_file, QDBusUnixFileDescriptor(fd.get()), QSize(256, 256));
     EXPECT_FALSE(reply.isValid());
     auto message = reply.error().message().toStdString();
@@ -170,7 +138,7 @@ TEST_F(DBusTest, thumbnail_wrong_fd_fails)
     FdPtr fd(open(filename2, O_RDONLY), do_close);
     ASSERT_GE(fd.get(), 0);
 
-    QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetThumbnail(
+    QDBusReply<QDBusUnixFileDescriptor> reply = dbus_->thumbnailer->GetThumbnail(
         filename1, QDBusUnixFileDescriptor(fd.get()), QSize(256, 256));
     EXPECT_FALSE(reply.isValid());
     auto message = reply.error().message().toStdString();
@@ -184,11 +152,11 @@ TEST_F(DBusTest, test_inactivity_exit)
     FdPtr fd(open(filename, O_RDONLY), do_close);
     ASSERT_GE(fd.get(), 0);
 
-    QSignalSpy spy_exit(&dbusService->underlyingProcess(),
+    QSignalSpy spy_exit(&dbus_->service_process(),
                         static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished));
 
     // start a query
-    QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetThumbnail(
+    QDBusReply<QDBusUnixFileDescriptor> reply = dbus_->thumbnailer->GetThumbnail(
         filename, QDBusUnixFileDescriptor(fd.get()), QSize(256, 256));
     assert_no_error(reply);
 
@@ -204,23 +172,12 @@ TEST_F(DBusTest, test_inactivity_exit)
 TEST(DBusTestBadIdle, env_variable_bad_value)
 {
     QTemporaryDir tempdir(TESTBINDIR "/dbus-test.XXXXXX");
-    unique_ptr<QtDBusTest::DBusTestRunner> dbusTestRunner;
-    unique_ptr<QDBusInterface> iface;
-    QSharedPointer<QtDBusTest::QProcessDBusService> dbusService;
-
     setenv("XDG_CACHE_HOME", (tempdir.path() + "/cache").toUtf8().data(), true);
 
-    dbusTestRunner.reset(new QtDBusTest::DBusTestRunner());
-
     setenv("THUMBNAILER_MAX_IDLE", "bad_value", true);
+    unique_ptr<DBusServer> dbus(new DBusServer());
 
-    dbusService.reset(new QtDBusTest::QProcessDBusService(
-        BUS_NAME, QDBusConnection::SessionBus, TESTBINDIR "/../src/service/thumbnailer-service", QStringList()));
-
-    dbusTestRunner->registerService(dbusService);
-    dbusTestRunner->startServices();
-
-    auto process = const_cast<QProcess*>(&dbusService->underlyingProcess());
+    auto process = const_cast<QProcess*>(&dbus->service_process());
     if (process->state() != QProcess::NotRunning)
     {
         EXPECT_EQ(process->waitForFinished(), true);
@@ -234,7 +191,7 @@ TEST_F(DBusTest, stats)
 {
     using namespace unity::thumbnailer::service;
 
-    QDBusReply<AllStats> reply = admin_iface->Stats();
+    QDBusReply<AllStats> reply = dbus_->admin->Stats();
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
 
     {
@@ -279,7 +236,7 @@ TEST_F(DBusTest, stats)
 
     // Get a remote image from the cache, so the stats change.
     {
-        QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetAlbumArt(
+        QDBusReply<QDBusUnixFileDescriptor> reply = dbus_->thumbnailer->GetAlbumArt(
             "metallica", "load", QSize(24, 24));
         assert_no_error(reply);
         Image image(reply.value().fileDescriptor());
@@ -287,7 +244,7 @@ TEST_F(DBusTest, stats)
         EXPECT_EQ(24, image.width());
     }
 
-    reply = admin_iface->Stats();
+    reply = dbus_->admin->Stats();
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
 
     {
@@ -330,7 +287,7 @@ TEST_F(DBusTest, stats)
 
     // Get the same image again, so we get a hit.
     {
-        QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetAlbumArt(
+        QDBusReply<QDBusUnixFileDescriptor> reply = dbus_->thumbnailer->GetAlbumArt(
             "metallica", "load", QSize(24, 24));
         assert_no_error(reply);
         Image image(reply.value().fileDescriptor());
@@ -338,7 +295,7 @@ TEST_F(DBusTest, stats)
         EXPECT_EQ(24, image.width());
     }
 
-    reply = admin_iface->Stats();
+    reply = dbus_->admin->Stats();
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
 
     {
@@ -361,11 +318,11 @@ TEST_F(DBusTest, stats)
 
     // Get a non-existent remote image from the cache, so the failure stats change.
     {
-        QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetAlbumArt(
+        QDBusReply<QDBusUnixFileDescriptor> reply = dbus_->thumbnailer->GetAlbumArt(
             "no_such_artist", "no_such_album", QSize(24, 24));
     }
 
-    reply = admin_iface->Stats();
+    reply = dbus_->admin->Stats();
     ASSERT_TRUE(reply.isValid());
 
     {
@@ -377,11 +334,11 @@ TEST_F(DBusTest, stats)
 
     // Get the same non-existent remote image again, so we get a hit.
     {
-        QDBusReply<QDBusUnixFileDescriptor> reply = iface->GetAlbumArt(
+        QDBusReply<QDBusUnixFileDescriptor> reply = dbus_->thumbnailer->GetAlbumArt(
             "no_such_artist", "no_such_album", QSize(24, 24));
     }
 
-    reply = admin_iface->Stats();
+    reply = dbus_->admin->Stats();
     ASSERT_TRUE(reply.isValid()) << reply.error().message().toStdString();
 
     {
@@ -398,6 +355,7 @@ int main(int argc, char** argv)
 {
     QCoreApplication app(argc, argv);
     qRegisterMetaType<QProcess::ExitStatus>("QProcess::ExitStatus");  // Avoid noise from signal spy.
+    qDBusRegisterMetaType<unity::thumbnailer::service::AllStats>();
 
     setenv("TN_UTILDIR", TESTBINDIR "/../src/vs-thumb", true);
     ::testing::InitGoogleTest(&argc, argv);
