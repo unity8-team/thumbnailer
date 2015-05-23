@@ -22,17 +22,13 @@
 #include <internal/image.h>
 #include <internal/raii.h>
 #include <testsetup.h>
-#include "thumbnailerinterface.h"
 #include "utils/artserver.h"
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <gtest/gtest.h>
-#include <libqtdbustest/DBusTestRunner.h>
-#include <libqtdbustest/QProcessDBusService.h>
 #include <QCoreApplication>
 #include <QDebug>
-#include <QProcess>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <unity/UnityExceptions.h>
@@ -351,28 +347,18 @@ TEST_F(ThumbnailerTest, vs_thumb_exec_failure)
     }
 }
 
-class RemoteServer : public ::testing::Test
+class RemoteServer : public ThumbnailerTest
 {
 protected:
     static void SetUpTestCase()
     {
         // start fake server
         art_server_.reset(new ArtServer());
-
-        // start dbus service
-        tempdir.reset(new QTemporaryDir(TESTBINDIR "/dbus-test.XXXXXX"));
-        setenv("XDG_CACHE_HOME", (tempdir->path() + "/cache").toUtf8().data(), true);
     }
 
     static void TearDownTestCase()
     {
         art_server_.reset();
-
-        boost::filesystem::remove_all(ThumbnailerTest::tempdir_path());
-
-        tempdir.reset();
-        unsetenv("THUMBNAILER_MAX_IDLE");
-        unsetenv("XDG_CACHE_HOME");
     }
 
     static unique_ptr<ArtServer> art_server_;
