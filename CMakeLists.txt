@@ -118,6 +118,7 @@ enable_coverage_report(
         vs-thumb
         testutils
     FILTER
+        ${CMAKE_SOURCE_DIR}/include/core/*
         ${CMAKE_SOURCE_DIR}/tests/*
         ${CMAKE_SOURCE_DIR}/tools/*
         ${CMAKE_BINARY_DIR}/*
