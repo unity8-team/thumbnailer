@@ -6,6 +6,9 @@
 #add_executable(scaler scaler.cpp ../src/imagescaler.cpp)
 #target_link_libraries(scaler ${IMG_DEPS_LDFLAGS})
 
+add_executable(thumbnailer-admin thumbnailer-admin.cpp show_stats.cpp)
+target_link_libraries(thumbnailer-admin thumbnailer)
+
 add_executable(cachetool cachetool.cpp)
 target_link_libraries(cachetool thumbnailer)
 
