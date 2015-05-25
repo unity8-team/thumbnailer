@@ -223,6 +223,37 @@ TEST_F(DBusTest, test_inactivity_exit)
     EXPECT_EQ(arguments.at(0).toInt(), 0);
 }
 
+TEST_F(DBusTest, service_exits_if_run_twice)
+{
+    // Try to start a second copy of the thumbnailer service
+    QProcess process;
+    process.setStandardInputFile(QProcess::nullDevice());
+    process.setProcessChannelMode(QProcess::ForwardedErrorChannel);
+    process.start(THUMBNAILER_SERVICE, QStringList());
+    process.waitForFinished();
+    EXPECT_EQ(QProcess::NormalExit, process.exitStatus());
+    EXPECT_EQ(1, process.exitCode());
+}
+
+TEST_F(DBusTest, service_exits_if_name_taken)
+{
+    // Try to start a second copy of the thumbnailer service
+    QProcess process;
+    process.setStandardInputFile(QProcess::nullDevice());
+    process.setProcessChannelMode(QProcess::ForwardedErrorChannel);
+
+    // Force a different cache dir so we don't trigger the cache
+    // locking exit.
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    env.insert("XDG_CACHE_HOME", tempdir->path() + "/cache2");
+    process.setProcessEnvironment(env);
+
+    process.start(THUMBNAILER_SERVICE, QStringList());
+    process.waitForFinished();
+    EXPECT_EQ(QProcess::NormalExit, process.exitStatus());
+    EXPECT_EQ(1, process.exitCode());
+}
+
 TEST(DBusTestBadIdle, env_variable_bad_value)
 {
     QTemporaryDir tempdir(TESTBINDIR "/dbus-test.XXXXXX");
