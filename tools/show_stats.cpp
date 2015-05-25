@@ -18,7 +18,11 @@
 
 #include "show_stats.h"
 
+#include <core/persistent_cache_stats.h>
+
 #include <ctime>
+#include <iomanip>
+#include <iostream>
 
 #include <inttypes.h>
 #include <stdio.h>
@@ -37,29 +41,36 @@ namespace tools
 ShowStats::ShowStats(vector<string> const& args)
     : Action(args)
 {
+    if (args.size() == 2)
+    {
+        return;
+    }
     if (args.size() > 4)
     {
         throw "too many arguments for stats command";
     }
-    for (vector<string>::size_type i = 2; i < args.size(); ++i)
+    unsigned next_arg = 2;
+    if (args[2] == "hist")
     {
-        if (args[i] == "hist")
-        {
-            show_histogram_ = true;
-        }
-        else if (args[i] == "i")
+        show_histogram_ = true;
+        next_arg = 3;
+    }
+    if (next_arg < args.size())
+    {
+        string arg = args[next_arg];
+        if (arg == "i")
         {
             show_image_stats_ = true;
             show_thumbnail_stats_ = false;
             show_failure_stats_ = false;
         }
-        else if (args[i] == "t")
+        else if (arg == "t")
         {
             show_image_stats_ = false;
             show_thumbnail_stats_ = true;
-            show_failure_stats_ = true;
+            show_failure_stats_ = false;
         }
-        else if (args[i] == "f")
+        else if (arg == "f")
         {
             show_image_stats_ = false;
             show_thumbnail_stats_ = false;
@@ -67,7 +78,7 @@ ShowStats::ShowStats(vector<string> const& args)
         }
         else
         {
-            throw string("invalid argument for stats command: " ) + args[i];
+            throw string("invalid argument for stats command: " ) + arg;
         }
     }
 }
@@ -85,6 +96,60 @@ char const* to_time_string(chrono::system_clock::time_point tp)
     }
     time_t t = chrono::system_clock::to_time_t(tp);
     return asctime(localtime(&t));
+}
+
+int display_width(quint32 val)
+{
+    return log10(val) + 1;
+}
+
+void print_entry(int label_width, pair<int32_t, int32_t> bounds, int value_width, quint32 value)
+{
+    string labels = to_string(bounds.first) + "-" + to_string(bounds.second);
+    cout << "        " << setw(label_width * 2 + 1) << labels << ": "
+         << setw(value_width) << value << endl;
+}
+
+void show_histogram(QList<quint32> const& h)
+{
+    int first_slot = -1;   // First non-zero index
+    int last_slot = -1;    // Last non-zero index
+    quint32 max_count = 0; // Largest count
+
+    // Find the first and last non-zero slot.
+    for (int i = 0; i < h.size() && first_slot == -1; ++i)
+    {
+        if (h[i] != 0)
+        {
+            first_slot = i;
+            last_slot = i;
+            max_count = h[i];
+            for (int j = last_slot + 1; j < h.size(); ++j)
+            {
+                if (h[j] != 0)
+                {
+                    last_slot = j;
+                    max_count = max(max_count, h[j]);
+                }
+            }
+        }
+    }
+    printf("    Histogram:");
+    if (first_slot == -1)
+    {
+        printf("             empty\n");
+        return;
+    }
+    printf("\n");
+
+    // Print the histogram from first non-zero to last non-zero entry.
+    auto labels = core::PersistentCacheStats::histogram_bounds();
+    int label_width = display_width(labels[last_slot].first);
+    int value_width = display_width(max_count);
+    for (int i = first_slot; i <= last_slot; ++i)
+    {
+        print_entry(label_width, labels[i], value_width, h[i]);
+    }
 }
 
 }
@@ -109,6 +174,11 @@ void ShowStats::show_stats(service::CacheStats const& st)
     printf("    Most-recent miss time: %s\n", to_time_string(st.most_recent_miss_time));
     printf("    Longest hit-run time:  %s\n", to_time_string(st.longest_hit_run_time));
     printf("    Longest miss-run time: %s\n", to_time_string(st.longest_miss_run_time));
+
+    if (show_histogram_)
+    {
+        show_histogram(st.histogram);
+    }
 }
 
 void ShowStats::run(DBusConnection& conn)
