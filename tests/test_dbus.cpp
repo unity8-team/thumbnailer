@@ -150,23 +150,52 @@ TEST_F(DBusTest, thumbnail_wrong_fd_fails)
 
 TEST_F(DBusTest, duplicate_requests)
 {
-    QDBusPendingReply<QDBusUnixFileDescriptor> reply1 =
-        dbus_->thumbnailer_->GetAlbumArt("metallica", "load", QSize(24, 24));
-    QDBusPendingReply<QDBusUnixFileDescriptor> reply2 =
-        dbus_->thumbnailer_->GetAlbumArt("metallica", "load", QSize(48, 48));
-    QDBusPendingReply<QDBusUnixFileDescriptor> reply3 =
-        dbus_->thumbnailer_->GetAlbumArt("metallica", "load", QSize(72, 72));
+    int const N_REQUESTS = 10;
+    std::unique_ptr<QDBusPendingCallWatcher> watchers[N_REQUESTS];
+    vector<int> results;
 
-    // The second request should have only been started once the first
-    // is finished.  The third is delayed until after the second.
-    QDBusPendingCallWatcher watcher(reply2);
-    QSignalSpy spy(&watcher, &QDBusPendingCallWatcher::finished);
+    for (int i = 0; i < N_REQUESTS; i++)
+    {
+        watchers[i].reset(
+            new QDBusPendingCallWatcher(dbus_->thumbnailer_->GetAlbumArt(
+                "metallica", "load", QSize(i*10, i*10))));
+        QObject::connect(watchers[i].get(), &QDBusPendingCallWatcher::finished,
+                         [i, &results]{ results.push_back(i); });
+    }
+
+    // The results should all be returned in order
+    QSignalSpy spy(watchers[N_REQUESTS-1].get(), &QDBusPendingCallWatcher::finished);
     ASSERT_TRUE(spy.wait());
-    EXPECT_TRUE(reply1.isFinished());
-    EXPECT_FALSE(reply3.isFinished());
 
-    EXPECT_FALSE(reply1.isError());
-    EXPECT_FALSE(reply2.isError());
+    for (int i = 0; i < N_REQUESTS; i++)
+    {
+        EXPECT_TRUE(watchers[i]->isFinished());
+    }
+    EXPECT_EQ(vector<int>({0, 1, 2, 3, 4, 5, 6, 7, 8, 9}), results);
+}
+
+TEST_F(DBusTest, rate_limit_requests)
+{
+    // This can't actually check that the requests are being properly
+    // rate limited, but it does exercise the code paths as shown by
+    // the coverage report.
+    int const N_REQUESTS = 10;
+    QDBusPendingReply<QDBusUnixFileDescriptor> replies[N_REQUESTS];
+
+    for (int i = 0; i < N_REQUESTS; i++)
+    {
+        replies[i] = dbus_->thumbnailer_->GetAlbumArt(
+            "no such artist", QString::number(i), QSize(64, 64));
+    }
+
+    // Wait for all requests to complete.
+    for (int i = 0; i < N_REQUESTS; i++)
+    {
+        replies[i].waitForFinished();
+        EXPECT_FALSE(replies[i].isValid());
+        string message = replies[i].error().message().toStdString();
+        EXPECT_TRUE(boost::contains(message, "Could not get thumbnail")) << message;
+    }
 }
 
 TEST_F(DBusTest, test_inactivity_exit)
@@ -192,6 +221,37 @@ TEST_F(DBusTest, test_inactivity_exit)
 
     QList<QVariant> arguments = spy_exit.takeFirst();
     EXPECT_EQ(arguments.at(0).toInt(), 0);
+}
+
+TEST_F(DBusTest, service_exits_if_run_twice)
+{
+    // Try to start a second copy of the thumbnailer service
+    QProcess process;
+    process.setStandardInputFile(QProcess::nullDevice());
+    process.setProcessChannelMode(QProcess::ForwardedErrorChannel);
+    process.start(THUMBNAILER_SERVICE, QStringList());
+    process.waitForFinished();
+    EXPECT_EQ(QProcess::NormalExit, process.exitStatus());
+    EXPECT_EQ(1, process.exitCode());
+}
+
+TEST_F(DBusTest, service_exits_if_name_taken)
+{
+    // Try to start a second copy of the thumbnailer service
+    QProcess process;
+    process.setStandardInputFile(QProcess::nullDevice());
+    process.setProcessChannelMode(QProcess::ForwardedErrorChannel);
+
+    // Force a different cache dir so we don't trigger the cache
+    // locking exit.
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    env.insert("XDG_CACHE_HOME", tempdir->path() + "/cache2");
+    process.setProcessEnvironment(env);
+
+    process.start(THUMBNAILER_SERVICE, QStringList());
+    process.waitForFinished();
+    EXPECT_EQ(QProcess::NormalExit, process.exitStatus());
+    EXPECT_EQ(1, process.exitCode());
 }
 
 TEST(DBusTestBadIdle, env_variable_bad_value)

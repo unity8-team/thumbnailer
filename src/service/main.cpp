@@ -26,7 +26,6 @@
 #include <QCoreApplication>
 
 #include <cstdio>
-#include <iostream>
 
 using namespace unity::thumbnailer::internal;
 using namespace unity::thumbnailer::service;
@@ -40,8 +39,16 @@ int main(int argc, char** argv)
 {
     QCoreApplication app(argc, argv);
 
-    auto bus = QDBusConnection::sessionBus();
-    auto thumbnailer = std::make_shared<Thumbnailer>();
+    std::shared_ptr<Thumbnailer> thumbnailer;
+    try
+    {
+        thumbnailer = std::make_shared<Thumbnailer>();
+    }
+    catch (std::exception const& e)
+    {
+        fprintf(stderr, "%s\n", e.what());
+        return 1;
+    }
 
     unity::thumbnailer::service::DBusInterface server(thumbnailer);
     new ThumbnailerAdaptor(&server);
@@ -49,6 +56,7 @@ int main(int argc, char** argv)
     unity::thumbnailer::service::AdminInterface admin_server(thumbnailer);
     new ThumbnailerAdminAdaptor(&admin_server);
 
+    auto bus = QDBusConnection::sessionBus();
     bus.registerObject(BUS_THUMBNAILER_PATH, &server);
     bus.registerObject(BUS_ADMIN_PATH, &admin_server);
 
@@ -57,7 +65,7 @@ int main(int argc, char** argv)
     if (!bus.registerService(BUS_NAME))
     {
         fprintf(stderr, "Could not acquire D-Bus name %s.\n", BUS_NAME);
-        return 0;
+        return 1;
     }
 
     try
@@ -66,8 +74,8 @@ int main(int argc, char** argv)
     }
     catch (std::invalid_argument& e)
     {
-        std::cerr << e.what() << std::endl;
-        exit(1);
+        fprintf(stderr, "%s\n", e.what());
+        return 1;
     }
 
     return app.exec();

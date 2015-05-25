@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "ratelimiter.h"
 #include <internal/thumbnailer.h>
 
 #include <memory>
@@ -49,6 +50,7 @@ public:
             QDBusMessage const& message,
             std::shared_ptr<QThreadPool> check_pool,
             std::shared_ptr<QThreadPool> create_pool,
+            RateLimiter& limiter,
             std::unique_ptr<internal::ThumbnailRequest>&& request);
     ~Handler();
 

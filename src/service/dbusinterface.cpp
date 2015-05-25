@@ -34,6 +34,9 @@ using namespace unity::thumbnailer::internal;
 namespace
 {
 char const ART_ERROR[] = "com.canonical.Thumbnailer.Error.Failed";
+
+int const MAX_DOWNLOADS = 2;
+int const MAX_VIDEO_THUMBNAILS = 2;
 }
 
 namespace unity
@@ -50,6 +53,8 @@ DBusInterface::DBusInterface(shared_ptr<Thumbnailer> const& thumbnailer, QObject
     , thumbnailer_(thumbnailer)
     , check_thread_pool_(make_shared<QThreadPool>())
     , create_thread_pool_(make_shared<QThreadPool>())
+    , download_limiter_(MAX_DOWNLOADS)
+    , video_thumbnail_limiter_(MAX_VIDEO_THUMBNAILS)
 {
 }
 
@@ -63,7 +68,7 @@ QDBusUnixFileDescriptor DBusInterface::GetAlbumArt(QString const& artist,
 {
     qDebug() << "Look up cover art for" << artist << "/" << album << "at size" << requestedSize;
     auto request = thumbnailer_->get_album_art(artist.toStdString(), album.toStdString(), requestedSize);
-    queueRequest(new Handler(connection(), message(), check_thread_pool_, create_thread_pool_, std::move(request)));
+    queueRequest(new Handler(connection(), message(), check_thread_pool_, create_thread_pool_, download_limiter_, std::move(request)));
     return QDBusUnixFileDescriptor();
 }
 
@@ -73,7 +78,7 @@ QDBusUnixFileDescriptor DBusInterface::GetArtistArt(QString const& artist,
 {
     qDebug() << "Look up artist art for" << artist << "/" << album << "at size" << requestedSize;
     auto request = thumbnailer_->get_artist_art(artist.toStdString(), album.toStdString(), requestedSize);
-    queueRequest(new Handler(connection(), message(), check_thread_pool_, create_thread_pool_, std::move(request)));
+    queueRequest(new Handler(connection(), message(), check_thread_pool_, create_thread_pool_, download_limiter_, std::move(request)));
     return QDBusUnixFileDescriptor();
 }
 
@@ -93,7 +98,7 @@ QDBusUnixFileDescriptor DBusInterface::GetThumbnail(QString const& filename,
         sendErrorReply(ART_ERROR, e.what());
         return QDBusUnixFileDescriptor();
     }
-    queueRequest(new Handler(connection(), message(), check_thread_pool_, create_thread_pool_, std::move(request)));
+    queueRequest(new Handler(connection(), message(), check_thread_pool_, create_thread_pool_, video_thumbnail_limiter_, std::move(request)));
     return QDBusUnixFileDescriptor();
 }
 
