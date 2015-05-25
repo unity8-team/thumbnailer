@@ -103,15 +103,6 @@ into the old coverage output. You can get rid of this problem by running
 This deletes all the .gcda files, allowing the merge to (sometimes) succeed again.
 If this doesn't work either, the only remedy is to do a clean build.
 
-If lcov complains about unrecognized lines involving '=====',
-you can patch geninfo and gcovr as explained here:
-
-https://bugs.launchpad.net/gcovr/+bug/1086695/comments/2
-
-To run the static C++ checks:
-
-    $ make cppcheck
-
 Code style
 ----------
 
@@ -128,11 +119,10 @@ Thread and address sanitizer
 Set SANITIZER to "thread" or "address" to build with the
 corresponding sanitizer enabled.
 
-zmq (as 3.2.3 and 4.0.3) causes a large number of warnings from
-thread sanitizer. It appears impossible to avoid these; they
-are caused by issues in the zmq library. The tsan-suppress file
-supresses the benign race conditions we currently know about. To
-run the tests (from the build directory) with these suppressions
+Some libraries cause a cause a large number of warnings from
+thread sanitizer. The tsan-suppress file supresses the benign
+race conditions we currently know about. To run the tests
+(from the build directory) with these suppressions
 enabled, use:
 
     $ TSAN_OPTIONS="suppressions=../tsan-suppress" make test
