@@ -43,7 +43,8 @@ int main(int argc, char** argv)
     try
     {
         thumbnailer = std::make_shared<Thumbnailer>();
-    } catch (std::exception const& e)
+    }
+    catch (std::exception const& e)
     {
         fprintf(stderr, "%s\n", e.what());
         return 1;
