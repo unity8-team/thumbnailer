@@ -212,8 +212,25 @@ TEST(DBusTestBadIdle, env_variable_bad_value)
     unsetenv("THUMBNAILER_MAX_IDLE");
 }
 
+bool near_current_time(chrono::system_clock::time_point& t)
+{
+    using namespace std::chrono;
+
+    auto now_msecs = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    auto t_msecs = duration_cast<milliseconds>(t.time_since_epoch()).count();
+    if (abs(now_msecs - t_msecs) > 10000)
+    {
+        cerr << "Current time more than 10 seconds away from test time t" << endl;
+        cerr << "Current time: " << now_msecs << endl;
+        cerr << "Test time   : " << t_msecs << endl;
+        return false;
+    }
+    return true;
+}
+
 TEST_F(DBusTest, stats)
 {
+    using namespace std::chrono;
     using namespace unity::thumbnailer::service;
 
     QDBusReply<AllStats> reply = dbus_->admin_->Stats();
@@ -234,10 +251,10 @@ TEST_F(DBusTest, stats)
         EXPECT_EQ(0, s.longest_miss_run);
         EXPECT_EQ(0, s.ttl_evictions);
         EXPECT_EQ(0, s.lru_evictions);
-        EXPECT_EQ("Thu Jan 1 00:00:00 1970 GMT", s.most_recent_hit_time.toUTC().toString().toStdString());
-        EXPECT_EQ("Thu Jan 1 00:00:00 1970 GMT", s.most_recent_miss_time.toUTC().toString().toStdString());
-        EXPECT_EQ("Thu Jan 1 00:00:00 1970 GMT", s.longest_hit_run_time.toUTC().toString().toStdString());
-        EXPECT_EQ("Thu Jan 1 00:00:00 1970 GMT", s.longest_miss_run_time.toUTC().toString().toStdString());
+        EXPECT_EQ(0, duration_cast<milliseconds>(s.most_recent_hit_time.time_since_epoch()).count());
+        EXPECT_EQ(0, duration_cast<milliseconds>(s.most_recent_miss_time.time_since_epoch()).count());
+        EXPECT_EQ(0, duration_cast<milliseconds>(s.longest_hit_run_time.time_since_epoch()).count());
+        EXPECT_EQ(0, duration_cast<milliseconds>(s.longest_miss_run_time.time_since_epoch()).count());
         auto list = s.histogram;
         for (auto c : list)
         {
@@ -284,10 +301,10 @@ TEST_F(DBusTest, stats)
         EXPECT_EQ(2, s.longest_miss_run);
         EXPECT_EQ(0, s.ttl_evictions);
         EXPECT_EQ(0, s.lru_evictions);
-        EXPECT_EQ("Thu Jan 1 00:00:00 1970 GMT", s.most_recent_hit_time.toUTC().toString().toStdString());
-        EXPECT_NE("Thu Jan 1 00:00:00 1970 GMT", s.most_recent_miss_time.toUTC().toString().toStdString());
-        EXPECT_EQ("Thu Jan 1 00:00:00 1970 GMT", s.longest_hit_run_time.toUTC().toString().toStdString());
-        EXPECT_NE("Thu Jan 1 00:00:00 1970 GMT", s.longest_miss_run_time.toUTC().toString().toStdString());
+        EXPECT_EQ(0, duration_cast<milliseconds>(s.most_recent_hit_time.time_since_epoch()).count());
+        EXPECT_TRUE(near_current_time(s.most_recent_miss_time));
+        EXPECT_EQ(0, duration_cast<milliseconds>(s.longest_hit_run_time.time_since_epoch()).count());
+        EXPECT_TRUE(near_current_time(s.longest_miss_run_time));
         auto list = s.histogram;
         EXPECT_EQ(1, list[18]);
     }
@@ -304,10 +321,10 @@ TEST_F(DBusTest, stats)
         EXPECT_EQ(2, s.longest_miss_run);
         EXPECT_EQ(0, s.ttl_evictions);
         EXPECT_EQ(0, s.lru_evictions);
-        EXPECT_EQ("Thu Jan 1 00:00:00 1970 GMT", s.most_recent_hit_time.toUTC().toString().toStdString());
-        EXPECT_NE("Thu Jan 1 00:00:00 1970 GMT", s.most_recent_miss_time.toUTC().toString().toStdString());
-        EXPECT_EQ("Thu Jan 1 00:00:00 1970 GMT", s.longest_hit_run_time.toUTC().toString().toStdString());
-        EXPECT_NE("Thu Jan 1 00:00:00 1970 GMT", s.longest_miss_run_time.toUTC().toString().toStdString());
+        EXPECT_EQ(0, duration_cast<milliseconds>(s.most_recent_hit_time.time_since_epoch()).count());
+        EXPECT_TRUE(near_current_time(s.most_recent_miss_time));
+        EXPECT_EQ(0, duration_cast<milliseconds>(s.longest_hit_run_time.time_since_epoch()).count());
+        EXPECT_TRUE(near_current_time(s.longest_miss_run_time));
     }
 
     // Get the same image again, so we get a hit.
@@ -335,10 +352,10 @@ TEST_F(DBusTest, stats)
         EXPECT_EQ(2, s.longest_miss_run);
         EXPECT_EQ(0, s.ttl_evictions);
         EXPECT_EQ(0, s.lru_evictions);
-        EXPECT_NE("Thu Jan 1 00:00:00 1970 GMT", s.most_recent_hit_time.toUTC().toString().toStdString());
-        EXPECT_NE("Thu Jan 1 00:00:00 1970 GMT", s.most_recent_miss_time.toUTC().toString().toStdString());
-        EXPECT_NE("Thu Jan 1 00:00:00 1970 GMT", s.longest_hit_run_time.toUTC().toString().toStdString());
-        EXPECT_NE("Thu Jan 1 00:00:00 1970 GMT", s.longest_miss_run_time.toUTC().toString().toStdString());
+        EXPECT_TRUE(near_current_time(s.most_recent_hit_time));
+        EXPECT_TRUE(near_current_time(s.most_recent_miss_time));
+        EXPECT_TRUE(near_current_time(s.longest_hit_run_time));
+        EXPECT_TRUE(near_current_time(s.longest_miss_run_time));
     }
 
     // Get a non-existent remote image from the cache, so the failure stats change.

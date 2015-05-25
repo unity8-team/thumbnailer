@@ -24,6 +24,8 @@ using namespace unity::thumbnailer::service;
 
 QDBusArgument& operator<<(QDBusArgument& arg, CacheStats const& s)
 {
+    using namespace std::chrono;
+
     arg.beginStructure();
     arg << s.cache_path
         << s.policy
@@ -38,10 +40,10 @@ QDBusArgument& operator<<(QDBusArgument& arg, CacheStats const& s)
         << s.longest_miss_run
         << s.ttl_evictions
         << s.lru_evictions
-        << s.most_recent_hit_time.toMSecsSinceEpoch()
-        << s.most_recent_miss_time.toMSecsSinceEpoch()
-        << s.longest_hit_run_time.toMSecsSinceEpoch()
-        << s.longest_miss_run_time.toMSecsSinceEpoch()
+        << quint64(duration_cast<milliseconds>(s.most_recent_hit_time.time_since_epoch()).count())
+        << quint64(duration_cast<milliseconds>(s.most_recent_miss_time.time_since_epoch()).count())
+        << quint64(duration_cast<milliseconds>(s.longest_hit_run_time.time_since_epoch()).count())
+        << quint64(duration_cast<milliseconds>(s.longest_miss_run_time.time_since_epoch()).count())
         << s.histogram;
         arg.endStructure();
     return arg;
@@ -49,10 +51,12 @@ QDBusArgument& operator<<(QDBusArgument& arg, CacheStats const& s)
 
 QDBusArgument const& operator>>(QDBusArgument const& arg, CacheStats& s)
 {
-    qint64 mrht;
-    qint64 mrmt;
-    qint64 lhrt;
-    qint64 lmrt;
+    using namespace std::chrono;
+
+    quint64 mrht;
+    quint64 mrmt;
+    quint64 lhrt;
+    quint64 lmrt;
     arg.beginStructure();
     arg >> s.cache_path
         >> s.policy
@@ -73,10 +77,10 @@ QDBusArgument const& operator>>(QDBusArgument const& arg, CacheStats& s)
         >> lmrt
         >> s.histogram;
     arg.endStructure();
-    s.most_recent_hit_time = QDateTime::fromMSecsSinceEpoch(mrht);
-    s.most_recent_miss_time = QDateTime::fromMSecsSinceEpoch(mrmt);
-    s.longest_hit_run_time = QDateTime::fromMSecsSinceEpoch(lhrt);
-    s.longest_miss_run_time = QDateTime::fromMSecsSinceEpoch(lmrt);
+    s.most_recent_hit_time = system_clock::time_point(milliseconds(mrht));
+    s.most_recent_miss_time = system_clock::time_point(milliseconds(mrmt));
+    s.longest_hit_run_time = system_clock::time_point(milliseconds(lhrt));
+    s.longest_miss_run_time = system_clock::time_point(milliseconds(lmrt));
     return arg;
 }
 
