@@ -26,7 +26,6 @@
 #include <QCoreApplication>
 
 #include <cstdio>
-#include <iostream>
 
 using namespace unity::thumbnailer::internal;
 using namespace unity::thumbnailer::service;
@@ -46,7 +45,7 @@ int main(int argc, char** argv)
         thumbnailer = std::make_shared<Thumbnailer>();
     } catch (std::runtime_error const& e)
     {
-        std::cerr << e.what() << std::endl;
+        fprintf(stderr, "%s\n", e.what());
         return 1;
     }
 
@@ -74,7 +73,7 @@ int main(int argc, char** argv)
     }
     catch (std::invalid_argument& e)
     {
-        std::cerr << e.what() << std::endl;
+        fprintf(stderr, "%s\n", e.what());
         return 1;
     }
 
