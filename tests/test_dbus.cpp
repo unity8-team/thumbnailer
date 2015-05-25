@@ -300,7 +300,6 @@ TEST_F(DBusTest, stats)
             EXPECT_EQ(0, c);
         }
     }
-    cerr << "hello" << endl;
 
     {
         CacheStats s = reply.value().thumbnail_stats;
