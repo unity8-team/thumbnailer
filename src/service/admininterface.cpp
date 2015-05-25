@@ -53,15 +53,15 @@ static auto adjustment_ms = []
 {
     // Arbitrary point in time, doesn't really matter what it is,
     // as long as it is after 1 Jan 1970.
-    string const fixed_point = "Mar 15 16:45:17 1983";
+    string const fixed_point = "3 15 16:45:17 1983";
 
     std::tm tm;
     memset(&tm, 0, sizeof(tm));
-    strptime(fixed_point.c_str(), "%b %j %H:%M:%S %Y", &tm);
+    strptime(fixed_point.c_str(), "%m %j %H:%M:%S %Y", &tm);
     auto tp = std::chrono::system_clock::from_time_t(std::mktime(&tm));
     auto system_msecs = duration_cast<milliseconds>(tp.time_since_epoch()).count();
 
-    QDateTime qdt = QDateTime::fromString(QString::fromStdString(fixed_point), "MMM d hh:mm:ss yyyy");
+    QDateTime qdt = QDateTime::fromString(QString::fromStdString(fixed_point), "M d hh:mm:ss yyyy");
     auto qt_msecs = qdt.toMSecsSinceEpoch();
 
     int64_t adjust_ms = system_msecs - qt_msecs;
