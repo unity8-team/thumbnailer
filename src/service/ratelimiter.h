@@ -31,12 +31,24 @@ namespace thumbnailer
 namespace service
 {
 
+// RateLimiter is a simple class to control the level of concurrency
+// of asynchronous jobs.  It performs no locking because it is only
+// intended to be run from the event loop thread.
 class RateLimiter {
 public:
     RateLimiter(int concurrency);
     ~RateLimiter();
 
+    RateLimiter(RateLimiter const&) = delete;
+    RateLimiter& operator=(RateLimiter const&) = delete;
+
+    // Schedule a job to run.  If the concurrency limit has not been
+    // reached, the job will be run immediately.  Otherwise it will be
+    // added to the queue.
     void schedule(std::function<void()> job);
+
+    // Notify that a job has completed.  If there are queued jobs,
+    // start the one at the head of the queue.
     void done();
 
 private:

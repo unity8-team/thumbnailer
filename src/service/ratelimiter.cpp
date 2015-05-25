@@ -51,8 +51,11 @@ void RateLimiter::schedule(std::function<void()> job)
 
 void RateLimiter::done()
 {
-    running_--;
-    if (running_ < concurrency_ && !queue_.empty())
+    if (queue_.empty())
+    {
+        running_--;
+    }
+    else
     {
         auto job = queue_.front();
         queue_.pop();
