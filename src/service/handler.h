@@ -55,6 +55,10 @@ public:
     Handler(Handler const&) = delete;
     Handler& operator=(Handler&) = delete;
 
+
+    std::string const& key() const;
+
+public Q_SLOTS:
     void begin();
 
 private Q_SLOTS:

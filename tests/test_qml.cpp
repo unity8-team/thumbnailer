@@ -21,9 +21,6 @@
 #include <string>
 #include <unistd.h>
 
-#include <libqtdbustest/DBusTestRunner.h>
-#include <libqtdbustest/QProcessDBusService.h>
-
 #include <QGuiApplication>
 #include <QtQml>
 #include <QtQuickTest/quicktest.h>
@@ -31,32 +28,28 @@
 
 #include <testsetup.h>
 #include "utils/artserver.h"
-
-static const char BUS_NAME[] = "com.canonical.Thumbnailer";
+#include "utils/dbusserver.h"
 
 class TestFixture
 {
 public:
     TestFixture()
     {
-        cachedir.reset(new QTemporaryDir(TESTBINDIR "/qml-test.XXXXXX"));
-        setenv("XDG_CACHE_HOME", cachedir->path().toUtf8().data(), true);
+        cachedir_.reset(new QTemporaryDir(TESTBINDIR "/qml-test.XXXXXX"));
+        setenv("XDG_CACHE_HOME", cachedir_->path().toUtf8().constData(), true);
 
-        dbusTestRunner.reset(new QtDBusTest::DBusTestRunner());
-        dbusTestRunner->registerService(QtDBusTest::DBusServicePtr(new QtDBusTest::QProcessDBusService(
-            BUS_NAME, QDBusConnection::SessionBus, TESTBINDIR "/../src/service/thumbnailer-service", QStringList())));
-        dbusTestRunner->startServices();
+        dbus_server_.reset(new DBusServer());
     }
 
     ~TestFixture()
     {
-        dbusTestRunner.reset();
-        cachedir.reset();
+        dbus_server_.reset();
+        cachedir_.reset();
     }
 
 private:
-    std::unique_ptr<QTemporaryDir> cachedir;
-    std::unique_ptr<QtDBusTest::DBusTestRunner> dbusTestRunner;
+    std::unique_ptr<QTemporaryDir> cachedir_;
+    std::unique_ptr<DBusServer> dbus_server_;
     ArtServer fake_art_server_;
 };
 

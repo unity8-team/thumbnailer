@@ -20,6 +20,7 @@
 
 #include <internal/artdownloader.h>
 
+#include <core/persistent_cache_stats.h>
 #include <core/persistent_string_cache.h>
 #include <QObject>
 #include <QSize>
@@ -55,6 +56,8 @@ public:
     virtual std::string thumbnail() = 0;
     // TODO: Timeout should be configurable?
     virtual void download(std::chrono::milliseconds timeout = std::chrono::milliseconds(10000)) = 0;
+
+    virtual std::string const& key() const = 0;
 Q_SIGNALS:
     void downloadFinished();
 };
@@ -102,6 +105,15 @@ public:
     std::unique_ptr<ThumbnailRequest> get_artist_art(std::string const& artist,
                                                      std::string const& album,
                                                      QSize const& requested_size);
+
+    struct AllStats
+    {
+        core::PersistentCacheStats full_size_stats;
+        core::PersistentCacheStats thumbnail_stats;
+        core::PersistentCacheStats failure_stats;
+    };
+
+    AllStats stats() const;
 
 private:
     ArtDownloader* downloader() const

@@ -1,12 +1,15 @@
 add_definitions(${THUMBNAILER_CFLAGS})
 
 qt5_add_dbus_adaptor(adaptor_files dbusinterface.xml dbusinterface.h unity::thumbnailer::service::DBusInterface)
+qt5_add_dbus_adaptor(adaptor_files admininterface.xml admininterface.h unity::thumbnailer::service::AdminInterface)
 
 add_executable(thumbnailer-service
-  main.cpp
+  admininterface.cpp
   dbusinterface.cpp
   handler.cpp
   inactivityhandler.cpp
+  main.cpp
+  stats.cpp
   ${adaptor_files}
   )
 

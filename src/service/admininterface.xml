@@ -1,0 +1,20 @@
+<node>
+  <interface name="com.canonical.ThumbnailerAdmin">
+    <method name="Stats">
+      <!--
+         See stats.h.
+         The type is a struct AllStats with three identical members of type CacheStats.
+         Each CacheStats has members:
+             - cache_path (string)
+             - policy (uint32)
+             - various counters (13 int64 members)
+             - time stamps (4 QDateTime members as int64 each, millisecs since the epoch)
+             - histogram (array of 74 uint32)
+      -->
+      <arg direction="out" type="(suxxxxxxxxxxxxxxxau)(suxxxxxxxxxxxxxxxau)(suxxxxxxxxxxxxxxxau)" name="stats" />
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="unity::thumbnailer::service::AllStats"/>
+    </method>
+    <method name="Shutdown">
+    </method>
+  </interface>
+</node>

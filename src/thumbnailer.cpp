@@ -76,6 +76,10 @@ class RequestBase : public ThumbnailRequest
 public:
     virtual ~RequestBase() = default;
     string thumbnail() override;
+    string const& key() const override
+    {
+        return key_;
+    }
     enum class FetchStatus
     {
         needs_download,
@@ -261,19 +265,21 @@ string RequestBase::thumbnail()
         else
         {
             // Try and download or read the artwork, provided that we don't
-            // have this image in the failure cache.
-            if (thumbnailer_->failure_cache_->contains_key(key_))
+            // have this image in the failure cache. We use get()
+            // here instead of contains_key(), so the stats for the
+            // failure cache are updated.
+            if (thumbnailer_->failure_cache_->get(key_))
             {
                 return "";
             }
             auto image_data = fetch(target_size);
             switch (image_data.status)
             {
-                case FetchStatus::downloaded:  // Success, we'll return the thumbnail below.
+                case FetchStatus::downloaded:      // Success, we'll return the thumbnail below.
                     break;
                 case FetchStatus::needs_download:  // Caller will call download().
                     return "";
-                case FetchStatus::no_network:  // Network down, try again next time.
+                case FetchStatus::no_network:      // Network down, try again next time.
                     return "";
                 case FetchStatus::not_found:
                 {
@@ -307,7 +313,6 @@ string RequestBase::thumbnail()
                     // TODO: That's really poor. Should store the error data so we can produce
                     //       a proper diagnostic.
                     throw runtime_error("fetch() failed");
-                    return "";
                 }
                 default:
                     abort();  // LCOV_EXCL_LINE  // Impossible
@@ -604,6 +609,11 @@ unique_ptr<ThumbnailRequest> Thumbnailer::get_artist_art(string const& artist,
         throw unity::ResourceException("Thumbnailer::get_artist_art()");
     }
     // LCOV_EXCL_STOP
+}
+
+Thumbnailer::AllStats Thumbnailer::stats() const
+{
+    return AllStats{full_size_cache_->stats(), thumbnail_cache_->stats(), failure_cache_->stats()};
 }
 
 }  // namespace internal
