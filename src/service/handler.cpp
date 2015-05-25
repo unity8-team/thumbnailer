@@ -109,6 +109,7 @@ struct HandlerPrivate
     QDBusMessage const message;
     std::shared_ptr<QThreadPool> check_pool;
     std::shared_ptr<QThreadPool> create_pool;
+    RateLimiter& limiter;
     std::unique_ptr<ThumbnailRequest> request;
 
     bool cancelled = false;
@@ -119,11 +120,13 @@ struct HandlerPrivate
                    QDBusMessage const& message,
                    std::shared_ptr<QThreadPool> check_pool,
                    std::shared_ptr<QThreadPool> create_pool,
+                   RateLimiter& limiter,
                    std::unique_ptr<ThumbnailRequest>&& request)
         : bus(bus)
         , message(message)
         , check_pool(check_pool)
         , create_pool(create_pool)
+        , limiter(limiter)
         , request(std::move(request))
     {
     }
@@ -133,8 +136,9 @@ Handler::Handler(QDBusConnection const& bus,
                  QDBusMessage const& message,
                  std::shared_ptr<QThreadPool> check_pool,
                  std::shared_ptr<QThreadPool> create_pool,
+                 RateLimiter& limiter,
                  std::unique_ptr<ThumbnailRequest>&& request)
-    : p(new HandlerPrivate(bus, message, check_pool, create_pool, std::move(request)))
+    : p(new HandlerPrivate(bus, message, check_pool, create_pool, limiter, std::move(request)))
 {
     connect(&p->checkWatcher, &QFutureWatcher<FdOrError>::finished, this, &Handler::checkFinished);
     connect(p->request.get(), &ThumbnailRequest::downloadFinished, this, &Handler::downloadFinished);
@@ -219,12 +223,14 @@ void Handler::checkFinished()
     else
     {
         // otherwise move on to the download phase.
-        p->request->download();
+        p->limiter.schedule([&]{ p->request->download(); });
     }
 }
 
 void Handler::downloadFinished()
 {
+    p->limiter.done();
+
     if (p->cancelled)
     {
         return;

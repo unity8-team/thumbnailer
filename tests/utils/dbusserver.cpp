@@ -17,7 +17,7 @@ DBusServer::DBusServer()
     runner_.reset(new QtDBusTest::DBusTestRunner());
     service_.reset(new QtDBusTest::QProcessDBusService(
         BUS_NAME, QDBusConnection::SessionBus,
-        TESTBINDIR "/../src/service/thumbnailer-service", {}));
+        THUMBNAILER_SERVICE, {}));
     runner_->registerService(service_);
     runner_->startServices();
 

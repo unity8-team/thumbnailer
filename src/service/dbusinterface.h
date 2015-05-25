@@ -20,6 +20,7 @@
 #pragma once
 
 #include "handler.h"
+#include "ratelimiter.h"
 
 #include <QDBusContext>
 #include <QThreadPool>
@@ -67,6 +68,8 @@ private:
     std::shared_ptr<QThreadPool> create_thread_pool_;
     std::map<Handler*, std::unique_ptr<Handler>> requests_;
     std::map<std::string, std::vector<Handler*>> request_keys_;
+    RateLimiter download_limiter_;
+    RateLimiter video_thumbnail_limiter_;
 };
 
 }  // namespace service
