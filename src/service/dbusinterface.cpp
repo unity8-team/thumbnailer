@@ -23,7 +23,9 @@
 
 #include <QDebug>
 
+#include <algorithm>
 #include <map>
+#include <vector>
 #include <sstream>
 
 using namespace std;
@@ -97,11 +99,27 @@ QDBusUnixFileDescriptor DBusInterface::GetThumbnail(QString const& filename,
 
 void DBusInterface::queueRequest(Handler* handler)
 {
-    requests.emplace(handler, std::unique_ptr<Handler>(handler));
+    requests_.emplace(handler, std::unique_ptr<Handler>(handler));
     Q_EMIT endInactivity();
     connect(handler, &Handler::finished, this, &DBusInterface::requestFinished);
     setDelayedReply(true);
-    handler->begin();
+
+    std::vector<Handler*> &requests_for_key = request_keys_[handler->key()];
+    if (requests_for_key.size() == 0)
+    {
+        /* There are no other concurrent requests for this item, so
+         * begin immediately. */
+        handler->begin();
+    }
+    else
+    {
+        /* There are other requests for this item, so chain this
+         * request to wait for them to complete first.  This way we
+         * can take advantage of any cached downloads or failures. */
+        connect(requests_for_key.back(), &Handler::finished,
+                handler, &Handler::begin);
+    }
+    requests_for_key.push_back(handler);
 }
 
 void DBusInterface::requestFinished()
@@ -109,9 +127,9 @@ void DBusInterface::requestFinished()
     Handler* handler = static_cast<Handler*>(sender());
     try
     {
-        auto& h = requests.at(handler);
+        auto& h = requests_.at(handler);
         h.release();
-        requests.erase(handler);
+        requests_.erase(handler);
     }
     // LCOV_EXCL_START
     catch (std::out_of_range const& e)
@@ -119,7 +137,18 @@ void DBusInterface::requestFinished()
         qWarning() << "finished() called on unknown handler" << handler;
     }
     // LCOV_EXCL_STOP
-    if (requests.empty())
+
+    // Remove ourselves from the chain of requests
+    std::vector<Handler*> &requests_for_key = request_keys_[handler->key()];
+    requests_for_key.erase(
+        std::remove(requests_for_key.begin(), requests_for_key.end(), handler),
+        requests_for_key.end());
+    if (requests_for_key.size() == 0)
+    {
+        request_keys_.erase(handler->key());
+    }
+
+    if (requests_.empty())
     {
         Q_EMIT startInactivity();
     }

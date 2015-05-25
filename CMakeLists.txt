@@ -116,7 +116,9 @@ enable_coverage_report(
         thumbnailer-service
         thumbnailer-qml
         vs-thumb
+        testutils
     FILTER
+        ${CMAKE_SOURCE_DIR}/include/core/*
         ${CMAKE_SOURCE_DIR}/tests/*
         ${CMAKE_SOURCE_DIR}/tools/*
         ${CMAKE_BINARY_DIR}/*
@@ -125,8 +127,11 @@ enable_coverage_report(
         downloaderstest
         downloadtest
         file_io
+        gobj_ptr
         image
         safe_strerror_test
         test_dbus
+        test_qml
+        test_vsthumb
         thumbnailer_test
 )
