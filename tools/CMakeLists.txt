@@ -6,7 +6,25 @@
 #add_executable(scaler scaler.cpp ../src/imagescaler.cpp)
 #target_link_libraries(scaler ${IMG_DEPS_LDFLAGS})
 
-add_executable(thumbnailer-admin thumbnailer-admin.cpp show_stats.cpp)
+set(dbusinterface_xml "${CMAKE_SOURCE_DIR}/src/service/dbusinterface.xml")
+set_source_files_properties(${dbusinterface_xml} PROPERTIES
+    CLASSNAME ThumbnailerInterface)
+qt5_add_dbus_interface(interface_files ${dbusinterface_xml} thumbnailerinterface)
+
+set(admininterface_xml "${CMAKE_SOURCE_DIR}/src/service/admininterface.xml")
+set_source_files_properties(${admininterface_xml} PROPERTIES
+    CLASSNAME AdminInterface
+    INCLUDE ${CMAKE_SOURCE_DIR}/src/service/stats.h)
+qt5_add_dbus_interface(interface_files ${admininterface_xml} admininterface)
+
+add_executable(thumbnailer-admin
+    dbus_connection.cpp
+    show_stats.cpp
+    thumbnailer-admin.cpp
+    ${CMAKE_SOURCE_DIR}/src/service/stats.cpp
+    ${interface_files}
+)
+qt5_use_modules(thumbnailer-admin DBus)
 target_link_libraries(thumbnailer-admin thumbnailer)
 
 add_executable(cachetool cachetool.cpp)
