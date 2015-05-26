@@ -195,6 +195,7 @@ int main(int argc, char** argv)
     QCoreApplication app(argc, argv);
 
     setenv("TN_UTILDIR", TESTBINDIR "/../src/vs-thumb", true);
+    setenv("LC_ALL", "C", true);
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
