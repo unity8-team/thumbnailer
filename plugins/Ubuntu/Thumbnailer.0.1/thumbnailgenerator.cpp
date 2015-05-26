@@ -18,6 +18,7 @@
 
 #include "thumbnailgenerator.h"
 #include "artgeneratorcommon.h"
+#include "thumbnailerimageresponse.h"
 
 #include <stdexcept>
 #include <sys/types.h>
@@ -25,9 +26,11 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include <QCoreApplication>
 #include <QDebug>
 #include <QMimeDatabase>
 #include <QUrl>
+#include <QDBusPendingCallWatcher>
 #include <QDBusUnixFileDescriptor>
 #include <QDBusReply>
 
@@ -48,11 +51,11 @@ namespace qml
 {
 
 ThumbnailGenerator::ThumbnailGenerator()
-    : QQuickImageProvider(QQuickImageProvider::Image, QQmlImageProviderBase::ForceAsynchronousImageLoading)
+    : QQuickAsyncImageProvider()
 {
 }
 
-QImage ThumbnailGenerator::requestImage(const QString& id, QSize* realSize, const QSize& requestedSize)
+QQuickImageResponse* ThumbnailGenerator::requestImageResponse(const QString& id, const QSize& requestedSize)
 {
     /* Allow appending a query string (e.g. ?something=timestamp)
      * to the id and then ignore it.
@@ -67,8 +70,10 @@ QImage ThumbnailGenerator::requestImage(const QString& id, QSize* realSize, cons
     int fd = open(src_path.toUtf8().constData(), O_RDONLY | O_CLOEXEC);
     if (fd < 0)
     {
+        auto response = new ThumbnailerImageResponse(id, requestedSize, return_default_image_based_on_mime(id));
         qDebug() << "Thumbnail generator failed: " << strerror(errno);
-        return getFallbackImage(id, realSize, requestedSize);
+        response->finish_later_with_default_image();
+        return response;
     }
     QDBusUnixFileDescriptor unix_fd(fd);
     close(fd);
@@ -82,46 +87,27 @@ QImage ThumbnailGenerator::requestImage(const QString& id, QSize* realSize, cons
     }
 
     auto reply = iface->GetThumbnail(src_path, unix_fd, requestedSize);
-    reply.waitForFinished();
-    if (!reply.isValid())
-    {
-        qWarning() << "D-Bus error: " << reply.error().message();
-        return getFallbackImage(id, realSize, requestedSize);
-    }
-
-    try
-    {
-        return imageFromFd(reply.value().fileDescriptor(), realSize, requestedSize);
-    }
-    catch (const std::exception& e)
-    {
-        qWarning() << "Album art loader failed: " << e.what();
-    }
-    catch (...)
-    {
-        qWarning() << "Unknown error when generating image.";
-    }
-
-    return getFallbackImage(id, realSize, requestedSize);
+    auto watcher = new QDBusPendingCallWatcher(reply);
+    auto response = new ThumbnailerImageResponse(id, requestedSize, return_default_image_based_on_mime(id), watcher);
+    return response;
 }
 
-QImage ThumbnailGenerator::getFallbackImage(const QString& id, QSize* size, const QSize& requestedSize)
+QString ThumbnailGenerator::return_default_image_based_on_mime(QString const &id)
 {
-    Q_UNUSED(requestedSize);
     QMimeDatabase db;
     QMimeType mime = db.mimeTypeForFile(id);
-    QImage result;
+
     if (mime.name().contains("audio"))
     {
-        result.load(DEFAULT_ALBUM_ART);
+        return DEFAULT_ALBUM_ART;
     }
     else if (mime.name().contains("video"))
     {
-        result.load(DEFAULT_VIDEO_ART);
+        return DEFAULT_VIDEO_ART;
     }
-    *size = result.size();
-    return result;
+    return DEFAULT_ALBUM_ART;
 }
+
 }
 }
 }

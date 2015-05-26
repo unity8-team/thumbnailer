@@ -19,6 +19,8 @@
 
 #include "albumartgenerator.h"
 #include "artgeneratorcommon.h"
+#include "thumbnailerimageresponse.h"
+
 #include <stdexcept>
 #include <QDebug>
 #include <QFile>
@@ -32,14 +34,6 @@ const char DEFAULT_ALBUM_ART[] = "/usr/share/thumbnailer/icons/album_missing.png
 
 const char BUS_NAME[] = "com.canonical.Thumbnailer";
 const char BUS_PATH[] = "/com/canonical/Thumbnailer";
-
-QImage fallbackImage(QSize* realSize)
-{
-    QImage fallback;
-    fallback.load(DEFAULT_ALBUM_ART);
-    *realSize = fallback.size();
-    return fallback;
-}
 }
 
 namespace unity
@@ -50,17 +44,20 @@ namespace qml
 {
 
 AlbumArtGenerator::AlbumArtGenerator()
-    : QQuickImageProvider(QQuickImageProvider::Image, QQmlImageProviderBase::ForceAsynchronousImageLoading)
+    : QQuickAsyncImageProvider()
 {
 }
 
-QImage AlbumArtGenerator::requestImage(const QString& id, QSize* realSize, const QSize& requestedSize)
+
+QQuickImageResponse* AlbumArtGenerator::requestImageResponse(const QString& id, const QSize& requestedSize)
 {
     QUrlQuery query(id);
     if (!query.hasQueryItem("artist") || !query.hasQueryItem("album"))
     {
+        auto response = new ThumbnailerImageResponse(id, requestedSize, DEFAULT_ALBUM_ART);
         qWarning() << "Invalid albumart uri:" << id;
-        return fallbackImage(realSize);
+        response->finish_later_with_default_image();
+        return response;
     }
 
     if (!connection)
@@ -76,27 +73,9 @@ QImage AlbumArtGenerator::requestImage(const QString& id, QSize* realSize, const
 
     // perform dbus call
     auto reply = iface->GetAlbumArt(artist, album, requestedSize);
-    reply.waitForFinished();
-    if (!reply.isValid())
-    {
-        qWarning() << "D-Bus error: " << reply.error().message();
-        return fallbackImage(realSize);
-    }
-
-    try
-    {
-        return imageFromFd(reply.value().fileDescriptor(), realSize, requestedSize);
-    }
-    catch (const std::exception& e)
-    {
-        qWarning() << "Album art loader failed: " << e.what();
-    }
-    catch (...)
-    {
-        qWarning() << "Unknown error when generating image.";
-    }
-
-    return fallbackImage(realSize);
+    auto watcher = new QDBusPendingCallWatcher(reply);
+    auto response = new ThumbnailerImageResponse(id, requestedSize, DEFAULT_ALBUM_ART, watcher);
+    return response;
 }
 }
 }

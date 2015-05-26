@@ -30,7 +30,7 @@ namespace thumbnailer
 namespace qml
 {
 
-class ThumbnailGenerator : public QQuickImageProvider
+class ThumbnailGenerator : public QQuickAsyncImageProvider
 {
 private:
     std::unique_ptr<QDBusConnection> connection;
@@ -43,8 +43,10 @@ public:
     ThumbnailGenerator(ThumbnailGenerator&& other) = delete;
     const ThumbnailGenerator& operator=(ThumbnailGenerator&& other) = delete;
 
-    QImage requestImage(const QString& id, QSize* size, const QSize& requestedSize) override;
-    QImage getFallbackImage(const QString& id, QSize* size, const QSize& requestedSize);
+    QQuickImageResponse* requestImageResponse(const QString& id, const QSize& requestedSize) override;
+
+protected:
+    QString return_default_image_based_on_mime(QString const &id);
 };
 }
 }

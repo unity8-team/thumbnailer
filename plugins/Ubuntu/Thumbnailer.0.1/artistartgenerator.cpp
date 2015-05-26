@@ -20,6 +20,8 @@
 
 #include "artistartgenerator.h"
 #include "artgeneratorcommon.h"
+#include "thumbnailerimageresponse.h"
+
 #include <stdexcept>
 #include <QDebug>
 #include <QFile>
@@ -33,14 +35,6 @@ const char DEFAULT_ARTIST_ART[] = "/usr/share/thumbnailer/icons/album_missing.pn
 
 const char BUS_NAME[] = "com.canonical.Thumbnailer";
 const char BUS_PATH[] = "/com/canonical/Thumbnailer";
-
-QImage fallbackImage(QSize* realSize)
-{
-    QImage fallback;
-    fallback.load(DEFAULT_ARTIST_ART);
-    *realSize = fallback.size();
-    return fallback;
-}
 }
 
 namespace unity
@@ -51,24 +45,26 @@ namespace qml
 {
 
 ArtistArtGenerator::ArtistArtGenerator()
-    : QQuickImageProvider(QQuickImageProvider::Image, QQmlImageProviderBase::ForceAsynchronousImageLoading)
+    : QQuickAsyncImageProvider()
 {
 }
 
-QImage ArtistArtGenerator::requestImage(const QString& id, QSize* realSize, const QSize& requestedSize)
+QQuickImageResponse* ArtistArtGenerator::requestImageResponse(const QString& id, const QSize& requestedSize)
 {
     QUrlQuery query(id);
     if (!query.hasQueryItem("artist") || !query.hasQueryItem("album"))
     {
-        qWarning() << "Invalid artistart uri:" << id;
-        return fallbackImage(realSize);
+        auto response = new ThumbnailerImageResponse(id, requestedSize, DEFAULT_ARTIST_ART);
+        qWarning() << "Invalid albumart uri:" << id;
+        response->finish_later_with_default_image();
+        return response;
     }
 
     if (!connection)
     {
         // Create them here and not them on the constrcutor so they belong to the proper thread
         connection.reset(new QDBusConnection(
-            QDBusConnection::connectToBus(QDBusConnection::SessionBus, "artist_art_generator_dbus_connection")));
+            QDBusConnection::connectToBus(QDBusConnection::SessionBus, "album_art_generator_dbus_connection")));
         iface.reset(new ThumbnailerInterface(BUS_NAME, BUS_PATH, *connection));
     }
 
@@ -77,27 +73,9 @@ QImage ArtistArtGenerator::requestImage(const QString& id, QSize* realSize, cons
 
     // perform dbus call
     auto reply = iface->GetArtistArt(artist, album, requestedSize);
-    reply.waitForFinished();
-    if (!reply.isValid())
-    {
-        qWarning() << "D-Bus error: " << reply.error().message();
-        return fallbackImage(realSize);
-    }
-
-    try
-    {
-        return imageFromFd(reply.value().fileDescriptor(), realSize, requestedSize);
-    }
-    catch (const std::exception& e)
-    {
-        qWarning() << "Artist art loader failed: " << e.what();
-    }
-    catch (...)
-    {
-        qWarning() << "Unknown error when generating image.";
-    }
-
-    return fallbackImage(realSize);
+    auto watcher = new QDBusPendingCallWatcher(reply);
+    auto response = new ThumbnailerImageResponse(id, requestedSize, DEFAULT_ARTIST_ART, watcher);
+    return response;
 }
 }
 }

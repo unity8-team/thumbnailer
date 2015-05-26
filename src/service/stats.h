@@ -18,8 +18,9 @@
 
 #pragma once
 
-#include <QDateTime>
 #include <QDBusArgument>
+
+#include <chrono>
 
 namespace unity
 {
@@ -45,10 +46,10 @@ struct CacheStats
     qint64 longest_miss_run;
     qint64 ttl_evictions;
     qint64 lru_evictions;
-    QDateTime most_recent_hit_time;
-    QDateTime most_recent_miss_time;
-    QDateTime longest_hit_run_time;
-    QDateTime longest_miss_run_time;
+    std::chrono::time_point<std::chrono::system_clock> most_recent_hit_time;
+    std::chrono::time_point<std::chrono::system_clock> most_recent_miss_time;
+    std::chrono::time_point<std::chrono::system_clock> longest_hit_run_time;
+    std::chrono::time_point<std::chrono::system_clock> longest_miss_run_time;
     QList<quint32> histogram;
 };
 

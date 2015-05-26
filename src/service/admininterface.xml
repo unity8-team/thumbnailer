@@ -8,7 +8,7 @@
              - cache_path (string)
              - policy (uint32)
              - various counters (13 int64 members)
-             - time stamps (4 QDateTime members as int64 each, millisecs since the epoch)
+             - time stamps (4 uint64 members, millisecs since the epoch)
              - histogram (array of 74 uint32)
       -->
       <arg direction="out" type="(suxxxxxxxxxxxttttau)(suxxxxxxxxxxxttttau)(suxxxxxxxxxxxttttau)" name="stats" />

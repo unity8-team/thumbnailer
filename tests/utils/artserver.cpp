@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2015 Canonical Ltd.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authored by: James Henstridge <james.henstridge@canonical.com>
+ */
+
 #include "artserver.h"
 #include <testsetup.h>
 
@@ -21,6 +39,7 @@ ArtServer::ArtServer()
     auto port = QString::fromUtf8(server_.readAllStandardOutput()).trimmed();
     apiroot_ = "http://127.0.0.1:" + port.toStdString();
     setenv("THUMBNAILER_UBUNTU_APIROOT", apiroot_.c_str(), true);
+    setenv("THUMBNAILER_TEST_DEFAULT_IMAGE", THUMBNAILER_TEST_DEFAULT_IMAGE, true);
 }
 
 ArtServer::~ArtServer()
