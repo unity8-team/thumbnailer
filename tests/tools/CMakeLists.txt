@@ -1,0 +1,18 @@
+add_executable(thumbnailer-admin_test
+    thumbnailer-admin_test.cpp
+)
+target_link_libraries(thumbnailer-admin_test
+    gtest
+    thumbnailer
+    testutils
+    ${QTDBUSTEST_DEPS_LDFLAGS}
+)
+add_test(thumbnailer-admin_test thumbnailer-admin_test)
+add_dependencies(thumbnailer-admin_test thumbnailer-service)
+
+qt5_use_modules(thumbnailer-admin_test DBus Network Test)
+
+include_directories(${QTDBUSTEST_DEPS_INCLUDE_DIRS})
+include_directories(${CMAKE_SOURCE_DIR}/tests)
+include_directories(${CMAKE_BINARY_DIR}/tests)
+

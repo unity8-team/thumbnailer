@@ -113,6 +113,7 @@ add_subdirectory(include)
 enable_coverage_report(
     TARGETS
         thumbnailer
+        thumbnailer-admin
         thumbnailer-service
         thumbnailer-qml
         vs-thumb
@@ -120,7 +121,6 @@ enable_coverage_report(
     FILTER
         ${CMAKE_SOURCE_DIR}/include/core/*
         ${CMAKE_SOURCE_DIR}/tests/*
-        ${CMAKE_SOURCE_DIR}/tools/*
         ${CMAKE_BINARY_DIR}/*
     TESTS
         cachetool
@@ -133,5 +133,6 @@ enable_coverage_report(
         test_dbus
         test_qml
         test_vsthumb
+        thumbnailer-admin_test
         thumbnailer_test
 )

@@ -123,9 +123,11 @@ int main(int argc, char* argv[])
     {
         cerr << prog_name << ": " << msg << endl;
     }
+    // LCOV_EXCL_START
     catch (...)
     {
         cerr << prog_name << ": unknown exception" << endl;
     }
+    // LCOV_EXCL_STOP
     return rc;
 }

@@ -1,5 +1,6 @@
 add_subdirectory(utils)
 add_subdirectory(core)
+add_subdirectory(tools)
 
 if (NOT DEFINED GTEST_ROOT)
     set(GTEST_ROOT /usr/src/gtest)
