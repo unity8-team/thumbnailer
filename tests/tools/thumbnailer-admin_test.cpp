@@ -40,7 +40,7 @@ protected:
     {
         // start dbus service
         tempdir.reset(new QTemporaryDir(TESTBINDIR "/dbus-test.XXXXXX"));
-        setenv("XDG_CACHE_HOME", (tempdir->path() + "/cache").toUtf8().data(), true);
+        setenv("XDG_CACHE_HOME", qPrintable(tempdir->path() + "/cache"), true);
 
         // set 3 seconds as max idle time
         setenv("THUMBNAILER_MAX_IDLE", "1000", true);

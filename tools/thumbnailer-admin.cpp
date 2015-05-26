@@ -70,7 +70,7 @@ Action::UPtr parse_args(QStringList const& args)
     auto it = valid_actions.find(cmd);
     if (it == valid_actions.end())
     {
-        fprintf(stderr, "%s: %s: invalid command\n", prog_name.c_str(), cmd.toUtf8().data());
+        fprintf(stderr, "%s: %s: invalid command\n", prog_name.c_str(), qPrintable(cmd));
         usage();
         exit(EXIT_FAILURE);
     }
