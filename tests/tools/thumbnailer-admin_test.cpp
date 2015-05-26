@@ -20,9 +20,11 @@
 
 #include <testsetup.h>
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <gtest/gtest.h>
 
 using namespace std;
+using namespace boost;
 
 class AdminTest : public ::testing::Test
 {
@@ -72,87 +74,120 @@ public:
     {
         process_.reset(new QProcess);
         process_->setStandardInputFile(QProcess::nullDevice());
-        process_->setProcessChannelMode(QProcess::ForwardedChannels);
+        process_->setProcessChannelMode(QProcess::SeparateChannels);
         process_->start(THUMBNAILER_ADMIN, args);
         process_->waitForFinished();
         EXPECT_EQ(QProcess::NormalExit, process_->exitStatus());
+        stdout_ = process_->readAllStandardOutput().toStdString();
+        stderr_ = process_->readAllStandardError().toStdString();
         return process_->exitCode();
+    }
+
+    string stdout() const
+    {
+        return stdout_;
+    }
+
+    string stderr() const
+    {
+        return stderr_;
     }
 
 private:
     unique_ptr<QProcess> process_;
+    string stdout_;
+    string stderr_;
 };
-
-int run(QStringList const& args)
-{
-    QProcess process;
-    process.setStandardInputFile(QProcess::nullDevice());
-    process.setProcessChannelMode(QProcess::ForwardedChannels);
-    process.start(THUMBNAILER_ADMIN, args);
-    process.waitForFinished();
-    EXPECT_EQ(QProcess::NormalExit, process.exitStatus());
-    return process.exitCode();
-}
 
 TEST(ServiceTest, service_not_running)
 {
-
-    EXPECT_EQ(1, run(QStringList{"stats"}));
+    AdminRunner ar;
+    EXPECT_EQ(1, ar.run(QStringList{"stats"}));
+    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: No such interface")) << ar.stderr();
 }
 
 TEST_F(AdminTest, no_args)
 {
-    EXPECT_EQ(0, run(QStringList{"stats"}));
+    AdminRunner ar;
+    EXPECT_EQ(0, ar.run(QStringList{"stats"}));
+    auto output = ar.stdout();
+    EXPECT_TRUE(output.find("Image cache:") != string::npos) << output;
+    EXPECT_TRUE(output.find("Thumbnail cache:") != string::npos) << output;
+    EXPECT_TRUE(output.find("Failure cache:") != string::npos) << output;
+    EXPECT_FALSE(output.find("Histogram:") != string::npos) << output;
 }
 
 TEST_F(AdminTest, image_stats)
 {
-    EXPECT_EQ(0, run(QStringList{"stats", "i"}));
+    AdminRunner ar;
+    EXPECT_EQ(0, ar.run(QStringList{"stats", "i"}));
+    auto output = ar.stdout();
+    EXPECT_TRUE(output.find("Image cache:") != string::npos) << output;
+    EXPECT_FALSE(output.find("Thumbnail cache:") != string::npos) << output;
+    EXPECT_FALSE(output.find("Failure cache:") != string::npos) << output;
+    EXPECT_FALSE(output.find("Histogram:") != string::npos) << output;
 }
 
 TEST_F(AdminTest, thumbnail_stats)
 {
-    EXPECT_EQ(0, run(QStringList{"stats", "t"}));
+    AdminRunner ar;
+    EXPECT_EQ(0, ar.run(QStringList{"stats", "t"}));
+    auto output = ar.stdout();
+    EXPECT_FALSE(output.find("Image cache:") != string::npos) << output;
+    EXPECT_TRUE(output.find("Thumbnail cache:") != string::npos) << output;
+    EXPECT_FALSE(output.find("Failure cache:") != string::npos) << output;
+    EXPECT_FALSE(output.find("Histogram:") != string::npos) << output;
 }
 
 TEST_F(AdminTest, failure_stats)
 {
-    EXPECT_EQ(0, run(QStringList{"stats", "f"}));
+    AdminRunner ar;
+    EXPECT_EQ(0, ar.run(QStringList{"stats", "f"}));
+    auto output = ar.stdout();
+    EXPECT_FALSE(output.find("Image cache:") != string::npos) << output;
+    EXPECT_FALSE(output.find("Thumbnail cache:") != string::npos) << output;
+    EXPECT_TRUE(output.find("Failure cache:") != string::npos) << output;
+    EXPECT_FALSE(output.find("Histogram:") != string::npos) << output;
 }
 
 TEST_F(AdminTest, histogram)
 {
-    EXPECT_EQ(0, run(QStringList{"stats", "hist"}));
+    AdminRunner ar;
+    EXPECT_EQ(0, ar.run(QStringList{"stats", "hist"}));
+    auto output = ar.stdout();
+    EXPECT_TRUE(output.find("Image cache:") != string::npos) << output;
+    EXPECT_TRUE(output.find("Thumbnail cache:") != string::npos) << output;
+    EXPECT_TRUE(output.find("Failure cache:") != string::npos) << output;
+    EXPECT_TRUE(output.find("Histogram:") != string::npos) << output;
 }
 
-TEST_F(AdminTest, too_few_args)
+TEST_F(AdminTest, stats_parsing)
 {
-    EXPECT_EQ(1, run(QStringList{}));
-}
+    AdminRunner ar;
 
-TEST_F(AdminTest, too_many_args)
-{
-    EXPECT_EQ(1, run(QStringList{"stats", "hist", "i", "t"}));
-}
+    // Too few args
+    EXPECT_EQ(1, ar.run(QStringList{}));
+    EXPECT_TRUE(starts_with(ar.stderr(), "usage: thumbnailer-admin")) << ar.stderr();
 
-TEST_F(AdminTest, second_arg_wrong_with_two_args)
-{
-    EXPECT_EQ(1, run(QStringList{"stats", "foo"}));
-}
+    // Too many args
+    EXPECT_EQ(1, ar.run(QStringList{"stats", "hist", "i", "t"}));
+    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: too many arguments")) << ar.stderr();
 
-TEST_F(AdminTest, second_arg_wrong_with_three_args)
-{
-    EXPECT_EQ(1, run(QStringList{"stats", "bar", "i"}));
-}
+    // Second arg wrong with two args
+    EXPECT_EQ(1, ar.run(QStringList{"stats", "foo"}));
+    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: invalid argument for stats command: foo")) << ar.stderr();
 
-TEST_F(AdminTest, third_arg_wrong_with_three_args)
-{
-    EXPECT_EQ(1, run(QStringList{"stats", "hist", "x"}));
-}
+    // Second arg wrong with three args
+    EXPECT_EQ(1, ar.run(QStringList{"stats", "bar", "i"}));
+    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: invalid argument for stats command: bar")) << ar.stderr();
 
-TEST_F(AdminTest, bad_command)
-{
-    EXPECT_EQ(1, run(QStringList{"no_such_command"}));
+    // Third arg wrong with three args
+    EXPECT_EQ(1, ar.run(QStringList{"stats", "hist", "x"}));
+    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: invalid argument for stats command: x")) << ar.stderr();
+
+    // Bad command
+    EXPECT_EQ(1, ar.run(QStringList{"no_such_command"}));
+    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: no_such_command: invalid command")) << ar.stderr();
 }
 
 int main(int argc, char** argv)
