@@ -34,7 +34,7 @@ class ShowStats : public Action
 public:
     UNITY_DEFINES_PTRS(ShowStats);
 
-    ShowStats(std::vector<std::string> const& args);
+    ShowStats(QStringList const& args);
     virtual ~ShowStats();
 
     virtual void run(DBusConnection& conn) override;

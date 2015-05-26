@@ -38,7 +38,7 @@ namespace thumbnailer
 namespace tools
 {
 
-ShowStats::ShowStats(vector<string> const& args)
+ShowStats::ShowStats(QStringList const& args)
     : Action(args)
 {
     if (args.size() == 2)
@@ -49,7 +49,7 @@ ShowStats::ShowStats(vector<string> const& args)
     {
         throw "too many arguments for stats command";
     }
-    unsigned next_arg = 2;
+    int next_arg = 2;
     if (args[2] == "hist")
     {
         show_histogram_ = true;
@@ -57,7 +57,7 @@ ShowStats::ShowStats(vector<string> const& args)
     }
     if (next_arg < args.size())
     {
-        string arg = args[next_arg];
+        QString arg = args[next_arg];
         if (arg == "i")
         {
             show_image_stats_ = true;
@@ -78,7 +78,7 @@ ShowStats::ShowStats(vector<string> const& args)
         }
         else
         {
-            throw string("invalid argument for stats command: " ) + arg;
+            throw QString("invalid argument for stats command: " ) + arg;
         }
     }
 }

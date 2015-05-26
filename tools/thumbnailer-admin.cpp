@@ -19,12 +19,8 @@
 #include "dbus_connection.h"
 #include "show_stats.h"
 
-#include <boost/filesystem.hpp>
-
 #include <functional>
 #include <iostream>
-#include <map>
-#include <string>
 
 #include <stdio.h>
 
@@ -46,12 +42,12 @@ void usage()
     fprintf(stderr, "             selected (image, thumbnailer, or failure) cache.\n");
 }
 
-template<typename A> Action::UPtr create_action(vector<string> const& args)
+template<typename A> Action::UPtr create_action(QStringList const& args)
 {
     return Action::UPtr(new A(args));
 }
 
-typedef map<string, Action::UPtr(*)(vector<string> const& args)> ActionMap;
+typedef map<QString, Action::UPtr(*)(QStringList const& args)> ActionMap;
 
 // Table that maps commands to their actions.
 // Add new commands to this table, and implement each command in
@@ -62,37 +58,29 @@ ActionMap valid_actions = { { "stats", &create_action<ShowStats> } };
 // Check if we have a valid command. If so, instantiate the
 // corresponding action and return it.
 
-Action::UPtr parse_args(int argc, char* argv[])
+Action::UPtr parse_args(QStringList const& args)
 {
-    if (argc < 2)
+    if (args.size() < 2)
     {
         usage();
         exit(EXIT_FAILURE);
     }
 
-    string cmd = argv[1];
+    QString cmd = args[1];
     auto it = valid_actions.find(cmd);
     if (it == valid_actions.end())
     {
-        fprintf(stderr, "%s: %s: invalid command\n", prog_name.c_str(), cmd.c_str());
+        fprintf(stderr, "%s: %s: invalid command\n", prog_name.c_str(), cmd.toUtf8().data());
         usage();
         exit(EXIT_FAILURE);
     }
 
-    vector<string> args;
-    for (int i = 0; i < argc; ++i)
-    {
-        args.push_back(argv[i]);
-    }
     return it->second(move(args));
 }
 
-void my_main(int argc, char* argv[])
+void parse_and_execute(QCoreApplication const& app)
 {
-    boost::filesystem::path prog_path = argv[0];
-    prog_name = prog_path.filename().native();
-
-    auto action = parse_args(argc, argv);
+    auto action = parse_args(app.arguments());
     DBusConnection conn;
     action->run(conn);
 }
@@ -104,7 +92,9 @@ int main(int argc, char* argv[])
     int rc = EXIT_FAILURE;
     try
     {
-        my_main(argc, argv);
+        QCoreApplication app(argc, argv);
+        prog_name = app.applicationName().toStdString();
+        parse_and_execute(app);
         rc = EXIT_SUCCESS;
     }
     catch (std::exception const& e)

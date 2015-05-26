@@ -22,8 +22,7 @@
 
 #include <unity/util/DefinesPtrs.h>
 
-#include <string>
-#include <vector>
+#include <QStringList>
 
 namespace unity
 {
@@ -44,18 +43,18 @@ public:
     virtual void run(DBusConnection& conn) = 0;
 
 protected:
-    Action(std::vector<std::string> const& args)
+    Action(QStringList const& args)
         : args_(args)
     {
     }
 
-    std::vector<std::string> const& args() const noexcept
+    QStringList const& args() const noexcept
     {
         return args_;
     }
 
 private:
-    std::vector<std::string> args_;
+    QStringList args_;
 };
 
 }  // namespace tools

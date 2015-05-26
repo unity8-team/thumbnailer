@@ -64,12 +64,30 @@ protected:
     unique_ptr<DBusServer> dbus_;
 };
 
+class AdminRunner
+{
+public:
+    AdminRunner() {}
+    int run(QStringList const& args)
+    {
+        process_.reset(new QProcess);
+        process_->setStandardInputFile(QProcess::nullDevice());
+        process_->setProcessChannelMode(QProcess::ForwardedChannels);
+        process_->start(THUMBNAILER_ADMIN, args);
+        process_->waitForFinished();
+        EXPECT_EQ(QProcess::NormalExit, process_->exitStatus());
+        return process_->exitCode();
+    }
+
+private:
+    unique_ptr<QProcess> process_;
+};
+
 int run(QStringList const& args)
 {
     QProcess process;
     process.setStandardInputFile(QProcess::nullDevice());
-    process.setProcessChannelMode(QProcess::ForwardedErrorChannel);
-    cerr << THUMBNAILER_ADMIN << endl;
+    process.setProcessChannelMode(QProcess::ForwardedChannels);
     process.start(THUMBNAILER_ADMIN, args);
     process.waitForFinished();
     EXPECT_EQ(QProcess::NormalExit, process.exitStatus());
@@ -78,6 +96,7 @@ int run(QStringList const& args)
 
 TEST(ServiceTest, service_not_running)
 {
+
     EXPECT_EQ(1, run(QStringList{"stats"}));
 }
 

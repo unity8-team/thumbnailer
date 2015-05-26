@@ -40,7 +40,7 @@ static constexpr char BUS_ADMIN_PATH[] = "/com/canonical/ThumbnailerAdmin";
 }  // namespace
 
 DBusConnection::DBusConnection()
-    : conn_(QDBusConnection::connectToBus(QDBusConnection::SessionBus, QString("thumbnail-admin")))
+    : conn_(QDBusConnection::sessionBus())
     , thumbnailer_(BUS_NAME, BUS_THUMBNAILER_PATH, conn_)
     , admin_(BUS_NAME, BUS_ADMIN_PATH, conn_)
 {

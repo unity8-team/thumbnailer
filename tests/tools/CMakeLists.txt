@@ -8,7 +8,7 @@ target_link_libraries(thumbnailer-admin_test
     ${QTDBUSTEST_DEPS_LDFLAGS}
 )
 add_test(thumbnailer-admin_test thumbnailer-admin_test)
-add_dependencies(thumbnailer-admin_test thumbnailer-service)
+add_dependencies(thumbnailer-admin_test thumbnailer-admin thumbnailer-service)
 
 qt5_use_modules(thumbnailer-admin_test DBus Network Test)
 
