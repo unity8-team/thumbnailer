@@ -104,7 +104,7 @@ int main(int argc, char** argv)
     {
         success = extract_thumbnail(uri, outfile);
     }
-    catch (runtime_error const& e)
+    catch (exception const& e)
     {
         fprintf(stderr, "Error creating thumbnail: %s\n", e.what());
         return 2;
