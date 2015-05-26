@@ -272,17 +272,17 @@ TEST(DBusTestBadIdle, env_variable_bad_value)
     unsetenv("THUMBNAILER_MAX_IDLE");
 }
 
-bool near_current_time(QDateTime const& t)
+bool near_current_time(chrono::system_clock::time_point& t)
 {
-    // Return true if t is within 10 seconds of current time.
-    QDateTime now = QDateTime::currentDateTime();
-    auto now_msec = now.toMSecsSinceEpoch();
-    auto t_msec = t.toMSecsSinceEpoch();
-    if (abs(now_msec - t_msec) > 10000)
+    using namespace std::chrono;
+
+    auto now_msecs = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    auto t_msecs = duration_cast<milliseconds>(t.time_since_epoch()).count();
+    if (abs(now_msecs - t_msecs) > 10000)
     {
         cerr << "Current time more than 10 seconds away from test time t" << endl;
-        cerr << "Current time: " << now.toUTC().toString().toStdString() << endl;
-        cerr << "Test time   : " << t.toUTC().toString().toStdString() << endl;
+        cerr << "Current time: " << now_msecs << endl;
+        cerr << "Test time   : " << t_msecs << endl;
         return false;
     }
     return true;
@@ -290,6 +290,7 @@ bool near_current_time(QDateTime const& t)
 
 TEST_F(DBusTest, stats)
 {
+    using namespace std::chrono;
     using namespace unity::thumbnailer::service;
 
     QDBusReply<AllStats> reply = dbus_->admin_->Stats();
@@ -310,10 +311,10 @@ TEST_F(DBusTest, stats)
         EXPECT_EQ(0, s.longest_miss_run);
         EXPECT_EQ(0, s.ttl_evictions);
         EXPECT_EQ(0, s.lru_evictions);
-        EXPECT_EQ(0, s.most_recent_hit_time.toUTC().toMSecsSinceEpoch());
-        EXPECT_EQ(0, s.most_recent_miss_time.toUTC().toMSecsSinceEpoch());
-        EXPECT_EQ(0, s.longest_hit_run_time.toUTC().toMSecsSinceEpoch());
-        EXPECT_EQ(0, s.longest_miss_run_time.toUTC().toMSecsSinceEpoch());
+        EXPECT_EQ(0, duration_cast<milliseconds>(s.most_recent_hit_time.time_since_epoch()).count());
+        EXPECT_EQ(0, duration_cast<milliseconds>(s.most_recent_miss_time.time_since_epoch()).count());
+        EXPECT_EQ(0, duration_cast<milliseconds>(s.longest_hit_run_time.time_since_epoch()).count());
+        EXPECT_EQ(0, duration_cast<milliseconds>(s.longest_miss_run_time.time_since_epoch()).count());
         auto list = s.histogram;
         for (auto c : list)
         {
@@ -360,9 +361,9 @@ TEST_F(DBusTest, stats)
         EXPECT_EQ(2, s.longest_miss_run);
         EXPECT_EQ(0, s.ttl_evictions);
         EXPECT_EQ(0, s.lru_evictions);
-        EXPECT_EQ(0, s.most_recent_hit_time.toUTC().toMSecsSinceEpoch());
+        EXPECT_EQ(0, duration_cast<milliseconds>(s.most_recent_hit_time.time_since_epoch()).count());
         EXPECT_TRUE(near_current_time(s.most_recent_miss_time));
-        EXPECT_EQ(0, s.longest_hit_run_time.toUTC().toMSecsSinceEpoch());
+        EXPECT_EQ(0, duration_cast<milliseconds>(s.longest_hit_run_time.time_since_epoch()).count());
         EXPECT_TRUE(near_current_time(s.longest_miss_run_time));
         auto list = s.histogram;
         EXPECT_EQ(1, list[18]);
@@ -380,9 +381,9 @@ TEST_F(DBusTest, stats)
         EXPECT_EQ(2, s.longest_miss_run);
         EXPECT_EQ(0, s.ttl_evictions);
         EXPECT_EQ(0, s.lru_evictions);
-        EXPECT_EQ(0, s.most_recent_hit_time.toUTC().toMSecsSinceEpoch());
+        EXPECT_EQ(0, duration_cast<milliseconds>(s.most_recent_hit_time.time_since_epoch()).count());
         EXPECT_TRUE(near_current_time(s.most_recent_miss_time));
-        EXPECT_EQ(0, s.longest_hit_run_time.toUTC().toMSecsSinceEpoch());
+        EXPECT_EQ(0, duration_cast<milliseconds>(s.longest_hit_run_time.time_since_epoch()).count());
         EXPECT_TRUE(near_current_time(s.longest_miss_run_time));
     }
 
