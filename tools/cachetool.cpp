@@ -16,22 +16,34 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#include<thumbnailer.h>
-#include<cstdio>
-#include<gst/gst.h>
-#include<stdexcept>
+#include <internal/raii.h>
+#include <internal/thumbnailer.h>
 
-int main(int argc, char **argv) {
+#include <cstdio>
+#include <stdexcept>
+#include <sys/types.h>
+#include <fcntl.h>
+
+using namespace unity::thumbnailer::internal;
+
+int main(int argc, char** argv)
+{
     Thumbnailer t;
-    if(argc != 2) {
+    if (argc != 2)
+    {
         printf("%s <file name>\n", argv[0]);
         return 1;
     }
     std::string ifilename(argv[1]);
-    std::string ofilename = t.get_thumbnail(ifilename, TN_SIZE_LARGE);
-    if(ofilename.empty())
+    FdPtr fd(open(ifilename.c_str(), O_RDONLY), do_close);
+    std::string ofilename = t.get_thumbnail(ifilename, fd.get(), QSize(256, 256))->thumbnail();
+    if (ofilename.empty())
+    {
         printf("Thumbnail could not be generated.\n");
+    }
     else
+    {
         printf("Thumbnail file is %s.\n", ofilename.c_str());
+    }
     return 0;
 }

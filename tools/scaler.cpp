@@ -16,23 +16,32 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#include<internal/imagescaler.h>
-#include<cstdio>
-#include<gst/gst.h>
-#include<stdexcept>
+#if 0
+#include <internal/imagescaler.h>
+#include <cstdio>
+#include <gst/gst.h>
+#include <stdexcept>
+#endif
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
+#if 0
     ImageScaler sc;
-    if(argc != 3) {
+    if (argc != 3)
+    {
         fprintf(stderr, "%s <inputfile> <outputfile>\n", argv[0]);
     }
-    try {
+    try
+    {
         std::string ifilename(argv[1]);
         std::string ofilename(argv[2]);
-        sc.scale(ifilename, ofilename, TN_SIZE_LARGE, ifilename);
-    } catch(std::runtime_error &e) {
+        sc.scale(ifilename, ofilename, 256, ifilename);
+    }
+    catch (std::runtime_error& e)
+    {
         printf("Failed: %s\n", e.what());
         return 1;
     }
+#endif
     return 0;
 }

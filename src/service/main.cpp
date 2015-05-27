@@ -1,45 +1,82 @@
-#include <cstdio>
-#include <memory>
-#include <stdexcept>
-#include <glib.h>
-#include <gio/gio.h>
+/*
+ * Copyright (C) 2015 Canonical Ltd.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authored by: James Henstridge <james.henstridge@canonical.com>
+ *              Michi Henning <michi.henning@canonical.com>
+ */
 
+#include "admininterface.h"
+#include "admininterfaceadaptor.h"
 #include "dbusinterface.h"
+#include "dbusinterfaceadaptor.h"
+#include "inactivityhandler.h"
+
+#include <QCoreApplication>
+
+#include <cstdio>
+
+using namespace unity::thumbnailer::internal;
+using namespace unity::thumbnailer::service;
 
 static const char BUS_NAME[] = "com.canonical.Thumbnailer";
-static const char BUS_PATH[] = "/com/canonical/Thumbnailer";
 
-static std::unique_ptr<GMainLoop,void(*)(GMainLoop*)> main_loop(
-    g_main_loop_new(nullptr, FALSE), g_main_loop_unref);
+static const char BUS_THUMBNAILER_PATH[] = "/com/canonical/Thumbnailer";
+static const char BUS_ADMIN_PATH[] = "/com/canonical/ThumbnailerAdmin";
 
-static void nameLost(GDBusConnection *, const char *, void *) {
-    fprintf(stderr, "Could no acquire D-Bus name %s.  Quitting.\n", BUS_NAME);
-    g_main_loop_quit(main_loop.get());
-}
+int main(int argc, char** argv)
+{
+    QCoreApplication app(argc, argv);
 
-int main(int /*argc*/, char **/*argv*/) {
-
-    GError *error = nullptr;
-    std::unique_ptr<GDBusConnection, void(*)(void*)> bus(
-        g_bus_get_sync(G_BUS_TYPE_SESSION, nullptr, &error),
-        g_object_unref);
-    if (error != nullptr) {
-        fprintf(stderr, "Failed to connect to session bus: %s\n", error->message);
-        g_error_free(error);
+    std::shared_ptr<Thumbnailer> thumbnailer;
+    try
+    {
+        thumbnailer = std::make_shared<Thumbnailer>();
+    }
+    catch (std::exception const& e)
+    {
+        fprintf(stderr, "%s\n", e.what());
         return 1;
     }
 
-    DBusInterface dbus(bus.get(), BUS_PATH);
+    unity::thumbnailer::service::DBusInterface server(thumbnailer);
+    new ThumbnailerAdaptor(&server);
 
-    unsigned int name_id = g_bus_own_name_on_connection(
-        bus.get(), BUS_NAME, G_BUS_NAME_OWNER_FLAGS_NONE,
-        nullptr, &nameLost, nullptr, nullptr);
+    unity::thumbnailer::service::AdminInterface admin_server(thumbnailer);
+    new ThumbnailerAdminAdaptor(&admin_server);
 
-    g_main_loop_run(main_loop.get());
+    auto bus = QDBusConnection::sessionBus();
+    bus.registerObject(BUS_THUMBNAILER_PATH, &server);
+    bus.registerObject(BUS_ADMIN_PATH, &admin_server);
 
-    if (name_id != 0) {
-        g_bus_unown_name(name_id);
+    qDBusRegisterMetaType<unity::thumbnailer::service::AllStats>();
+
+    if (!bus.registerService(BUS_NAME))
+    {
+        fprintf(stderr, "Could not acquire D-Bus name %s.\n", BUS_NAME);
+        return 1;
     }
 
-    return 0;
+    try
+    {
+        new InactivityHandler(server);
+    }
+    catch (std::invalid_argument& e)
+    {
+        fprintf(stderr, "%s\n", e.what());
+        return 1;
+    }
+
+    return app.exec();
 }

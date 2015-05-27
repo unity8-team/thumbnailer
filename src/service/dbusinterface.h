@@ -17,24 +17,63 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DBUSINTERFACE_H
-#define DBUSINTERFACE_H
+#pragma once
 
-#include <string>
+#include "handler.h"
+#include "ratelimiter.h"
 
-struct DBusInterfacePrivate;
-typedef struct _GDBusConnection GDBusConnection;
+#include <QDBusContext>
+#include <QThreadPool>
 
-class DBusInterface final {
+namespace unity
+{
+
+namespace thumbnailer
+{
+
+namespace service
+{
+
+class DBusInterface : public QObject, protected QDBusContext
+{
+    Q_OBJECT
 public:
-    DBusInterface(GDBusConnection *bus, const std::string& bus_path);
+    DBusInterface(std::shared_ptr<unity::thumbnailer::internal::Thumbnailer> const& thumbnailer,
+                  QObject* parent = nullptr);
     ~DBusInterface();
 
-    DBusInterface(const DBusInterface&) = delete;
+    DBusInterface(DBusInterface const&) = delete;
     DBusInterface& operator=(DBusInterface&) = delete;
 
+public Q_SLOTS:
+    QDBusUnixFileDescriptor GetAlbumArt(QString const& artist, QString const& album, QSize const& requestedSize);
+    QDBusUnixFileDescriptor GetArtistArt(QString const& artist, QString const& album, QSize const& requestedSize);
+    QDBusUnixFileDescriptor GetThumbnail(QString const& filename,
+                                         QDBusUnixFileDescriptor const& filename_fd,
+                                         QSize const& requestedSize);
+
 private:
-    DBusInterfacePrivate *p;
+    void queueRequest(Handler* handler);
+
+private Q_SLOTS:
+    void requestFinished();
+
+Q_SIGNALS:
+    void endInactivity();
+    void startInactivity();
+
+private:
+    std::shared_ptr<unity::thumbnailer::internal::Thumbnailer> const& thumbnailer_;
+    std::shared_ptr<QThreadPool> check_thread_pool_;
+    std::shared_ptr<QThreadPool> create_thread_pool_;
+    std::map<Handler*, std::unique_ptr<Handler>> requests_;
+    std::map<std::string, std::vector<Handler*>> request_keys_;
+    RateLimiter download_limiter_;
+    RateLimiter video_thumbnail_limiter_;
 };
 
-#endif
+}  // namespace service
+
+}  // namespace thumbnailer
+
+}  // namespace unity

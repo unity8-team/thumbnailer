@@ -16,17 +16,21 @@
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
  */
 
-#include<internal/audioimageextractor.h>
-#include<cstdio>
-#include<gst/gst.h>
-#include<stdexcept>
+#include <internal/audioimageextractor.h>
+#include <cstdio>
+#include <gst/gst.h>
+#include <stdexcept>
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
     gst_init(&argc, &argv);
     AudioImageExtractor ae;
-    try {
+    try
+    {
         ae.extract(argv[1], argv[2]);
-    } catch(std::runtime_error &e) {
+    }
+    catch (std::runtime_error& e)
+    {
         printf("Failed: %s\n", e.what());
         return 1;
     }

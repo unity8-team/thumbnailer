@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Canonical Ltd.
+ * Copyright (C) 2013-2015 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License version 3 as
@@ -14,26 +14,64 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
+ *              James Henstridge <james.henstridge@canonical.com>
  */
 
-#ifndef VIDEOSCREENSHOTTER_H_
-#define VIDEOSCREENSHOTTER_H_
+#pragma once
 
-#include<string>
+#include <QProcess>
+#include <QTemporaryFile>
+#include <QTimer>
+#include <unity/util/ResourcePtr.h>
 
-class VideoScreenshotterPrivate;
+#include <chrono>
+#include <memory>
+#include <string>
 
-class VideoScreenshotter final {
+namespace unity
+{
+
+namespace thumbnailer
+{
+
+namespace internal
+{
+
+class VideoScreenshotter final : public QObject
+{
+    Q_OBJECT
 public:
-    VideoScreenshotter();
+    VideoScreenshotter(int fd, std::chrono::milliseconds timeout);
     ~VideoScreenshotter();
 
-    VideoScreenshotter(const VideoScreenshotter &t) = delete;
-    VideoScreenshotter & operator=(const VideoScreenshotter &t) = delete;
+    VideoScreenshotter(const VideoScreenshotter& t) = delete;
+    VideoScreenshotter& operator=(const VideoScreenshotter& t) = delete;
 
-    bool extract(const std::string &ifname, const std::string &ofname);
+    void extract();
+    std::string error_string();
+    std::string data();
 
+Q_SIGNALS:
+    void finished();
+
+private Q_SLOTS:
+    void processFinished();
+    void timeout();
+    void error();
+
+private:
+    unity::util::ResourcePtr<int, void (*)(int)> fd_;
+    int timeout_ms_;
+    QString exe_path_;
+    std::string error_;
+
+    QProcess process_;
+    QTimer timer_;
+    QTemporaryFile tmpfile_;
 };
 
+}  // namespace internal
 
-#endif
+}  // namespace thumbnailer
+
+}  // namespace unity

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Canonical Ltd.
+ * Copyright (C) 2015 Canonical Ltd
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License version 3 as
@@ -14,21 +14,49 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authored by: Pawel Stolowski <pawel.stolowski@canonical.com>
+ *              Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
-#ifndef ART_DOWNLOADER_H
-#define ART_DOWNLOADER_H
+#pragma once
 
-#include <string>
+#include <QObject>
 
-class ArtDownloader {
+#include <chrono>
+#include <memory>
+
+namespace unity
+{
+
+namespace thumbnailer
+{
+
+namespace internal
+{
+
+class ArtReply;
+
+class ArtDownloader : public QObject
+{
+    Q_OBJECT
 public:
-    ArtDownloader() = default;
+    Q_DISABLE_COPY(ArtDownloader)
+
+    explicit ArtDownloader(QObject* parent = nullptr);
     virtual ~ArtDownloader() = default;
-    virtual bool download(const std::string &artist, const std::string &album, const std::string &fname) = 0;
-    virtual bool download_artist(const std::string &artist, const std::string &album, const std::string &fname) = 0;
-    ArtDownloader(const ArtDownloader&) = delete;
-    ArtDownloader& operator=(const ArtDownloader&) = delete;
+
+    virtual std::shared_ptr<ArtReply> download_album(QString const& artist,
+                                                     QString const& album,
+                                                     std::chrono::milliseconds timeout) = 0;
+    virtual std::shared_ptr<ArtReply> download_artist(QString const& artist,
+                                                      QString const& album,
+                                                      std::chrono::milliseconds timeout) = 0;
+
+protected:
+    void assert_valid_url(QUrl const& url) const;
 };
 
-#endif
+}  // namespace internal
+
+}  // namespace thumbnailer
+
+}  // namespace unity

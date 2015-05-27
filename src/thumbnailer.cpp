@@ -14,311 +14,612 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
+ *              Michi Henning <michi.henning@canonical.com>
+ *              James Henstridge <james.henstridge@canonical.com>
  */
 
-#include<thumbnailer.h>
-#include<internal/thumbnailcache.h>
-#include<internal/audioimageextractor.h>
-#include<internal/videoscreenshotter.h>
-#include<internal/imagescaler.h>
-#include<internal/mediaartcache.h>
-#include<internal/lastfmdownloader.h>
-#include<internal/ubuntuserverdownloader.h>
-#include<gdk-pixbuf/gdk-pixbuf.h>
-#include<libexif/exif-loader.h>
-#include<unistd.h>
-#include<cstring>
-#include<gst/gst.h>
-#include<stdexcept>
-#include<random>
-#include<gio/gio.h>
-#include<glib.h>
-#include<memory>
+#include <internal/thumbnailer.h>
+
+#include <internal/artreply.h>
+#include <internal/file_io.h>
+#include <internal/gobj_memory.h>
+#include <internal/image.h>
+#include <internal/make_directories.h>
+#include <internal/raii.h>
+#include <internal/safe_strerror.h>
+#include <internal/ubuntuserverdownloader.h>
+#include <internal/videoscreenshotter.h>
+
+#include <boost/filesystem.hpp>
+#include <boost/lexical_cast.hpp>
+#include <core/persistent_string_cache.h>
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+#include <gio/gio.h>
+#pragma GCC diagnostic pop
+
+#include <QTimer>
+#include <unity/UnityExceptions.h>
+
+#include <iostream>
+
+#include <fcntl.h>
+#include <sys/stat.h>
 
 using namespace std;
 
-class ThumbnailerPrivate {
-private:
-    random_device rnd;
+namespace unity
+{
 
-    string create_audio_thumbnail(const string &abspath, ThumbnailSize desired_size,
-            ThumbnailPolicy policy);
-    string create_video_thumbnail(const string &abspath, ThumbnailSize desired_size);
-    string create_generic_thumbnail(const string &abspath, ThumbnailSize desired_size);
+namespace thumbnailer
+{
 
+namespace internal
+{
+
+namespace
+{
+
+enum class Location
+{
+    local,
+    remote
+};
+
+}  // namespace
+
+class RequestBase : public ThumbnailRequest
+{
+    Q_OBJECT
 public:
-    ThumbnailCache cache;
-    AudioImageExtractor audio;
-    VideoScreenshotter video;
-    ImageScaler scaler;
-    MediaArtCache macache;
-    std::unique_ptr<ArtDownloader> downloader;
+    virtual ~RequestBase() = default;
+    string thumbnail() override;
+    string const& key() const override
+    {
+        return key_;
+    }
+    enum class FetchStatus
+    {
+        needs_download,
+        downloaded,
+        not_found,
+        no_network,
+        error
+    };
+    enum class CachePolicy
+    {
+        cache_fullsize,
+        dont_cache_fullsize
+    };
+    struct ImageData
+    {
+        FetchStatus status;
+        Image image;
+        CachePolicy cache_policy;
+        Location location;
 
-    ThumbnailerPrivate() {
-        char *artservice = getenv("THUMBNAILER_ART_PROVIDER");
-        if (artservice != nullptr && strcmp(artservice, "lastfm") == 0)
+        ImageData(Image const& image, CachePolicy policy, Location location)
+            : status(FetchStatus::downloaded)
+            , image(image)
+            , cache_policy(policy)
+            , location(location)
         {
-            downloader.reset(new LastFMDownloader());
         }
-        else
+        ImageData(FetchStatus status, Location location)
+            : status(status)
+            , cache_policy(CachePolicy::dont_cache_fullsize)
+            , location(location)
         {
-            downloader.reset(new UbuntuServerDownloader());
         }
     };
 
-    string create_thumbnail(const string &abspath, ThumbnailSize desired_size,
-            ThumbnailPolicy policy);
-    string create_random_filename();
-    string extract_exif_thumbnail(const std::string &abspath);
+protected:
+    RequestBase(Thumbnailer* thumbnailer, string const& key, QSize const& requested_size);
+    virtual ImageData fetch(QSize const& size_hint) = 0;
+
+    ArtDownloader* downloader() const
+    {
+        return thumbnailer_->downloader_.get();
+    }
+
+    string printable_key() const
+    {
+        // Substitute "\\0" for all occurences of '\0' in key_.
+        string new_key;
+        string::size_type start_pos = 0;
+        string::size_type end_pos;
+        while ((end_pos = key_.find('\0', start_pos)) != string::npos)
+        {
+            new_key += key_.substr(start_pos, end_pos - start_pos);
+            new_key += "\\0";
+            start_pos = end_pos + 1;
+        }
+        if (start_pos != string::npos)
+        {
+            new_key += key_.substr(start_pos, end_pos);
+        }
+        return new_key;
+    }
+
+    Thumbnailer const* thumbnailer_;
+    string key_;
+    QSize const requested_size_;
 };
 
-string ThumbnailerPrivate::create_random_filename() {
-    string fname;
-    char *dirbase = getenv("TMPDIR"); // Set when in a confined application.
-    if(dirbase) {
-        fname = dirbase;
-    } else {
-        fname = "/tmp";
-    }
-    fname += "/thumbnailer.";
-    fname += to_string(rnd());
-    fname += ".tmp";
-    return fname;
-}
-
-string ThumbnailerPrivate::extract_exif_thumbnail(const std::string &abspath) {
-    std::unique_ptr<ExifLoader, void(*)(ExifLoader*)>el(exif_loader_new(), exif_loader_unref);
-    if(el) {
-        exif_loader_write_file(el.get(), abspath.c_str());
-        std::unique_ptr<ExifData, void(*)(ExifData*e)> ed(exif_loader_get_data(el.get()), exif_data_unref);
-        if(ed && ed->data && ed->size) {
-            auto outfile = create_random_filename();
-            FILE *thumb = fopen(outfile.c_str(), "wb");
-            if(thumb) {
-                fwrite(ed->data, 1, ed->size, thumb);
-                fclose(thumb);
-                return outfile;
-            }
-        }
-    }
-    return "";
-}
-
-string ThumbnailerPrivate::create_audio_thumbnail(const string &abspath,
-        ThumbnailSize desired_size, ThumbnailPolicy /*policy*/) {
-    string tnfile = cache.get_cache_file_name(abspath, desired_size);
-    string tmpname = create_random_filename();
-    bool extracted = false;
-    try {
-        if(audio.extract(abspath, tmpname)) {
-            extracted = true;
-        }
-    } catch(runtime_error &e) {
-    }
-    if(extracted) {
-        scaler.scale(tmpname, tnfile, desired_size, abspath); // If this throws, let it propagate.
-        unlink(tmpname.c_str());
-        return tnfile;
-    }
-    return "";
-}
-string ThumbnailerPrivate::create_generic_thumbnail(const string &abspath, ThumbnailSize desired_size) {
-    int tmpw, tmph;
-    string tnfile = cache.get_cache_file_name(abspath, desired_size);
-    // Special case: full size image files are their own preview.
-    if(desired_size == TN_SIZE_ORIGINAL &&
-       gdk_pixbuf_get_file_info(abspath.c_str(), &tmpw, &tmph)) {
-        return abspath;
-    }
-    try {
-        if(scaler.scale(abspath, tnfile, desired_size, abspath))
-            return tnfile;
-    } catch(const runtime_error &e) {
-        fprintf(stderr, "Scaling thumbnail failed: %s\n", e.what());
-    }
-    return "";
-}
-
-string ThumbnailerPrivate::create_video_thumbnail(const string &abspath, ThumbnailSize desired_size) {
-    string tnfile = cache.get_cache_file_name(abspath, desired_size);
-    string tmpname = create_random_filename();
-    if(video.extract(abspath, tmpname)) {
-        scaler.scale(tmpname, tnfile, desired_size, abspath);
-        unlink(tmpname.c_str());
-        return tnfile;
-    }
-    throw runtime_error("Video extraction failed.");
-}
-
-string ThumbnailerPrivate::create_thumbnail(const string &abspath, ThumbnailSize desired_size,
-        ThumbnailPolicy policy) {
-    // Every now and then see if we have too much stuff and delete them if so.
-    if((rnd() % 100) == 0) { // No, this is not perfectly random. It does not need to be.
-        cache.prune();
-    }
-    std::unique_ptr<GFile, void(*)(void *)> file(
-            g_file_new_for_path(abspath.c_str()), g_object_unref);
-    if(!file) {
-        return "";
-    }
-
-    std::unique_ptr<GFileInfo, void(*)(void *)> info(
-            g_file_query_info(file.get(), G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
-                G_FILE_QUERY_INFO_NONE, /* cancellable */ NULL, /* error */NULL),
-            g_object_unref);
-    if(!info) {
-        return "";
-    }
-
-    std::string content_type(g_file_info_get_content_type(info.get()));
-    if (content_type.empty()) {
-        return "";
-    }
-
-    if (content_type.find("audio/") == 0) {
-        return create_audio_thumbnail(abspath, desired_size, policy);
-    }
-
-    if (content_type.find("video/") == 0) {
-        return create_video_thumbnail(abspath, desired_size);
-    }
-    if(desired_size != TN_SIZE_ORIGINAL) {
-        try {
-            auto embedded_image = extract_exif_thumbnail(abspath);
-            // Note that we always use the embedded thumbnail if it exists.
-            // Depending on usage, it may be too low res for our purposes.
-            // If this becomes an issue, add a check here once we know the
-            // real resolution requirements and fall back to scaling the
-            // full image if the thumbnail is too small.
-            if(!embedded_image.empty()) {
-                string tnfile = cache.get_cache_file_name(abspath, desired_size);
-                auto succeeded = scaler.scale(embedded_image, tnfile, desired_size, abspath, abspath);
-                unlink(embedded_image.c_str());
-                if(succeeded) {
-                    return tnfile;
-                }
-            }
-        } catch(const exception &e) {
-        }
-    }
-
-    return create_generic_thumbnail(abspath, desired_size);
-}
-
-Thumbnailer::Thumbnailer() {
-    p = new ThumbnailerPrivate();
-}
-
-Thumbnailer::~Thumbnailer() {
-    delete p;
-}
-std::string Thumbnailer::get_thumbnail(const std::string &filename, ThumbnailSize desired_size,
-        ThumbnailPolicy policy) {
-    string abspath;
-    if(filename.empty()) {
-        return "";
-    }
-    if(filename[0] != '/') {
-        auto cwd = getcwd(nullptr, 0);
-        abspath += cwd;
-        free(cwd);
-        abspath += "/" + filename;
-    } else {
-        abspath = filename;
-    }
-    std::string estimate = p->cache.get_if_exists(abspath, desired_size);
-    if(!estimate.empty())
-        return estimate;
-
-    if (p->cache.has_failure(abspath)) {
-        throw runtime_error("Thumbnail generation failed previously, not trying again.");
-    }
-
-    try {
-        string generated = p->create_thumbnail(abspath, desired_size, policy);
-        if(generated == abspath) {
-            return abspath;
-        }
-    } catch(const std::runtime_error &e) {
-        p->cache.mark_failure(abspath);
-        throw;
-    }
-
-    return p->cache.get_if_exists(abspath, desired_size);
-}
-
-string Thumbnailer::get_thumbnail(const string &filename, ThumbnailSize desired_size) {
-    return get_thumbnail(filename, desired_size, TN_LOCAL);
-}
-
-unique_ptr<gchar, void(*)(gpointer)> get_art_file_content(const string &fname, gsize &content_size)
+namespace
 {
-    gchar *contents;
-    GError *err = nullptr;
-    if(!g_file_get_contents(fname.c_str(), &contents, &content_size, &err)) {
-        unlink(fname.c_str());
-        std::string msg("Error reading file: ");
-        msg += err->message;
-        g_error_free(err);
-        throw std::runtime_error(msg);
-    }
-    unlink(fname.c_str());
-    return unique_ptr<gchar, void(*)(gpointer)>(contents, g_free);
+
+class LocalThumbnailRequest : public RequestBase
+{
+    Q_OBJECT
+public:
+    LocalThumbnailRequest(Thumbnailer* thumbnailer,
+                          string const& filename,
+                          int filename_fd,
+                          QSize const& requested_size);
+
+protected:
+    ImageData fetch(QSize const& size_hint) override;
+    void download(std::chrono::milliseconds timeout) override;
+
+private:
+    string filename_;
+    FdPtr fd_;
+    unique_ptr<VideoScreenshotter> screenshotter_;
+};
+
+class AlbumRequest : public RequestBase
+{
+    Q_OBJECT
+public:
+    AlbumRequest(Thumbnailer* thumbnailer, string const& artist, string const& album, QSize const& requested_size);
+
+protected:
+    ImageData fetch(QSize const& size_hint) override;
+    void download(std::chrono::milliseconds timeout) override;
+
+private:
+    string artist_;
+    string album_;
+    shared_ptr<ArtReply> artreply_;
+};
+
+class ArtistRequest : public RequestBase
+{
+    Q_OBJECT
+public:
+    ArtistRequest(Thumbnailer* thumbnailer, string const& artist, string const& album, QSize const& requested_size);
+
+protected:
+    ImageData fetch(QSize const& size_hint) override;
+    void download(std::chrono::milliseconds timeout) override;
+
+private:
+    string artist_;
+    string album_;
+    shared_ptr<ArtReply> artreply_;
+};
+
+}  // namespace
+
+RequestBase::RequestBase(Thumbnailer* thumbnailer, string const& key, QSize const& requested_size)
+    : thumbnailer_(thumbnailer)
+    , key_(key)
+    , requested_size_(requested_size)
+{
 }
 
-std::string Thumbnailer::get_album_art(const std::string &artist, const std::string &album,
-        ThumbnailSize desired_size, ThumbnailPolicy policy) {
-    if(!p->macache.has_album_art(artist, album)) {
-        if(policy == TN_LOCAL) {
-            // We don't have it cached and can't access the net
-            // -> nothing to be done.
-            return "";
-        }
-        char filebuf[] = "/tmp/some/long/text/here/so/path/will/fit";
-        std::string tmpname = tmpnam(filebuf);
-        if(!p->downloader->download(artist, album, tmpname)) {
-            return "";
+// Main look-up logic for thumbnails.
+//
+// key_ is set by the subclass to uniquely identify what is being
+// thumbnailed.  For online art, this includes the artist and album.
+// For local thumbnails, this includes the path name, inode, mtime,
+// and ctime.
+//
+// We first look in the cache to see if we have a thumbnail already
+// for the provided key and size.  If not, we check whether a
+// full-size image was downloaded previously and is still hanging
+// around. If no image is available in the full size cache, we call
+// the fetch() routine (implemented by the subclass), which will
+// either (a) report that the data needs to be downloaded, (b) return
+// the full size image ready for scaling, or (c) report an error.
+//
+// If the data needs downloading, we return immediately.  Similarly,
+// we return in case of an error.  If the data is available, it may be
+// stored in the full size cache.
+//
+// At this point we have the image data, so scale it to the desired
+// size, store the scaled version to the thumbnail cache and return
+// it.
+
+string RequestBase::thumbnail()
+{
+    try
+    {
+        int MAX_SIZE = 1920;  // TODO: Make limit configurable?
+        QSize target_size = requested_size_.isValid() ? requested_size_ : QSize(MAX_SIZE, MAX_SIZE);
+
+        // desired_size is (0,0) if the caller wants original size.
+        string sized_key = key_;
+        sized_key += '\0';
+        sized_key += to_string(target_size.width());
+        sized_key += '\0';
+        sized_key += to_string(target_size.height());
+
+        // Check if we have the thumbnail in the cache already.
+        auto thumbnail = thumbnailer_->thumbnail_cache_->get(sized_key);
+        if (thumbnail)
+        {
+            return *thumbnail;
         }
 
-        gsize content_size;
-        auto contents = get_art_file_content(tmpname, content_size);
-        p->macache.add_album_art(artist, album, contents.get(), content_size);
+        // Don't have the thumbnail yet, see if we have the original image around.
+        auto full_size = thumbnailer_->full_size_cache_->get(key_);
+        Image scaled_image;
+        if (full_size)
+        {
+            scaled_image = Image(*full_size, target_size);
+        }
+        else
+        {
+            // Try and download or read the artwork, provided that we don't
+            // have this image in the failure cache. We use get()
+            // here instead of contains_key(), so the stats for the
+            // failure cache are updated.
+            if (thumbnailer_->failure_cache_->get(key_))
+            {
+                return "";
+            }
+            auto image_data = fetch(target_size);
+            switch (image_data.status)
+            {
+                case FetchStatus::downloaded:      // Success, we'll return the thumbnail below.
+                    break;
+                case FetchStatus::needs_download:  // Caller will call download().
+                    return "";
+                case FetchStatus::no_network:      // Network down, try again next time.
+                    return "";
+                case FetchStatus::not_found:
+                {
+                    // Authoritative answer that artwork does not exist.
+                    // For local files, we don't set an expiry time because, if the file is
+                    // changed (say, such that artwork is added), the file's key will change too.
+                    // For remote files, we try again after one week.
+                    // TODO: Make interval configurable.
+                    chrono::time_point<std::chrono::system_clock> later;  // Infinite expiry time
+                    if (image_data.location == Location::remote)
+                    {
+                        later = chrono::system_clock::now() + chrono::hours(24 * 7);  // One week
+                    }
+                    thumbnailer_->failure_cache_->put(key_, "", later);
+                    return "";
+                }
+                case FetchStatus::error:
+                {
+                    // Some non-authoritative failure, such as the server not responding,
+                    // or an out-of-process codec crashing.
+                    // For local files, we don't set an expiry time because, if the file is
+                    // changed, (say, its permissions change), the file's key will change too.
+                    // For remote files, we try again after two hours.
+                    // TODO: Make interval configurable.
+                    chrono::time_point<std::chrono::system_clock> later;  // Infinite expiry time
+                    if (image_data.location == Location::remote)
+                    {
+                        later = chrono::system_clock::now() + chrono::hours(2);  // Two hours before we try again.
+                    }
+                    thumbnailer_->failure_cache_->put(key_, "", later);
+                    // TODO: That's really poor. Should store the error data so we can produce
+                    //       a proper diagnostic.
+                    throw runtime_error("fetch() failed");
+                }
+                default:
+                    abort();  // LCOV_EXCL_LINE  // Impossible
+            }
+
+            // We keep the full-size version around for a while because it
+            // is likely that the caller will ask for small thumbnail
+            // first (for initial search results), followed by a larger
+            // thumbnail (for a preview). If so, we don't download the
+            // artwork a second time.
+            if (image_data.cache_policy == CachePolicy::cache_fullsize)
+            {
+                Image full_size_image = image_data.image;
+                auto w = full_size_image.width();
+                auto h = full_size_image.height();
+                if (max(w, h) > MAX_SIZE)
+                {
+                    // Don't put ridiculously large images into the full-size cache.
+                    full_size_image = full_size_image.scale(QSize(MAX_SIZE, MAX_SIZE));
+                }
+                thumbnailer_->full_size_cache_->put(key_, full_size_image.to_jpeg());
+            }
+            // If the image is already within the target dimensions, this
+            // will be a no-op.
+            scaled_image = image_data.image.scale(target_size);
+        }
+
+        string jpeg = scaled_image.to_jpeg();
+        thumbnailer_->thumbnail_cache_->put(sized_key, jpeg);
+        return jpeg;
     }
-    // At this point we know we have the image in our art cache (unless
-    // someone just deleted it concurrently, in which case we can't
-    // really do anything.
-    std::string original = p->macache.get_album_art_file(artist, album);
-    if(desired_size == TN_SIZE_ORIGINAL) {
-        return original;
+    catch (...)
+    {
+        throw unity::ResourceException("RequestBase::thumbnail(): key = " + printable_key());
     }
-    return get_thumbnail(original, desired_size, policy);
 }
 
-std::string Thumbnailer::get_artist_art(const std::string &artist, const std::string &album, ThumbnailSize desired_size,
-        ThumbnailPolicy policy) {
-    if(!p->macache.has_artist_art(artist, album)) {
-        if(policy == TN_LOCAL) {
-            // We don't have it cached and can't access the net
-            // -> nothing to be done.
-            return "";
-        }
-        char filebuf[] = "/tmp/some/long/text/here/so/path/will/fit";
-        std::string tmpname = tmpnam(filebuf);
-        if(!p->downloader->download_artist(artist, album, tmpname)) {
-            return "";
-        }
-        gsize content_size;
-        auto contents = get_art_file_content(tmpname, content_size);
-        p->macache.add_artist_art(artist, album, contents.get(), content_size);
+LocalThumbnailRequest::LocalThumbnailRequest(Thumbnailer* thumbnailer,
+                                             string const& filename,
+                                             int filename_fd,
+                                             QSize const& requested_size)
+    : RequestBase(thumbnailer, "", requested_size)
+    , filename_(filename)
+    , fd_(-1, do_close)
+{
+    filename_ = boost::filesystem::canonical(filename).native();
+    fd_.reset(open(filename_.c_str(), O_RDONLY | O_CLOEXEC));
+    if (fd_.get() < 0)
+    {
+        // LCOV_EXCL_START
+        throw runtime_error("LocalThumbnailRequest(): Could not open " + filename_ + ": " + safe_strerror(errno));
+        // LCOV_EXCL_STOP
     }
-    // At this point we know we have the image in our art cache (unless
-    // someone just deleted it concurrently, in which case we can't
-    // really do anything.
-    std::string original = p->macache.get_artist_art_file(artist, album);
-    if(desired_size == TN_SIZE_ORIGINAL) {
-        return original;
+    struct stat our_stat, client_stat;
+    if (fstat(fd_.get(), &our_stat) < 0)
+    {
+        // LCOV_EXCL_START
+        throw runtime_error("LocalThumbnailRequest(): Could not stat " + filename_ + ": " + safe_strerror(errno));
+        // LCOV_EXCL_STOP
     }
-    return get_thumbnail(original, desired_size, policy);
+    if (fstat(filename_fd, &client_stat) < 0)
+    {
+        throw runtime_error("LocalThumbnailRequest(): Could not stat file descriptor: " + safe_strerror(errno));
+    }
+    if (our_stat.st_dev != client_stat.st_dev || our_stat.st_ino != client_stat.st_ino)
+    {
+        throw runtime_error("LocalThumbnailRequest(): file descriptor does not refer to file " + filename_);
+    }
 
-    return "";
+    // The full cache key for the file is the concatenation of path
+    // name, inode, modification time, and inode modification time
+    // (because permissions may change).  If the file exists with the
+    // same path on different removable media, or the file was
+    // modified since we last cached it, the key will be
+    // different. There is no point in trying to remove such stale
+    // entries from the cache. Instead, we just let the normal
+    // eviction mechanism take care of them (because stale thumbnails
+    // due to file removal or file update are rare).
+    key_ = filename_;
+    key_ += '\0';
+    key_ += to_string(our_stat.st_ino);
+    key_ += '\0';
+    key_ += to_string(our_stat.st_mtim.tv_sec) + "." + to_string(our_stat.st_mtim.tv_nsec);
+    key_ += '\0';
+    key_ += to_string(our_stat.st_ctim.tv_sec) + "." + to_string(our_stat.st_ctim.tv_nsec);
 }
+
+RequestBase::ImageData LocalThumbnailRequest::fetch(QSize const& size_hint)
+{
+    if (screenshotter_)
+    {
+        // The image data has been extracted via vs-thumb
+        return ImageData(Image(screenshotter_->data()), CachePolicy::cache_fullsize, Location::local);
+    }
+
+    // Work out content type.
+    gobj_ptr<GFile> file(g_file_new_for_path(filename_.c_str()));
+    assert(file);  // Cannot fail according to doc.
+
+    gobj_ptr<GFileInfo> info(g_file_query_info(file.get(), G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE,
+                                               G_FILE_QUERY_INFO_NONE,
+                                               /* cancellable */ NULL,
+                                               /* error */ NULL));  // TODO: need decent error reporting
+    if (!info)
+    {
+        return ImageData(FetchStatus::error, Location::local);  // LCOV_EXCL_LINE
+    }
+
+    string content_type = g_file_info_get_attribute_string(info.get(), G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE);
+    if (content_type.empty())
+    {
+        return ImageData(FetchStatus::error, Location::local);  // LCOV_EXCL_LINE
+    }
+
+    // Call the appropriate image extractor and return the image data as JPEG (not scaled).
+    // We indicate that full-size images are to be cached only for audio and video files,
+    // for which extraction is expensive. For local images, we don't cache full size.
+
+    if (content_type.find("audio/") == 0 || content_type.find("video/") == 0)
+    {
+        return ImageData(FetchStatus::needs_download, Location::local);
+    }
+    if (content_type.find("image/") == 0)
+    {
+        Image scaled(fd_.get(), size_hint);
+        return ImageData(scaled, CachePolicy::dont_cache_fullsize, Location::local);
+    }
+    return ImageData(FetchStatus::not_found, Location::local);
+}
+
+void LocalThumbnailRequest::download(std::chrono::milliseconds timeout)
+{
+    screenshotter_.reset(new VideoScreenshotter(fd_.get(), timeout));
+    connect(screenshotter_.get(), &VideoScreenshotter::finished, this, &LocalThumbnailRequest::downloadFinished,
+            Qt::DirectConnection);
+    screenshotter_->extract();
+}
+
+AlbumRequest::AlbumRequest(Thumbnailer* thumbnailer,
+                           string const& artist,
+                           string const& album,
+                           QSize const& requested_size)
+    : RequestBase(thumbnailer, artist + '\0' + album + '\0' + "album", requested_size)
+    , artist_(artist)
+    , album_(album)
+{
+}
+
+namespace
+{
+
+// Logic for AlbumRequest::fetch() and ArtistRequest::fetch() is the same,
+// so we use this helper function for both.
+
+RequestBase::ImageData common_fetch(shared_ptr<ArtReply> const& artreply)
+{
+    if (!artreply)
+    {
+        return RequestBase::ImageData(RequestBase::FetchStatus::needs_download, Location::remote);
+    }
+    if (artreply->succeeded())
+    {
+        auto raw_data = artreply->data();
+        Image full_size(string(raw_data.data(), raw_data.size()));
+        return RequestBase::ImageData(full_size, RequestBase::CachePolicy::cache_fullsize, Location::remote);
+    }
+    if (artreply->not_found_error())
+    {
+        return RequestBase::ImageData(RequestBase::FetchStatus::not_found, Location::remote);
+    }
+    if (artreply->network_down())
+    {
+        return RequestBase::ImageData(RequestBase::FetchStatus::no_network, Location::remote);
+    }
+    return RequestBase::ImageData(RequestBase::FetchStatus::error, Location::remote);
+}
+
+}  // namespace
+
+RequestBase::ImageData AlbumRequest::fetch(QSize const& /*size_hint*/)
+{
+    return common_fetch(artreply_);
+}
+
+void AlbumRequest::download(chrono::milliseconds timeout)
+{
+    artreply_ = downloader()->download_album(QString::fromStdString(artist_), QString::fromStdString(album_), timeout);
+    connect(artreply_.get(), &ArtReply::finished, this, &AlbumRequest::downloadFinished, Qt::DirectConnection);
+}
+
+ArtistRequest::ArtistRequest(Thumbnailer* thumbnailer,
+                             string const& artist,
+                             string const& album,
+                             QSize const& requested_size)
+    : RequestBase(thumbnailer, artist + '\0' + album + '\0' + "artist", requested_size)
+    , artist_(artist)
+    , album_(album)
+{
+}
+
+RequestBase::ImageData ArtistRequest::fetch(QSize const& /*size_hint*/)
+{
+    return common_fetch(artreply_);
+}
+
+void ArtistRequest::download(chrono::milliseconds timeout)
+{
+    artreply_ = downloader()->download_artist(QString::fromStdString(artist_), QString::fromStdString(album_), timeout);
+    connect(artreply_.get(), &ArtReply::finished, this, &ThumbnailRequest::downloadFinished, Qt::DirectConnection);
+}
+
+Thumbnailer::Thumbnailer()
+    : downloader_(new UbuntuServerDownloader())
+{
+    string xdg_base = g_get_user_cache_dir();
+    if (xdg_base == "")
+    {
+        // LCOV_EXCL_START
+        string s("Thumbnailer(): Could not determine cache dir.");
+        throw runtime_error(s);
+        // LCOV_EXCL_STOP
+    }
+
+    string cache_dir = xdg_base + "/unity-thumbnailer";
+    make_directories(cache_dir, 0700);
+
+    try
+    {
+        // TODO: No good to hard-wire the cache size.
+        full_size_cache_ = core::PersistentStringCache::open(cache_dir + "/images", 50 * 1024 * 1024,
+                                                             core::CacheDiscardPolicy::lru_only);
+        thumbnail_cache_ = core::PersistentStringCache::open(cache_dir + "/thumbnails", 100 * 1024 * 1024,
+                                                             core::CacheDiscardPolicy::lru_only);
+        failure_cache_ = core::PersistentStringCache::open(cache_dir + "/failures", 2 * 1024 * 1024,
+                                                           core::CacheDiscardPolicy::lru_ttl);
+    }
+    catch (std::exception const& e)
+    {
+        throw runtime_error(string("Thumbnailer(): Cannot instantiate cache: ") + e.what());
+    }
+}
+
+Thumbnailer::~Thumbnailer() = default;
+
+unique_ptr<ThumbnailRequest> Thumbnailer::get_thumbnail(string const& filename,
+                                                        int filename_fd,
+                                                        QSize const& requested_size)
+{
+    assert(!filename.empty());
+
+    try
+    {
+        return unique_ptr<ThumbnailRequest>(new LocalThumbnailRequest(this, filename, filename_fd, requested_size));
+    }
+    catch (...)
+    {
+        throw unity::ResourceException("Thumbnailer::get_thumbnail()");
+    }
+}
+
+unique_ptr<ThumbnailRequest> Thumbnailer::get_album_art(string const& artist,
+                                                        string const& album,
+                                                        QSize const& requested_size)
+{
+    assert(artist.empty() || !album.empty());
+    assert(album.empty() || !artist.empty());
+
+    try
+    {
+        return unique_ptr<ThumbnailRequest>(new AlbumRequest(this, artist, album, requested_size));
+    }
+    // LCOV_EXCL_START  // Currently won't throw, we are defensive here.
+    catch (...)
+    {
+        throw unity::ResourceException("Thumbnailer::get_album_art()");  // LCOV_EXCL_LINE
+    }
+    // LCOV_EXCL_STOP
+}
+
+unique_ptr<ThumbnailRequest> Thumbnailer::get_artist_art(string const& artist,
+                                                         string const& album,
+                                                         QSize const& requested_size)
+{
+    assert(artist.empty() || !album.empty());
+    assert(album.empty() || !artist.empty());
+
+    try
+    {
+        return unique_ptr<ThumbnailRequest>(new ArtistRequest(this, artist, album, requested_size));
+    }
+    // LCOV_EXCL_START  // Currently won't throw, we are defensive here.
+    catch (...)
+    {
+        throw unity::ResourceException("Thumbnailer::get_artist_art()");
+    }
+    // LCOV_EXCL_STOP
+}
+
+Thumbnailer::AllStats Thumbnailer::stats() const
+{
+    return AllStats{full_size_cache_->stats(), thumbnail_cache_->stats(), failure_cache_->stats()};
+}
+
+}  // namespace internal
+
+}  // namespace thumbnailer
+
+}  // namespace unity
+
+#include "thumbnailer.moc"
