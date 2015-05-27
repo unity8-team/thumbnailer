@@ -39,28 +39,38 @@ namespace thumbnailer
 namespace tools
 {
 
-ShowStats::ShowStats(QStringList const& args)
-    : Action(args)
+ShowStats::ShowStats(QCoreApplication& app, QCommandLineParser& parser)
+    : Action(app, parser)
 {
-    assert(args[1] == QString("stats"));
+    parser.addPositionalArgument("stats", "Show statistics", "stats [-v]");
+    parser.addPositionalArgument("cache_id", "Select cache (i=image, t=thumbnail, f=failure)", "[cache_id]");
+    QCommandLineOption histogram_option(QStringList() << "v" << "verbose", "Show histogram");
+    parser.addOption(histogram_option);
+    auto help_option = parser.addHelpOption();
+
+    if (!parser.parse(app.arguments()))
+    {
+        throw parser.errorText() + "\n\n" + parser.helpText();
+    }
+    if (parser.isSet(help_option))
+    {
+        throw parser.helpText();
+    }
+
+    auto args = parser.positionalArguments();
+    assert(args.first() == QString("stats"));
+    if (args.size() > 2)
+    {
+        throw QString("too many arguments for stats command") + parser.errorText() + "\n\n" + parser.helpText();
+    }
+    if (parser.isSet(histogram_option))
+    {
+        show_histogram_ = true;
+    }
 
     if (args.size() == 2)
     {
-        return;
-    }
-    if (args.size() > 4)
-    {
-        throw "too many arguments for stats command";
-    }
-    int next_arg = 2;
-    if (args[2] == "hist")
-    {
-        show_histogram_ = true;
-        next_arg = 3;
-    }
-    if (next_arg < args.size())
-    {
-        QString arg = args[next_arg];
+        QString arg = args[1];
         if (arg == "i")
         {
             show_image_stats_ = true;
@@ -81,7 +91,7 @@ ShowStats::ShowStats(QStringList const& args)
         }
         else
         {
-            throw QString("invalid argument for stats command: " ) + arg;
+            throw QString("invalid cache_id: " ) + arg + "\n" + parser.helpText();;
         }
     }
 }

@@ -153,7 +153,7 @@ TEST_F(AdminTest, failure_stats)
 TEST_F(AdminTest, histogram)
 {
     AdminRunner ar;
-    EXPECT_EQ(0, ar.run(QStringList{"stats", "hist"}));
+    EXPECT_EQ(0, ar.run(QStringList{"stats", "-v"}));
     auto output = ar.stdout();
     EXPECT_TRUE(output.find("Image cache:") != string::npos) << output;
     EXPECT_TRUE(output.find("Thumbnail cache:") != string::npos) << output;
@@ -167,23 +167,15 @@ TEST_F(AdminTest, stats_parsing)
 
     // Too few args
     EXPECT_EQ(1, ar.run(QStringList{}));
-    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: Usage: ")) << ar.stderr();
+    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: too few arguments")) << ar.stderr();
 
     // Too many args
-    EXPECT_EQ(1, ar.run(QStringList{"stats", "hist", "i", "t"}));
+    EXPECT_EQ(1, ar.run(QStringList{"stats", "i", "t"}));
     EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: too many arguments")) << ar.stderr();
 
-    // Second arg wrong with two args
+    // Second arg wrong
     EXPECT_EQ(1, ar.run(QStringList{"stats", "foo"}));
-    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: invalid argument for stats command: foo")) << ar.stderr();
-
-    // Second arg wrong with three args
-    EXPECT_EQ(1, ar.run(QStringList{"stats", "bar", "i"}));
-    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: invalid argument for stats command: bar")) << ar.stderr();
-
-    // Third arg wrong with three args
-    EXPECT_EQ(1, ar.run(QStringList{"stats", "hist", "x"}));
-    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: invalid argument for stats command: x")) << ar.stderr();
+    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: invalid cache_id: foo")) << ar.stderr();
 
     // Bad command
     EXPECT_EQ(1, ar.run(QStringList{"no_such_command"}));

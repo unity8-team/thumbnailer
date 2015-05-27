@@ -36,9 +36,10 @@ namespace thumbnailer
 namespace tools
 {
 
-GetThumbnail::GetThumbnail(QStringList const& args)
-    : Action(args)
+GetThumbnail::GetThumbnail(QCoreApplication& app, QCommandLineParser& parser)
+    : Action(app, parser)
 {
+#if 0
     assert(args[1] == QString("get") ||
            args[1] == QString("artist") ||
            args[1] == QString("album"));
@@ -51,6 +52,7 @@ GetThumbnail::GetThumbnail(QStringList const& args)
     {
         throw "too many arguments for stats command";
     }
+#endif
 }
 
 GetThumbnail::~GetThumbnail() {}

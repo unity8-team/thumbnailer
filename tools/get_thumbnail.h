@@ -34,7 +34,7 @@ class GetThumbnail : public Action
 public:
     UNITY_DEFINES_PTRS(GetThumbnail);
 
-    GetThumbnail(QStringList const& args);
+    GetThumbnail(QCoreApplication& app, QCommandLineParser& parser);
     virtual ~GetThumbnail();
 
     virtual void run(DBusConnection& conn) override;
