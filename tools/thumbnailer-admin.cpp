@@ -16,11 +16,16 @@
  * Authored by: Michi Henning <michi.henning@canonical.com>
  */
 
+#include "get_thumbnail.h"
 #include "dbus_connection.h"
 #include "show_stats.h"
 
+#include <boost/filesystem.hpp>
+
 #include <functional>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
 
 #include <stdio.h>
 
@@ -32,6 +37,7 @@ namespace
 
 string prog_name;
 
+#if 0
 void usage()
 {
     fprintf(stderr, "usage: %s command [args...]\n", prog_name.c_str());
@@ -40,42 +46,77 @@ void usage()
     fprintf(stderr, "             Show stats. If hist is provided, add histogram.\n");
     fprintf(stderr, "             If i, t, or f is provided, restrict stats to the\n");
     fprintf(stderr, "             selected (image, thumbnailer, or failure) cache.\n");
+    fprintf(stderr, "        - get [-s size] input_file [output_dir]\n");
+    fprintf(stderr, "             Create a thumbnail for a local file.\n");
+    fprintf(stderr, "             If size is specified as <width>x<size>, scale\n");
+    fprintf(stderr, "             to the specified size. If size is specified as a\n");
+    fprintf(stderr, "             single dimension, scale to a square bounding box of\n");
+    fprintf(stderr, "             the specified size. If no size is available, return\n");
+    fprintf(stderr, "             the largest size available. The thumbnail is written\n");
+    fprintf(stderr, "             to output_dir (default is the current directory).\n");
 }
+#endif
 
 template<typename A> Action::UPtr create_action(QStringList const& args)
 {
     return Action::UPtr(new A(args));
 }
 
-typedef map<QString, Action::UPtr(*)(QStringList const& args)> ActionMap;
+typedef map<char const*, pair<Action::UPtr(*)(QStringList const& args), char const*>> ActionMap;
 
 // Table that maps commands to their actions.
 // Add new commands to this table, and implement each command in
 // class derived from Action.
 
-ActionMap valid_actions = { { "stats", &create_action<ShowStats> } };
+ActionMap const valid_actions =
+{
+    { "stats",  { &create_action<ShowStats>,    "Show statistics" } },
+    { "get",    { &create_action<GetThumbnail>, "Get thumbnail from local file" } },
+    { "artist", { &create_action<GetThumbnail>, "Get artist thumbnail" } },
+    { "album",  { &create_action<GetThumbnail>, "Get album thumbnail" } }
+};
+
+QString command_summary()
+{
+    stringstream s;
+    s << "Commands:" << endl;
+    for (auto const& a : valid_actions)
+    {
+        s << "  " << setw(11) << left << a.first << " " << a.second.second << endl;
+    }
+    return QString::fromStdString(s.str());
+}
 
 // Check if we have a valid command. If so, instantiate the
 // corresponding action and return it.
 
 Action::UPtr parse_args(QStringList const& args)
 {
+    QCommandLineParser parser;
+    parser.setApplicationDescription("Thumbnailer admininstrative tool");
+    parser.addPositionalArgument("command", "The command to execute.");
+
+    if (!parser.parse(args))
+    {
+        auto err = parser.errorText() + "\n\n" + parser.helpText() + "\n" + command_summary();
+        throw err;
+    }
+
     if (args.size() < 2)
     {
-        usage();
-        exit(EXIT_FAILURE);
+        throw QString("too few arguments") + "\n\n" + parser.helpText() + "\n" + command_summary();
     }
 
     QString cmd = args[1];
-    auto it = valid_actions.find(cmd);
-    if (it == valid_actions.end())
+    for (auto a : valid_actions)
     {
-        fprintf(stderr, "%s: %s: invalid command\n", prog_name.c_str(), qPrintable(cmd));
-        usage();
-        exit(EXIT_FAILURE);
+        if (QString(a.first) == cmd)
+        {
+            return a.second.first(move(args));
+        }
     }
-
-    return it->second(move(args));
+    fprintf(stderr, "%s: %s: invalid command\n", prog_name.c_str(), qPrintable(cmd));
+    throw parser.helpText() + "\n" + command_summary();
 }
 
 void parse_and_execute(QCoreApplication const& app)
@@ -93,7 +134,8 @@ int main(int argc, char* argv[])
     try
     {
         QCoreApplication app(argc, argv);
-        prog_name = app.applicationName().toStdString();
+        boost::filesystem::path p = app.applicationName().toStdString();
+        prog_name = p.filename().native();
         parse_and_execute(app);
         rc = EXIT_SUCCESS;
     }

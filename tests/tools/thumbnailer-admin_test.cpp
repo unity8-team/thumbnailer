@@ -167,7 +167,7 @@ TEST_F(AdminTest, stats_parsing)
 
     // Too few args
     EXPECT_EQ(1, ar.run(QStringList{}));
-    EXPECT_TRUE(starts_with(ar.stderr(), "usage: thumbnailer-admin")) << ar.stderr();
+    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: Usage: ")) << ar.stderr();
 
     // Too many args
     EXPECT_EQ(1, ar.run(QStringList{"stats", "hist", "i", "t"}));

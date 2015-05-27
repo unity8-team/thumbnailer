@@ -20,6 +20,7 @@
 
 #include <core/persistent_cache_stats.h>
 
+#include <cassert>
 #include <ctime>
 #include <iomanip>
 #include <iostream>
@@ -41,6 +42,8 @@ namespace tools
 ShowStats::ShowStats(QStringList const& args)
     : Action(args)
 {
+    assert(args[1] == QString("stats"));
+
     if (args.size() == 2)
     {
         return;
