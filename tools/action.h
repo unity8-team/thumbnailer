@@ -43,17 +43,16 @@ public:
     virtual void run(DBusConnection& conn) = 0;
 
 protected:
-    Action(QCoreApplication& app, QCommandLineParser& parser)
-        : app_(app)
-        , parser_(parser)
+    Action(QCommandLineParser& parser)
+        : parser_(parser)
+        , help_option_(parser.addHelpOption())
     {
         parser.setApplicationDescription("Thumbnailer administrative tool");
         parser.clearPositionalArguments();
-        //parser.addHelpOption();
     }
 
-    QCoreApplication& app_;
     QCommandLineParser& parser_;
+    QCommandLineOption help_option_;
 };
 
 }  // namespace tools

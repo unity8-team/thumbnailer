@@ -39,8 +39,8 @@ namespace thumbnailer
 namespace tools
 {
 
-ShowStats::ShowStats(QCoreApplication& app, QCommandLineParser& parser)
-    : Action(app, parser)
+ShowStats::ShowStats(QCommandLineParser& parser)
+    : Action(parser)
 {
     parser.addPositionalArgument("stats", "Show statistics", "stats [-v]");
     parser.addPositionalArgument("cache_id", "Select cache (i=image, t=thumbnail, f=failure)", "[cache_id]");
@@ -48,7 +48,7 @@ ShowStats::ShowStats(QCoreApplication& app, QCommandLineParser& parser)
     parser.addOption(histogram_option);
     auto help_option = parser.addHelpOption();
 
-    if (!parser.parse(app.arguments()))
+    if (!parser.parse(QCoreApplication::arguments()))
     {
         throw parser.errorText() + "\n\n" + parser.helpText();
     }

@@ -34,7 +34,7 @@ class ShowStats : public Action
 public:
     UNITY_DEFINES_PTRS(ShowStats);
 
-    ShowStats(QCoreApplication& app, QCommandLineParser& parser);
+    ShowStats(QCommandLineParser& parser);
     virtual ~ShowStats();
 
     virtual void run(DBusConnection& conn) override;

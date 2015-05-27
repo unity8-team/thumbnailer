@@ -57,12 +57,12 @@ void usage()
 }
 #endif
 
-template<typename A> Action::UPtr create_action(QCoreApplication& app, QCommandLineParser& parser)
+template<typename A> Action::UPtr create_action(QCommandLineParser& parser)
 {
-    return Action::UPtr(new A(app, parser));
+    return Action::UPtr(new A(parser));
 }
 
-typedef map<char const*, pair<Action::UPtr(*)(QCoreApplication&, QCommandLineParser&), char const*>> ActionMap;
+typedef map<char const*, pair<Action::UPtr(*)(QCommandLineParser&), char const*>> ActionMap;
 
 // Table that maps commands to their actions.
 // Add new commands to this table, and implement each command in
@@ -90,40 +90,13 @@ QString command_summary()
 // Check if we have a valid command. If so, instantiate the
 // corresponding action and execute it.
 
-void parse_and_execute(QCoreApplication& app)
+void parse_and_execute()
 {
-#if 0
-QCommandLineParser parser;
-
-parser.addPositionalArgument("command", "The command to execute.");
-parser.addHelpOption();
-
-// Call parse() to find out the positional arguments.
-parser.parse(QCoreApplication::arguments());
-
-const QStringList args = parser.positionalArguments();
-const QString command = args.isEmpty() ? QString() : args.first();
-if (command == "stats") {
-    cerr << "command == stats" << endl;
-    parser.clearPositionalArguments();
-    parser.addPositionalArgument("stats", "Show statistics", "stats [-v]");
-    parser.addOption(QCommandLineOption("v", "Show histogram"));
-    parser.process(app);
-    // ...
-}
-#else
     QCommandLineParser parser;
     parser.setApplicationDescription("Thumbnailer admininstrative tool");
     parser.addPositionalArgument("command", "The command to execute.");
     auto help_option = parser.addHelpOption();
-    parser.parse(app.arguments());
-
-#if 0
-    if (parser.isSet(help_option))
-    {
-        throw parser.helpText() + "\n" + command_summary();
-    }
-#endif
+    parser.parse(QCoreApplication::arguments());
 
     auto args = parser.positionalArguments();
     if (args.empty())
@@ -135,7 +108,7 @@ if (command == "stats") {
     {
         if (QString(a.first) == cmd)
         {
-            auto action = a.second.first(app, parser);
+            auto action = a.second.first(parser);
             DBusConnection conn;
             action->run(conn);
             return;
@@ -143,7 +116,6 @@ if (command == "stats") {
     }
     fprintf(stderr, "%s: %s: invalid command\n", prog_name.c_str(), qPrintable(cmd));
     throw parser.helpText() + "\n" + command_summary();
-#endif
 }
 
 }  // namespace
@@ -156,7 +128,7 @@ int main(int argc, char* argv[])
         QCoreApplication app(argc, argv);
         boost::filesystem::path p = app.applicationName().toStdString();
         prog_name = p.filename().native();
-        parse_and_execute(app);
+        parse_and_execute();
         rc = EXIT_SUCCESS;
     }
     catch (std::exception const& e)

@@ -36,8 +36,8 @@ namespace thumbnailer
 namespace tools
 {
 
-GetThumbnail::GetThumbnail(QCoreApplication& app, QCommandLineParser& parser)
-    : Action(app, parser)
+GetThumbnail::GetThumbnail(QCommandLineParser& parser)
+    : Action(parser)
 {
 #if 0
     assert(args[1] == QString("get") ||
