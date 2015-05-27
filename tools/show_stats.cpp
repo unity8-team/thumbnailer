@@ -26,7 +26,6 @@
 #include <iostream>
 
 #include <inttypes.h>
-#include <stdio.h>
 
 using namespace std;
 
@@ -42,17 +41,16 @@ namespace tools
 ShowStats::ShowStats(QCommandLineParser& parser)
     : Action(parser)
 {
-    parser.addPositionalArgument("stats", "Show statistics", "stats [-v]");
+    parser.addPositionalArgument("stats", "Show statistics", "stats");
     parser.addPositionalArgument("cache_id", "Select cache (i=image, t=thumbnail, f=failure)", "[cache_id]");
-    QCommandLineOption histogram_option(QStringList() << "v" << "verbose", "Show histogram");
+    QCommandLineOption histogram_option({"v", "verbose"}, "Show histogram");
     parser.addOption(histogram_option);
-    auto help_option = parser.addHelpOption();
 
     if (!parser.parse(QCoreApplication::arguments()))
     {
         throw parser.errorText() + "\n\n" + parser.helpText();
     }
-    if (parser.isSet(help_option))
+    if (parser.isSet(help_option_))
     {
         throw parser.helpText();
     }

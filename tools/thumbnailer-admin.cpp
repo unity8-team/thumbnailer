@@ -95,13 +95,12 @@ void parse_and_execute()
     QCommandLineParser parser;
     parser.setApplicationDescription("Thumbnailer admininstrative tool");
     parser.addPositionalArgument("command", "The command to execute.");
-    auto help_option = parser.addHelpOption();
     parser.parse(QCoreApplication::arguments());
 
     auto args = parser.positionalArguments();
     if (args.empty())
     {
-        throw QString("too few arguments") + "\n\n" + parser.helpText() + "\n" + command_summary();
+        throw parser.helpText() + "\n" + command_summary();
     }
     QString cmd = args.first();
     for (auto a : valid_actions)

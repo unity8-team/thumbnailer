@@ -134,6 +134,33 @@ void write_file(string const& filename, string const& contents)
     }
 }
 
+// Write contents of in_fd to out_fd, using current read position of in_fd.
+
+void write_file(int in_fd, int out_fd)
+{
+    char buf[16 * 1024];
+    int bytes_read;
+    do
+    {
+        if ((bytes_read = read(in_fd, buf, sizeof(buf))) == -1)
+        {
+            throw runtime_error("read failed: " + safe_strerror(errno));
+        }
+        int bytes_written = write(out_fd, buf, bytes_read);
+        if (bytes_written == -1)
+        {
+            throw runtime_error("write failed: " + safe_strerror(errno));
+        }
+        else if (bytes_written != bytes_read)
+        {
+            throw runtime_error("short write, requested " + to_string(bytes_read) + " bytes, wrote "
+                                + to_string(bytes_written) + " bytes");
+        }
+    } while (bytes_read != 0);
+}
+
+// Return a temporary file name in TMPDIR.
+
 string create_tmp_filename()
 {
     string tmp_path = tmp_dir + "/thumbnailer.XXXXXX";

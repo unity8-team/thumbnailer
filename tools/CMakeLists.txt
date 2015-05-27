@@ -2,10 +2,6 @@
 #add_executable(imdump imdump.cpp)
 #target_link_libraries(imdump thumbnailer ${GST_DEPS_LDFLAGS})
 
-# TODO: Re-enable  once ported.
-#add_executable(scaler scaler.cpp ../src/imagescaler.cpp)
-#target_link_libraries(scaler ${IMG_DEPS_LDFLAGS})
-
 set(dbusinterface_xml "${CMAKE_SOURCE_DIR}/src/service/dbusinterface.xml")
 set_source_files_properties(${dbusinterface_xml} PROPERTIES
     CLASSNAME ThumbnailerInterface)
@@ -20,6 +16,7 @@ qt5_add_dbus_interface(interface_files ${admininterface_xml} admininterface)
 add_executable(thumbnailer-admin
     get_thumbnail.cpp
     dbus_connection.cpp
+    parse_size.cpp
     show_stats.cpp
     thumbnailer-admin.cpp
     ${CMAKE_SOURCE_DIR}/src/service/stats.cpp
@@ -27,9 +24,6 @@ add_executable(thumbnailer-admin
 )
 qt5_use_modules(thumbnailer-admin DBus)
 target_link_libraries(thumbnailer-admin thumbnailer)
-
-add_executable(cachetool cachetool.cpp)
-target_link_libraries(cachetool thumbnailer)
 
 add_executable(downloaderstest downloaderstest.cpp)
 target_link_libraries(downloaderstest thumbnailer)

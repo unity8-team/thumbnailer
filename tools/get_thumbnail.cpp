@@ -18,14 +18,20 @@
 
 #include "get_thumbnail.h"
 
-#include <cassert>
-#include <iomanip>  // TODO: needed?
-#include <iostream>  // TODO: needed?
+#include "parse_size.h"
+#include <internal/file_io.h>
+#include <internal/raii.h>
+#include <internal/safe_strerror.h>
 
-#include <inttypes.h>  // TODO: needed?
-#include <stdio.h>  // TODO: needed?
+#include <boost/filesystem.hpp>
+
+#include <cassert>
+
+#include <fcntl.h>
+#include <unistd.h>
 
 using namespace std;
+using namespace unity::thumbnailer::internal;
 
 namespace unity
 {
@@ -38,44 +44,92 @@ namespace tools
 
 GetThumbnail::GetThumbnail(QCommandLineParser& parser)
     : Action(parser)
+    , size_(0, 0)
 {
-#if 0
-    assert(args[1] == QString("get") ||
-           args[1] == QString("artist") ||
-           args[1] == QString("album"));
-    // TODO: parsing
-    if (args.size() == 2)
+    parser.addPositionalArgument("get", "Get thumbnail from local file", "get");
+    parser.addPositionalArgument("source_file", "Path to image, audio, or video file");
+    parser.addPositionalArgument("dir", "Output directory (default: current dir)", "[dir]");
+    QCommandLineOption size_option(QStringList() << "s" << "size",
+                                   "Thumbnail size, e.g. \"240x480\" or \"480\" (default: largest available size)",
+                                   "size");
+    parser.addOption(size_option);
+
+    if (!parser.parse(QCoreApplication::arguments()))
     {
-        return;
+        throw parser.errorText() + "\n\n" + parser.helpText();
     }
-    if (args.size() > 4)
+    if (parser.isSet(help_option_))
     {
-        throw "too many arguments for stats command";
+        throw parser.helpText();
     }
-#endif
+
+    auto args = parser.positionalArguments();
+    assert(args.first() == QString("get"));
+
+    if (args.size() < 2 || args.size() > 3)
+    {
+        throw parser.helpText();
+    }
+    input_path_ = args[1];
+    if (args.size() == 3)
+    {
+        output_dir_ = args[2];
+    }
+    else
+    {
+        auto path = getcwd(nullptr, 0);
+        output_dir_ = path;
+        free(path);
+    }
+
+    if (parser.isSet(size_option))
+    {
+        size_ = parse_size(parser.value(size_option));
+        if (!size_.isValid())
+        {
+            throw QString("GetThumbnail(): invalid size: " + parser.value(size_option));
+        }
+    }
 }
 
 GetThumbnail::~GetThumbnail() {}
 
-namespace
-{
-
-}
-
 void GetThumbnail::run(DBusConnection& conn)
 {
-    qDBusRegisterMetaType<unity::thumbnailer::service::AllStats>();
-
-//const QString &filename, const QDBusUnixFileDescriptor &filename_fd, const QSize &requestedSize
-#if 0
-    auto reply = conn.thumbnailer().GetThumbnail();
+    int fd = open(input_path_.toUtf8().data(), O_RDONLY);
+    if (fd == -1)
+    {
+        throw QString("GetThumbnail::run(): cannot open ") + input_path_ + ": " +
+                      QString::fromStdString(safe_strerror(errno));
+    }
+    QDBusUnixFileDescriptor ufd(fd);
+    auto reply = conn.thumbnailer().GetThumbnail(input_path_, ufd, size_);
     reply.waitForFinished();
     if (!reply.isValid())
     {
         throw reply.error().message();
     }
-    auto st = reply.value();
-#endif
+    QDBusUnixFileDescriptor thumbnail_fd = reply.value();
+
+    string out_path = output_dir_.toStdString();
+    if (!out_path.empty())
+    {
+        out_path += "/";
+    }
+    boost::filesystem::path p = input_path_.toStdString();
+    out_path += p.filename().stem().native();
+    out_path += string("_") + to_string(size_.width()) + "x" + to_string(size_.height());
+    out_path += ".jpg";
+
+    FdPtr out_fd(open(out_path.c_str(), O_WRONLY | O_TRUNC | O_CREAT, 0600), do_close);
+    try
+    {
+        write_file(thumbnail_fd.fileDescriptor(), out_fd.get());
+    }
+    catch (std::exception const& e)
+    {
+        throw string("GetThumbnail::run(): cannot create thumbnail ") + out_path + ": " + e.what();
+    }
 }
 
 }  // namespace tools

@@ -16,9 +16,11 @@
  * Authored by: Michi Henning <michi.henning@canonical.com>
  */
 
-#pragma once
+#include "parse_size.h"
 
-#include "action.h"
+#include <QStringList>
+
+using namespace std;
 
 namespace unity
 {
@@ -29,21 +31,29 @@ namespace thumbnailer
 namespace tools
 {
 
-class GetThumbnail : public Action
+QSize parse_size(QString const& s)
 {
-public:
-    UNITY_DEFINES_PTRS(GetThumbnail);
-
-    GetThumbnail(QCommandLineParser& parser);
-    virtual ~GetThumbnail();
-
-    virtual void run(DBusConnection& conn) override;
-
-private:
-    QString input_path_;
-    QString output_dir_;
-    QSize size_;
-};
+    try
+    {
+        // Check if we have something of the form 240x480.
+        QStringList wxh = s.split('x');
+        if (wxh.size() == 2)
+        {
+            int width = stoi(wxh.first().toStdString());
+            int height = stoi(wxh.last().toStdString());
+            return QSize(width, height);
+        }
+        else
+        {
+            int size = stoi(wxh.first().toStdString());
+            return QSize(size, size);
+        }
+    }
+    catch (...)
+    {
+        return QSize();
+    }
+}
 
 }  // namespace tools
 

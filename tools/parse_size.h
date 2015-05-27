@@ -18,7 +18,8 @@
 
 #pragma once
 
-#include "action.h"
+#include <QSize>
+#include <QString>
 
 namespace unity
 {
@@ -29,21 +30,7 @@ namespace thumbnailer
 namespace tools
 {
 
-class GetThumbnail : public Action
-{
-public:
-    UNITY_DEFINES_PTRS(GetThumbnail);
-
-    GetThumbnail(QCommandLineParser& parser);
-    virtual ~GetThumbnail();
-
-    virtual void run(DBusConnection& conn) override;
-
-private:
-    QString input_path_;
-    QString output_dir_;
-    QSize size_;
-};
+QSize parse_size(QString const& s);
 
 }  // namespace tools
 
