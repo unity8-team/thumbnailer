@@ -45,7 +45,7 @@ QString current_directory()
     auto path = getcwd(nullptr, 0);
     if (!path)
     {
-        throw runtime_error("getcwd(): " + safe_strerror(errno));
+        throw runtime_error("getcwd(): " + safe_strerror(errno));  // LCOV_EXCL_LINE
     }
     QString dir = path;
     free(path);
