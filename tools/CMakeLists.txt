@@ -27,7 +27,7 @@ add_executable(thumbnailer-admin
 qt5_use_modules(thumbnailer-admin DBus)
 target_link_libraries(thumbnailer-admin thumbnailer)
 
-INSTALL(TARGETS thumbnailer-admin 
+INSTALL(TARGETS thumbnailer-admin
         RUNTIME
         DESTINATION usr/bin)
 
