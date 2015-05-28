@@ -16,6 +16,7 @@
  * Authored by: Michi Henning <michi.henning@canonical.com>
  */
 
+#include "utils/artserver.h"
 #include "utils/dbusserver.h"
 
 #include <internal/file_io.h>
@@ -102,8 +103,6 @@ private:
     string stderr_;
 };
 
-// TODO: How to do this better?
-#if 0
 TEST(ServiceTest, stats_service_not_running)
 {
     AdminRunner ar;
@@ -111,15 +110,6 @@ TEST(ServiceTest, stats_service_not_running)
     EXPECT_EQ(1, ar.run(QStringList{"stats"}));
     EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: No such interface")) << ar.stderr();
 }
-
-TEST(ServiceTest, get_service_not_running)
-{
-    AdminRunner ar;
-
-    EXPECT_EQ(1, ar.run(QStringList{"get", TESTSRCDIR "/media/orientation-2.jpg"}));
-    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: No such interface")) << ar.stderr();
-}
-#endif
 
 TEST_F(AdminTest, no_args)
 {
@@ -327,6 +317,79 @@ TEST_F(AdminTest, bad_files)
     EXPECT_EQ("thumbnailer-admin: GetLocalThumbnail::run(): write_file(): "
               "cannot open no_such_directory/orientation-2_0x0.jpg: No such file or directory\n",
               ar.stderr()) << ar.stderr();
+}
+
+class RemoteServer : public AdminTest
+{
+protected:
+    static void SetUpTestCase()
+    {
+        // start fake server
+        art_server_.reset(new ArtServer());
+    }
+
+    static void TearDownTestCase()
+    {
+        art_server_.reset();
+    }
+
+    static unique_ptr<ArtServer> art_server_;
+};
+
+TEST_F(RemoteServer, get_artist_album_parsing)
+{
+    AdminRunner ar;
+
+    EXPECT_EQ(1, ar.run(QStringList{"get_artist"}));
+    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: Usage: ")) << ar.stderr();
+
+    EXPECT_EQ(1, ar.run(QStringList{"get_artist", "artist", "album", "dir", "something else"}));
+    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: Usage: ")) << ar.stderr();
+
+    EXPECT_EQ(1, ar.run(QStringList{"get_artist", "--invalid"}));
+    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: Unknown option 'invalid'.")) << ar.stderr();
+
+    EXPECT_EQ(1, ar.run(QStringList{"get_artist", "--help"}));
+    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: Usage: ")) << ar.stderr();
+
+    EXPECT_EQ(1, ar.run(QStringList{"get_artist", "--size=abc", "artist", "album"}));
+    EXPECT_EQ("thumbnailer-admin: GetRemoteThumbnail(): invalid size: abc\n", ar.stderr()) << ar.stderr();
+}
+
+unique_ptr<ArtServer> RemoteServer::art_server_;
+
+TEST_F(RemoteServer, get_artist)
+{
+    auto filename = string(TESTBINDIR "/tools/metallica_load_artist_0x0.jpg");
+    unlink(filename.c_str());
+
+    AdminRunner ar;
+    EXPECT_EQ(0, ar.run(QStringList{"get_artist", "metallica", "load"})) << ar.stderr();
+
+    string cmd = "/usr/bin/test -s " + filename + " || exit 1";
+    int rc = system(cmd.c_str());
+    EXPECT_EQ(0, rc);
+}
+
+TEST_F(RemoteServer, get_album)
+{
+    auto filename = string(TESTBINDIR "/tools/metallica_load_album_48x48.jpg");
+    unlink(filename.c_str());
+
+    AdminRunner ar;
+    EXPECT_EQ(0, ar.run(QStringList{"get_album", "metallica", "load", "--size=48"})) << ar.stderr();
+
+    string cmd = "/usr/bin/test -s " + filename + " || exit 1";
+    int rc = system(cmd.c_str());
+    EXPECT_EQ(0, rc);
+}
+
+TEST_F(RemoteServer, get_error)
+{
+    AdminRunner ar;
+    EXPECT_EQ(1, ar.run(QStringList{"get_album", "foo", "bar", "--size=48"}));
+    // TODO: That's a pretty useless error message.
+    EXPECT_EQ("thumbnailer-admin: Handler::create(): Could not get thumbnail\n", ar.stderr()) << ar.stderr();
 }
 
 int main(int argc, char** argv)

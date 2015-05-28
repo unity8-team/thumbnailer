@@ -93,7 +93,9 @@ void GetRemoteThumbnail::run(DBusConnection& conn)
 {
     try
     {
-        auto method = command_ == "get_artist" ? &ThumbnailerInterface::GetArtistArt : &ThumbnailerInterface::GetAlbumArt;
+        auto method = command_ == "get_artist"
+            ? &ThumbnailerInterface::GetArtistArt
+            : &ThumbnailerInterface::GetAlbumArt;
         auto reply = (conn.thumbnailer().*method)(artist_, album_, size_);
         reply.waitForFinished();
         if (!reply.isValid())
@@ -110,27 +112,12 @@ void GetRemoteThumbnail::run(DBusConnection& conn)
         string out_path = make_output_path(inpath, size_, output_dir_.toStdString());
         write_file(thumbnail_fd.fileDescriptor(), out_path);
     }
+    // LCOV_EXCL_START
     catch (std::exception const& e)
     {
         throw string("GetRemoteThumbnail::run(): ") + e.what();
     }
-#if 0
-    FdPtr out_fd(open(out_path.c_str(), O_WRONLY | O_TRUNC | O_CREAT, 0600), do_close);
-    if (out_fd.get() == -1)
-    {
-        throw string("GetRemoteThumbnail::run(): cannot open ") + out_path + ": " + safe_strerror(errno);
-    }
-    try
-    {
-        write_file(thumbnail_fd.fileDescriptor(), out_fd.get());
-    }
-    // LCOV_EXCL_START
-    catch (std::exception const& e)
-    {
-        throw string("GetRemoteThumbnail::run(): cannot create thumbnail ") + out_path + ": " + e.what();
-    }
     // LCOV_EXCL_STOP
-#endif
 }
 
 }  // namespace tools

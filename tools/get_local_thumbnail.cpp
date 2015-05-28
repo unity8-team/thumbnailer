@@ -98,7 +98,7 @@ void GetLocalThumbnail::run(DBusConnection& conn)
         reply.waitForFinished();
         if (!reply.isValid())
         {
-            throw reply.error().message();
+            throw reply.error().message();  // LCOV_EXCL_LINE
         }
         QDBusUnixFileDescriptor thumbnail_fd = reply.value();
 
