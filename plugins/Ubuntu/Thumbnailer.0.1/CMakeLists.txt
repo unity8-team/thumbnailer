@@ -12,6 +12,7 @@ add_library(thumbnailer-qml MODULE
   artgeneratorcommon.cpp
   artistartgenerator.cpp
   thumbnailgenerator.cpp
+  thumbnailerimageresponse.cpp
   ${interface_files}
 )
 

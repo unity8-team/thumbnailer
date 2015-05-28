@@ -30,7 +30,7 @@ namespace thumbnailer
 namespace qml
 {
 
-class ArtistArtGenerator : public QQuickImageProvider
+class ArtistArtGenerator : public QQuickAsyncImageProvider
 {
 private:
     std::unique_ptr<QDBusConnection> connection;
@@ -38,7 +38,7 @@ private:
 
 public:
     ArtistArtGenerator();
-    QImage requestImage(const QString& id, QSize* size, const QSize& requestedSize);
+    QQuickImageResponse* requestImageResponse(const QString& id, const QSize& requestedSize) override;
 };
 }
 }
