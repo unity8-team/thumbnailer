@@ -46,7 +46,7 @@ protected:
         setenv("XDG_CACHE_HOME", qPrintable(tempdir->path() + "/cache"), true);
 
         // set 3 seconds as max idle time
-        setenv("THUMBNAILER_MAX_IDLE", "1000", true);
+        setenv("THUMBNAILER_MAX_IDLE", "3000", true);
 
         dbus_.reset(new DBusServer());
     }
@@ -168,12 +168,29 @@ TEST_F(AdminTest, failure_stats)
 TEST_F(AdminTest, histogram)
 {
     AdminRunner ar;
+
     EXPECT_EQ(0, ar.run(QStringList{"stats", "-v"}));
     auto output = ar.stdout();
     EXPECT_TRUE(output.find("Image cache:") != string::npos) << output;
     EXPECT_TRUE(output.find("Thumbnail cache:") != string::npos) << output;
     EXPECT_TRUE(output.find("Failure cache:") != string::npos) << output;
     EXPECT_TRUE(output.find("Histogram:") != string::npos) << output;
+
+    // Add a file to the cache
+    EXPECT_EQ(0, ar.run(QStringList{"get", TESTSRCDIR "/media/orientation-1.jpg"}));
+    EXPECT_EQ(0, ar.run(QStringList{"stats", "-v", "t"}));
+    output = ar.stdout();
+    EXPECT_TRUE(output.find("Size:                  1") != string::npos) << output;
+    EXPECT_TRUE(output.find("10000-19999: 1") != string::npos) << output;
+
+    // Add a small file to the cache
+    EXPECT_EQ(0, ar.run(QStringList{"get", "--size=32", TESTSRCDIR "/media/orientation-1.jpg"}));
+    EXPECT_EQ(0, ar.run(QStringList{"stats", "-v", "t"}));
+    output = ar.stdout();
+    EXPECT_TRUE(output.find("Size:                  2") != string::npos) << output;
+    EXPECT_TRUE(output.find("1000-1999: 1") != string::npos) << output;
+    EXPECT_TRUE(output.find("5000-5999: 0") != string::npos) << output;
+    EXPECT_TRUE(output.find("10000-19999: 1") != string::npos) << output;
 }
 
 TEST_F(AdminTest, stats_parsing)
@@ -191,6 +208,14 @@ TEST_F(AdminTest, stats_parsing)
     // Second arg wrong
     EXPECT_EQ(1, ar.run(QStringList{"stats", "foo"}));
     EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: invalid cache_id: foo")) << ar.stderr();
+
+    // Bad option
+    EXPECT_EQ(1, ar.run(QStringList{"stats", "foo", "-x"}));
+    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: Unknown option 'x'.")) << ar.stderr();
+
+    // Help option
+    EXPECT_EQ(1, ar.run(QStringList{"stats", "-h"}));
+    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: Usage: ")) << ar.stderr();
 
     // Bad command
     EXPECT_EQ(1, ar.run(QStringList{"no_such_command"}));
