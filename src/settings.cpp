@@ -63,7 +63,7 @@ Settings::~Settings() = default;
 
 string Settings::art_api_key() const
 {
-    return get_string("dash-ubuntu-com-key");
+    return get_string("dash-ubuntu-com-key", "");
 }
 
 int Settings::full_size_cache_size() const
@@ -81,14 +81,14 @@ int Settings::failure_cache_size() const
     return get_int("failure-cache-size", 2);
 }
 
-string Settings::get_string(string const& key, string const& default_value) const
+string Settings::get_string(char const* key, string const& default_value) const
 {
-    if (!settings_ || !g_settings_schema_has_key(schema_.get(), key.c_str()))
+    if (!settings_ || !g_settings_schema_has_key(schema_.get(), key))
     {
         return default_value;
     }
 
-    char *value = g_settings_get_string(settings_.get(), key.c_str());
+    char *value = g_settings_get_string(settings_.get(), key);
     if (value)
     {
         string result = value;
@@ -98,14 +98,14 @@ string Settings::get_string(string const& key, string const& default_value) cons
     return default_value; // LCOV_EXCL_LINE
 }
 
-int Settings::get_int(string const& key, int default_value) const
+int Settings::get_int(char const* key, int default_value) const
 {
-    if (!settings_ || !g_settings_schema_has_key(schema_.get(), key.c_str()))
+    if (!settings_ || !g_settings_schema_has_key(schema_.get(), key))
     {
         return default_value;
     }
 
-    return g_settings_get_int(settings_.get(), key.c_str());
+    return g_settings_get_int(settings_.get(), key);
 }
 
 

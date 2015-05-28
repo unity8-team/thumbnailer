@@ -39,6 +39,7 @@ class Settings
 {
 public:
     Settings();
+    // This constructor is only for use in the tests.
     explicit Settings(std::string const& schema_name);
     ~Settings();
 
@@ -48,8 +49,8 @@ public:
     int failure_cache_size() const;
 
 private:
-    std::string get_string(std::string const& key, std::string const& default_value="") const;
-    int get_int(std::string const& key, int default_value=0) const;
+    std::string get_string(char const* key, std::string const& default_value) const;
+    int get_int(char const* key, int default_value) const;
 
     std::unique_ptr<GSettingsSchema, void(*)(GSettingsSchema*)> schema_;
     gobj_ptr<GSettings> settings_;
