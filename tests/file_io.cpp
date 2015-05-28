@@ -56,6 +56,17 @@ TEST(file_io, read_write)
     cmd = "cmp " + in_file + " " + out_file;
     rc = system(cmd.c_str());
     EXPECT_EQ(0, rc);
+
+    in_file = TESTDATADIR "/testimage.jpg";
+    in_fd = open(in_file.c_str(), O_RDONLY);
+    ASSERT_NE(-1, in_fd);
+    out_file = TESTBINDIR "/out.jpg";
+    unlink(out_file.c_str());
+    write_file(in_fd, out_file);
+    close(in_fd);
+    cmd = "cmp " + in_file + " " + out_file;
+    rc = system(cmd.c_str());
+    EXPECT_EQ(0, rc);
 }
 
 TEST(file_io, tmp_filename)
@@ -118,6 +129,17 @@ TEST(file_io, exceptions)
     catch (runtime_error const& e)
     {
         EXPECT_STREQ("read failed: Bad file descriptor", e.what());
+    }
+
+    try
+    {
+        int fd = open("/dev/zero", O_WRONLY);
+        ASSERT_NE(-1, fd);
+        write_file(fd, "no_such_dir/no_such_file");
+    }
+    catch (runtime_error const& e)
+    {
+        EXPECT_STREQ("write_file(): cannot open no_such_dir/no_such_file: No such file or directory", e.what());
     }
 }
 

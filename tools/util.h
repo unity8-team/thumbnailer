@@ -13,12 +13,13 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: MichiHenning <michi@canonical.com>
+ * Authored by: Michi Henning <michi.henning@canonical.com>
  */
 
 #pragma once
 
-#include <string>
+#include <QSize>
+#include <QString>
 
 namespace unity
 {
@@ -26,25 +27,21 @@ namespace unity
 namespace thumbnailer
 {
 
-namespace internal
+namespace tools
 {
 
-// Read entire file and return contents as a string.
-std::string read_file(std::string const& filename);
+// Return current working dir.
+QString current_directory();
 
-// Write contents to filename.
-void write_file(std::string const& filename, std::string const& contents);
+// Construct an output path from inpath and size. The outputh path
+// is the stem of the input path with the size and ".jpg" appended.r
+// For example, if the input is "xyz/some_image.png", and the size
+// is (32, 48), the output becomes "some_image_32x48.jpg".
+// If dir is non-empty, it is prepended to the returned path.
 
-// Write contents of in_fd to out_fd, using current read position of in_fd.
-void write_file(int in_fd, int out_fd);
+std::string make_output_path(std::string const& inpath, QSize const& size, std::string const& dir);
 
-// Write contents of fd to path.
-void write_file(int in_fd, std::string const& path);
-
-// Return a temporary file name in TMPDIR.
-std::string create_tmp_filename();
-
-}  // namespace internal
+}  // namespace tools
 
 }  // namespace thumbnailer
 

@@ -16,7 +16,8 @@
  * Authored by: Michi Henning <michi.henning@canonical.com>
  */
 
-#include "get_thumbnail.h"
+#include "get_local_thumbnail.h"
+#include "get_remote_thumbnail.h"
 #include "dbus_connection.h"
 #include "show_stats.h"
 
@@ -50,10 +51,10 @@ typedef map<char const*, pair<Action::UPtr(*)(QCommandLineParser&), char const*>
 
 ActionMap const valid_actions =
 {
-    { "stats",  { &create_action<ShowStats>,    "Show statistics" } },
-    { "get",    { &create_action<GetThumbnail>, "Get thumbnail from local file" } },
-    { "artist", { &create_action<GetThumbnail>, "Get artist thumbnail" } },
-    { "album",  { &create_action<GetThumbnail>, "Get album thumbnail" } }
+    { "stats",      { &create_action<ShowStats>,          "Show statistics" } },
+    { "get",        { &create_action<GetLocalThumbnail>,  "Get thumbnail from local file" } },
+    { "get_artist", { &create_action<GetRemoteThumbnail>, "Get artist thumbnail" } },
+    { "get_album",  { &create_action<GetRemoteThumbnail>, "Get album thumbnail" } }
 };
 
 QString command_summary()

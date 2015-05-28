@@ -14,11 +14,13 @@ set_source_files_properties(${admininterface_xml} PROPERTIES
 qt5_add_dbus_interface(interface_files ${admininterface_xml} admininterface)
 
 add_executable(thumbnailer-admin
-    get_thumbnail.cpp
+    get_local_thumbnail.cpp
+    get_remote_thumbnail.cpp
     dbus_connection.cpp
     parse_size.cpp
     show_stats.cpp
     thumbnailer-admin.cpp
+    util.cpp
     ${CMAKE_SOURCE_DIR}/src/service/stats.cpp
     ${interface_files}
 )

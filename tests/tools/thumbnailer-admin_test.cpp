@@ -312,7 +312,7 @@ TEST_F(AdminTest, get_parsing)
     EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: Usage: ")) << ar.stderr();
 
     EXPECT_EQ(1, ar.run(QStringList{"get", "--size=abc", TESTSRCDIR "/media/orientation-1/jpg"}));
-    EXPECT_EQ("thumbnailer-admin: GetThumbnail(): invalid size: abc\n", ar.stderr()) << ar.stderr();
+    EXPECT_EQ("thumbnailer-admin: GetLocalThumbnail(): invalid size: abc\n", ar.stderr()) << ar.stderr();
 }
 
 TEST_F(AdminTest, bad_files)
@@ -320,12 +320,12 @@ TEST_F(AdminTest, bad_files)
     AdminRunner ar;
 
     EXPECT_EQ(1, ar.run(QStringList{"get", "no_such_file"}));
-    EXPECT_EQ("thumbnailer-admin: GetThumbnail::run(): cannot open no_such_file: No such file or directory\n",
+    EXPECT_EQ("thumbnailer-admin: GetLocalThumbnail::run(): cannot open no_such_file: No such file or directory\n",
               ar.stderr()) << ar.stderr();
 
     EXPECT_EQ(1, ar.run(QStringList{"get", TESTSRCDIR "/media/orientation-2.jpg", "no_such_directory"}));
-    EXPECT_EQ("thumbnailer-admin: GetThumbnail::run(): cannot open no_such_directory/orientation-2_0x0.jpg: "
-              "No such file or directory\n",
+    EXPECT_EQ("thumbnailer-admin: GetLocalThumbnail::run(): write_file(): "
+              "cannot open no_such_directory/orientation-2_0x0.jpg: No such file or directory\n",
               ar.stderr()) << ar.stderr();
 }
 

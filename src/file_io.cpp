@@ -157,8 +157,20 @@ void write_file(int in_fd, int out_fd)
             throw runtime_error("short write, requested " + to_string(bytes_read) + " bytes, wrote "
                                 + to_string(bytes_written) + " bytes");
         }
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     } while (bytes_read != 0);
+}
+
+// Write contents of fd to path.
+
+void write_file(int fd, string const& path)
+{
+    FdPtr out_fd(open(path.c_str(), O_WRONLY | O_TRUNC | O_CREAT, 0600), do_close);
+    if (out_fd.get() == -1)
+    {
+        throw runtime_error("write_file(): cannot open " + path + ": " + safe_strerror(errno));
+    }
+    write_file(fd, out_fd.get());
 }
 
 // Return a temporary file name in TMPDIR.

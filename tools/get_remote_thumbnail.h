@@ -29,20 +29,21 @@ namespace thumbnailer
 namespace tools
 {
 
-class GetThumbnail : public Action
+class GetRemoteThumbnail : public Action
 {
 public:
-    UNITY_DEFINES_PTRS(GetThumbnail);
+    UNITY_DEFINES_PTRS(GetRemoteThumbnail);
 
-    GetThumbnail(QCommandLineParser& parser);
-    virtual ~GetThumbnail();
+    GetRemoteThumbnail(QCommandLineParser& parser);
+    virtual ~GetRemoteThumbnail();
 
     virtual void run(DBusConnection& conn) override;
 
 private:
-    QString input_path_;
-    QString output_dir_;
     QSize size_;
+    QString artist_;
+    QString album_;
+    QString output_dir_;
 };
 
 }  // namespace tools

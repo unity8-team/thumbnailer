@@ -13,12 +13,12 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: MichiHenning <michi@canonical.com>
+ * Authored by: Michi Henning <michi.henning@canonical.com>
  */
 
 #pragma once
 
-#include <string>
+#include "action.h"
 
 namespace unity
 {
@@ -26,25 +26,26 @@ namespace unity
 namespace thumbnailer
 {
 
-namespace internal
+namespace tools
 {
 
-// Read entire file and return contents as a string.
-std::string read_file(std::string const& filename);
+class GetLocalThumbnail : public Action
+{
+public:
+    UNITY_DEFINES_PTRS(GetLocalThumbnail);
 
-// Write contents to filename.
-void write_file(std::string const& filename, std::string const& contents);
+    GetLocalThumbnail(QCommandLineParser& parser);
+    virtual ~GetLocalThumbnail();
 
-// Write contents of in_fd to out_fd, using current read position of in_fd.
-void write_file(int in_fd, int out_fd);
+    virtual void run(DBusConnection& conn) override;
 
-// Write contents of fd to path.
-void write_file(int in_fd, std::string const& path);
+private:
+    QString input_path_;
+    QString output_dir_;
+    QSize size_;
+};
 
-// Return a temporary file name in TMPDIR.
-std::string create_tmp_filename();
-
-}  // namespace internal
+}  // namespace tools
 
 }  // namespace thumbnailer
 

@@ -45,6 +45,7 @@ public:
 protected:
     Action(QCommandLineParser& parser)
         : parser_(parser)
+        , command_(parser.positionalArguments().first())
         , help_option_(parser.addHelpOption())
     {
         parser.setApplicationDescription("Thumbnailer administrative tool");
@@ -52,6 +53,7 @@ protected:
     }
 
     QCommandLineParser& parser_;
+    QString command_;
     QCommandLineOption help_option_;
 };
 
