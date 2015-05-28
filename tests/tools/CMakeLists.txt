@@ -15,4 +15,3 @@ qt5_use_modules(thumbnailer-admin_test DBus Network Test)
 include_directories(${QTDBUSTEST_DEPS_INCLUDE_DIRS})
 include_directories(${CMAKE_SOURCE_DIR}/tests)
 include_directories(${CMAKE_BINARY_DIR}/tests)
-
