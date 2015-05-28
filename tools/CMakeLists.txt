@@ -29,7 +29,7 @@ target_link_libraries(thumbnailer-admin thumbnailer)
 
 INSTALL(TARGETS thumbnailer-admin
         RUNTIME
-        DESTINATION usr/bin)
+        DESTINATION bin)
 
 add_executable(downloaderstest downloaderstest.cpp)
 target_link_libraries(downloaderstest thumbnailer)
