@@ -182,6 +182,13 @@ TEST_F(AdminTest, stats_parsing)
     EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: no_such_command: invalid command")) << ar.stderr();
 }
 
+TEST_F(AdminTest, get)
+{
+    AdminRunner ar;
+
+    EXPECT_EQ(0, ar.run(QStringList{"get", TESTSRCDIR "/media/orientation-1.jpg"}));
+}
+
 int main(int argc, char** argv)
 {
     QCoreApplication app(argc, argv);

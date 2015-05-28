@@ -123,7 +123,6 @@ enable_coverage_report(
         ${CMAKE_SOURCE_DIR}/tests/*
         ${CMAKE_BINARY_DIR}/*
     TESTS
-        cachetool
         downloaderstest
         downloadtest
         file_io
