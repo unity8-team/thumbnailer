@@ -201,7 +201,7 @@ void ShowStats::run(DBusConnection& conn)
     reply.waitForFinished();
     if (!reply.isValid())
     {
-        throw reply.error().message();
+        throw reply.error().message();  // LCOV_EXCL_LINE
     }
     auto st = reply.value();
     if (show_image_stats_)
