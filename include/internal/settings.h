@@ -20,9 +20,11 @@
 
 #include <internal/gobj_memory.h>
 
+#include <memory>
 #include <string>
 
 typedef struct _GSettings GSettings;
+typedef struct _GSettingsSchema GSettingsSchema;
 
 namespace unity
 {
@@ -37,6 +39,7 @@ class Settings
 {
 public:
     Settings();
+    explicit Settings(std::string const& schema_name);
     ~Settings();
 
     std::string art_api_key() const;
@@ -48,6 +51,7 @@ private:
     std::string get_string(std::string const& key, std::string const& default_value="") const;
     int get_int(std::string const& key, int default_value=0) const;
 
+    std::unique_ptr<GSettingsSchema, void(*)(GSettingsSchema*)> schema_;
     gobj_ptr<GSettings> settings_;
 };
 

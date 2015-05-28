@@ -27,6 +27,7 @@
 #include <internal/make_directories.h>
 #include <internal/raii.h>
 #include <internal/safe_strerror.h>
+#include <internal/settings.h>
 #include <internal/ubuntuserverdownloader.h>
 #include <internal/videoscreenshotter.h>
 
@@ -541,12 +542,12 @@ Thumbnailer::Thumbnailer()
 
     try
     {
-        // TODO: No good to hard-wire the cache size.
-        full_size_cache_ = core::PersistentStringCache::open(cache_dir + "/images", 50 * 1024 * 1024,
+        Settings settings;
+        full_size_cache_ = core::PersistentStringCache::open(cache_dir + "/images", settings.full_size_cache_size() * 1024 * 1024,
                                                              core::CacheDiscardPolicy::lru_only);
-        thumbnail_cache_ = core::PersistentStringCache::open(cache_dir + "/thumbnails", 100 * 1024 * 1024,
+        thumbnail_cache_ = core::PersistentStringCache::open(cache_dir + "/thumbnails", settings.thumbnail_cache_size() * 1024 * 1024,
                                                              core::CacheDiscardPolicy::lru_only);
-        failure_cache_ = core::PersistentStringCache::open(cache_dir + "/failures", 2 * 1024 * 1024,
+        failure_cache_ = core::PersistentStringCache::open(cache_dir + "/failures", settings.failure_cache_size() * 1024 * 1024,
                                                            core::CacheDiscardPolicy::lru_ttl);
     }
     catch (std::exception const& e)

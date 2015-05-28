@@ -30,11 +30,6 @@
 
 using namespace std;
 
-namespace
-{
-char const THUMBNAILER_SCHEMA[] = "com.canonical.Unity.Thumbnailer";
-}
-
 namespace unity
 {
 
@@ -45,18 +40,22 @@ namespace internal
 {
 
 Settings::Settings()
+    : Settings("com.canonical.Unity.Thumbnailer")
+{
+}
+
+Settings::Settings(string const& schema_name)
+    : schema_(nullptr, &g_settings_schema_unref)
 {
     GSettingsSchemaSource* src = g_settings_schema_source_get_default();
-    unique_ptr<GSettingsSchema, decltype(&g_settings_schema_unref)>
-        schema(g_settings_schema_source_lookup(src, THUMBNAILER_SCHEMA, true),
-               &g_settings_schema_unref);
-    if (schema)
+    schema_.reset(g_settings_schema_source_lookup(src, schema_name.c_str(), true));
+    if (schema_)
     {
-        settings_.reset(g_settings_new(THUMBNAILER_SCHEMA));
+        settings_.reset(g_settings_new(schema_name.c_str()));
     }
     else
     {
-        qCritical() << "The schema" << THUMBNAILER_SCHEMA << "is missing"; // LCOV_EXCL_LINE
+        qCritical() << "The schema" << schema_name.c_str() << "is missing"; // LCOV_EXCL_LINE
     }
 }
 
@@ -84,7 +83,10 @@ int Settings::failure_cache_size() const
 
 string Settings::get_string(string const& key, string const& default_value) const
 {
-    if (!settings_) return default_value;
+    if (!settings_ || !g_settings_schema_has_key(schema_.get(), key.c_str()))
+    {
+        return default_value;
+    }
 
     char *value = g_settings_get_string(settings_.get(), key.c_str());
     if (value)
@@ -93,12 +95,16 @@ string Settings::get_string(string const& key, string const& default_value) cons
         g_free(value);
         return result;
     }
-    return default_value;
+    return default_value; // LCOV_EXCL_LINE
 }
 
 int Settings::get_int(string const& key, int default_value) const
 {
-    if (!settings_) return default_value;
+    if (!settings_ || !g_settings_schema_has_key(schema_.get(), key.c_str()))
+    {
+        return default_value;
+    }
+
     return g_settings_get_int(settings_.get(), key.c_str());
 }
 
