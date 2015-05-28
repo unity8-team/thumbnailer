@@ -108,7 +108,7 @@ TEST(ServiceTest, stats_service_not_running)
     AdminRunner ar;
 
     EXPECT_EQ(1, ar.run(QStringList{"stats"}));
-    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: No such interface")) << ar.stderr();
+    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: Not connected to D-Bus server")) << ar.stderr();
 }
 
 TEST_F(AdminTest, no_args)
