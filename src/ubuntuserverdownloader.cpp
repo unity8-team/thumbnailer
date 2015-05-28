@@ -17,14 +17,9 @@
  *              Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-#pragma GCC diagnostic ignored "-Wcast-qual"
-#include <gio/gio.h>
-#pragma GCC diagnostic pop
-
-#include <internal/artreply.h>
 #include <internal/ubuntuserverdownloader.h>
+#include <internal/artreply.h>
+#include <internal/settings.h>
 
 #include <QNetworkReply>
 #include <QThread>
@@ -38,8 +33,6 @@ using namespace std;
 // const strings
 namespace
 {
-constexpr const char THUMBNAILER_SCHEMA[] = "com.canonical.Unity.Thumbnailer";
-constexpr const char THUMBNAILER_API_KEY[] = "dash-ubuntu-com-key";
 constexpr const char UBUNTU_SERVER_BASE_URL[] = "https://dash.ubuntu.com";
 constexpr const char REQUESTED_ALBUM_IMAGE_SIZE[] = "350";
 constexpr const char REQUESTED_ARTIST_IMAGE_SIZE[] = "300";
@@ -226,35 +219,13 @@ UbuntuServerDownloader::UbuntuServerDownloader(QObject* parent)
 void UbuntuServerDownloader::set_api_key()
 {
     // the API key is not expected to change, so don't monitor it
-    GSettingsSchemaSource* src = g_settings_schema_source_get_default();
-    GSettingsSchema* schema = g_settings_schema_source_lookup(src, THUMBNAILER_SCHEMA, true);
+    Settings settings;
 
-    if (schema)
-    {
-        bool status = false;
-        g_settings_schema_unref(schema);
-        GSettings* settings = g_settings_new(THUMBNAILER_SCHEMA);
-        if (settings)
-        {
-            gchar* akey = g_settings_get_string(settings, THUMBNAILER_API_KEY);
-            if (akey)
-            {
-                api_key_ = QString(akey);
-                status = true;
-                g_free(akey);
-            }
-            g_object_unref(settings);
-        }
-        if (!status)
-        {
-            // TODO do something with the error
-            qCritical() << "Failed to get API key";  // LCOV_EXCL_LINE
-        }
-    }
-    else
+    api_key_ = QString::fromStdString(settings.art_api_key());
+    if (api_key_.isEmpty())
     {
         // TODO do something with the error
-        qCritical() << "The schema " << THUMBNAILER_SCHEMA << " is missing";  // LCOV_EXCL_LINE
+        qCritical() << "Failed to get API key";  // LCOV_EXCL_LINE
     }
 }
 
