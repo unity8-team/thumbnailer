@@ -18,6 +18,7 @@
 
 #include "thumbnailextractor.h"
 
+#include <cassert>
 #include <cstdio>
 #include <stdexcept>
 #include <cstring>
@@ -143,11 +144,13 @@ public:
 
     guint8* data() const
     {
+        assert(buffer);
         return info.data;
     }
 
     gsize size() const
     {
+        assert(buffer);
         return info.size;
     }
 

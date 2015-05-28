@@ -111,7 +111,7 @@ TEST(PersistentStringCache, basic)
     double const hit_rate = 0.8;
     int const iterations = 10000;
     int keylen = 60;
-    double const stddev = record_size / 3;
+    double const stddev = record_size / 3.0;
     auto const cost_of_miss = chrono::microseconds(0);
 
     // End adjustable parameters
