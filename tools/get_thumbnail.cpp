@@ -122,14 +122,20 @@ void GetThumbnail::run(DBusConnection& conn)
     out_path += ".jpg";
 
     FdPtr out_fd(open(out_path.c_str(), O_WRONLY | O_TRUNC | O_CREAT, 0600), do_close);
+    if (out_fd.get() == -1)
+    {
+        throw string("GetThumbnail::run(): cannot open ") + out_path + ": " + safe_strerror(errno);
+    }
     try
     {
         write_file(thumbnail_fd.fileDescriptor(), out_fd.get());
     }
+    // LCOV_EXCL_START
     catch (std::exception const& e)
     {
         throw string("GetThumbnail::run(): cannot create thumbnail ") + out_path + ": " + e.what();
     }
+    // LCOV_EXCL_STOP
 }
 
 }  // namespace tools

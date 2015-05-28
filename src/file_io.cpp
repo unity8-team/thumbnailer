@@ -151,11 +151,13 @@ void write_file(int in_fd, int out_fd)
         {
             throw runtime_error("write failed: " + safe_strerror(errno));
         }
+        // LCOV_EXCL_START
         else if (bytes_written != bytes_read)
         {
             throw runtime_error("short write, requested " + to_string(bytes_read) + " bytes, wrote "
                                 + to_string(bytes_written) + " bytes");
         }
+        // LCOV_EXCL_END
     } while (bytes_read != 0);
 }
 

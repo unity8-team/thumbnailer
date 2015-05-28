@@ -37,26 +37,6 @@ namespace
 
 string prog_name;
 
-#if 0
-void usage()
-{
-    fprintf(stderr, "usage: %s command [args...]\n", prog_name.c_str());
-    fprintf(stderr, "    commands:\n");
-    fprintf(stderr, "        - stats [hist] [i|t|f]\n");
-    fprintf(stderr, "             Show stats. If hist is provided, add histogram.\n");
-    fprintf(stderr, "             If i, t, or f is provided, restrict stats to the\n");
-    fprintf(stderr, "             selected (image, thumbnailer, or failure) cache.\n");
-    fprintf(stderr, "        - get [-s size] input_file [output_dir]\n");
-    fprintf(stderr, "             Create a thumbnail for a local file.\n");
-    fprintf(stderr, "             If size is specified as <width>x<size>, scale\n");
-    fprintf(stderr, "             to the specified size. If size is specified as a\n");
-    fprintf(stderr, "             single dimension, scale to a square bounding box of\n");
-    fprintf(stderr, "             the specified size. If no size is available, return\n");
-    fprintf(stderr, "             the largest size available. The thumbnail is written\n");
-    fprintf(stderr, "             to output_dir (default is the current directory).\n");
-}
-#endif
-
 template<typename A> Action::UPtr create_action(QCommandLineParser& parser)
 {
     return Action::UPtr(new A(parser));
@@ -66,7 +46,7 @@ typedef map<char const*, pair<Action::UPtr(*)(QCommandLineParser&), char const*>
 
 // Table that maps commands to their actions.
 // Add new commands to this table, and implement each command in
-// class derived from Action.
+// a class derived from Action.
 
 ActionMap const valid_actions =
 {
@@ -130,10 +110,12 @@ int main(int argc, char* argv[])
         parse_and_execute();
         rc = EXIT_SUCCESS;
     }
+    // LCOV_EXCL_START
     catch (std::exception const& e)
     {
         cerr << prog_name << ": " << e.what() << endl;
     }
+    // LCOV_EXCL_STOP
     catch (QString const& msg)
     {
         cerr << prog_name << ": " << msg.toStdString() << endl;
@@ -142,11 +124,11 @@ int main(int argc, char* argv[])
     {
         cerr << prog_name << ": " << msg << endl;
     }
+    // LCOV_EXCL_START
     catch (char const* msg)
     {
         cerr << prog_name << ": " << msg << endl;
     }
-    // LCOV_EXCL_START
     catch (...)
     {
         cerr << prog_name << ": unknown exception" << endl;

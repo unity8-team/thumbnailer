@@ -18,6 +18,8 @@
 
 #include "utils/dbusserver.h"
 
+#include <internal/file_io.h>
+#include <internal/image.h>
 #include <testsetup.h>
 
 #include <boost/algorithm/string/predicate.hpp>
@@ -25,6 +27,7 @@
 
 using namespace std;
 using namespace boost;
+using namespace unity::thumbnailer::internal;
 
 class AdminTest : public ::testing::Test
 {
@@ -99,12 +102,24 @@ private:
     string stderr_;
 };
 
-TEST(ServiceTest, service_not_running)
+// TODO: How to do this better?
+#if 0
+TEST(ServiceTest, stats_service_not_running)
 {
     AdminRunner ar;
+
     EXPECT_EQ(1, ar.run(QStringList{"stats"}));
     EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: No such interface")) << ar.stderr();
 }
+
+TEST(ServiceTest, get_service_not_running)
+{
+    AdminRunner ar;
+
+    EXPECT_EQ(1, ar.run(QStringList{"get", TESTSRCDIR "/media/orientation-2.jpg"}));
+    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: No such interface")) << ar.stderr();
+}
+#endif
 
 TEST_F(AdminTest, no_args)
 {
@@ -182,11 +197,111 @@ TEST_F(AdminTest, stats_parsing)
     EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: no_such_command: invalid command")) << ar.stderr();
 }
 
-TEST_F(AdminTest, get)
+TEST_F(AdminTest, get_fullsize)
+{
+    auto filename = string(TESTBINDIR "/tools/orientation-1_0x0.jpg");
+    unlink(filename.c_str());
+
+    AdminRunner ar;
+    EXPECT_EQ(0, ar.run(QStringList{"get", TESTSRCDIR "/media/orientation-1.jpg"}));
+
+    // Image must have been created with the right name and contents.
+    string data = read_file(filename);
+    Image img(data);
+    EXPECT_EQ(640, img.width());
+    EXPECT_EQ(480, img.height());
+    EXPECT_EQ(0xFE0000, img.pixel(0, 0));
+    EXPECT_EQ(0xFFFF00, img.pixel(639, 0));
+    EXPECT_EQ(0x00FF01, img.pixel(639, 479));
+    EXPECT_EQ(0x0000FE, img.pixel(0, 479));
+}
+
+TEST_F(AdminTest, get_large_thumbnail)
+{
+    auto filename = string(TESTBINDIR "/tools/orientation-1_320x240.jpg");
+    unlink(filename.c_str());
+
+    AdminRunner ar;
+    EXPECT_EQ(0, ar.run(QStringList{"get", "-s=320x240", TESTSRCDIR "/media/orientation-1.jpg"}));
+
+    // Image must have been created with the right name and contents.
+    string data = read_file(filename);
+    Image img(data);
+    EXPECT_EQ(320, img.width());
+    EXPECT_EQ(240, img.height());
+    EXPECT_EQ(0xFE0000, img.pixel(0, 0));
+    EXPECT_EQ(0xFFFF00, img.pixel(319, 0));
+    EXPECT_EQ(0x00FF01, img.pixel(319, 239));
+    EXPECT_EQ(0x0000FE, img.pixel(0, 239));
+}
+
+TEST_F(AdminTest, get_small_thumbnail_square)
+{
+    auto filename = string(TESTBINDIR "/tools/orientation-1_48x48.jpg");
+    unlink(filename.c_str());
+
+    AdminRunner ar;
+    EXPECT_EQ(0, ar.run(QStringList{"get", "--size=48", TESTSRCDIR "/media/orientation-1.jpg"}));
+
+    // Image must have been created with the right name and contents.
+    string data = read_file(filename);
+    Image img(data);
+    EXPECT_EQ(48, img.width());
+    EXPECT_EQ(36, img.height());
+    EXPECT_EQ(0xFE8081, img.pixel(0, 0));
+    EXPECT_EQ(0xFFFF80, img.pixel(47, 0));
+    EXPECT_EQ(0x81FF81, img.pixel(47, 35));
+    EXPECT_EQ(0x807FFE, img.pixel(0, 35));
+}
+
+TEST_F(AdminTest, get_with_dir)
+{
+    auto filename = string(TESTBINDIR "/orientation-2_0x0.jpg");
+    unlink(filename.c_str());
+
+    AdminRunner ar;
+    EXPECT_EQ(0, ar.run(QStringList{"get", TESTSRCDIR "/media/orientation-2.jpg", TESTBINDIR}));
+
+    // Image must have been created with the right name and contents.
+    string data = read_file(filename);
+    Image img(data);
+    EXPECT_EQ(640, img.width());
+    EXPECT_EQ(480, img.height());
+    EXPECT_EQ(0xFE0000, img.pixel(0, 0));
+    EXPECT_EQ(0xFFFF00, img.pixel(639, 0));
+    EXPECT_EQ(0x00FF01, img.pixel(639, 479));
+    EXPECT_EQ(0x0000FE, img.pixel(0, 479));
+}
+
+TEST_F(AdminTest, get_parsing)
 {
     AdminRunner ar;
 
-    EXPECT_EQ(0, ar.run(QStringList{"get", TESTSRCDIR "/media/orientation-1.jpg"}));
+    EXPECT_EQ(1, ar.run(QStringList{"get"}));
+    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: Usage: ")) << ar.stderr();
+
+    EXPECT_EQ(1, ar.run(QStringList{"get", "--invalid"}));
+    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: Unknown option 'invalid'.")) << ar.stderr();
+
+    EXPECT_EQ(1, ar.run(QStringList{"get", "--help"}));
+    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: Usage: ")) << ar.stderr();
+
+    EXPECT_EQ(1, ar.run(QStringList{"get", "--size=abc", TESTSRCDIR "/media/orientation-1/jpg"}));
+    EXPECT_EQ("thumbnailer-admin: GetThumbnail(): invalid size: abc\n", ar.stderr()) << ar.stderr();
+}
+
+TEST_F(AdminTest, bad_files)
+{
+    AdminRunner ar;
+
+    EXPECT_EQ(1, ar.run(QStringList{"get", "no_such_file"}));
+    EXPECT_EQ("thumbnailer-admin: GetThumbnail::run(): cannot open no_such_file: No such file or directory\n",
+              ar.stderr()) << ar.stderr();
+
+    EXPECT_EQ(1, ar.run(QStringList{"get", TESTSRCDIR "/media/orientation-2.jpg", "no_such_directory"}));
+    EXPECT_EQ("thumbnailer-admin: GetThumbnail::run(): cannot open no_such_directory/orientation-2_0x0.jpg: "
+              "No such file or directory\n",
+              ar.stderr()) << ar.stderr();
 }
 
 int main(int argc, char** argv)
