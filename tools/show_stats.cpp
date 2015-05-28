@@ -89,12 +89,15 @@ ShowStats::ShowStats(QCommandLineParser& parser)
         }
         else
         {
-            throw QString("invalid cache_id: " ) + arg + "\n" + parser.helpText();;
+            throw QString("invalid cache_id: ") + arg + "\n" + parser.helpText();
+            ;
         }
     }
 }
 
-ShowStats::~ShowStats() {}
+ShowStats::~ShowStats()
+{
+}
 
 namespace
 {
@@ -117,15 +120,14 @@ int display_width(quint32 val)
 void print_entry(int label_width, pair<int32_t, int32_t> bounds, int value_width, quint32 value)
 {
     string labels = to_string(bounds.first) + "-" + to_string(bounds.second);
-    cout << "        " << setw(label_width * 2 + 1) << labels << ": "
-         << setw(value_width) << value << endl;
+    cout << "        " << setw(label_width * 2 + 1) << labels << ": " << setw(value_width) << value << endl;
 }
 
 void show_histogram(QList<quint32> const& h)
 {
-    int first_slot = -1;   // First non-zero index
-    int last_slot = -1;    // Last non-zero index
-    quint32 max_count = 0; // Largest count
+    int first_slot = -1;    // First non-zero index
+    int last_slot = -1;     // Last non-zero index
+    quint32 max_count = 0;  // Largest count
 
     // Find the first and last non-zero slot.
     for (int i = 0; i < h.size() && first_slot == -1; ++i)
@@ -162,7 +164,6 @@ void show_histogram(QList<quint32> const& h)
         print_entry(label_width, labels[i], value_width, h[i]);
     }
 }
-
 }
 
 void ShowStats::show_stats(service::CacheStats const& st)

@@ -53,7 +53,8 @@ GetRemoteThumbnail::GetRemoteThumbnail(QCommandLineParser& parser)
     parser.addPositionalArgument("artist", "Artist name", "artist");
     parser.addPositionalArgument("album", "Album title", "album");
     parser.addPositionalArgument("dir", "Output directory (default: current dir)", "[dir]");
-    QCommandLineOption size_option(QStringList() << "s" << "size",
+    QCommandLineOption size_option(QStringList() << "s"
+                                                 << "size",
                                    "Thumbnail size, e.g. \"240x480\" or \"480\" (default: largest available size)",
                                    "size");
     parser.addOption(size_option);
@@ -87,15 +88,16 @@ GetRemoteThumbnail::GetRemoteThumbnail(QCommandLineParser& parser)
     }
 }
 
-GetRemoteThumbnail::~GetRemoteThumbnail() {}
+GetRemoteThumbnail::~GetRemoteThumbnail()
+{
+}
 
 void GetRemoteThumbnail::run(DBusConnection& conn)
 {
     try
     {
-        auto method = command_ == "get_artist"
-            ? &ThumbnailerInterface::GetArtistArt
-            : &ThumbnailerInterface::GetAlbumArt;
+        auto method =
+            command_ == "get_artist" ? &ThumbnailerInterface::GetArtistArt : &ThumbnailerInterface::GetAlbumArt;
         auto reply = (conn.thumbnailer().*method)(artist_, album_, size_);
         reply.waitForFinished();
         if (!reply.isValid())

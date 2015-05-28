@@ -38,7 +38,8 @@ namespace
 
 string prog_name;
 
-template<typename A> Action::UPtr create_action(QCommandLineParser& parser)
+template<typename A>
+Action::UPtr create_action(QCommandLineParser& parser)
 {
     return Action::UPtr(new A(parser));
 }

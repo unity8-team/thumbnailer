@@ -47,7 +47,8 @@ GetLocalThumbnail::GetLocalThumbnail(QCommandLineParser& parser)
     parser.addPositionalArgument("get", "Get thumbnail from local file", "get");
     parser.addPositionalArgument("source_file", "Path to image, audio, or video file");
     parser.addPositionalArgument("dir", "Output directory (default: current dir)", "[dir]");
-    QCommandLineOption size_option(QStringList() << "s" << "size",
+    QCommandLineOption size_option(QStringList() << "s"
+                                                 << "size",
                                    "Thumbnail size, e.g. \"240x480\" or \"480\" (default: largest available size)",
                                    "size");
     parser.addOption(size_option);
@@ -81,7 +82,9 @@ GetLocalThumbnail::GetLocalThumbnail(QCommandLineParser& parser)
     }
 }
 
-GetLocalThumbnail::~GetLocalThumbnail() {}
+GetLocalThumbnail::~GetLocalThumbnail()
+{
+}
 
 void GetLocalThumbnail::run(DBusConnection& conn)
 {
@@ -91,7 +94,7 @@ void GetLocalThumbnail::run(DBusConnection& conn)
         if (fd == -1)
         {
             throw QString("GetLocalThumbnail::run(): cannot open ") + input_path_ + ": " +
-                          QString::fromStdString(safe_strerror(errno));
+                QString::fromStdString(safe_strerror(errno));
         }
         QDBusUnixFileDescriptor ufd(fd);
         auto reply = conn.thumbnailer().GetThumbnail(input_path_, ufd, size_);

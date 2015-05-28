@@ -38,7 +38,9 @@ class Action
 public:
     UNITY_DEFINES_PTRS(Action);
 
-    virtual ~Action() {}
+    virtual ~Action()
+    {
+    }
 
     virtual void run(DBusConnection& conn) = 0;
 

@@ -73,7 +73,9 @@ protected:
 class AdminRunner
 {
 public:
-    AdminRunner() {}
+    AdminRunner()
+    {
+    }
     int run(QStringList const& args)
     {
         process_.reset(new QProcess);
@@ -102,14 +104,6 @@ private:
     string stdout_;
     string stderr_;
 };
-
-TEST(ServiceTest, stats_service_not_running)
-{
-    AdminRunner ar;
-
-    EXPECT_EQ(1, ar.run(QStringList{"stats"}));
-    EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: Not connected to D-Bus server")) << ar.stderr();
-}
 
 TEST_F(AdminTest, no_args)
 {
@@ -311,12 +305,15 @@ TEST_F(AdminTest, bad_files)
 
     EXPECT_EQ(1, ar.run(QStringList{"get", "no_such_file"}));
     EXPECT_EQ("thumbnailer-admin: GetLocalThumbnail::run(): cannot open no_such_file: No such file or directory\n",
-              ar.stderr()) << ar.stderr();
+              ar.stderr())
+        << ar.stderr();
 
     EXPECT_EQ(1, ar.run(QStringList{"get", TESTSRCDIR "/media/orientation-2.jpg", "no_such_directory"}));
-    EXPECT_EQ("thumbnailer-admin: GetLocalThumbnail::run(): write_file(): "
-              "cannot open no_such_directory/orientation-2_0x0.jpg: No such file or directory\n",
-              ar.stderr()) << ar.stderr();
+    EXPECT_EQ(
+        "thumbnailer-admin: GetLocalThumbnail::run(): write_file(): "
+        "cannot open no_such_directory/orientation-2_0x0.jpg: No such file or directory\n",
+        ar.stderr())
+        << ar.stderr();
 }
 
 class RemoteServer : public AdminTest

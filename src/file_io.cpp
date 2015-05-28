@@ -54,8 +54,7 @@ string read_file(string const& filename)
     if (fstat(fd_ptr.get(), &st) == -1)
     {
         // LCOV_EXCL_START
-        throw runtime_error("read_file(): cannot fstat \"" + filename + "\": " +
-                            safe_strerror(errno));
+        throw runtime_error("read_file(): cannot fstat \"" + filename + "\": " + safe_strerror(errno));
         // LCOV_EXCL_STOP
     }
 
@@ -66,8 +65,7 @@ string read_file(string const& filename)
     if (rc == -1)
     {
         // LCOV_EXCL_START
-        throw runtime_error("read_file(): cannot read from \"" + filename + "\": " +
-                            safe_strerror(errno));
+        throw runtime_error("read_file(): cannot read from \"" + filename + "\": " + safe_strerror(errno));
         // LCOV_EXCL_STOP
     }
     if (rc != st.st_size)
@@ -113,10 +111,9 @@ void write_file(string const& filename, string const& contents)
         int rc = write(fd_ptr.get(), &contents[0], contents.size());
         if (rc == -1)
         {
-        // LCOV_EXCL_START
-            throw runtime_error("write_file(): cannot write to \"" + filename + "\": " +
-                                safe_strerror(errno));
-        // LCOV_EXCL_STOP
+            // LCOV_EXCL_START
+            throw runtime_error("write_file(): cannot write to \"" + filename + "\": " + safe_strerror(errno));
+            // LCOV_EXCL_STOP
         }
         if (string::size_type(rc) != contents.size())
         {
@@ -154,8 +151,8 @@ void write_file(int in_fd, int out_fd)
         // LCOV_EXCL_START
         else if (bytes_written != bytes_read)
         {
-            throw runtime_error("short write, requested " + to_string(bytes_read) + " bytes, wrote "
-                                + to_string(bytes_written) + " bytes");
+            throw runtime_error("short write, requested " + to_string(bytes_read) + " bytes, wrote " +
+                                to_string(bytes_written) + " bytes");
         }
         // LCOV_EXCL_STOP
     } while (bytes_read != 0);

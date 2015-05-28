@@ -31,6 +31,7 @@ namespace tools
 {
 
 // Return current working dir.
+
 QString current_directory();
 
 // Construct an output path from inpath and size. The outputh path
