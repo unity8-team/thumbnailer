@@ -19,6 +19,7 @@
 #include <internal/ubuntuserverdownloader.h>
 #include <internal/artreply.h>
 #include "utils/artserver.h"
+#include <testsetup.h>
 
 #include <gtest/gtest.h>
 
@@ -223,6 +224,8 @@ TEST_F(TestDownloaderServer, test_connection_error)
 int main(int argc, char** argv)
 {
     QCoreApplication qt_app(argc, argv);
+    setenv("GSETTINGS_BACKEND", "memory", true);
+    setenv("GSETTINGS_SCHEMA_DIR", GSETTINGS_SCHEMA_DIR, true);
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

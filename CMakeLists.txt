@@ -132,6 +132,7 @@ enable_coverage_report(
         safe_strerror_test
         test_dbus
         test_qml
+        test_settings
         test_vsthumb
         thumbnailer_test
 )

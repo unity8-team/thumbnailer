@@ -551,6 +551,8 @@ TEST_F(DeadServer, errors)
 int main(int argc, char** argv)
 {
     QCoreApplication app(argc, argv);
+    setenv("GSETTINGS_BACKEND", "memory", true);
+    setenv("GSETTINGS_SCHEMA_DIR", GSETTINGS_SCHEMA_DIR, true);
     setenv("TN_UTILDIR", TESTBINDIR "/../src/vs-thumb", true);
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

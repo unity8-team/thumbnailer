@@ -3,6 +3,7 @@ add_subdirectory(core)
 add_library(thumbnailer STATIC
 file_io.cpp
 image.cpp
+settings.cpp
 make_directories.cpp
 safe_strerror.cpp
 thumbnailer.cpp
