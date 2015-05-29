@@ -74,6 +74,7 @@ int main(int argc, char** argv)
 {
     QTemporaryDir tempdir(TESTBINDIR "/settings-test.XXXXXX");
     setenv("XDG_CACHE_HOME", tempdir.path().toUtf8().constData(), true);
+    setenv("GSETTINGS_BACKEND", "memory", true);
     setenv("GSETTINGS_SCHEMA_DIR", GSETTINGS_SCHEMA_DIR, true);
 
     ::testing::InitGoogleTest(&argc, argv);
