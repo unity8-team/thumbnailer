@@ -55,7 +55,7 @@ Settings::Settings(string const& schema_name)
     }
     else
     {
-        qCritical() << "The schema" << schema_name.c_str() << "is missing"; // LCOV_EXCL_LINE
+        qCritical() << "The schema" << schema_name.c_str() << "is missing";
     }
 }
 

@@ -46,13 +46,11 @@ add_executable(test_settings test_settings.cpp)
 target_link_libraries(test_settings thumbnailer core gtest)
 qt5_use_modules(test_settings Core) # for QTemporaryDir
 add_test(test_settings test_settings)
-set_property(TEST test_settings PROPERTY ENVIRONMENT "GSETTINGS_SCHEMA_DIR=${CMAKE_BINARY_DIR}/data")
 
 add_executable(downloadtest download.cpp)
 
 target_link_libraries(downloadtest thumbnailer testutils gtest)
 add_test(downloadtest downloadtest)
-set_property(TEST downloadtest PROPERTY ENVIRONMENT "GSETTINGS_SCHEMA_DIR=${CMAKE_BINARY_DIR}/data")
 qt5_use_modules(downloadtest Core Network Test)
 
 
@@ -86,7 +84,6 @@ target_link_libraries(test_dbus
   testutils
   gtest)
 add_test(test_dbus test_dbus)
-set_property(TEST test_dbus PROPERTY ENVIRONMENT "GSETTINGS_SCHEMA_DIR=${CMAKE_BINARY_DIR}/data")
 add_dependencies(test_dbus thumbnailer-service)
 
 # Thumbnailer tests
@@ -102,7 +99,6 @@ target_link_libraries(thumbnailer_test
     testutils
     gtest)
 add_test(thumbnailer_test thumbnailer_test)
-set_property(TEST thumbnailer_test PROPERTY ENVIRONMENT "GSETTINGS_SCHEMA_DIR=${CMAKE_BINARY_DIR}/data")
 add_dependencies(thumbnailer_test thumbnailer-service)
 
 # Tests for the QML plugin
@@ -111,5 +107,4 @@ qt5_use_modules(test_qml Qml DBus QuickTest)
 target_link_libraries(test_qml
   ${QTDBUSTEST_DEPS_LDFLAGS} testutils)
 add_test(test_qml xvfb-run -a -s "-screen 0 800x600x24" ./test_qml -import ${CMAKE_BINARY_DIR}/plugins)
-set_property(TEST test_qml PROPERTY ENVIRONMENT "GSETTINGS_SCHEMA_DIR=${CMAKE_BINARY_DIR}/data")
 add_dependencies(test_qml thumbnailer-service)

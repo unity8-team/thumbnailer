@@ -67,6 +67,7 @@ int main(int argc, char** argv)
 {
     QGuiApplication app(argc, argv);
 
+    setenv("GSETTINGS_SCHEMA_DIR", GSETTINGS_SCHEMA_DIR, true);
     setenv("TN_UTILDIR", TESTBINDIR "/../src/vs-thumb", true);
     qmlRegisterSingletonType("testconfig", 1, 0, "Config", make_test_config);
     qmlProtectModule("testconfig", 1);
