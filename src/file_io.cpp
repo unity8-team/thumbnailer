@@ -162,7 +162,7 @@ void write_file(int in_fd, int out_fd)
 
 void write_file(int fd, string const& path)
 {
-    FdPtr out_fd(open(path.c_str(), O_WRONLY | O_TRUNC | O_CREAT, 0600), do_close);
+    FdPtr out_fd(open(path.c_str(), O_WRONLY | O_TRUNC | O_CREAT | O_CLOEXEC, 0600), do_close);
     if (out_fd.get() == -1)
     {
         throw runtime_error("write_file(): cannot open " + path + ": " + safe_strerror(errno));

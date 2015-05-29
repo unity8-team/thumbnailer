@@ -114,6 +114,7 @@ TEST(file_io, exceptions)
         int fd = open("/dev/null", O_RDONLY);
         ASSERT_NE(-1, fd);
         write_file(fd, -1);
+        FAIL();
     }
     catch (runtime_error const& e)
     {
@@ -125,6 +126,7 @@ TEST(file_io, exceptions)
         int fd = open("/dev/null", O_WRONLY);
         ASSERT_NE(-1, fd);
         write_file(-1, fd);
+        FAIL();
     }
     catch (runtime_error const& e)
     {
@@ -136,6 +138,7 @@ TEST(file_io, exceptions)
         int fd = open("/dev/zero", O_WRONLY);
         ASSERT_NE(-1, fd);
         write_file(fd, "no_such_dir/no_such_file");
+        FAIL();
     }
     catch (runtime_error const& e)
     {

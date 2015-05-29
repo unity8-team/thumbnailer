@@ -21,11 +21,13 @@ add_executable(thumbnailer-admin
     show_stats.cpp
     thumbnailer-admin.cpp
     util.cpp
+    ${CMAKE_SOURCE_DIR}/src/file_io.cpp
+    ${CMAKE_SOURCE_DIR}/src/safe_strerror.cpp
     ${CMAKE_SOURCE_DIR}/src/service/stats.cpp
     ${interface_files}
 )
 qt5_use_modules(thumbnailer-admin DBus)
-target_link_libraries(thumbnailer-admin thumbnailer)
+target_link_libraries(thumbnailer-admin core ${Boost_LIBRARIES})
 
 INSTALL(TARGETS thumbnailer-admin
         RUNTIME

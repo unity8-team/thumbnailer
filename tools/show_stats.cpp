@@ -130,21 +130,16 @@ void show_histogram(QList<quint32> const& h)
     quint32 max_count = 0;  // Largest count
 
     // Find the first and last non-zero slot.
-    for (int i = 0; i < h.size() && first_slot == -1; ++i)
+    for (int i = 0; i < h.size(); ++i)
     {
         if (h[i] != 0)
         {
-            first_slot = i;
-            last_slot = i;
-            max_count = h[i];
-            for (int j = last_slot + 1; j < h.size(); ++j)
+            if (first_slot == -1)
             {
-                if (h[j] != 0)
-                {
-                    last_slot = j;
-                    max_count = max(max_count, h[j]);
-                }
+                first_slot = i;
             }
+            last_slot = i;
+            max_count = max(max_count, h[i]);
         }
     }
     printf("    Histogram:");

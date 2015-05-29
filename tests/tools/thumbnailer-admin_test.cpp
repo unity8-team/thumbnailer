@@ -44,6 +44,7 @@ protected:
     {
         // start dbus service
         tempdir.reset(new QTemporaryDir(TESTBINDIR "/dbus-test.XXXXXX"));
+        ASSERT_NE(-1, chdir(temp_dir().c_str()));
         setenv("XDG_CACHE_HOME", qPrintable(tempdir->path() + "/cache"), true);
 
         // set 3 seconds as max idle time
@@ -161,14 +162,14 @@ TEST_F(AdminTest, histogram)
     EXPECT_TRUE(output.find("Histogram:") != string::npos) << output;
 
     // Add a file to the cache
-    EXPECT_EQ(0, ar.run(QStringList{"get", TESTSRCDIR "/media/orientation-1.jpg"}));
+    EXPECT_EQ(0, ar.run(QStringList{"get", TESTDATADIR "/orientation-1.jpg"}));
     EXPECT_EQ(0, ar.run(QStringList{"stats", "-v", "t"}));
     output = ar.stdout();
     EXPECT_TRUE(output.find("Size:                  1") != string::npos) << output;
     EXPECT_TRUE(output.find("10000-19999: 1") != string::npos) << output;
 
     // Add a small file to the cache
-    EXPECT_EQ(0, ar.run(QStringList{"get", "--size=32", TESTSRCDIR "/media/orientation-1.jpg"}));
+    EXPECT_EQ(0, ar.run(QStringList{"get", "--size=32", TESTDATADIR "/orientation-1.jpg"}));
     EXPECT_EQ(0, ar.run(QStringList{"stats", "-v", "t"}));
     output = ar.stdout();
     EXPECT_TRUE(output.find("Size:                  2") != string::npos) << output;
@@ -208,11 +209,10 @@ TEST_F(AdminTest, stats_parsing)
 
 TEST_F(AdminTest, get_fullsize)
 {
-    auto filename = string(TESTBINDIR "/tools/orientation-1_0x0.jpg");
-    unlink(filename.c_str());
+    auto filename = temp_dir() + "/orientation-1_0x0.jpg";
 
     AdminRunner ar;
-    EXPECT_EQ(0, ar.run(QStringList{"get", TESTSRCDIR "/media/orientation-1.jpg"}));
+    EXPECT_EQ(0, ar.run(QStringList{"get", TESTDATADIR "/orientation-1.jpg"}));
 
     // Image must have been created with the right name and contents.
     string data = read_file(filename);
@@ -227,11 +227,10 @@ TEST_F(AdminTest, get_fullsize)
 
 TEST_F(AdminTest, get_large_thumbnail)
 {
-    auto filename = string(TESTBINDIR "/tools/orientation-1_320x240.jpg");
-    unlink(filename.c_str());
+    auto filename = temp_dir() + "/orientation-1_320x240.jpg";
 
     AdminRunner ar;
-    EXPECT_EQ(0, ar.run(QStringList{"get", "-s=320x240", TESTSRCDIR "/media/orientation-1.jpg"}));
+    EXPECT_EQ(0, ar.run(QStringList{"get", "-s=320x240", TESTDATADIR "/orientation-1.jpg"}));
 
     // Image must have been created with the right name and contents.
     string data = read_file(filename);
@@ -246,11 +245,10 @@ TEST_F(AdminTest, get_large_thumbnail)
 
 TEST_F(AdminTest, get_small_thumbnail_square)
 {
-    auto filename = string(TESTBINDIR "/tools/orientation-1_48x48.jpg");
-    unlink(filename.c_str());
+    auto filename = temp_dir() + "/orientation-1_48x48.jpg";
 
     AdminRunner ar;
-    EXPECT_EQ(0, ar.run(QStringList{"get", "--size=48", TESTSRCDIR "/media/orientation-1.jpg"}));
+    EXPECT_EQ(0, ar.run(QStringList{"get", "--size=48", TESTDATADIR "/orientation-1.jpg"}));
 
     // Image must have been created with the right name and contents.
     string data = read_file(filename);
@@ -265,11 +263,10 @@ TEST_F(AdminTest, get_small_thumbnail_square)
 
 TEST_F(AdminTest, get_with_dir)
 {
-    auto filename = string(TESTBINDIR "/orientation-2_0x0.jpg");
-    unlink(filename.c_str());
+    auto filename = temp_dir() + "/orientation-2_0x0.jpg";
 
     AdminRunner ar;
-    EXPECT_EQ(0, ar.run(QStringList{"get", TESTSRCDIR "/media/orientation-2.jpg", TESTBINDIR}));
+    EXPECT_EQ(0, ar.run(QStringList{"get", TESTDATADIR "/orientation-2.jpg", QString::fromStdString(temp_dir())}));
 
     // Image must have been created with the right name and contents.
     string data = read_file(filename);
@@ -295,7 +292,7 @@ TEST_F(AdminTest, get_parsing)
     EXPECT_EQ(1, ar.run(QStringList{"get", "--help"}));
     EXPECT_TRUE(starts_with(ar.stderr(), "thumbnailer-admin: Usage: ")) << ar.stderr();
 
-    EXPECT_EQ(1, ar.run(QStringList{"get", "--size=abc", TESTSRCDIR "/media/orientation-1/jpg"}));
+    EXPECT_EQ(1, ar.run(QStringList{"get", "--size=abc", TESTDATADIR "/orientation-1/jpg"}));
     EXPECT_EQ("thumbnailer-admin: GetLocalThumbnail(): invalid size: abc\n", ar.stderr()) << ar.stderr();
 }
 
@@ -308,7 +305,7 @@ TEST_F(AdminTest, bad_files)
               ar.stderr())
         << ar.stderr();
 
-    EXPECT_EQ(1, ar.run(QStringList{"get", TESTSRCDIR "/media/orientation-2.jpg", "no_such_directory"}));
+    EXPECT_EQ(1, ar.run(QStringList{"get", TESTDATADIR "/orientation-2.jpg", "no_such_directory"}));
     EXPECT_EQ(
         "thumbnailer-admin: GetLocalThumbnail::run(): write_file(): "
         "cannot open no_such_directory/orientation-2_0x0.jpg: No such file or directory\n",
@@ -357,8 +354,7 @@ unique_ptr<ArtServer> RemoteServer::art_server_;
 
 TEST_F(RemoteServer, get_artist)
 {
-    auto filename = string(TESTBINDIR "/tools/metallica_load_artist_0x0.jpg");
-    unlink(filename.c_str());
+    auto filename = temp_dir() + "/metallica_load_artist_0x0.jpg";
 
     AdminRunner ar;
     EXPECT_EQ(0, ar.run(QStringList{"get_artist", "metallica", "load"})) << ar.stderr();
@@ -370,8 +366,7 @@ TEST_F(RemoteServer, get_artist)
 
 TEST_F(RemoteServer, get_album)
 {
-    auto filename = string(TESTBINDIR "/tools/metallica_load_album_48x48.jpg");
-    unlink(filename.c_str());
+    auto filename = temp_dir() + "/metallica_load_album_48x48.jpg";
 
     AdminRunner ar;
     EXPECT_EQ(0, ar.run(QStringList{"get_album", "metallica", "load", "--size=48"})) << ar.stderr();
