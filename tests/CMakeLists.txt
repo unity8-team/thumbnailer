@@ -43,11 +43,15 @@ add_executable(safe_strerror_test safe_strerror_test.cpp)
 target_link_libraries(safe_strerror_test thumbnailer core gtest)
 add_test(safe_strerror_test safe_strerror_test)
 
+add_executable(test_settings test_settings.cpp)
+target_link_libraries(test_settings thumbnailer core gtest)
+qt5_use_modules(test_settings Core) # for QTemporaryDir
+add_test(test_settings test_settings)
+
 add_executable(downloadtest download.cpp)
 
 target_link_libraries(downloadtest thumbnailer testutils gtest)
 add_test(downloadtest downloadtest)
-set_property(TEST downloadtest PROPERTY ENVIRONMENT "GSETTINGS_SCHEMA_DIR=${CMAKE_BINARY_DIR}/data")
 qt5_use_modules(downloadtest Core Network Test)
 
 

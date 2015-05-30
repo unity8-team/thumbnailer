@@ -2,15 +2,15 @@
  * Copyright (C) 2013 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License version 3 as
+ * it under the terms of the GNU General Public License version 3 as
  * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public License
+ * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authored by: Jussi Pakkanen <jussi.pakkanen@canonical.com>
@@ -27,6 +27,7 @@
 #include <internal/make_directories.h>
 #include <internal/raii.h>
 #include <internal/safe_strerror.h>
+#include <internal/settings.h>
 #include <internal/ubuntuserverdownloader.h>
 #include <internal/videoscreenshotter.h>
 
@@ -541,12 +542,12 @@ Thumbnailer::Thumbnailer()
 
     try
     {
-        // TODO: No good to hard-wire the cache size.
-        full_size_cache_ = core::PersistentStringCache::open(cache_dir + "/images", 50 * 1024 * 1024,
+        Settings settings;
+        full_size_cache_ = core::PersistentStringCache::open(cache_dir + "/images", settings.full_size_cache_size() * 1024 * 1024,
                                                              core::CacheDiscardPolicy::lru_only);
-        thumbnail_cache_ = core::PersistentStringCache::open(cache_dir + "/thumbnails", 100 * 1024 * 1024,
+        thumbnail_cache_ = core::PersistentStringCache::open(cache_dir + "/thumbnails", settings.thumbnail_cache_size() * 1024 * 1024,
                                                              core::CacheDiscardPolicy::lru_only);
-        failure_cache_ = core::PersistentStringCache::open(cache_dir + "/failures", 2 * 1024 * 1024,
+        failure_cache_ = core::PersistentStringCache::open(cache_dir + "/failures", settings.failure_cache_size() * 1024 * 1024,
                                                            core::CacheDiscardPolicy::lru_ttl);
     }
     catch (std::exception const& e)
