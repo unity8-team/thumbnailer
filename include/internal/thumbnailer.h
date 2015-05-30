@@ -59,7 +59,7 @@ public:
 
     virtual std::string const& key() const = 0;
 Q_SIGNALS:
-   void downloadFinished();
+    void downloadFinished();
 };
 
 /**
