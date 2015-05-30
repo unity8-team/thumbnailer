@@ -33,6 +33,7 @@
         to max-thumbnail-size in the larger dimension. An exception are requests for local thumbnails
         with size 0x0, which are returned in their original size.
      </description>
+    </key>
 
     <key type="i" name="retry-not-found-hours">
       <default>168</default>
