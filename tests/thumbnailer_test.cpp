@@ -483,10 +483,6 @@ TEST_F(RemoteServer, get_artist_empty_strings)
         EXPECT_STREQ("unity::InvalidArgumentException: Thumbnailer::get_artist_art(): both artist and album are empty",
                      e.what()) << e.what();
     }
-    catch (...)
-    {
-        FAIL();
-    }
 }
 
 TEST_F(RemoteServer, get_album_empty_strings)
@@ -502,10 +498,6 @@ TEST_F(RemoteServer, get_album_empty_strings)
     {
         EXPECT_STREQ("unity::InvalidArgumentException: Thumbnailer::get_album_art(): both artist and album are empty",
                      e.what()) << e.what();
-    }
-    catch (...)
-    {
-        FAIL();
     }
 }
 
