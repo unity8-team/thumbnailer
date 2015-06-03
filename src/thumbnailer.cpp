@@ -606,8 +606,10 @@ unique_ptr<ThumbnailRequest> Thumbnailer::get_album_art(string const& artist,
                                                         string const& album,
                                                         QSize const& requested_size)
 {
-    assert(artist.empty() || !album.empty());
-    assert(album.empty() || !artist.empty());
+    if (artist.empty() && album.empty())
+    {
+        throw unity::InvalidArgumentException("Thumbnailer::get_album_art(): both artist and album are empty");
+    }
 
     try
     {
@@ -625,8 +627,10 @@ unique_ptr<ThumbnailRequest> Thumbnailer::get_artist_art(string const& artist,
                                                          string const& album,
                                                          QSize const& requested_size)
 {
-    assert(artist.empty() || !album.empty());
-    assert(album.empty() || !artist.empty());
+    if (artist.empty() && album.empty())
+    {
+        throw unity::InvalidArgumentException("Thumbnailer::get_artist_art(): both artist and album are empty");
+    }
 
     try
     {
