@@ -35,6 +35,12 @@ std::string read_file(std::string const& filename);
 // Write contents to filename.
 void write_file(std::string const& filename, std::string const& contents);
 
+// Write contents of in_fd to out_fd, using current read position of in_fd.
+void write_file(int in_fd, int out_fd);
+
+// Write contents of fd to path.
+void write_file(int in_fd, std::string const& path);
+
 // Return a temporary file name in TMPDIR.
 std::string create_tmp_filename();
 

@@ -35,7 +35,7 @@ namespace thumbnailer
 namespace internal
 {
 
-class UbuntuServerDownloader final : public ArtDownloader
+class UbuntuServerDownloader final : public ArtDownloader  // LCOV_EXCL_LINE  // False negative from gcovr
 {
     Q_OBJECT
 public:
