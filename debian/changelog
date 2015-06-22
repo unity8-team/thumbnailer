@@ -1,3 +1,10 @@
+thumbnailer (2.0+15.10.20150527-0ubuntu2) wily; urgency=medium
+
+  * Switch to unversioned Conflicts/Replaces on libthumbnailer0 to force
+    removal of the obsolete package on upgrade from the previous version.
+
+ -- Adam Conrad <adconrad@ubuntu.com>  Wed, 17 Jun 2015 05:15:54 -0600
+
 thumbnailer (2.0+15.10.20150527-0ubuntu1) wily; urgency=medium
 
   [ James Henstridge ]
