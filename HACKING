@@ -10,7 +10,7 @@ By default, the code is built in release mode. To build a debug version, use
 
 For a release version, use -DCMAKE_BUILD_TYPE=release
 
-Running the tests
+Running the tests by psivaa
 -----------------
 
     $ make
