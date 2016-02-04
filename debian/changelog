@@ -1,11 +1,457 @@
-thumbnailer (2.3+16.04.20160108.2-0ubuntu2) UNRELEASED; urgency=medium
+thumbnailer (2.3+16.04.20160204.1-0ubuntu1) xenial; urgency=medium
 
   [ Michi Henning ]
   * Fixed incorrect build dependency for settings-defaults.h.
   * Re-enabled tests on powerpc and s390x, except for qml test.
   * Disabled vs-thumb test on powerpc64le due to gstreamer codec bug.
+  * 100% coverage again for thumbnailextractor.cpp.
+  * 100% coverage on thumbnailer. A few coding style fixes. Improved
+    error handling and diagnostics via unity::Exception. Fixed incorrect
+    logic in vs-thumb when launching the child process and collecting
+    error/timeout info.
+  * 1920 size limit for images in full-size cache. Thumbnails are also
+    limited to 1920, unless the caller asks for (0,0), in which case we
+    return the original size. Images in the full-size cache are now
+    always stored a jpeg instead of original format. Fixed minor bug in
+    dbus test.
+  * A few minor fixes flagged by coverity.
+  * A number of files had the wrong license header (LGPL instead of
+    GPL). Also fixed style of license headers so they are consistent
+    throughout.
+  * Added DBus interface for stats collection.
+  * Added HACKING file.
+  * Added better coverage target. Currently, the code still uses a
+    private XEnableCoverage module. Once the MR for cmake-extras merges,
+    we'll use the version in there. See
+    https://code.launchpad.net/~michihenning/cmake-extras/cmake-extras-
+    coverage/+merge/258021.
+  * Added clear and clear-stats commands to thumbnailer admin. (LP:
+    #1462204)
+  * Added coverage exclusions to credentials cache. It doesn't look
+    possible to cover the remaining code paths with reasonable effort.
+  * Added devscripts to build dependencies.
+  * Added lsb-release to build deps.
+  * Added message handler for QDebug so we get time stamps and locking,
+    so trace doesn't interleave across threads. Other changes are coding
+    style issues, and slightly improved diagnostics in some cases. Also
+    removed a bunch of redunant #includes and re-ordered include
+    directives.
+  * Added missing compact and shutdown commands to thumbnailer-admin.
+  * Added namespaces to all code that was still in the global namespace.
+  * Added recovery logic such that, if any operation on a persistent
+    cache reports db corruption, we wipe the cache and retry the
+    operation.
+  * Added start-stop messages to thumbnailer service. That's useful when
+    changing settings, which are read only on start-up, and to monitor
+    initialization time.
+  * Added suppressions for a large number of warnings caused by Qt5 when
+    compiling with clang. Removed left-behind unused directory. In turn,
+    that triggered some other failures (stand-alone header tests were
+    failing). Also fixed up doc generation to actually use the doxygen
+    file we provided. (The one in /usr/share/cmake doesn't allow us to
+    turn off graph generation.).
+  * Added tests for stand-alone header compilation, copyright, and
+    whitespace. Fixed errors reported by those.
+  * Added thumbnailer-admin tool. Removed obsolete tools. Improved
+    coverage.
+  * Added timeout to ThumbnailRequest::download(), so we can control
+    timeout value for the tests.
+  * Added two missing codec guards to test.
+  * Added vs-thumb to coverage targets.
+  * Added work-around for QNetworkAcessManager problems when device is
+    in flight mode. (LP: #1470284)
+  * After long discussions with slangasek, robru, and infinity, ignored
+    test failures for s390x because, by an unfortunate chain of events,
+    s390x packages were published back on 2 November.
+  * Avoid calling download() after we get a hit on the failure cache.
+    This was needlessly slowing down retrieval of thumbnails when we
+    definitely do not have any artwork. Improved diagnostics when
+    something goes wrong with subprocess termination. Restored single-
+    shot timer for handler and downloader. Removed incorrect Q_EMIT in
+    timeout().
+  * Avoid the intermediate conversion to tiff for audio and video files
+    with embedded artwork.
+  * Bring coverage for Image class back up to 100%.
+  * Cache no longer implicitly compacts the DB on shutdown. Instead, it
+    now provides an explicit compact() method. The DBus service now
+    shuts down the thumbnailer before tearing down the DBus connection,
+    so it is guaranteed that the DB locks are released before DBus can
+    start another service instance.
+  * Changed audio cover art extraction to use taglib.
+  * Changed code to cache full-size images only if the are remote or, if
+    they are local, if they are inside and audio or video container.
+    Otherwise, we use the local image file directly and don't cache it.
+  * Changed default backlog to 10. Change RateLimiter to work on LIFO
+    basis. Fixes lp:1531038. (LP: #1531038)
+  * Changed steady_clock to system_clock because steady_clock resets at
+    reboot, so it's no good for persistent time stamps.
+  * Changed the default number of concurrent downloads to 8.
+  * Clearing all caches now also resets the network retry timeout.
+  * Code examples from doc are now compiled and tested. Doc includes the
+    real source code as snippets, so the example code in the doc is
+    guaranteed correct. Re-worked the example to discourage use of a
+    separate Thumbnailer instance (and separate DBus connection) for
+    each request.
+  * Dealt with remaining coverage issues by adding tests or suppressing
+    as needed. Made file_lock test skip slow parts when slowtests is
+    off.
+  * Did a copy edit of the documentation. Fixed minor issues with
+    lintian and changed doc generation to use the cmake-extras module.
+  * Disabled stand-alone header compilation tests when slowtests option
+    is set.
+  * Do not treat request timeout as a temporary error because we see
+    this quite often from the remote server. (LP: #1528105)
+  * Documented location of on-disk cache files.
+  * Emit warning for invalid QSize passed by QML, in preparation for
+    turning this into an error. (Lazy applications end up hammering the
+    cache with full-size thumbnails when passing an invalid QSize.).
+  * Factored out dbus name and dbus paths into separate header so they
+    aren't hard-wired repeatedly all over the place. Also made a bunch
+    of style fixes and removed a bunch of redundant header files.
+  * Fix broken assertions in thumbnailer.cpp.
+  * Fix noise about policy 28 from cmake when building on Vivid.
+  * Fixed a few broken diagnostic pragmas. Replaced remaining double-
+    include guards with #pragma once.
+  * Fixed broken key construction in thumbnailer.cpp.
+  * Fixed broken local install target.
+  * Fixed build error with clang.
+  * Fixed cancellation logic if requests are destroyed without being
+    cancelled first. Documentation and test improvements.
+  * Fixed clang warnings about missing pragma push.
+  * Fixed compile error caused by new version of
+    /usr/include/sys/apparmor.h.
+  * Fixed inability to change size of pre-existing cache via dconf. Made
+    max thumbnail size configurable, as well as retry interval after
+    authoritative and non-authoritative download failure. More detailed
+    semantic checking and error reporting for config parameters.
+  * Fixed incorrect hit rate reported on service start-up. (LP:
+    #1506304)
+  * Fixed incorrect scaling of thumbnails with dimensions (w,0) or
+    (0,h). (LP: #1515848)
+  * Fixed lots of valgrind issues, so "make valgrind" is usable again.
+  * Fixed minor bug in fake server for artist thread test. Added test
+    case for lastfmdownloader getting artist art.
+  * Fixed poor cancellation logic.
+  * Fixed problem found with valgrind: after detecting a version
+    mismatch, we had a path through the code that used an uninitialized
+    value.
+  * Fixed stale comment for make_output_path().
+  * Fixed time conversion code to generate fixed point independent of
+    locale. Fixed stats test to test for correct time regardless of
+    locale. Added sanity test for non-epoch timestamps to verify that
+    marshaling and conversion work correctly; the test now checks that
+    the timestamps are near the current time. Fixed type spec in the xml
+    to match reality.
+  * Fixed typo in error message.
+  * Fixed ubuntuserverdownloader to behave correctly when test machine
+    has no internet connection.
+  * Fixes for the transition to gcc 5. A few tests no longer compiled
+    with boost 1.58. The changes work with both gcc-4.9/boost-1.55 and
+    gcc-5.0/boost-58. (LP: #1476738)
+  * Fixes two minor bugs in the vs-thumb test.
+  * Follow Pete's advice and use explicit link directive for Qt5
+    libraries to get rid of "policy 28" warnings from cmake when
+    building in release mode.
+  * Got rid of QDateTime in CacheStats.
+  * I've added the leveldb cache to the tree. It's not used by anything,
+    just hooked up to the build env so it compiles and passes its tests.
+    Eventually, this will move into a separate core project but, for the
+    time being, we'll dog-food it here to see how we go with the API.
+  * If max-extractions == 0: if hardware == BQ, adjust to 1 else if
+    hardware == Arm, adjust to 2 else leave at 0 If max-extractions !=
+    0, use it as set.
+  * Improved coverage testing for vs-thumb.
+  * Improved coverage, mainly for qml.
+  * Improved test coverage.
+  * Improvements to build env:
+  * Increased signal wait time for CI Train. Minor renaming for
+    consistency and excluding tests from coverage.
+  * Limit max-extractions to 2 on Arm.
+  * Made download/extract timeout configurable.
+  * Made license headers consistent.
+  * Made statistics persist across re-starts. Added dirty flag so we can
+    tell if we didn't shut down cleanly. If so, the stats counters
+    automatically reset to zero. For clean caches, we now avoid the scan
+    over the Atime index on start-up.
+  * Made write_file() atomic using rename(). Added some tests for
+    file_io functions.
+  * Michi Henning 2016-01-04 Added exponential backoff for unexpected
+    server errors.
+  * Minor change to get command syntax to make it consistent (underscore
+    vs hyphen). Also renamed clear-stats to zero-stats.
+  * Minor coverage improvement for vs-thumb, plus better error message.
+  * Minor doc fix.
+  * Minor fixes to man pages.
+  * Minor fixes to speed test: adjusted some types to prevent overflow
+    when benchmarking very large caches and fixed two insignificant off-
+    by-one errors. Changed prerequisite branch; now calling compact()
+    explicitly in speed test.
+  * Minor optimizations to reduce memory pressure.
+  * Minor style fix.
+  * More detailed trace. It now splits out time spent waiting in queue
+    and actual extraction time, so we can see whether a request was slow
+    because it was delayed in the queue, or because the extraction
+    itself was slow.
+  * More valgrind suppressions for errors we can't do anything about.
+    (LP: #1476506)
+  * More valgrind suppressions for stuff we started calling recently.
+  * Moved Thumbnailer into the internal namespace. Un-pimpled
+    Thumbnailer and VideoScreenshotter. Image class coverage back up to
+    100%. Slightly better coverage for Thumbnailer. Fixed Thumbnailer
+    test to not create a new temp dir for each test. (Because of the
+    caching in glib, the tempdir "stuck" at the first one that was
+    created.).
+  * Moved rate limiter from QML to Qt side. Fixed bug in libthumbnailer-
+    qt that caused the state of completed request to not be released.
+    Changed stress test to test the rate limiting via Qt.
+  * Partially refactored vs-thumb. Better performance, tracing, and
+    error messages.
+  * Picked some more low-hanging coverage fruit (mostly suppressions).
+    Improved diagnostics in a few places and fixed a few incorrect error
+    message.
+  * Put the code through formatcode.
+  * Reduced the internal block cache size for small caches. This reduces
+    cache memory requirements for the thumbnailer service from 24 MB to
+    13.5 MB without affecting performance. Renamed a variable in the
+    speed test for clarity.
+  * Relaxed a few valgrind suppression for gcc5 ABI. Added new
+    suppressions for Wily. Fixed incorrect test names in
+    CtestCustom.cmake.in. (LP: #1476506)
+  * Removed 100% quality setting when saving jpg. Using default 75% now,
+    which is a lot smaller. Full-size cache contains high-quality
+    images, so we don't accumulate scaling artefacts. Adjusted tests
+    accordingly.
+  * Removed LastFM downloader, seeing that we are not using it.
+  * Removed check for impossible error condition.
+  * Removed hack to try and deal with the arm gstreamer problems in a
+    hardware-specific way.
+  * Removed headroom concept because it doesn't achieve anything other
+    than making the benchmark look better. Shortened speed test so it
+    runs faster with mechanical disks.
+  * Removed stale assert that that got left behind after resolving a
+    merge conflict.
+  * Removed unused code I left behind by mistake when resolving a merge
+    conflict. Fixed incorrect warning suppression for gtest.
+  * Renamed VideoScreenshotter to ImageExtractor because that more
+    accurately expresses what it does. (It's used for audio and video
+    files.) Improved diagnostics. Did minor style tidy-up and removed
+    unused code. Destructor now-waits for sub-process to complete.
+  * Replaced returning of thumbnails via file descriptor with returning
+    the image contents directly over DBus. About 7-8% performance
+    improvement for hits on 128-size thumbnails.
+  * Restructured tests so each test has its own directory. Test targets
+    are now pushed into the top-level CMakeLists.txt so the test targets
+    for coverage are updated automatically. Removed no-longer needed
+    tools.
+  * Save vs-thumb output as TIFF instead of PNG. That's about 20%
+    faster.
+  * Set default extraction concurrency to number of cores.
+  * Stopped bogus cancellation messages when client-trace is turned on.
+  * Suppress a bunch of warnings from cmake when building in release
+    mode.
+  * Suppressed build warning from gstcompat.h.
+  * Suppressed build warning when compiling with clang.
+  * This adds a failure cache to the mix, so we don't endlessly re-try
+    failed downloads or aborted attempts to extract a thumbnail from a
+    broken local media file. Cache size and timeouts for failure entries
+    are hard-coded for the time being, until we get around to making
+    this configurable.
+  * This replaces the media art cache with the new cache. Note that, for
+    now, the images are returned without scaling in original size.
+  * Two trivial new valgrind suppressions. (LP: #1476506)
+  * Updated doc for Thumbnailer constructors.
+  * Use EnableCoverageReport from cmake-extras. Fixed warning in clang
+    build.
+  * Use an advisory lock to prevent shutdown/start-up race between
+    service instances. Disconnect from DBus at the earliest possible
+    moment so new requests will be redirected to a new instance. (LP:
+    #1511553)
+  * Use new cache for local thumbnails. This is poor in regression
+    tests, but has reasonably good coverage. For now, I've tested
+    thumbnail extraction manually by saving retrieved thumbnails and
+    inspecting them by hand. Will add more tests that are more rigorous
+    next.
+  * Using old signal syntax in test because, on arm64 on Vivid, the test
+    fails with the new syntax.
+  * Various doc improvements. Tweaks to speed test to make it more
+    realistic.
+  * Various improvements for clang: support for address/thread sanitizer
+    allow coverage testing with clang fixed a bunch of clang warnings .
+  * We no longer add an entry to the failure cache if thumbnailing fails
+    because the network is down. Renamed network_error() to
+    network_down() to make it clear that this is an expected failure
+    (rather than a surprising one). Changed enumerators for FetchStatus
+    to lower case as per style guide. Refactored fetch() for artist and
+    album into common helper function.
+  * invalidate() now implicitly clears the ephemeral stats too. It
+    doesn't make sense to keep them around after wiping the cache.
+  * make_directories() now uses g_mkdir_with_parents().
+  * vs-thumb now looks for both image and preview image tags to extract
+    artwork.
+  * vs-thumb now saves as png, to avoid artefacts due to applying jpg
+    compression three times. Previously, we saved as jpg 75% in vs-
+    thumb, then again at 90% for the full-size cache, and then a third
+    time at 75% when creating the actual thumbnail. Now it's lossless ->
+    90% -> 75%, which should be OK (90% is nearly perfect).
 
- -- Michi Henning <michi.henning@canonical.com>  Sat, 09 Jan 2016 13:21:19 +1000
+  [ Albert Astals Cid ]
+  * Fixes suggested by clazy
+  * Only create the QQuickTextureFactory when needed (LP: #1484914)
+
+  [ James Henstridge ]
+  * Add a GetThumbnail D-Bus method to thumbnailer-service for local
+    thumbnails, and update the QML plugin to use it rather than
+    libthumbnailer directly.
+  * Add a test fixture that runs QML tests against a private version of
+    thumbnailer-service.
+  * Add a test suite to check the behaviour of the D-Bus service.
+    Currently only covers GetThumbnail, with GetAlbumArt/GetArtistArt to
+    come later when we can substitute in the fake implementation of the
+    art service.
+  * Add a test that handles the case when we can't connect to the online
+    art service, and actually log errors from the art downloader.
+  * Add settings support for the cache size.
+  * Add some direct C++ tests for the QQuickImageProvider
+    implementations in the QML plugin.
+  * Add some sample files in MP3 and M4A format with cover art.
+  * Allow constructing an Image from a file descriptor as an alternative
+    to in-memory data.
+  * Change ImageExtractor to take a file name rather than file
+    descriptor, and pass that to vs-thumb rather than using an fd://$N
+    URI.
+  * Clean up ImageResponse implementation in QML plugin.
+  * Compile using -fvisibility=hidden to reduce code size.
+  * Convert the ThumbnailExtractor class to run the extraction within
+    the event loop. (LP: #1425009)
+  * Convert the VideoScreenshotter class to an asynchronous API so we
+    can wait on the vs-thumb helper process from the event loop rather
+    than by blocking in the thread pool.
+  * Convert the test_dbus test to use generated stubs, and inspect
+    returned images using the Image class.
+  * Create a small utility library for common test setup code.
+  * Don't install libthumbnailer.so, instead statically linking the code
+    into thumbnailer-service.  As a consequence, the libthumbnailer0 and
+    libthumbnailer-dev binary packages have been removed.
+  * Factor out common DBus test setup code, and add some more targets to
+    the coverage report.
+  * Fix up the permission bit constants used in the aa_query_label
+    permission check.
+  * If applications do not specify a size for their thumbnails, return a
+    128x128 thumbnail.  This is what the old thumbnailer did by
+    accident.
+  * If multiple requests for the same resource are received, delay
+    processing of the second request (and subsequent ones) so we can
+    take advantage of any downloads (for album requests), extracted
+    images (for videos/songs), or cached failures.
+  * If the subprocess is still running in the ImageExtractor destructor,
+    try to kill it again, and log if waitForFinished() fails.
+  * In the QML plugin, use the shared connection to the session bus and
+    use a single RateLimiter instance.
+  * Invoke gcovr directly rather than using a cmake command file.
+    Update the filter pattern glob->regexp conversion for the gcovr
+    command line arguments to match what lcov does.
+  * Limit the concurrency of downloads and vs-thumb invocations.
+  * Merge the Handler subclasses into their base in the D-Bus service.
+  * Move the AppArmor check earlier so it is not skipped for files
+    already in the cache. (LP: #1381713)
+  * Move thumbnailing code to a set of Request classes in preparation
+    for exposing asynchronous downloading for use by the D-Bus service.
+  * Pass the requested size to the D-Bus service directly rather than
+    converting it to a ThumbnailSize constant first.
+  * Port the QML plugin to use libthumbnailer-qt instead of using direct
+    D-Bus calls.  As a result, qtdeclarative5-ubuntu-thumbnailer0.1 now
+    depends on libthumbnailer-qt1.0.
+  * Port thumbnailer-service to QDBus.
+  * Remove dependency on libsoup and libxml2, since the corresponding
+    code is now gone.
+  * Remove the filename_fd argument to the GetThumbnail() D-Bus method,
+    instead using aa_query_label() to check whether the caller has
+    access to the relevant file. (LP: #1381713)
+  * Rename unique_gobj<T> to gobj_ptr<T>.
+  * Revert back to the version of vs-thumb in the previous version of
+    thumbnailer released to the archive.
+  * Scale images while loading them, and use the EXIF thumbnail if it is
+    at least as large as the requested size.
+  * Set finish_time within the Handler::sendThumbnail and sendError
+    methods so it is guaranteed to be set before the finished signal is
+    emitted. (LP: #1467751)
+  * Split out the D-Bus method request handlers into separate classes,
+    with some processing happening in a thread pool (where blocking is
+    permissible) and some in the event loop thread (where blocking is
+    not allowed, but we don't monopolise a thread).
+  * Track the credentials (user ID, AppArmor label) of clients
+    connecting to the D-Bus service.  This is not yet used to make
+    security decisions.
+  * Update the Thumbnailer class API to return ThumbnailRequest objects,
+    and make the art D-Bus handlers perform downloads asynchronously in
+    the event loop.
+  * Use playbin to extract audio and video thumbnails, rather than a
+    custom pipeline.
+  * Use the file descriptor we open at the start of the request when
+    thumbnailing videos or songs.
+  * When reading a potentially animated image, stop processing chunks
+    once we've fully decoded the first frame.  This reduces the IO and
+    CPU load when thumbnailing large animated GIF files. (LP: #1527315)
+  * When thumbnailing local photos make sure we are reading from the
+    file that matches the client's file descriptor.  Videos/songs still
+    end up re-opening the file at present.
+
+  [ Michael Sheldon ]
+  * Fall back to full content type detector if the fast detector fails
+    to return anything useful (e.g. because a file doesn't have an
+    extension). (LP: #1499341)
+
+  [ Xavi Garcia ]
+  * Added 2 QThreadPools to run separately the check and create phases.
+  * Added Async Image Provider.
+  * Added a new inactivity handler to exist the thumbnailer service
+    after some time of inactivity.
+  * Added new method to check if the download finished due to a network
+    error.
+  * Added setting values for max-downloads and max-video-thumbnails, so
+    we can tune concurrency without re-building.
+  * Added tool to parse the Settings schema and create a header file
+    with the default values.
+  * Adds the thumbnailer API library code and unit tests.
+  * Changed ArtDownloader interface to return std::string containing the
+    image.
+  * Fake server modified to add returning 404 code when the file we try
+    to read is not found, also erased some imports and methods that were
+    not used.
+  * I've added tests for album and artist download using the fake server
+    and the downloaders.
+  * Modified strerror to use safe_strerror instead.
+  * Moved public headers of libthumbnailer in the source tree to match
+    the namespace and installation path.
+  * Removed the size parameter from the artist and album queries.
+  * This branch is not expected to be merged as includes changes not
+    fully working.
+  * This branch moves a class that will be used in the new library API
+    for the thumbnailer to a common directory and renames the target
+    name of the static library previously called thumbnailer to
+    thumbnailer-static.
+  * Thumbnailer API library documentation.
+
+  [ Xavi Garcia Mena ]
+  * Added a new inactivity handler to exist the thumbnailer service
+    after some time of inactivity.
+  * Added unit tests for dbus using fake server. Also includes
+    modification in fake server to return binary data.
+  * Adds the thumbnailer API library code and unit tests.
+  * Fake server modified to add returning 404 code when the file we try
+    to read is not found, also erased some imports and methods that were
+    not used.
+  * Fixed data being truncated. Added workaround to avoid adding the
+    "album" prefix to the album name.
+  * This branch is not expected to be merged as includes changes not
+    fully working.
+  * This branch moves a class that will be used in the new library API
+    for the thumbnailer to a common directory and renames the target
+    name of the static library previously called thumbnailer to
+    thumbnailer-static.
+  * Thumbnailer API library documentation.
+
+ -- Michi Henning <michi.henning@canonical.com>  Thu, 04 Feb 2016 05:47:34 +0000
 
 thumbnailer (2.3+16.04.20160108.2-0ubuntu1) xenial; urgency=medium
 
