@@ -1,0 +1,71 @@
+name: thumbnailer-service
+version: 2.4
+summary: Service providing thumbnails
+description: |
+    This is a D-Bus service that can provide thumbnails on behalf of another
+    process.
+confinement: strict
+#confinement: devmode
+grade: devel
+
+slots:
+  thumbnailer:
+    interface: thumbnailer
+
+apps:
+  thumbnailer-service:
+    command: desktop-launch $SNAP/usr/lib/x86_64-linux-gnu/thumbnailer/thumbnailer-service
+    plugs: [gsettings]
+#    daemon: simple
+
+parts:
+  thumbnailer-service:
+    source: .
+    plugin: cmake
+    configflags:
+      - -DCMAKE_INSTALL_PREFIX=/usr
+      - -DCMAKE_INSTALL_SYSCONFDIR=/etc
+    build-packages:
+      - g++
+      - cmake
+      - cmake-extras
+      - libapparmor-dev
+      - libboost-filesystem-dev
+      - libboost-iostreams-dev
+      - libboost-regex-dev
+      - libexif-dev
+      - libgdk-pixbuf2.0-dev
+      - libgstreamer1.0-dev
+      - libgstreamer-plugins-base1.0-dev
+      - libtag1-dev
+      - libunity-api-dev
+      - persistent-cache-cpp-dev
+      - qtbase5-dev
+      - qtdeclarative5-dev
+      - libqtdbustest1-dev
+      - google-mock
+    filesets:
+      installed:
+        - etc/apport/blacklist.d/thumbnailer
+        - usr/bin/thumbnailer-admin
+        - usr/lib/*/thumbnailer/thumbnailer-service
+        - usr/lib/*/thumbnailer/vs-thumb
+        - usr/share/dbus-1/services/com.canonical.Thumbnailer.service
+        - usr/share/glib-2.0/schemas/*
+        - usr/share/man/man*/*
+    stage:
+      - $installed
+    snap:
+      - $installed
+    after: [desktop/gtk3]
+
+  runtime-dependencies:
+    plugin: nil
+    stage-packages:
+      - librsvg2-common
+      - gstreamer1.0-libav
+      - gstreamer1.0-fluendo-mp3
+      - gstreamer1.0-plugins-bad-faad
+      - gstreamer1.0-plugins-good
+      - shared-mime-info
+      - libgdk-pixbuf2.0-0
