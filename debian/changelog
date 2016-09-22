@@ -1,3 +1,9 @@
+thumbnailer (2.4+16.10.20160922.1-0ubuntu1) yakkety; urgency=medium
+
+  * No-change rebuild for testing with Qt 5.6.
+
+ -- Michi Henning <michi@triodia.com>  Thu, 22 Sep 2016 08:02:52 +0000
+
 thumbnailer (2.4+16.10.20160719-0ubuntu1) yakkety; urgency=medium
 
   [ Michi Henning ]
