@@ -8,6 +8,10 @@ thumbnailer (2.4+16.10.20160719-0ubuntu3) UNRELEASED; urgency=medium
 thumbnailer (2.4+16.10.20160719-0ubuntu2) yakkety; urgency=medium
 
   * No-change rebuild for boost soname change.
+  * Disabled QDBus-related tests on xenial and yakkety for the time being due
+    to problems with Qt 5.6. See
+        https://bugs.launchpad.net/ubuntu/+source/thumbnailer/+bug/1613561
+        https://bugs.launchpad.net/ubuntu/+source/qtbase-opensource-src/+bug/1625930
 
  -- Matthias Klose <doko@ubuntu.com>  Thu, 04 Aug 2016 08:32:55 +0000
 
