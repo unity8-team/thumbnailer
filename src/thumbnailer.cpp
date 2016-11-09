@@ -572,6 +572,8 @@ RequestBase::ImageData LocalThumbnailRequest::fetch(QSize const& size_hint) noex
         // We indicate that full-size images are to be cached only for video files,
         // for which extraction is expensive. For local audio and images, we don't cache full size.
 
+        qDebug() << "content type:" << QString::fromStdString(content_type);
+
         if (content_type.find("image/") == 0)
         {
             FdPtr fd(open(filename_.c_str(), O_RDONLY | O_CLOEXEC), do_close);
