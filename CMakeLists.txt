@@ -119,9 +119,8 @@ endif()
 include(CTest)
 enable_testing()
 
-include(EnableCoverageReport)
-
-include(cmake/UseGSettings.cmake)
+find_package(CoverageReport)
+find_package(GSettings)
 
 set(SHARE_PRIV_DIR ${CMAKE_INSTALL_LIBDIR}/thumbnailer)
 set(SHARE_PRIV_ABS ${CMAKE_INSTALL_FULL_LIBDIR}/thumbnailer)
