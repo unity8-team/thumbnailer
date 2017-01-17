@@ -22,7 +22,7 @@
 #include <core/optional.h>
 #include <core/persistent_cache_stats.h>
 
-#include <gmock/gmock.h>
+#include <gmock_nowarn.h>
 
 #include <chrono>
 #include <system_error>

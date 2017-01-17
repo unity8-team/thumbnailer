@@ -22,7 +22,7 @@
 #include "utils/artserver.h"
 #include <testsetup.h>
 
-#include <gtest/gtest.h>
+#include <gtest_nowarn.h>
 
 #include <QSignalSpy>
 #include <QUrl>

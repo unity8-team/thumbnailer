@@ -19,7 +19,7 @@
 #include <internal/image.h>
 
 #include <boost/algorithm/string.hpp>
-#include <gtest/gtest.h>
+#include <gtest_nowarn.h>
 #include <sys/types.h>
 #include <fcntl.h>
 
@@ -53,8 +53,8 @@ TEST(Image, basic)
         EXPECT_EQ(480, i.height());
         EXPECT_EQ(0xFE0000FF, i.pixel(0, 0));
         EXPECT_EQ(0xFFFF00FF, i.pixel(639, 0));
-        EXPECT_EQ(0x00FF01FF, i.pixel(639, 479));
-        EXPECT_EQ(0x0000FEFF, i.pixel(0, 479));
+        EXPECT_EQ(0x00FF01FFu, i.pixel(639, 479));
+        EXPECT_EQ(0x0000FEFFu, i.pixel(0, 479));
         EXPECT_FALSE(i.has_alpha());
 
         // Move constructor
@@ -251,8 +251,8 @@ TEST(Image, use_exif_thumbnail)
         EXPECT_EQ(150, img.height());
         EXPECT_EQ(0xFE0000FF, img.pixel(0, 0));
         EXPECT_EQ(0xFFFF00FF, img.pixel(199, 0));
-        EXPECT_EQ(0x00FF01FF, img.pixel(199, 149));
-        EXPECT_EQ(0x0000FEFF, img.pixel(0, 149));
+        EXPECT_EQ(0x00FF01FFu, img.pixel(199, 149));
+        EXPECT_EQ(0x0000FEFFu, img.pixel(0, 149));
     }
 }
 
@@ -267,8 +267,8 @@ TEST(Image, orientation)
         EXPECT_EQ(480, img.height());
         EXPECT_EQ(0xFE0000FF, img.pixel(0, 0));
         EXPECT_EQ(0xFFFF00FF, img.pixel(639, 0));
-        EXPECT_EQ(0x00FF01FF, img.pixel(639, 479));
-        EXPECT_EQ(0x0000FEFF, img.pixel(0, 479));
+        EXPECT_EQ(0x00FF01FFu, img.pixel(639, 479));
+        EXPECT_EQ(0x0000FEFFu, img.pixel(0, 479));
 
         // Scaled version
         img = Image(data, QSize(320, 240));
@@ -276,8 +276,8 @@ TEST(Image, orientation)
         EXPECT_EQ(240, img.height());
         EXPECT_EQ(0xFE0000FF, img.pixel(0, 0));
         EXPECT_EQ(0xFFFF00FF, img.pixel(319, 0));
-        EXPECT_EQ(0x00FF01FF, img.pixel(319, 239));
-        EXPECT_EQ(0x0000FEFF, img.pixel(0, 239));
+        EXPECT_EQ(0x00FF01FFu, img.pixel(319, 239));
+        EXPECT_EQ(0x0000FEFFu, img.pixel(0, 239));
 
         // This version will be produced from the thumbnail, which has
         // been tinted to distinguish it from the original.
@@ -448,7 +448,7 @@ TEST(Image, svg_transparency)
     Image img(fd.get(), QSize(400, 400));
     EXPECT_EQ(200, img.width());
     EXPECT_EQ(200, img.height());
-    EXPECT_EQ(0x0, img.pixel(0, 0));
+    EXPECT_EQ(0x0u, img.pixel(0, 0));
     EXPECT_EQ(0xFF0000FF, img.pixel(100, 100));
     EXPECT_TRUE(img.has_alpha());
 }
@@ -461,7 +461,7 @@ TEST(Image, svg_transparency_no_size)
     Image img(fd.get(), QSize());
     EXPECT_EQ(200, img.width());
     EXPECT_EQ(200, img.height());
-    EXPECT_EQ(0x0, img.pixel(0, 0));
+    EXPECT_EQ(0x0u, img.pixel(0, 0));
     EXPECT_EQ(0xFF0000FF, img.pixel(100, 100));
     EXPECT_TRUE(img.has_alpha());
 }
@@ -474,7 +474,7 @@ TEST(Image, png_transparency)
     Image img(fd.get(), QSize(400, 400));
     EXPECT_EQ(200, img.width());
     EXPECT_EQ(200, img.height());
-    EXPECT_EQ(0x0, img.pixel(0, 0));
+    EXPECT_EQ(0x0u, img.pixel(0, 0));
     EXPECT_EQ(0xFF0000FF, img.pixel(100, 100));
     EXPECT_TRUE(img.has_alpha());
 }

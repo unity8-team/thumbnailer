@@ -19,7 +19,7 @@
 #include <internal/file_io.h>
 
 #include <boost/algorithm/string.hpp>
-#include <gtest/gtest.h>
+#include <gtest_nowarn.h>
 #include <testsetup.h>
 
 #include <fcntl.h>
@@ -34,7 +34,7 @@ TEST(file_io, read_write)
     ASSERT_NE(-1, stat(in_file.c_str(), &st));
 
     string data = read_file(in_file);
-    ASSERT_EQ(st.st_size, data.size());
+    ASSERT_EQ(unsigned(st.st_size), data.size());
 
     string out_file = TESTBINDIR "/testimage.jpg";
     write_file(out_file, data);
