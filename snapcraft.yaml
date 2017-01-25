@@ -2,67 +2,67 @@ name: thumbnailer
 version: '2.4'
 summary: Daemon and admin tool to create and cache image thumbnails for media files
 description: >
-    This snap provides thumbnailer-service, a DBus daemon that extracts thumbnails from
-    local media files and retrieves music album artwork from dash.ubuntu.com. It also
-    includes thumbnailer-admin, a command-line utility that allows for basic cache
-    maintenance and testing. See lp:thumbnailer for more detail.
+  This snap provides thumbnailer-service, a DBus daemon that extracts thumbnails from
+  local media files and retrieves music album artwork from dash.ubuntu.com. It also
+  includes thumbnailer-admin, a command-line utility that allows for basic cache
+  maintenance and testing. See lp:thumbnailer for more detail.
 grade: devel
 confinement: strict
 slots:
-    service:
-        interface: dbus
-        name: com.canonical.Thumbnailer
-        bus: session
-    control:
-        interface: dbus
-        name: com.canonical.ThumbnailerAdmin
-        bus: session
+  service:
+    interface: dbus
+    name: com.canonical.Thumbnailer
+    bus: session
+  control:
+    interface: dbus
+    name: com.canonical.ThumbnailerAdmin
+    bus: session
 plugs:
-    thumbnails:
-        interface: dbus
-        name: com.canonical.Thumbnailer
-        bus: session
-    admin:
-        interface: dbus
-        name: com.canonical.ThumbnailerAdmin
-        bus: session
+  thumbnails:
+    interface: dbus
+    name: com.canonical.Thumbnailer
+    bus: session
+  admin:
+    interface: dbus
+    name: com.canonical.ThumbnailerAdmin
+    bus: session
 apps:
-    thumbnailer-service:
-        command: lib/thumbnailer/thumbnailer-service
-        # Currently cannot use a simple daemon with the session bus. For now,
-        # the service must started by hand. See https://github.com/snapcore/snapd/pull/2592
-        #daemon: simple
-        plugs:
-            - network
-            # The gsettings interface currently does not permit reading.
-            # See https://bugs.launchpad.net/snappy/+bug/1600154
-            # For now, the service uses default settings because it's gsettings lookups fail.
-            - gsettings
-        slots:
-            - control
-    thumbnailer-admin:
-        command: thumbnailer-admin
-        plugs:
-            - thumbnails
-            - admin
+  thumbnailer-service:
+    command: lib/thumbnailer/thumbnailer-service
+    # Currently cannot use a simple daemon with the session bus. For now,
+    # the service must be started by hand. See https://github.com/snapcore/snapd/pull/2592
+    # daemon: simple
+    plugs:
+      - network
+      # The gsettings interface currently does not permit reading.
+      # See https://bugs.launchpad.net/snappy/+bug/1600154
+      # For now, the service uses default settings because it's gsettings lookups fail.
+      - gsettings
+    slots:
+      - control
+  thumbnailer-admin:
+    command: thumbnailer-admin
+    plugs:
+      - thumbnails
+      - admin
 parts:
-    thumbnailer:
-        plugin: cmake
-        source: .
-        filesets:
-            binaries:
-                - bin/*
-                - lib/thumbnailer/*
-            man:
-                - share/man/*
-            etc:
-                - etc/*
-            share:
-                # This does not seem to have any effect. It is unclear right now how gsettings
-                # schemas need to be installed.
-                - share/glib-2.0/*
-        prime:
-            - $binaries
-            - $man
-            - $etc
-            - $share
+  thumbnailer:
+    plugin: cmake
+    source: .
+      filesets:
+        binaries:
+          - bin/*
+          - lib/thumbnailer/*
+        man:
+          - share/man/*
+        etc:
+          - etc/*
+        share:
+          # This does not seem to have any effect. It is unclear right now how gsettings
+          # schemas need to be installed.
+          - share/glib-2.0/*
+    prime:
+      - $binaries
+      - $man
+      - $etc
+      - $share
