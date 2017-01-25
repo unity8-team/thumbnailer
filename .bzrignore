@@ -1,8 +1,8 @@
-build
+./build
 .project
 .cproject
 .settings
-parts
-prime
-stage
-thumbnailer*.snap
+./parts
+./prime
+./stage
+./thumbnailer*.snap
