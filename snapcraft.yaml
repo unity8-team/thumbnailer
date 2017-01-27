@@ -8,47 +8,51 @@ description: >
   maintenance and testing. See lp:thumbnailer for more detail.
 grade: devel
 confinement: strict
+
 slots:
   service:
     interface: dbus
     name: com.canonical.Thumbnailer
     bus: session
-  control:
-    interface: dbus
-    name: com.canonical.ThumbnailerAdmin
-    bus: session
+
 plugs:
+  platform:
+    interface: content
+    content: ubuntu-app-platform1
+    target: ubuntu-app-platform
+    default-provider: ubuntu-app-platform
   thumbnails:
     interface: dbus
     name: com.canonical.Thumbnailer
     bus: session
-  admin:
-    interface: dbus
-    name: com.canonical.ThumbnailerAdmin
-    bus: session
+
 apps:
   thumbnailer-service:
-    command: lib/thumbnailer/thumbnailer-service
+    command: desktop-launch $SNAP/lib/thumbnailer/thumbnailer-service
     # Currently cannot use a simple daemon with the session bus. For now,
     # the service must be started by hand. See https://github.com/snapcore/snapd/pull/2592
     # daemon: simple
     plugs:
+      - platform
       - network
       # The gsettings interface currently does not permit reading.
       # See https://bugs.launchpad.net/snappy/+bug/1600154
       # For now, the service uses default settings because it's gsettings lookups fail.
       - gsettings
     slots:
-      - control
+      - service
   thumbnailer-admin:
-    command: thumbnailer-admin
+    command: desktop-launch $SNAP/bin/thumbnailer-admin
     plugs:
+      - platform
       - thumbnails
-      - admin
+
 parts:
   thumbnailer:
     plugin: cmake
     source: .
+    after:
+      - desktop-ubuntu-app-platform
     filesets:
       binaries:
         - bin/*
@@ -66,3 +70,5 @@ parts:
       - $man
       - $etc
       - $share
+    install: |
+      mkdir $SNAPCRAFT_PART_INSTALL/ubuntu-app-platform
