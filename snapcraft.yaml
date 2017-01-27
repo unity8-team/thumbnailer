@@ -49,18 +49,18 @@ parts:
   thumbnailer:
     plugin: cmake
     source: .
-      filesets:
-        binaries:
-          - bin/*
-          - lib/thumbnailer/*
-        man:
-          - share/man/*
-        etc:
-          - etc/*
-        share:
-          # This does not seem to have any effect. It is unclear right now how gsettings
-          # schemas need to be installed.
-          - share/glib-2.0/*
+    filesets:
+      binaries:
+        - bin/*
+        - lib/thumbnailer/*
+      man:
+        - share/man/*
+      etc:
+        - etc/*
+      share:
+        # This does not seem to have any effect. It is unclear right now how gsettings
+        # schemas need to be installed.
+        - share/glib-2.0/*
     prime:
       - $binaries
       - $man
