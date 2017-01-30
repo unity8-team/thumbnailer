@@ -70,6 +70,7 @@ public:
 
     // Returns status of thumbnail() set by thumbnail();
     virtual FetchStatus status() const = 0;
+    virtual std::string const& error_message() const = 0;
 
     virtual std::string const& key() const = 0;
 

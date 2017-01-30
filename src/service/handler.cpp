@@ -360,7 +360,7 @@ void Handler::sendError(QString const& error)
     if (p->request->status() == ThumbnailRequest::FetchStatus::hard_error ||
         p->request->status() == ThumbnailRequest::FetchStatus::temporary_error)
     {
-        qWarning() << error;
+        qWarning().nospace().noquote() << error << ": " << p->request->error_message().c_str();
     }
     p->bus.send(p->message.createErrorReply(ART_ERROR, error));
     p->finish_time = chrono::system_clock::now();
