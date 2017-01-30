@@ -10,7 +10,7 @@ grade: devel
 confinement: strict
 
 slots:
-  service:
+  thumbnailer:
     interface: dbus
     name: com.canonical.Thumbnailer
     bus: session
@@ -21,6 +21,8 @@ plugs:
     content: ubuntu-app-platform1
     target: ubuntu-app-platform
     default-provider: ubuntu-app-platform
+  network-manager:
+    interface: network-manager
   thumbnails:
     interface: dbus
     name: com.canonical.Thumbnailer
@@ -29,18 +31,21 @@ plugs:
 apps:
   thumbnailer-service:
     command: desktop-launch $SNAP/lib/thumbnailer/thumbnailer-service
-    # Currently cannot use a simple daemon with the session bus. For now,
+    # TODO: Currently cannot use a simple daemon with the session bus. For now,
     # the service must be started by hand. See https://github.com/snapcore/snapd/pull/2592
     # daemon: simple
     plugs:
       - platform
       - network
-      # The gsettings interface currently does not permit reading.
+      # TODO: This grants more privileges than we really need but, without this, apparmor
+      # denies access.
+      - network-manager
+      # TODO: The gsettings interface currently does not permit reading.
       # See https://bugs.launchpad.net/snappy/+bug/1600154
       # For now, the service uses default settings because it's gsettings lookups fail.
       - gsettings
     slots:
-      - service
+      - thumbnailer
   thumbnailer-admin:
     command: desktop-launch $SNAP/bin/thumbnailer-admin
     plugs:
@@ -62,7 +67,7 @@ parts:
       etc:
         - etc/*
       share:
-        # This does not seem to have any effect. It is unclear right now how gsettings
+        # TODO: This does not seem to have any effect. It is unclear right now how gsettings
         # schemas need to be installed.
         - share/glib-2.0/*
     prime:
@@ -70,5 +75,6 @@ parts:
       - $man
       - $etc
       - $share
+      - ubuntu-app-platform
     install: |
       mkdir $SNAPCRAFT_PART_INSTALL/ubuntu-app-platform
