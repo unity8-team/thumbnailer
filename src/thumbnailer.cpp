@@ -124,7 +124,7 @@ public:
         error_message_ = msg;
     }
 
-    string error_message() const
+    string const& error_message() const override
     {
         return error_message_;
     }
