@@ -34,7 +34,7 @@
 #pragma GCC diagnostic ignored "-Wcast-qual"
 #include <gio/gio.h>
 #pragma GCC diagnostic pop
-#include <gtest/gtest.h>
+#include <gtest_nowarn.h>
 #include <QCoreApplication>
 #include <QSignalSpy>
 #include <QTemporaryDir>

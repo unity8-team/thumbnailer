@@ -40,7 +40,7 @@
 #pragma clang diagnostic pop
 #endif
 #pragma GCC diagnostic pop
-#include <gtest/gtest.h>
+#include <gtest_nowarn.h>
 #include <QUrl>
 
 #include <cstdio>

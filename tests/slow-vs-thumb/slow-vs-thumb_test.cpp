@@ -22,7 +22,7 @@
 #include <testsetup.h>
 
 #include <boost/filesystem.hpp>
-#include <gtest/gtest.h>
+#include <gtest_nowarn.h>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <unity/UnityExceptions.h>

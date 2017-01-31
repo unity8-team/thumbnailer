@@ -22,7 +22,7 @@
 
 #include <internal/gobj_memory.h>
 #include <glib-object.h>
-#include <gtest/gtest.h>
+#include <gtest_nowarn.h>
 
 using namespace std;
 using namespace unity::thumbnailer::internal;
@@ -87,17 +87,17 @@ TEST(Gobj_ptr, release)
 TEST(Gobj_ptr, refcount)
 {
     GObject* o = G_OBJECT(g_object_new(G_TYPE_OBJECT, nullptr));
-    EXPECT_EQ(1, o->ref_count);
+    EXPECT_EQ(1u, o->ref_count);
     g_object_ref(o);
 
     {
-        EXPECT_EQ(2, o->ref_count);
+        EXPECT_EQ(2u, o->ref_count);
         gobj_ptr<GObject> u(o);
-        EXPECT_EQ(2, o->ref_count);
+        EXPECT_EQ(2u, o->ref_count);
         // Now it dies and refcount is reduced.
     }
 
-    EXPECT_EQ(1, o->ref_count);
+    EXPECT_EQ(1u, o->ref_count);
     g_object_unref(o);
 }
 
@@ -105,14 +105,14 @@ TEST(Gobj_ptr, copy)
 {
     GObject* o = G_OBJECT(g_object_new(G_TYPE_OBJECT, nullptr));
     gobj_ptr<GObject> u(o);
-    EXPECT_EQ(1, u->ref_count);
+    EXPECT_EQ(1u, u->ref_count);
     gobj_ptr<GObject> u2(u);
-    EXPECT_EQ(2, u->ref_count);
+    EXPECT_EQ(2u, u->ref_count);
     gobj_ptr<GObject> u3 = u2;
-    EXPECT_EQ(3, u->ref_count);
+    EXPECT_EQ(3u, u->ref_count);
     u3.reset();
     u2.reset();
-    EXPECT_EQ(1, u->ref_count);
+    EXPECT_EQ(1u, u->ref_count);
 }
 
 TEST(Gobj_ptr, swap)
