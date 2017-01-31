@@ -25,7 +25,7 @@
 #include "utils/env_var_guard.h"
 
 #include <boost/algorithm/string/predicate.hpp>
-#include <gtest/gtest.h>
+#include <gtest_nowarn.h>
 #include <QProcess>
 #include <QSignalSpy>
 #include <QTemporaryDir>
@@ -423,7 +423,7 @@ TEST_F(DBusTest, stats)
     {
         CacheStats s = reply.value().full_size_stats;
         EXPECT_EQ(temp_dir() + "/cache/unity-thumbnailer/images", s.cache_path.toStdString());
-        EXPECT_EQ(1, s.policy);
+        EXPECT_EQ(1u, s.policy);
         EXPECT_EQ(0, s.size);
         EXPECT_EQ(0, s.size_in_bytes);
         EXPECT_NE(0, s.max_size_in_bytes);
@@ -444,21 +444,21 @@ TEST_F(DBusTest, stats)
         auto list = s.histogram;
         for (auto c : list)
         {
-            EXPECT_EQ(0, c);
+            EXPECT_EQ(0u, c);
         }
     }
 
     {
         CacheStats s = reply.value().thumbnail_stats;
         EXPECT_EQ(temp_dir() + "/cache/unity-thumbnailer/thumbnails", s.cache_path.toStdString());
-        EXPECT_EQ(1, s.policy);
+        EXPECT_EQ(1u, s.policy);
         EXPECT_EQ(0, s.size);
     }
 
     {
         CacheStats s = reply.value().failure_stats;
         EXPECT_EQ(temp_dir() + "/cache/unity-thumbnailer/failures", s.cache_path.toStdString());
-        EXPECT_EQ(0, s.policy);
+        EXPECT_EQ(0u, s.policy);
         EXPECT_EQ(0, s.size);
     }
 

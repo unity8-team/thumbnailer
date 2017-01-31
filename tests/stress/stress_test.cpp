@@ -40,7 +40,7 @@
 #pragma GCC diagnostic pop
 
 #include <boost/filesystem.hpp>
-#include <gtest/gtest.h>
+#include <gtest_nowarn.h>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 

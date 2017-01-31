@@ -18,7 +18,7 @@
 
 #include <internal/check_access.h>
 
-#include <gtest/gtest.h>
+#include <gtest_nowarn.h>
 #include <testsetup.h>
 
 #include <cstdio>

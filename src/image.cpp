@@ -430,7 +430,7 @@ int Image::height() const
     return h;
 }
 
-int Image::pixel(int x, int y) const
+uint32_t Image::pixel(int x, int y) const
 {
     assert(gdk_pixbuf_get_colorspace(pixbuf_.get()) == GDK_COLORSPACE_RGB);
     assert(gdk_pixbuf_get_bits_per_sample(pixbuf_.get()) == 8);

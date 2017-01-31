@@ -25,7 +25,7 @@
 #include <testsetup.h>
 
 #include <boost/algorithm/string/predicate.hpp>
-#include <gtest/gtest.h>
+#include <gtest_nowarn.h>
 
 using namespace std;
 using namespace boost;
@@ -434,8 +434,8 @@ TEST_F(AdminTest, get_fullsize)
     EXPECT_EQ(480, img.height());
     EXPECT_EQ(0xFE0000FF, img.pixel(0, 0));
     EXPECT_EQ(0xFFFF00FF, img.pixel(639, 0));
-    EXPECT_EQ(0x00FF01FF, img.pixel(639, 479));
-    EXPECT_EQ(0x0000FEFF, img.pixel(0, 479));
+    EXPECT_EQ(0x00FF01FFu, img.pixel(639, 479));
+    EXPECT_EQ(0x0000FEFFu, img.pixel(0, 479));
 }
 
 TEST_F(AdminTest, get_large_thumbnail)
@@ -452,8 +452,8 @@ TEST_F(AdminTest, get_large_thumbnail)
     EXPECT_EQ(240, img.height());
     EXPECT_EQ(0xFE0000FF, img.pixel(0, 0));
     EXPECT_EQ(0xFFFF00FF, img.pixel(319, 0));
-    EXPECT_EQ(0x00FF01FF, img.pixel(319, 239));
-    EXPECT_EQ(0x0000FEFF, img.pixel(0, 239));
+    EXPECT_EQ(0x00FF01FFu, img.pixel(319, 239));
+    EXPECT_EQ(0x0000FEFFu, img.pixel(0, 239));
 }
 
 TEST_F(AdminTest, get_small_thumbnail_square)
@@ -539,7 +539,7 @@ TEST_F(AdminTest, get_png)
     Image img(data);
     EXPECT_EQ(200, img.width());
     EXPECT_EQ(200, img.height());
-    EXPECT_EQ(0, img.pixel(0, 0));
+    EXPECT_EQ(0u, img.pixel(0, 0));
 }
 
 TEST_F(AdminTest, get_png_no_alpha)
@@ -572,8 +572,8 @@ TEST_F(AdminTest, get_with_dir)
     EXPECT_EQ(480, img.height());
     EXPECT_EQ(0xFE0000FF, img.pixel(0, 0));
     EXPECT_EQ(0xFFFF00FF, img.pixel(639, 0));
-    EXPECT_EQ(0x00FF01FF, img.pixel(639, 479));
-    EXPECT_EQ(0x0000FEFF, img.pixel(0, 479));
+    EXPECT_EQ(0x00FF01FFu, img.pixel(639, 479));
+    EXPECT_EQ(0x0000FEFFu, img.pixel(0, 479));
 }
 
 TEST_F(AdminTest, get_with_relative_input_path)
@@ -591,8 +591,8 @@ TEST_F(AdminTest, get_with_relative_input_path)
     EXPECT_EQ(480, img.height());
     EXPECT_EQ(0xFE0000FF, img.pixel(0, 0));
     EXPECT_EQ(0xFFFF00FF, img.pixel(639, 0));
-    EXPECT_EQ(0x00FF01FF, img.pixel(639, 479));
-    EXPECT_EQ(0x0000FEFF, img.pixel(0, 479));
+    EXPECT_EQ(0x00FF01FFu, img.pixel(639, 479));
+    EXPECT_EQ(0x0000FEFFu, img.pixel(0, 479));
 }
 
 TEST_F(AdminTest, empty_input_path)

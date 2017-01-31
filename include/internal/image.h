@@ -61,7 +61,7 @@ public:
 
     // Return the pixel value at the (x,y) coordinates as an integer:
     //     r << 24 | g << 16 | b << 8 | a
-    int pixel(int x, int y) const;
+    uint32_t pixel(int x, int y) const;
 
     // Return a scaled version of the image that fits within the given
     // requested size.

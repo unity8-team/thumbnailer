@@ -27,7 +27,7 @@
 #include "utils/dbusserver.h"
 #include "utils/testutils.h"
 
-#include <gtest/gtest.h>
+#include <gtest_nowarn.h>
 #include <QGuiApplication>
 #include <QImage>
 #include <QQuickImageProvider>
