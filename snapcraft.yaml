@@ -1,0 +1,80 @@
+name: thumbnailer
+version: '2.4'
+summary: Daemon and admin tool to create and cache image thumbnails for media files
+description: >
+  This snap provides thumbnailer-service, a DBus daemon that extracts thumbnails from
+  local media files and retrieves music album artwork from dash.ubuntu.com. It also
+  includes thumbnailer-admin, a command-line utility that allows for basic cache
+  maintenance and testing. See lp:thumbnailer for more detail.
+grade: devel
+confinement: strict
+
+slots:
+  thumbnailer:
+    interface: dbus
+    name: com.canonical.Thumbnailer
+    bus: session
+
+plugs:
+  platform:
+    interface: content
+    content: ubuntu-app-platform1
+    target: ubuntu-app-platform
+    default-provider: ubuntu-app-platform
+  network-manager:
+    interface: network-manager
+  thumbnails:
+    interface: dbus
+    name: com.canonical.Thumbnailer
+    bus: session
+
+apps:
+  thumbnailer-service:
+    command: desktop-launch $SNAP/lib/thumbnailer/thumbnailer-service
+    # TODO: Currently cannot use a simple daemon with the session bus. For now,
+    # the service must be started by hand. See https://github.com/snapcore/snapd/pull/2592
+    # daemon: simple
+    plugs:
+      - platform
+      - network
+      # TODO: This grants more privileges than we really need but, without this, apparmor
+      # denies access.
+      - network-manager
+      # TODO: The gsettings interface currently does not permit reading.
+      # See https://bugs.launchpad.net/snappy/+bug/1600154
+      # For now, the service uses default settings because it's gsettings lookups fail.
+      - gsettings
+    slots:
+      - thumbnailer
+  thumbnailer-admin:
+    command: desktop-launch $SNAP/bin/thumbnailer-admin
+    plugs:
+      - platform
+      - thumbnails
+
+parts:
+  thumbnailer:
+    plugin: cmake
+    source: .
+    after:
+      - desktop-ubuntu-app-platform
+    filesets:
+      binaries:
+        - bin/*
+        - lib/thumbnailer/*
+      man:
+        - share/man/*
+      etc:
+        - etc/*
+      share:
+        # TODO: This does not seem to have any effect. It is unclear right now how gsettings
+        # schemas need to be installed.
+        - share/glib-2.0/*
+    prime:
+      - $binaries
+      - $man
+      - $etc
+      - $share
+      - ubuntu-app-platform
+    install: |
+      mkdir $SNAPCRAFT_PART_INSTALL/ubuntu-app-platform
