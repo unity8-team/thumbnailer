@@ -18,7 +18,7 @@
 
 #include <internal/backoff_adjuster.h>
 
-#include <gtest/gtest.h>
+#include <gtest_nowarn.h>
 
 #include <thread>
 

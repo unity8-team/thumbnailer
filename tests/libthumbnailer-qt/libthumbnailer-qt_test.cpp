@@ -43,7 +43,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
-#include <gtest/gtest.h>
+#include <gtest_nowarn.h>
 
 #include <QSignalSpy>
 #include <QTemporaryDir>

@@ -20,7 +20,7 @@
 
 #include <unity/UnityExceptions.h>
 
-#include <gtest/gtest.h>
+#include <gtest_nowarn.h>
 
 using namespace std;
 using namespace unity::thumbnailer::internal;

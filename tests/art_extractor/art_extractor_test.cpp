@@ -23,7 +23,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include <testsetup.h>
-#include <gtest/gtest.h>
+#include <gtest_nowarn.h>
 
 #define AIFF_FILE TESTDATADIR "/testsong.aiff"
 #define FLAC_FILE TESTDATADIR "/testsong.flac"
