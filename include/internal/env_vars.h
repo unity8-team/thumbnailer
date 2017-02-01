@@ -37,6 +37,7 @@ struct EnvVars
     static QString get_ubuntu_server_url();
     static QString get_util_dir();
     static int get_log_level();
+    static std::string get_cache_dir();
 
     static constexpr char const* MAX_IDLE = "THUMBNAILER_MAX_IDLE";
     static constexpr int DFLT_MAX_IDLE = 30000;

@@ -20,6 +20,10 @@
 
 #include <internal/config.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+#include <glib.h>
+#pragma GCC diagnostic pop
 #include <QDebug>
 #include <sstream>
 
@@ -115,6 +119,24 @@ int EnvVars::get_log_level()
         return l;
     }
     return -1;
+}
+
+string EnvVars::get_cache_dir()
+{
+    string cache_dir = g_get_user_cache_dir();  // Always returns something, even HOME and XDG_CACHE_HOME are not set.
+
+#ifdef SNAP_BUILD
+    // When running in a snap, g_get_user_cache_dir() returns $SNAP_USER_DATA (not shared among snap versions),
+    // but we want $SNAP_USER_COMMON, which is shared. PersistentCache automatically deals with versioning
+    // changes in the database, so reverting to a snap with an earlier DB schema is safe.
+    char const* user_common = getenv("SNAP_USER_COMMON");
+    if (user_common && *user_common)
+    {
+        cache_dir = user_common;
+    }
+#endif
+
+    return cache_dir;
 }
 
 }  // namespace internal

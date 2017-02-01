@@ -23,6 +23,7 @@
 #include <internal/artreply.h>
 #include <internal/cachehelper.h>
 #include <internal/check_access.h>
+#include <internal/env_vars.h>
 #include <internal/image.h>
 #include <internal/imageextractor.h>
 #include <internal/local_album_art.h>
@@ -744,17 +745,7 @@ string const BACKOFF_PERIOD_KEY = "/*** BACKOFF_PERIOD ***/";
 Thumbnailer::Thumbnailer()
     : downloader_(new UbuntuServerDownloader())
 {
-    string xdg_base = g_get_user_cache_dir();  // Always returns something, even HOME and XDG_CACHE_HOME are not set.
-
-    // When running in a snap, g_get_user_cache_dir() returns $SNAP_USER_DATA (not shared among snap versions),
-    // but we want $SNAP_USER_COMMON, which is shared. PersistentCache automatically deals with versioning
-    // changes in the database, so reverting to a snap with an earlier DB schema is safe.
-    char const* user_common = getenv("SNAP_USER_COMMON");
-    if (user_common && *user_common)
-    {
-        xdg_base = user_common;
-    }
-    string cache_dir = xdg_base + "/unity-thumbnailer";
+    string cache_dir = EnvVars::get_cache_dir() + "/unity-thumbnailer";
     make_directories(cache_dir, 0700);
 
     try
