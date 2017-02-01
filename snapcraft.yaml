@@ -44,6 +44,7 @@ apps:
       # See https://bugs.launchpad.net/snappy/+bug/1600154
       # For now, the service uses default settings because it's gsettings lookups fail.
       - gsettings
+      - home
     slots:
       - thumbnailer
   thumbnailer-admin:
@@ -51,6 +52,7 @@ apps:
     plugs:
       - platform
       - thumbnails
+      - home
 
 parts:
   thumbnailer:
