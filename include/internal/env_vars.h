@@ -18,8 +18,9 @@
 
 #pragma once
 
-#include <map>
-#include <string>
+#include <internal/config.h>
+
+#include <QString>
 
 namespace unity
 {
@@ -30,10 +31,24 @@ namespace thumbnailer
 namespace internal
 {
 
-constexpr char const* MAX_IDLE = "THUMBNAILER_MAX_IDLE";
-constexpr char const* UBUNTU_SERVER_URL = "THUMBNAILER_UBUNTU_SERVER_URL";
-constexpr char const* UTIL_DIR = "THUMBNAILER_UTIL_DIR";
-constexpr char const* LOG_LEVEL = "THUMBNAILER_LOG_LEVEL";
+struct EnvVars
+{
+    static int get_max_idle();
+    static QString get_ubuntu_server_url();
+    static QString get_util_dir();
+    static int get_log_level();
+
+    static constexpr char const* MAX_IDLE = "THUMBNAILER_MAX_IDLE";
+    static constexpr int DFLT_MAX_IDLE = 30000;
+
+    static constexpr char const* UBUNTU_SERVER_URL = "THUMBNAILER_UBUNTU_SERVER_URL";
+    static constexpr char const* DFLT_UBUNTU_SERVER_URL = "https://dash.ubuntu.com";
+
+    static constexpr char const* UTIL_DIR = "THUMBNAILER_UTIL_DIR";
+    static constexpr char const* DFLT_UTIL_DIR = SHARE_PRIV_ABS;
+
+    static constexpr char const* LOG_LEVEL = "THUMBNAILER_LOG_LEVEL";
+};
 
 }  // namespace internal
 

@@ -79,7 +79,7 @@ ArtServer::~ArtServer()
     {
         qCritical() << "Failed to terminate fake art server";
     }
-    unsetenv(unity::thumbnailer::internal::UBUNTU_SERVER_URL);
+    unsetenv(unity::thumbnailer::internal::EnvVars::UBUNTU_SERVER_URL);
 }
 
 std::string const& ArtServer::server_url() const
@@ -108,5 +108,5 @@ void ArtServer::unblock_access()
 
 void ArtServer::update_env()
 {
-    setenv(unity::thumbnailer::internal::UBUNTU_SERVER_URL, server_url().c_str(), true);
+    setenv(unity::thumbnailer::internal::EnvVars::UBUNTU_SERVER_URL, server_url().c_str(), true);
 }

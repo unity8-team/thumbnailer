@@ -55,6 +55,8 @@ apps:
 parts:
   thumbnailer:
     plugin: cmake
+    configflags:
+      - -DSNAP_BUILD=1
     source: .
     after:
       - desktop-ubuntu-app-platform

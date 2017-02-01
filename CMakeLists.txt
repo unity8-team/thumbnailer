@@ -46,6 +46,9 @@ if (${Werror})
 endif()
 
 add_definitions(-DQT_NO_KEYWORDS)
+if("${SNAP_BUILD}")
+    add_definitions(-DSNAP_BUILD=1)
+endif()
 
 include(GNUInstallDirs)
 

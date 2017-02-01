@@ -48,7 +48,7 @@ protected:
         ASSERT_NE(-1, chdir(temp_dir().c_str()));
         setenv("XDG_CACHE_HOME", qPrintable(tempdir->path() + "/cache"), true);
 
-        setenv(MAX_IDLE, "3000", true);
+        setenv(EnvVars::MAX_IDLE, "3000", true);
 
         dbus_.reset(new DBusServer());
     }
@@ -62,7 +62,7 @@ protected:
     {
         dbus_.reset();
 
-        unsetenv(MAX_IDLE);
+        unsetenv(EnvVars::MAX_IDLE);
         unsetenv("XDG_CACHE_HOME");
         tempdir.reset();
     }
@@ -723,7 +723,7 @@ int main(int argc, char** argv)
 {
     QCoreApplication app(argc, argv);
 
-    setenv(UTIL_DIR, TESTBINDIR "/../src/vs-thumb", true);
+    setenv(EnvVars::UTIL_DIR, TESTBINDIR "/../src/vs-thumb", true);
     setenv("LC_ALL", "C", true);
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

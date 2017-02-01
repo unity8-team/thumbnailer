@@ -82,7 +82,7 @@ int main(int argc, char** argv)
     QCoreApplication app(argc, argv);
 
     // Run fake vs-thumb that does nothing for 20 seconds.
-    setenv(UTIL_DIR, TESTSRCDIR "/slow-vs-thumb/slow", true);
+    setenv(EnvVars::UTIL_DIR, TESTSRCDIR "/slow-vs-thumb/slow", true);
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
