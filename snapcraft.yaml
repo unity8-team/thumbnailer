@@ -58,6 +58,8 @@ parts:
     source: .
     after:
       - desktop-ubuntu-app-platform
+    stage-packages:
+        - gstreamer1.0-libav
     filesets:
       binaries:
         - bin/*
@@ -70,11 +72,50 @@ parts:
         # TODO: This does not seem to have any effect. It is unclear right now how gsettings
         # schemas need to be installed.
         - share/glib-2.0/*
+      gstreamer:
+        # Libraries needed by the gstreamer plugins we use. Gstreamer loads these with dlopen(),
+        # and snapcraft doesn't analyze their dependencies, so we need to include the required
+        # libraries explicitly here.
+        - usr/lib/*/gstreamer-1.0/*
+        - usr/lib/*/libass*
+        - usr/lib/*/libavcodec*
+        - usr/lib/*/libavfilter*
+        - usr/lib/*/libavformat*
+        - usr/lib/*/libavresample*
+        - usr/lib/*/libavutil*
+        - usr/lib/*/libbluray*
+        - usr/lib/*/libbs2*
+        - usr/lib/*/libcrystalhd*
+        - usr/lib/*/libfaad*
+        - usr/lib/*/libflite*
+        - usr/lib/*/libfribidi*
+        - usr/lib/*/libgme*
+        - usr/lib/*/libgsm*
+        - usr/lib/*/libmodplug*
+        - usr/lib/*/libmp3lame*
+        - usr/lib/*/libnuma*
+        - usr/lib/*/libopencv*
+        - usr/lib/*/libopenjpeg*
+        - usr/lib/*/libpostproc*
+        - usr/lib/*/libschroedinger*
+        - usr/lib/*/libshine*
+        - usr/lib/*/libsodium*
+        - usr/lib/*/libsoxr*
+        - usr/lib/*/libssh-gcrypt*
+        - usr/lib/*/libsw*
+        - usr/lib/*/libtbb*
+        - usr/lib/*/libtwolame*
+        - usr/lib/*/libva*
+        - usr/lib/*/libx26*
+        - usr/lib/*/libxvidcore*
+        - usr/lib/*/libzmq*
+        - usr/lib/*/libzvbi*
     prime:
       - $binaries
       - $man
       - $etc
       - $share
+      - $gstreamer
       - ubuntu-app-platform
     install: |
       mkdir $SNAPCRAFT_PART_INSTALL/ubuntu-app-platform
