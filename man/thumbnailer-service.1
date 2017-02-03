@@ -55,7 +55,7 @@ The service reads the following environment variables:
 .B THUMBNAILER_UTIL_DIR
 The directory in which to look for the \fBvs\-thumb\fP executable, which is used
 to extract images from streaming media. If not set, the program is expected to be in
-\fB$SNAP/usr/lib/\fP\fI<arch>\fP\fB/thumbnailer\fP.
+\fB$/usr/lib/\fP\fI<arch>\fP\fB/thumbnailer\fP.
 .TP
 .B THUMBNAILER_MAX_IDLE
 The service exits once it has been idle for the number of milliseconds specified by this variable. If not set,
@@ -73,8 +73,6 @@ This variable determines the location of the on\-disk caches. Caches are written
 \fB$XDG_CACHE_HOME/unity\-thumbnailer\fP. If \fBXDG_CACHE_HOME\fP is not set, \fB$HOME/.cache/unity\-thumbnailer\fP
 is used. If \fB$HOME\fP is also not set, the home directory is determined by its setting in \fB/etc/passwd\fP
 and \fIhome\-dir\fB/.cache/unity\-thumbnailer\fR is used.
-
-In a snap environment, the caches are stored in \fB$SNAP_USER_COMMON/unity\-thumbnailer\fP instead.
 
 .SH "SEE ALSO"
 .B thumbnailer\-admin\fR(1)\fP, thumbnailer\-settings\fR(5)\fP, dconf\fR(7)\fP, gsettings\fR(1)\fP

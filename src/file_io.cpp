@@ -90,10 +90,7 @@ void write_file(string const& filename, char const* buf, size_t len)
     int fd = mkstemp(&tmp_path[0]);
     if (fd == -1)
     {
-        string s = string("write_file(): mkstemp() failed for " + tmp_path + ": ") + safe_strerror(errno);
-#ifdef SNAP_BUILD
-        s += "\nCheck that " + dir.native() + " is writable for the thumbnailer-admin snap.";
-#endif
+        string s = string("write_file(): cannot create temp file in " + dir.native() + ": ") + safe_strerror(errno);
         throw runtime_error(s);
     }
 

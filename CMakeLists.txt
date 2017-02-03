@@ -46,7 +46,9 @@ if (${Werror})
 endif()
 
 add_definitions(-DQT_NO_KEYWORDS)
-if("${SNAP_BUILD}")
+
+option(SnapBuild "Build for snap release")
+if(${SnapBuild} OR "${SNAP_BUILD}")
     add_definitions(-DSNAP_BUILD=1)
 endif()
 

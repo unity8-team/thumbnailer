@@ -77,19 +77,20 @@ QString EnvVars::get_ubuntu_server_url()
 
 QString EnvVars::get_util_dir()
 {
-#ifdef SNAP_BUILD
-    char const* snapdir = getenv("SNAP");
-    if (!snapdir || !*snapdir)
-    {
-        throw std::invalid_argument("Environment variable SNAP is not set or empty.");
-    }
-    return QString(snapdir) + "/" + SHARE_PRIV_ABS;
-#else
     char const* utildir = getenv(UTIL_DIR);
     if (utildir && *utildir)
     {
         return utildir;
     }
+
+#ifdef SNAP_BUILD
+    char const* snapdir = getenv("SNAP");
+    if (!snapdir || !*snapdir)
+    {
+        throw std::runtime_error("Environment variable SNAP is not set or empty.");
+    }
+    return QString(snapdir) + "/" + SHARE_PRIV_ABS;
+#else
     return SHARE_PRIV_ABS;
 #endif
 }
@@ -132,8 +133,9 @@ string EnvVars::get_cache_dir()
     char const* user_common = getenv("SNAP_USER_COMMON");
     if (user_common && *user_common)
     {
-        cache_dir = user_common;
+        return user_common;
     }
+    setenv("SNAP_USER_COMMON", cache_dir.c_str(), 1);
 #endif
 
     return cache_dir;
