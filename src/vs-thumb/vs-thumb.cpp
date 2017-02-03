@@ -19,6 +19,7 @@
 
 #include "thumbnailextractor.h"
 
+#include <internal/env_vars.h>
 #include <internal/trace.h>
 
 #include <QUrl>
@@ -120,6 +121,8 @@ int main(int argc, char** argv)
 
     try
     {
+        EnvVars::set_snap_env();
+
         extract_thumbnail(in_url, out_url);
     }
     catch (exception const& e)
