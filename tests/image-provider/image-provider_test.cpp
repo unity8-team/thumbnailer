@@ -40,7 +40,6 @@
 
 using namespace std;
 using namespace unity::thumbnailer::qml;
-using unity::thumbnailer::internal::UTIL_DIR;
 using unity::thumbnailer::qt::Thumbnailer;
 
 class ProviderTest : public ::testing::Test
@@ -214,7 +213,7 @@ int main(int argc, char **argv)
     QGuiApplication app(argc, argv);
     setenv("GSETTINGS_BACKEND", "memory", true);
     setenv("GSETTINGS_SCHEMA_DIR", GSETTINGS_SCHEMA_DIR, true);
-    setenv(UTIL_DIR, TESTBINDIR "/../src/vs-thumb", true);
+    setenv(unity::thumbnailer::internal::EnvVars::UTIL_DIR, TESTBINDIR "/../src/vs-thumb", true);
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

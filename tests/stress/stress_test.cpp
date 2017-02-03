@@ -163,7 +163,7 @@ protected:
         tempdir.reset(new QTemporaryDir(TESTBINDIR "/stress-test.XXXXXX"));
         setenv("XDG_CACHE_HOME", (tempdir->path() + "/cache").toUtf8().data(), true);
 
-        setenv(MAX_IDLE, "30000", true);
+        setenv(EnvVars::MAX_IDLE, "30000", true);
 
         dbus_.reset(new DBusServer());
         thumbnailer_.reset(new unity::thumbnailer::qt::Thumbnailer(dbus_->connection()));
@@ -224,7 +224,7 @@ protected:
         dbus_.reset();
         art_server_.reset();
 
-        unsetenv(MAX_IDLE);
+        unsetenv(EnvVars::MAX_IDLE);
         unsetenv("XDG_CACHE_HOME");
         tempdir.reset();
 
@@ -612,8 +612,8 @@ int main(int argc, char** argv)
 #endif
     setenv("GSETTINGS_BACKEND", "memory", true);
     setenv("GSETTINGS_SCHEMA_DIR", GSETTINGS_SCHEMA_DIR, true);
-    setenv(UTIL_DIR, TESTBINDIR "/../src/vs-thumb", true);
-    setenv(LOG_LEVEL, "0", true);
+    setenv(EnvVars::UTIL_DIR, TESTBINDIR "/../src/vs-thumb", true);
+    setenv(EnvVars::LOG_LEVEL, "0", true);
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

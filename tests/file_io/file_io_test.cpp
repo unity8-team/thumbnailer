@@ -113,7 +113,7 @@ TEST(file_io, exceptions)
     {
         chmod(dir.c_str(), 0700);
         string msg = e.what();
-        EXPECT_TRUE(boost::starts_with(msg, "write_file(): mkstemp() failed for ")) << msg;
+        EXPECT_TRUE(boost::starts_with(msg, "write_file(): cannot create temp file in ")) << msg;
     }
 
     try

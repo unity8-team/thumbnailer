@@ -18,6 +18,7 @@ add_library(thumbnailer-static STATIC
     artdownloader.cpp
     backoff_adjuster.cpp
     check_access.cpp
+    env_vars.cpp
     file_io.cpp
     file_lock.cpp
     image.cpp

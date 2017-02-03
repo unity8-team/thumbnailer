@@ -188,7 +188,7 @@ TEST(Settings, negative_int)
 
 TEST(Settings, log_level_env_override)
 {
-    EnvVarGuard ev_guard(LOG_LEVEL, "0");
+    EnvVarGuard ev_guard(EnvVars::LOG_LEVEL, "0");
 
     Settings settings;
     EXPECT_EQ(0, settings.log_level());
@@ -196,7 +196,7 @@ TEST(Settings, log_level_env_override)
 
 TEST(Settings, log_level_env_bad_setting)
 {
-    EnvVarGuard ev_guard(LOG_LEVEL, "abc");
+    EnvVarGuard ev_guard(EnvVars::LOG_LEVEL, "abc");
 
     Settings settings;
     EXPECT_EQ(1, settings.log_level());
@@ -204,7 +204,7 @@ TEST(Settings, log_level_env_bad_setting)
 
 TEST(Settings, log_level_out_of_range)
 {
-    EnvVarGuard ev_guard(LOG_LEVEL, "3");
+    EnvVarGuard ev_guard(EnvVars::LOG_LEVEL, "3");
 
     Settings settings;
     EXPECT_EQ(1, settings.log_level());
