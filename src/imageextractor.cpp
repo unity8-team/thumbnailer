@@ -20,7 +20,6 @@
 
 #include <internal/imageextractor.h>
 
-#include <internal/config.h>
 #include <internal/env_vars.h>
 #include <internal/safe_strerror.h>
 
@@ -102,9 +101,7 @@ void ImageExtractor::extract()
 {
     // Gstreamer video pipelines are unstable so we need to run an
     // external helper executable.
-    char* utildir = getenv(UTIL_DIR);
-    exe_path_ = utildir ? utildir : SHARE_PRIV_ABS;
-    exe_path_ += QLatin1String("/vs-thumb");
+    exe_path_ = EnvVars::get_util_dir() + "/vs-thumb";
     QUrl in_url = QUrl::fromLocalFile(filename_.c_str());
     QUrl out_url;
     out_url.setScheme("fd");

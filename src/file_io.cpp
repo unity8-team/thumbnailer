@@ -90,7 +90,7 @@ void write_file(string const& filename, char const* buf, size_t len)
     int fd = mkstemp(&tmp_path[0]);
     if (fd == -1)
     {
-        string s = string("write_file(): mkstemp() failed for " + tmp_path + ": ") + safe_strerror(errno);
+        string s = string("write_file(): cannot create temp file in " + dir.native() + ": ") + safe_strerror(errno);
         throw runtime_error(s);
     }
 

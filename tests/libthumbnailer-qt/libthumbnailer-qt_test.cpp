@@ -82,7 +82,7 @@ protected:
         tempdir.reset(new QTemporaryDir(TESTBINDIR "/libthumbnailer-qt.XXXXXX"));
         setenv("XDG_CACHE_HOME", (tempdir->path() + "/cache").toUtf8().data(), true);
 
-        setenv(MAX_IDLE, "10000", true);
+        setenv(EnvVars::MAX_IDLE, "10000", true);
 
         dbus_.reset(new DBusServer());
     }
@@ -97,7 +97,7 @@ protected:
         dbus_.reset();
         art_server_.reset();
 
-        unsetenv(MAX_IDLE);
+        unsetenv(EnvVars::MAX_IDLE);
         unsetenv("XDG_CACHE_HOME");
         tempdir.reset();
     }
@@ -794,7 +794,7 @@ int main(int argc, char** argv)
 
     setenv("GSETTINGS_BACKEND", "memory", true);
     setenv("GSETTINGS_SCHEMA_DIR", GSETTINGS_SCHEMA_DIR, true);
-    setenv(UTIL_DIR, TESTBINDIR "/../src/vs-thumb", true);
+    setenv(EnvVars::UTIL_DIR, TESTBINDIR "/../src/vs-thumb", true);
 
     // Turn on trace so we get coverage on those parts of the code.
     gobj_ptr<GSettings> gsettings(g_settings_new("com.canonical.Unity.Thumbnailer"));

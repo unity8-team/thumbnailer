@@ -447,7 +447,7 @@ TEST_F(ThumbnailerTest, exceptions)
 TEST_F(ThumbnailerTest, vs_thumb_exec_failure)
 {
     // Cause vs-thumb exec failure.
-    EnvVarGuard ev_guard(UTIL_DIR, "no_such_directory");
+    EnvVarGuard ev_guard(EnvVars::UTIL_DIR, "no_such_directory");
 
     Thumbnailer tn;
 
@@ -468,7 +468,7 @@ TEST_F(ThumbnailerTest, vs_thumb_exec_failure)
 TEST_F(ThumbnailerTest, vs_thumb_exit_1)
 {
     // Run fake vs-thumb that exits with status 1
-    EnvVarGuard ev_guard(UTIL_DIR, TESTSRCDIR "/thumbnailer/vs-thumb-exit-1");
+    EnvVarGuard ev_guard(EnvVars::UTIL_DIR, TESTSRCDIR "/thumbnailer/vs-thumb-exit-1");
 
     Thumbnailer tn;
 
@@ -489,7 +489,7 @@ TEST_F(ThumbnailerTest, vs_thumb_exit_1)
 TEST_F(ThumbnailerTest, vs_thumb_exit_2)
 {
     // Run fake vs-thumb that exits with status 2
-    EnvVarGuard ev_guard(UTIL_DIR, TESTSRCDIR "/thumbnailer/vs-thumb-exit-2");
+    EnvVarGuard ev_guard(EnvVars::UTIL_DIR, TESTSRCDIR "/thumbnailer/vs-thumb-exit-2");
 
     Thumbnailer tn;
 
@@ -510,7 +510,7 @@ TEST_F(ThumbnailerTest, vs_thumb_exit_2)
 TEST_F(ThumbnailerTest, vs_thumb_exit_99)
 {
     // Run fake vs-thumb that exits with status 99
-    EnvVarGuard ev_guard(UTIL_DIR, TESTSRCDIR "/thumbnailer/vs-thumb-exit-99");
+    EnvVarGuard ev_guard(EnvVars::UTIL_DIR, TESTSRCDIR "/thumbnailer/vs-thumb-exit-99");
 
     Thumbnailer tn;
 
@@ -531,7 +531,7 @@ TEST_F(ThumbnailerTest, vs_thumb_exit_99)
 TEST_F(ThumbnailerTest, vs_thumb_crash)
 {
     // Run fake vs-thumb that kills itself with SIGTERM
-    EnvVarGuard ev_guard(UTIL_DIR, TESTSRCDIR "/thumbnailer/vs-thumb-crash");
+    EnvVarGuard ev_guard(EnvVars::UTIL_DIR, TESTSRCDIR "/thumbnailer/vs-thumb-crash");
 
     Thumbnailer tn;
 
@@ -1011,7 +1011,7 @@ TEST_F(RemoteServer, album_and_artist_have_distinct_keys)
 TEST_F(RemoteServer, dead_server)
 {
     // Dead server won't reply.
-    EnvVarGuard ev_guard(UBUNTU_SERVER_URL, "http://deadserver.invalid");
+    EnvVarGuard ev_guard(EnvVars::UBUNTU_SERVER_URL, "http://deadserver.invalid");
 
     Thumbnailer tn;
 
@@ -1032,8 +1032,8 @@ int main(int argc, char** argv)
     QCoreApplication app(argc, argv);
     setenv("GSETTINGS_BACKEND", "memory", true);
     setenv("GSETTINGS_SCHEMA_DIR", GSETTINGS_SCHEMA_DIR, true);
-    setenv(UTIL_DIR, TESTBINDIR "/../src/vs-thumb", true);
-    setenv(UBUNTU_SERVER_URL, "http://127.0.0.1", true);
+    setenv(EnvVars::UTIL_DIR, TESTBINDIR "/../src/vs-thumb", true);
+    setenv(EnvVars::UBUNTU_SERVER_URL, "http://127.0.0.1", true);
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

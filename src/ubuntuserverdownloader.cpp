@@ -99,17 +99,6 @@ QString api_key()
     return key;
 }
 
-char const* server_url()
-{
-    char const* server_url = DFLT_SERVER_URL;
-    char const* override_url = getenv(thumbnailer::internal::UBUNTU_SERVER_URL);
-    if (override_url && *override_url)
-    {
-        server_url = override_url;
-    }
-    return server_url;
-}
-
 }  // namespace
 
 class UbuntuServerArtReply : public ArtReply
@@ -279,7 +268,7 @@ shared_ptr<ArtReply> UbuntuServerDownloader::download_album(QString const& artis
                                                             QString const& album,
                                                             chrono::milliseconds timeout)
 {
-    auto url = make_art_url(server_url(), ALBUM_ART_BASE_URL, artist, album, api_key_);
+    auto url = make_art_url(EnvVars::get_ubuntu_server_url(), ALBUM_ART_BASE_URL, artist, album, api_key_);
     return download_url(url, timeout);
 }
 
@@ -287,7 +276,7 @@ shared_ptr<ArtReply> UbuntuServerDownloader::download_artist(QString const& arti
                                                              QString const& album,
                                                              chrono::milliseconds timeout)
 {
-    auto url = make_art_url(server_url(), ARTIST_ART_BASE_URL, artist, album, api_key_);
+    auto url = make_art_url(EnvVars::get_ubuntu_server_url(), ARTIST_ART_BASE_URL, artist, album, api_key_);
     return download_url(url, timeout);
 }
 

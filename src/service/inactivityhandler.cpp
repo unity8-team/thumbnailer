@@ -28,44 +28,6 @@
 #include <sstream>
 #include <string>
 
-const int MAX_INACTIVITY_TIME = 30000;  // max inactivity time before exiting the app, in milliseconds
-
-namespace
-{
-
-int get_env_inactivity_time(int default_value)
-{
-    using namespace unity::thumbnailer::internal;
-
-    char const* c_idle_time = getenv(MAX_IDLE);
-    if (c_idle_time)
-    {
-        std::string str_idle_time(c_idle_time);
-        try
-        {
-            int env_value = std::stoi(str_idle_time);
-            if (env_value < 1000)
-            {
-                std::ostringstream s;
-                s << "InactivityHandler::InactivityHandler(): Value for env variable THUMBNAILER_MAX_IDLE \""
-                  << env_value << "\" must be >= 1000.";
-                throw std::invalid_argument(s.str());
-            }
-            return env_value;
-        }
-        catch (std::exception& e)
-        {
-            std::ostringstream s;
-            s << "InactivityHandler::InactivityHandler(): Value for env variable THUMBNAILER_MAX_IDLE \""
-              << str_idle_time << "\" must be >= 1000.";
-            throw std::invalid_argument(s.str());
-        }
-    }
-    return default_value;
-}
-
-}  // namespace
-
 namespace unity
 {
 
@@ -81,7 +43,7 @@ InactivityHandler::InactivityHandler(std::function<void()> const& timer_func)
 {
     assert(timer_func);
     connect(&timer_, &QTimer::timeout, this, &InactivityHandler::timer_expired);
-    timer_.setInterval(get_env_inactivity_time(MAX_INACTIVITY_TIME));
+    timer_.setInterval(internal::EnvVars::get_max_idle());
 }
 
 InactivityHandler::~InactivityHandler()
