@@ -50,6 +50,11 @@ void EnvVars::set_snap_env()
             throw runtime_error("Env var SNAP_LAUNCHER_ARCH_TRIPLET not set");
         }
         string plugin_path = string(snap) + "/usr/lib/" + arch + "/gstreamer-1.0";
+        char const* old_plugin_path = getenv("GST_PLUGIN_PATH");
+        if (old_plugin_path && *old_plugin_path)
+        {
+            plugin_path += string(":") + old_plugin_path;
+        }
         setenv("GST_PLUGIN_PATH", plugin_path.c_str(), 1);
     }
 #endif
