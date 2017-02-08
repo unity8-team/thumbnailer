@@ -62,9 +62,9 @@ parts:
     source: .
     after:
       - desktop-ubuntu-app-platform
-    stage-packages:
+    build-packages:
         - gstreamer1.0-libav  # For H.264
-        - libgpm2             # Needed by libav
+        - libgpm2             # Needed by gstreamer1.0-libav
     filesets:
       binaries:
         - bin/*
@@ -81,37 +81,8 @@ parts:
         # Libraries needed by the gstreamer plugins we use. Gstreamer loads these with dlopen(),
         # and snapcraft doesn't analyze their dependencies, so we need to include the required
         # libraries explicitly here.
-        - usr/lib/*/gstreamer-1.0/*
-        - usr/lib/*/libass*
-        - usr/lib/*/libav*
-        - usr/lib/*/libbluray*
-        - usr/lib/*/libbs2*
-        - usr/lib/*/libcrystalhd*
-        - usr/lib/*/libfaad*
-        - usr/lib/*/libflite*
-        - usr/lib/*/libfribidi*
-        - usr/lib/*/libgme*
-        - usr/lib/*/libgpm*
-        - usr/lib/*/libgsm*
-        - usr/lib/*/libmodplug*
-        - usr/lib/*/libmp3lame*
-        - usr/lib/*/libnuma*
-        - usr/lib/*/libopencv*
-        - usr/lib/*/libopenjpeg*
-        - usr/lib/*/libpostproc*
-        - usr/lib/*/libschroedinger*
-        - usr/lib/*/libshine*
-        - usr/lib/*/libsodium*
-        - usr/lib/*/libsoxr*
-        - usr/lib/*/libssh-gcrypt*
-        - usr/lib/*/libsw*
-        - usr/lib/*/libtbb*
-        - usr/lib/*/libtwolame*
-        - usr/lib/*/libva*
-        - usr/lib/*/libx26*
-        - usr/lib/*/libxvidcore*
-        - usr/lib/*/libzmq*
-        - usr/lib/*/libzvbi*
+        - usr/lib/*/gstreamer-1.0/libgstlibav.so
+        - usr/lib/*/libgpm.so.2
     prime:
       - $binaries
       - $man
@@ -120,4 +91,14 @@ parts:
       - $gstreamer
       - ubuntu-app-platform
     install: |
-      mkdir $SNAPCRAFT_PART_INSTALL/ubuntu-app-platform
+      # Make sure we have a mount point for ubuntu-app-platform
+      mkdir -p $SNAPCRAFT_PART_INSTALL/ubuntu-app-platform
+      # Copy the libav plugin to the prime, so snapcraft runs ldd over it
+      # and adds the dependencies of libgstlibav.so to the prime.
+      plugin_dir=$(echo /usr/lib/*/gstreamer-1.0)
+      mkdir -p $SNAPCRAFT_PART_INSTALL/$plugin_dir
+      plugin=$plugin_dir/libgstlibav.so
+      cp $plugin $SNAPCRAFT_PART_INSTALL/$plugin_dir
+      # Similar for libgpm2.so, which is a dependency of libav.
+      libgpm=$(echo /usr/lib/*/libgpm.so.2)
+      cp $libgpm $SNAPCRAFT_PART_INSTALL/$libgpm
