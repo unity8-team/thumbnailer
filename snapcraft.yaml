@@ -78,9 +78,7 @@ parts:
         # schemas need to be installed.
         - share/glib-2.0/*
       gstreamer:
-        # Libraries needed by the gstreamer plugins we use. Gstreamer loads these with dlopen(),
-        # and snapcraft doesn't analyze their dependencies, so we need to include the required
-        # libraries explicitly here.
+        # Libraries needed by the gstreamer plugins we use. Gstreamer loads these with dlopen().
         - usr/lib/*/gstreamer-1.0/libgstlibav.so
         - usr/lib/*/libgpm.so.2
     prime:
