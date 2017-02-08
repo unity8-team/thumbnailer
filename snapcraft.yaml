@@ -63,7 +63,8 @@ parts:
     after:
       - desktop-ubuntu-app-platform
     stage-packages:
-        - gstreamer1.0-libav
+        - gstreamer1.0-libav  # For H.264
+        - libgpm2             # Needed by libav
     filesets:
       binaries:
         - bin/*
@@ -82,11 +83,7 @@ parts:
         # libraries explicitly here.
         - usr/lib/*/gstreamer-1.0/*
         - usr/lib/*/libass*
-        - usr/lib/*/libavcodec*
-        - usr/lib/*/libavfilter*
-        - usr/lib/*/libavformat*
-        - usr/lib/*/libavresample*
-        - usr/lib/*/libavutil*
+        - usr/lib/*/libav*
         - usr/lib/*/libbluray*
         - usr/lib/*/libbs2*
         - usr/lib/*/libcrystalhd*
@@ -94,6 +91,7 @@ parts:
         - usr/lib/*/libflite*
         - usr/lib/*/libfribidi*
         - usr/lib/*/libgme*
+        - usr/lib/*/libgpm*
         - usr/lib/*/libgsm*
         - usr/lib/*/libmodplug*
         - usr/lib/*/libmp3lame*

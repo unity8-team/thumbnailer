@@ -60,8 +60,6 @@ int main(int argc, char** argv)
 
     TraceMessageHandler message_handler(progname);
 
-    gst_init(&argc, &argv);
-
     if (argc != 3)
     {
         cerr << "usage: " << progname << " source-file (output-file.tiff | fd:num)" << endl;
@@ -121,8 +119,8 @@ int main(int argc, char** argv)
 
     try
     {
-        EnvVars::set_snap_env();
-
+        EnvVars::set_snap_env();  // Must be called before gst_init().
+        gst_init(&argc, &argv);
         extract_thumbnail(in_url, out_url);
     }
     catch (exception const& e)
