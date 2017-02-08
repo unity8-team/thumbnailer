@@ -33,6 +33,8 @@ namespace internal
 
 struct EnvVars
 {
+    static void set_snap_env();
+
     static int get_max_idle();
     static QString get_ubuntu_server_url();
     static QString get_util_dir();

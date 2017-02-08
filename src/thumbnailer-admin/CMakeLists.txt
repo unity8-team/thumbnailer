@@ -20,8 +20,6 @@ add_executable(thumbnailer-admin
     shutdown.cpp
     thumbnailer-admin.cpp
     util.cpp
-    ${CMAKE_SOURCE_DIR}/src/file_io.cpp
-    ${CMAKE_SOURCE_DIR}/src/safe_strerror.cpp
     ${CMAKE_SOURCE_DIR}/src/service/stats.cpp
     ${interface_files}
 )

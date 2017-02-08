@@ -19,6 +19,7 @@
 
 #include "thumbnailextractor.h"
 
+#include <internal/env_vars.h>
 #include <internal/trace.h>
 
 #include <QUrl>
@@ -57,69 +58,73 @@ int main(int argc, char** argv)
 {
     char const * const progname = basename(argv[0]);
 
-    TraceMessageHandler message_handler(progname);
-
-    gst_init(&argc, &argv);
-
-    if (argc != 3)
-    {
-        cerr << "usage: " << progname << " source-file (output-file.tiff | fd:num)" << endl;
-        return 1;
-    }
-
-    QUrl in_url(argv[1], QUrl::StrictMode);
-    if (!in_url.isValid())
-    {
-        cerr << progname << ": invalid input URL: " << argv[1] << endl;
-        return 2;
-    }
-
-    QUrl out_url(argv[2], QUrl::StrictMode);
-    if (!out_url.isValid())
-    {
-        cerr << progname << ": invalid output URL: " << argv[2] << endl;
-        return 2;
-    }
-
-    auto in_scheme = in_url.scheme();
-    if (in_scheme != "file")
-    {
-        cerr << progname << ": invalid input URL: " << argv[1] << " (invalid scheme name, requires \"file:\")" << endl;
-        return 2;
-    }
-
-    auto out_scheme = out_url.scheme();
-    if (out_scheme != "file" && out_scheme != "fd")
-    {
-        cerr << progname << ": invalid output URL: " << argv[2]
-             << " (invalid scheme name, requires \"file:\" or \"fd:\")" << endl;
-        return 2;
-    }
-
-    if (out_scheme == "file")
-    {
-        // Output file name must end in .tiff.
-        auto out_path = out_url.path();
-        if (!out_path.endsWith(".tiff", Qt::CaseInsensitive))
-        {
-            cerr << progname << ": invalid output file name: " << argv[2] << " (missing .tiff extension)" << endl;
-            return 2;
-        }
-    }
-    else
-    {
-        // For fd: scheme, path must parse as a number.
-        bool ok;
-        out_url.path().toInt(&ok);
-        if (!ok)
-        {
-            cerr << progname << ": invalid URL: " << argv[2] << " (expected a number for file descriptor)" << endl;
-            return 2;
-        }
-    }
-
     try
     {
+        TraceMessageHandler message_handler(progname);
+
+        // TODO: set_snap_env() sets GST_PLUGIN_PATH. It would be nice if
+        //       desktop-launch did this. Once it does, we can remove this again.
+        EnvVars::set_snap_env();  // Must be called before gst_init().
+
+        gst_init(&argc, &argv);
+
+        if (argc != 3)
+        {
+            cerr << "usage: " << progname << " source-file (output-file.tiff | fd:num)" << endl;
+            return 1;
+        }
+
+        QUrl in_url(argv[1], QUrl::StrictMode);
+        if (!in_url.isValid())
+        {
+            cerr << progname << ": invalid input URL: " << argv[1] << endl;
+            return 2;
+        }
+
+        QUrl out_url(argv[2], QUrl::StrictMode);
+        if (!out_url.isValid())
+        {
+            cerr << progname << ": invalid output URL: " << argv[2] << endl;
+            return 2;
+        }
+
+        auto in_scheme = in_url.scheme();
+        if (in_scheme != "file")
+        {
+            cerr << progname << ": invalid input URL: " << argv[1] << " (invalid scheme name, requires \"file:\")" << endl;
+            return 2;
+        }
+
+        auto out_scheme = out_url.scheme();
+        if (out_scheme != "file" && out_scheme != "fd")
+        {
+            cerr << progname << ": invalid output URL: " << argv[2]
+                 << " (invalid scheme name, requires \"file:\" or \"fd:\")" << endl;
+            return 2;
+        }
+
+        if (out_scheme == "file")
+        {
+            // Output file name must end in .tiff.
+            auto out_path = out_url.path();
+            if (!out_path.endsWith(".tiff", Qt::CaseInsensitive))
+            {
+                cerr << progname << ": invalid output file name: " << argv[2] << " (missing .tiff extension)" << endl;
+                return 2;
+            }
+        }
+        else
+        {
+            // For fd: scheme, path must parse as a number.
+            bool ok;
+            out_url.path().toInt(&ok);
+            if (!ok)
+            {
+                cerr << progname << ": invalid URL: " << argv[2] << " (expected a number for file descriptor)" << endl;
+                return 2;
+            }
+        }
+
         extract_thumbnail(in_url, out_url);
     }
     catch (exception const& e)

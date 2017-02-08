@@ -62,6 +62,8 @@ parts:
     source: .
     after:
       - desktop-ubuntu-app-platform
+    build-packages:
+        - gstreamer1.0-libav  # For H.264
     filesets:
       binaries:
         - bin/*
@@ -74,11 +76,21 @@ parts:
         # TODO: This does not seem to have any effect. It is unclear right now how gsettings
         # schemas need to be installed.
         - share/glib-2.0/*
+      gstreamer:
+        # Libraries needed by the gstreamer plugins we use. Gstreamer loads these with dlopen().
+        - usr/lib/*/gstreamer-1.0/libgstlibav.so
     prime:
       - $binaries
       - $man
       - $etc
       - $share
+      - $gstreamer
       - ubuntu-app-platform
     install: |
-      mkdir $SNAPCRAFT_PART_INSTALL/ubuntu-app-platform
+      # Make sure we have a mount point for ubuntu-app-platform
+      mkdir -p $SNAPCRAFT_PART_INSTALL/ubuntu-app-platform
+      # Copy the libav plugin to the prime, so snapcraft runs ldd over it
+      # and adds the dependencies of libgstlibav.so to the prime.
+      plugin=$(echo /usr/lib/*/gstreamer-1.0/libgstlibav.so)
+      mkdir -p $SNAPCRAFT_PART_INSTALL/$(dirname $plugin)
+      cp $plugin $SNAPCRAFT_PART_INSTALL/$plugin
