@@ -1,3 +1,5 @@
+find_package(GSettings)
+
 add_schema(com.canonical.Unity.Thumbnailer.gschema.xml)
 
 # compile schema - only needed for tests; actual schema is handled as part of add_schema above
