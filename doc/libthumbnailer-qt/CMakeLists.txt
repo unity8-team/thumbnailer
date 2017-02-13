@@ -1,4 +1,4 @@
-include(UseDoxygen OPTIONAL)
+find_package(DoxygenBuilder)
 
 file(GLOB libthumbnailer_headers "${PROJECT_SOURCE_DIR}/include/unity/thumbnailer/qt/*.h")
 
