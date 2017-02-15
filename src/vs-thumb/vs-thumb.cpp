@@ -62,10 +62,6 @@ int main(int argc, char** argv)
     {
         TraceMessageHandler message_handler(progname);
 
-        // TODO: set_snap_env() sets GST_PLUGIN_PATH. It would be nice if
-        //       desktop-launch did this. Once it does, we can remove this again.
-        EnvVars::set_snap_env();  // Must be called before gst_init().
-
         gst_init(&argc, &argv);
 
         if (argc != 3)
