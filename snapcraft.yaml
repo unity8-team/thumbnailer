@@ -62,8 +62,6 @@ parts:
     source: .
     after:
       - desktop-ubuntu-app-platform
-    build-packages:
-        - gstreamer1.0-libav  # For H.264
     filesets:
       binaries:
         - bin/*
@@ -94,3 +92,32 @@ parts:
       plugin=$(echo /usr/lib/*/gstreamer-1.0/libgstlibav.so)
       mkdir -p $SNAPCRAFT_PART_INSTALL/$(dirname $plugin)
       cp $plugin $SNAPCRAFT_PART_INSTALL/$plugin
+
+    build-packages:
+      - cmake
+      - cmake-extras
+      - google-mock
+      - gstreamer1.0-libav  # For H.264
+      - libapparmor-dev
+      - libboost-filesystem-dev
+      - libboost-iostreams-dev
+      - libboost-regex-dev
+      - libexif-dev
+      - libgdk-pixbuf2.0-dev
+      - libgstreamer1.0-dev
+      - libgstreamer-plugins-base1.0-dev
+      - libgtest-dev
+      - libleveldb-dev
+      - libqtdbustest1-dev
+      - librsvg2-common
+      - libtag1-dev
+      - libunity-api-dev
+      - lsb-release
+      - persistent-cache-cpp-dev
+      - qml-module-qtquick2
+      - qml-module-qttest
+      - qtbase5-dev
+      - qtbase5-dev-tools
+      - qtdeclarative5-dev
+      - shared-mime-info
+      - doxygen
