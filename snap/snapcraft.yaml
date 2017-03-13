@@ -87,6 +87,7 @@ parts:
     build-packages:
       - cmake
       - cmake-extras
+      - gettext
       - google-mock
       - gstreamer1.0-libav  # For H.264
       - libapparmor-dev
